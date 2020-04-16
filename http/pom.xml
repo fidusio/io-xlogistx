@@ -20,8 +20,6 @@
   <artifactId>xlogistx-http</artifactId>
   <packaging>jar</packaging>
 
-  
-
 
   <dependencies>
     <dependency>
