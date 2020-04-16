@@ -17,6 +17,7 @@
       <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
+  
    <scm>
     <url>https://github.com/fidusio/io-xlogistx.git</url>
     <connection>scm:git:git://github.com/fidusio/io-xlogistx.git</connection>
