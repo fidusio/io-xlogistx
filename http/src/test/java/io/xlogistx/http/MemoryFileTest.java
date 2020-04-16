@@ -12,7 +12,7 @@ public class MemoryFileTest {
     public static void main(String[] args) throws Exception {
 
         RandomAccessFile memoryMappedFile = new RandomAccessFile("/largeFile.txt", "rw");
-        System.exit(0);
+
         //Mapping a file into memory
 
         MappedByteBuffer out = memoryMappedFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, count);

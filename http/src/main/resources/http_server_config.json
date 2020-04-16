@@ -1,0 +1,109 @@
+{
+  "name" : "name of server",
+  "description" : "",
+
+  "connections":
+  [
+    {
+      "name": "http",
+      "schemes": ["http"],
+      "socket_config":
+      {
+        "port": 80,
+        "backlog": 250
+      }
+    },
+    {
+      "name": "https",
+      "schemes": ["https"],
+      "socket_config":
+      {
+        "port": 443,
+        "backlog": 250
+      },
+      "ssl_config":
+      {
+        "name": "SSLCONFIG",
+        "key_store": "filename.jks",
+        "key_store_type": "pksc12",
+        "key_store_password": "password",
+        "protocols": [
+          "TLSv1.2",
+          "TLSv1.3"
+        ],
+        "ciphers": [
+        ]
+      }
+    }
+  ],
+  "endpoints":
+  [
+    { "name": "ping",
+      "bean": "org.server.Handle",
+      "methods":
+      [ "GET", "POST"],
+      "properties": {
+        "public_dir": "/temp/public"
+      }
+    }
+  ],
+  "handles":
+  [
+    {
+      "name": "ping",
+      "bean": "",
+      "methods":
+      [
+        "get"
+      ],
+      "schemes":
+      [
+        "http",
+        "https"
+      ],
+      "paths": [
+        "/ping",
+        "/ping/details"
+      ],
+      "security": {
+        "authentications": [
+          "none",
+          "basic",
+          "jwt"
+        ],
+        "permissions": [
+        ],
+        "roles": [
+        ]
+      }
+    },
+    {
+      "name": "handle name",
+      "bean": "class_name",
+      "methods":
+      [
+        "get",
+        "post",
+        "patch"
+      ],
+      "schemes":
+      [
+        "http",
+        "https"
+      ],
+      "paths": [
+      ],
+      "security": {
+        "authentications": [
+          "none",
+          "basic",
+          "jwt"
+        ],
+        "permissions": [
+        ],
+        "roles": [
+        ]
+      }
+    }
+  ]
+}
