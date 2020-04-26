@@ -1,12 +1,10 @@
-package io.xlogistx.http;
-import org.zoxweb.server.task.TaskUtil;
+package io.xlogistx.common.test;
 
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class MemoryFileTest {
-
     private static int count = 10485760; //10 MB
 
     public static void main(String[] args) throws Exception {
@@ -37,5 +35,4 @@ public class MemoryFileTest {
         //TaskUtil.getDefaultTaskProcessor();
 
     }
-
 }
