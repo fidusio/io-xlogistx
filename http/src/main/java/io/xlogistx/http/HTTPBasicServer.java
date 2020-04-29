@@ -56,7 +56,10 @@ public class HTTPBasicServer
     this.config = config;
   }
 
-
+  public HttpServer[] getHttpServers()
+  {
+    return servers.values().toArray(new HttpServer[0]);
+  }
 
   public void start() throws IOException {
     if (isClosed) {
@@ -121,6 +124,12 @@ public class HTTPBasicServer
         EndPointScanner endPointScanner = new EndPointScanner(config, this);
         endPointScanner.scan();
       }
+
+
+      HttpServer[] servers = getHttpServers();
+
+      for (HttpServer server : servers)
+        server.start();
     }
   }
 
@@ -156,6 +165,9 @@ public class HTTPBasicServer
 
       log.info("" + hsc);
       log.info("" + hsc.getConnectionConfigs());
+
+      HTTPBasicServer server = new HTTPBasicServer(hsc);
+      server.start();
 
 //      int port = Integer.parseInt(args[index++]);
 //      HttpServer server = HttpServer.create(new InetSocketAddress(port), 250);

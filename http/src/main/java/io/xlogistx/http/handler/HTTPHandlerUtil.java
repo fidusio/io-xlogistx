@@ -34,4 +34,16 @@ public class HTTPHandlerUtil {
     he.sendResponseHeaders(hsc.CODE, buffer.length);
     he.getResponseBody().write(buffer);
   }
+
+
+  public static void sendJSONResponse(HttpExchange he, HTTPStatusCode hsc, Object o) throws IOException
+  {
+    String message = GSONUtil.DEFAULT_GSON.toJson(o);
+    byte buffer[] = SharedStringUtil.getBytes(message);
+    he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
+    he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
+    he.sendResponseHeaders(hsc.CODE, buffer.length);
+    he.getResponseBody().write(buffer);
+  }
+
 }

@@ -96,7 +96,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         SharedUtil.checkIfNulls("Null baseDir ", baseFolder);
         File folder = new File(baseFolder);
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())
-            throw new IllegalArgumentException("Invalid folder: " + baseFolder);
+            throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath());
         this.baseFolder = baseFolder;
     }
 }
