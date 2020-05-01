@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.xlogistx.http.HTTPBasicServer;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
+import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPServerConfig;
@@ -67,7 +68,7 @@ public class EndPointScanner
                 else
                 {
                     log.info("Scan the class");
-                    ReflectionUtil.AnnotationMap am = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class);
+                    ReflectionUtil.AnnotationMap am = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
                     log.info("" + am);
                     if (am != null)
                     {
@@ -82,13 +83,13 @@ public class EndPointScanner
                         }
                         if (am.getMethodsAnnotations().size() > 0)
                         {
-                            am.getMethodsAnnotations().forEach(new BiConsumer<Method, Annotation[]>() {
+                            am.getMethodsAnnotations().forEach(new BiConsumer<Method, ReflectionUtil.MethodAnnotations>() {
                                 @Override
-                                public void accept(Method method, Annotation[] annotations)
+                                public void accept(Method method, ReflectionUtil.MethodAnnotations ma)
                                 {
                                     // parse the method annotations
 
-                                    for (Annotation a : annotations)
+                                    for (Annotation a : ma.methodAnnotations)
                                     {
                                         if(a instanceof EndPointProp)
                                         {
@@ -115,7 +116,7 @@ public class EndPointScanner
                                     }
                                     mergeOuterIntoInner(outerHep, innerHep);
 
-                                    EndPointHandler endPointHandler = new EndPointHandler(bean, method);
+                                    EndPointHandler endPointHandler = new EndPointHandler(bean, am);
                                     endPointHandler.setHTTPEndPoint(innerHep);
                                     for (HttpServer hs : httpServers)
                                     {

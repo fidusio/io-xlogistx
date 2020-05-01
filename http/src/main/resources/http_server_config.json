@@ -49,7 +49,7 @@
     {
       "name": "public_file_loader",
       "description": "This handler will point to a PATH and local directory to enable file loading",
-      "bean": "io.xlogistx.http.handler.HTTPFileHandler",
+      "bean": "io.xlogistx.http.services.HTTPFileHandler",
       "paths": ["/"],
       "permissions": ["none"],
       "roles": ["none"],
