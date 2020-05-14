@@ -4,13 +4,14 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.xlogistx.http.HTTPBasicServer;
+import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPServerConfig;
-import org.zoxweb.shared.security.AuthenticationType;
+import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.lang.annotation.Annotation;
@@ -69,6 +70,7 @@ public class EndPointScanner
                 {
                     log.info("Scan the class");
                     ReflectionUtil.AnnotationMap am = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
+
                     log.info("" + am);
                     if (am != null)
                     {
@@ -85,47 +87,51 @@ public class EndPointScanner
                         {
                             am.getMethodsAnnotations().forEach(new BiConsumer<Method, ReflectionUtil.MethodAnnotations>() {
                                 @Override
-                                public void accept(Method method, ReflectionUtil.MethodAnnotations ma)
-                                {
+                                public void accept(Method method, ReflectionUtil.MethodAnnotations ma) {
                                     // parse the method annotations
-
-                                    for (Annotation a : ma.methodAnnotations)
+                                    if (HTTPHandlerUtil.isMethodParameterAnnotated(ma, ParamProp.class))
                                     {
-                                        if(a instanceof EndPointProp)
-                                        {
-                                            EndPointProp epp = (EndPointProp) a;
+                                        for (Annotation a : ma.methodAnnotations) {
+                                            if (a instanceof EndPointProp) {
+                                                EndPointProp epp = (EndPointProp) a;
 
-                                            innerHep.setName(epp.name());
+                                                innerHep.setName(epp.name());
 
-                                            innerHep.setMethods(epp.methods());
-                                            innerHep.setPaths(SharedStringUtil.parseString(epp.uris(), ",", " ", "\t"));
+                                                innerHep.setMethods(epp.methods());
+                                                innerHep.setPaths(SharedStringUtil.parseString(epp.uris(), ",", " ", "\t"));
+                                            } else if (a instanceof SecurityProp) {
+                                                SecurityProp sp = (SecurityProp) a;
+
+                                                String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
+                                                String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
+                                                ;
+                                                AuthenticationType[] authTypes = sp.authentications();
+                                                String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
+                                                innerHep.setPermissions(permissions);
+                                                innerHep.setRoles(roles);
+                                                innerHep.setAuthenticationTypes(authTypes);
+                                                innerHep.setRestrictions(restrictions);
+                                            }
                                         }
-                                        else if (a instanceof SecurityProp)
-                                        {
-                                            SecurityProp sp = (SecurityProp) a;
+                                        mergeOuterIntoInner(outerHep, innerHep);
 
-                                            String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-                                            String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");;
-                                            AuthenticationType[] authTypes = sp.authentications();
-                                            String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-                                            innerHep.setPermissions(permissions);
-                                            innerHep.setRoles(roles);
-                                            innerHep.setAuthenticationTypes(authTypes);
-                                            innerHep.setRestrictions(restrictions);
+                                        EndPointHandler endPointHandler = new EndPointHandler(bean, am);
+                                        endPointHandler.setHTTPEndPoint(innerHep);
+                                        for (HttpServer hs : httpServers) {
+                                            for (String path : innerHep.getPaths()) {
+                                                log.info("Path to be added:" + path);
+                                                path = HTTPUtil.basePath(path, true);
+                                                log.info("Path to be added:" + path);
+                                                HttpContext httpContext = hs.createContext(path, endPointHandler);
+                                                //httpContext.setAuthenticator()
+                                            }
                                         }
+
                                     }
-                                    mergeOuterIntoInner(outerHep, innerHep);
-
-                                    EndPointHandler endPointHandler = new EndPointHandler(bean, am);
-                                    endPointHandler.setHTTPEndPoint(innerHep);
-                                    for (HttpServer hs : httpServers)
+                                    else
                                     {
-                                        for (String path : innerHep.getPaths()) {
-                                            HttpContext httpContext = hs.createContext(path, endPointHandler);
-                                            //httpContext.setAuthenticator()
-                                        }
+                                        log.info(ma.method + " has some parameters NOT ANNOTATED");
                                     }
-
                                 }
                             });
 

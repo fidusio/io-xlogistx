@@ -59,14 +59,16 @@
       }
     },
     {
-      "name": "ping",
       "bean":  "io.xlogistx.http.services.Ping"
     },
     {
       "name": "timestamp",
-      //"paths": ["/timenow"],
+      "paths": ["/timenow"],
       "methods": ["POST", "get"],
       "bean":  "io.xlogistx.http.services.CurrentTimestamp"
+    },
+    {
+      "bean":  "io.xlogistx.http.services.ParamTest"
     }
   ]
 }

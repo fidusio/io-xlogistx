@@ -7,7 +7,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
-import org.zoxweb.shared.security.AuthenticationType;
+import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVPair;
 
@@ -15,7 +15,7 @@ import org.zoxweb.shared.util.NVPair;
 
 public class Ping {
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping")
+    @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL})
     public SimpleMessage ping(@ParamProp(name="detailed", optional = true) boolean detailed)
     {

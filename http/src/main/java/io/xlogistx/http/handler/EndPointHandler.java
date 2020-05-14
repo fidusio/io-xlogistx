@@ -4,14 +4,18 @@ import com.sun.net.httpserver.HttpExchange;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.http.HTTPEndPoint;
+import org.zoxweb.shared.http.HTTPHeaderName;
+import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVGenericMap;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URI;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 public class EndPointHandler
@@ -36,12 +40,16 @@ extends BaseEndPointHandler {
         long ts = System.nanoTime();
         long count = callCounter.getAndIncrement();
 
-        URI uri = exchange.getRequestURI();
-        log.info("uri:" + uri);
-        log.info("query:" + uri.getQuery());
-        log.info("raw query:" + uri.getRawQuery());
-        log.info("uri path:" + uri.getPath());
-        log.info("context path:"+exchange.getHttpContext().getPath());
+//        URI uri = exchange.getRequestURI();
+//        log.info("uri:" + uri);
+//        log.info("query:" + uri.getQuery());
+//        log.info("raw query:" + uri.getRawQuery());
+//        log.info("uri path:" + uri.getPath());
+//        log.info("context path:"+exchange.getHttpContext().getPath());
+//        log.info("request headers:" + exchange.getRequestHeaders().entrySet());
+//        log.info("content type:" + ((LinkedList<String>)exchange.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName())).get(0));
+
+
 
         // validate path
         // inspect method
@@ -51,11 +59,13 @@ extends BaseEndPointHandler {
         {
             if (hep.isMethodSupported(exchange.getRequestMethod()))
             {
-                Parameter params[] =  methodAnnotations[0].method.getParameters();
+                NVGenericMap parameters = HTTPHandlerUtil.buildParameters(exchange, getHTTPEndPoint(), methodAnnotations[0]);
+                //log.info("Parameters:" + parameters);
 
-                result = methodAnnotations[0].method.invoke(bean);
-                if (result instanceof Void) {
-                    exchange.sendResponseHeaders(HTTPStatusCode.OK.CODE, 0);
+                result = HTTPHandlerUtil.invokeMethod(bean, methodAnnotations[0], parameters);
+                //log.info("Result:" + result);
+                if (result == null) {
+                    HTTPHandlerUtil.sendSimpleMessage(exchange, HTTPStatusCode.OK, "Success");
                 } else {
                     HTTPHandlerUtil.sendJSONResponse(exchange, HTTPStatusCode.OK, result, true);
                 }
