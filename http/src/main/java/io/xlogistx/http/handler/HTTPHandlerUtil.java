@@ -131,7 +131,7 @@ public class HTTPHandlerUtil {
     {
       payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
     }
-
+    log.info("payload:" + payload);
 
 
     // need to parse the payload parameters
@@ -141,6 +141,7 @@ public class HTTPHandlerUtil {
       if(pAnnotation != null  && pAnnotation instanceof ParamProp)
       {
         ParamProp pp = (ParamProp) pAnnotation;
+        log.info("" + pp);
 
         if (pp.paramSource() == Const.ParamSource.PAYLOAD)
         {
@@ -155,6 +156,7 @@ public class HTTPHandlerUtil {
                   // this case is impossible to happen
                   break;
                 case APPLICATION_JSON:
+
                   Object v = GSONUtil.DEFAULT_GSON.fromJson(payload, pClassType);
                   if(v instanceof NVGenericMap) {
                     NVGenericMap vNVGP = (NVGenericMap) v;
@@ -163,6 +165,7 @@ public class HTTPHandlerUtil {
                   }
                   if(v instanceof NVEntity)
                   {
+                    log.info("" + v);
                     ret.add(pp.name(), (NVEntity) v);
                   }
 
@@ -204,7 +207,9 @@ public class HTTPHandlerUtil {
           // read the payload and convert string to class
         }
         GetNameValue<?> currentGNV = ret.get(pp.name());
-        GetNameValue<?> expectedGNV = SharedUtil.classToNVBase(p.getType(), pp.name(), currentGNV != null ? (String)currentGNV.getValue() : null);
+        GetNameValue<?> expectedGNV = null;
+        if(currentGNV!=null && currentGNV.getValue() instanceof String)
+          currentGNV = SharedUtil.classToNVBase(p.getType(), pp.name(),  (String)currentGNV.getValue());
         if (currentGNV == null)
         {
           if(pp.optional())
@@ -212,7 +217,7 @@ public class HTTPHandlerUtil {
           else
             throw new IllegalArgumentException("Missing parameter " + pp.name());
         }
-        else if(currentGNV.getClass() != expectedGNV.getClass())
+        else if(expectedGNV != null && currentGNV.getClass() != expectedGNV.getClass())
         {
           // try to convert the string value
           ret.add(expectedGNV);

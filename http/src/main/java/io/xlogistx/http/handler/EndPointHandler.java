@@ -24,14 +24,14 @@ extends BaseEndPointHandler {
 
     private Object bean;
     private ReflectionUtil.AnnotationMap annotationMap;
-    private ReflectionUtil.MethodAnnotations[] methodAnnotations;
+    private ReflectionUtil.MethodAnnotations methodAnnotations;
 
 
-    public EndPointHandler(Object bean, ReflectionUtil.AnnotationMap annotationMap)
+    public EndPointHandler(Object bean, ReflectionUtil.AnnotationMap annotationMap, ReflectionUtil.MethodAnnotations methodAnnotations)
     {
         this.bean = bean;
         this.annotationMap = annotationMap;
-        this.methodAnnotations = annotationMap.getMethodsAnnotations().values().toArray( new ReflectionUtil.MethodAnnotations[0]);
+        this.methodAnnotations = methodAnnotations;
     }
 
     @Override
@@ -59,10 +59,10 @@ extends BaseEndPointHandler {
         {
             if (hep.isMethodSupported(exchange.getRequestMethod()))
             {
-                NVGenericMap parameters = HTTPHandlerUtil.buildParameters(exchange, getHTTPEndPoint(), methodAnnotations[0]);
+                NVGenericMap parameters = HTTPHandlerUtil.buildParameters(exchange, getHTTPEndPoint(), methodAnnotations);
                 //log.info("Parameters:" + parameters);
 
-                result = HTTPHandlerUtil.invokeMethod(bean, methodAnnotations[0], parameters);
+                result = HTTPHandlerUtil.invokeMethod(bean, methodAnnotations, parameters);
                 //log.info("Result:" + result);
                 if (result == null) {
                     HTTPHandlerUtil.sendSimpleMessage(exchange, HTTPStatusCode.OK, "Success");
@@ -87,7 +87,7 @@ extends BaseEndPointHandler {
         // based on result return response
         //log.info("[" + count + "]:" + getHTTPEndPoint().getName() + "   END");
         ts = System.nanoTime() - ts;
-        log.info("[" + count + "]:" + hep.getName() + " took " + Const.TimeInMillis.nanosToString(ts));
+        //log.info("[" + count + "]:" + hep.getName() + " took " + Const.TimeInMillis.nanosToString(ts));
     }
 
     protected void init()

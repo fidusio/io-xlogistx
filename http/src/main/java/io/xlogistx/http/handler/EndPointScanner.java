@@ -115,7 +115,7 @@ public class EndPointScanner
                                         }
                                         mergeOuterIntoInner(outerHep, innerHep);
 
-                                        EndPointHandler endPointHandler = new EndPointHandler(bean, am);
+                                        EndPointHandler endPointHandler = new EndPointHandler(bean, am, ma);
                                         endPointHandler.setHTTPEndPoint(innerHep);
                                         for (HttpServer hs : httpServers) {
                                             for (String path : innerHep.getPaths()) {

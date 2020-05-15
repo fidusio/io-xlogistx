@@ -11,7 +11,7 @@
       "schemes": ["http"],
       "socket_config":
       {
-        "port": 8080,
+        "port": 6080,
         "backlog": 250
       }
     }
@@ -62,13 +62,12 @@
       "bean":  "io.xlogistx.http.services.Ping"
     },
     {
-      "name": "timestamp",
-      "paths": ["/timenow"],
+
       "methods": ["POST", "get"],
       "bean":  "io.xlogistx.http.services.CurrentTimestamp"
     },
     {
-      "bean":  "io.xlogistx.http.services.ParamTest"
+      "bean":  "io.xlogistx.http.services.TestEndPoint"
     }
   ]
 }
