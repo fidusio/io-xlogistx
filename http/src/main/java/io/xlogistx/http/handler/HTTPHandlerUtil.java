@@ -17,6 +17,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -209,7 +210,7 @@ public class HTTPHandlerUtil {
         GetNameValue<?> currentGNV = ret.get(pp.name());
         GetNameValue<?> expectedGNV = null;
         if(currentGNV!=null && currentGNV.getValue() instanceof String)
-          currentGNV = SharedUtil.classToNVBase(p.getType(), pp.name(),  (String)currentGNV.getValue());
+          expectedGNV = SharedUtil.classToNVBase(p.getType(), pp.name(),  (String)currentGNV.getValue());
         if (currentGNV == null)
         {
           if(pp.optional())
@@ -248,7 +249,7 @@ public class HTTPHandlerUtil {
     }
 
 
-
+    log.info("" +  methodAnnotations.method + " " + Arrays.toString(values));
     result = methodAnnotations.method.invoke(source, values);
 
     return result;
