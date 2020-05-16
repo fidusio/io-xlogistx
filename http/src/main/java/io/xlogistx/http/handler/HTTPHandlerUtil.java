@@ -16,10 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import java.lang.reflect.Parameter;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 @SuppressWarnings("restriction")
@@ -88,7 +85,7 @@ public class HTTPHandlerUtil {
   }
 
 
-  public static NVGenericMap buildParameters(HttpExchange he, HTTPEndPoint hep, ReflectionUtil.MethodAnnotations ma) throws IOException {
+  public static Map<String, Object> buildParameters(HttpExchange he, HTTPEndPoint hep, ReflectionUtil.MethodAnnotations ma) throws IOException {
 
     String hePath = he.getHttpContext().getPath();
     URI uri = he.getRequestURI();
@@ -98,7 +95,7 @@ public class HTTPHandlerUtil {
 //    log.info("uri path:" + uri.getPath());
 //    log.info("context path:" + hePath);
     // parse the path parameters
-    NVGenericMap ret = HTTPUtil.parsePathParameters(hep.getPaths()[0], uri.getPath(), false);
+      Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], uri.getPath(), false);
 //    log.info("ret step 1:" + ret);
 
     // parse the query parameters if they are set in the body
@@ -107,8 +104,9 @@ public class HTTPHandlerUtil {
       List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery());
       if(queryParameters != null && queryParameters.size() > 0)
       {
-        for(GetNameValue<String> gnvs : queryParameters)
-          ret.add(gnvs);
+        for(GetNameValue<String> gnv : queryParameters)
+          parameters.put(gnv.getName(), gnv.getValue());
+
       }
     }
 
@@ -124,15 +122,15 @@ public class HTTPHandlerUtil {
 
       if(payloadParameters != null && payloadParameters.size() > 0)
       {
-        for(GetNameValue<String> gnvs : payloadParameters)
-          ret.add(gnvs);
+        for(GetNameValue<String> gnv : payloadParameters)
+          parameters.put(gnv.getName(), gnv.getValue());
       }
     }
     else if (contentType == HTTPMimeType.APPLICATION_JSON)
     {
       payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
     }
-    log.info("payload:" + payload);
+    //log.info("payload:" + payload);
 
 
     // need to parse the payload parameters
@@ -142,7 +140,7 @@ public class HTTPHandlerUtil {
       if(pAnnotation != null  && pAnnotation instanceof ParamProp)
       {
         ParamProp pp = (ParamProp) pAnnotation;
-        log.info("" + pp);
+        //log.info("" + pp);
 
         if (pp.paramSource() == Const.ParamSource.PAYLOAD)
         {
@@ -159,16 +157,8 @@ public class HTTPHandlerUtil {
                 case APPLICATION_JSON:
 
                   Object v = GSONUtil.DEFAULT_GSON.fromJson(payload, pClassType);
-                  if(v instanceof NVGenericMap) {
-                    NVGenericMap vNVGP = (NVGenericMap) v;
-                    vNVGP.setName(pp.name());
-                    ret.add(vNVGP);
-                  }
-                  if(v instanceof NVEntity)
-                  {
-                    log.info("" + v);
-                    ret.add(pp.name(), (NVEntity) v);
-                  }
+                  parameters.put(pp.name(), v);
+
 
                   break;
                 case APPLICATION_OCTET_STREAM:
@@ -207,34 +197,58 @@ public class HTTPHandlerUtil {
 
           // read the payload and convert string to class
         }
-        GetNameValue<?> currentGNV = ret.get(pp.name());
-        GetNameValue<?> expectedGNV = null;
-        if(currentGNV!=null && currentGNV.getValue() instanceof String)
-          expectedGNV = SharedUtil.classToNVBase(p.getType(), pp.name(),  (String)currentGNV.getValue());
-        if (currentGNV == null)
+
+        // check if null and optional
+        Object currentValue = parameters.get(pp.name());
+        if (currentValue == null)
         {
           if(pp.optional())
-            ret.add(expectedGNV);
+          {
+            if(SharedUtil.isPrimitive(p.getType()))
+            {
+              parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), null).getValue());
+            }
+            continue;
+          }
           else
             throw new IllegalArgumentException("Missing parameter " + pp.name());
         }
-        else if(expectedGNV != null && currentGNV.getClass() != expectedGNV.getClass())
+
+        if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()))
         {
-          // try to convert the string value
-          ret.add(expectedGNV);
+          parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String)currentValue).getValue());
         }
+
+//        SharedUtil.isPrimitive()
+//
+//        GetNameValue<?> currentGNV = gnvParameters.get(pp.name());
+//        GetNameValue<?> expectedGNV = null;
+//        if(currentGNV!=null && currentGNV.getValue() instanceof String)
+//          expectedGNV = SharedUtil.classToNVBase(p.getType(), pp.name(),  (String)currentGNV.getValue());
+//        if (currentGNV == null)
+//        {
+//          if(pp.optional())
+//            gnvParameters.add(expectedGNV);
+//          else
+//            throw new IllegalArgumentException("Missing parameter " + pp.name());
+//        }
+//        else if(expectedGNV != null && currentGNV.getClass() != expectedGNV.getClass())
+//        {
+//          // try to convert the string value
+//          gnvParameters.add(expectedGNV);
+//        }
 
 
       }
     }
 
-    return ret;
+    return parameters;
   }
 
 
 
 
-  public static Object invokeMethod(Object source, ReflectionUtil.MethodAnnotations methodAnnotations, NVGenericMap incomingData)
+  public static Object invokeMethod(Object source, ReflectionUtil.MethodAnnotations methodAnnotations, Map<String, Object> incomingData)
           throws InvocationTargetException, IllegalAccessException
   {
     Object result = null;
@@ -245,7 +259,7 @@ public class HTTPHandlerUtil {
     for(int i =0; i < values.length; i++)
     {
       ParamProp pp = (ParamProp) methodAnnotations.parametersAnnotations.get(parameters[i]);
-      values[i] = incomingData.get(pp.name()).getValue();
+      values[i] = incomingData.get(pp.name());
     }
 
 

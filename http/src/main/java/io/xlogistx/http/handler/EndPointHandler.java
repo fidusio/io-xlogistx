@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URI;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class EndPointHandler
@@ -59,7 +60,7 @@ extends BaseEndPointHandler {
         {
             if (hep.isMethodSupported(exchange.getRequestMethod()))
             {
-                NVGenericMap parameters = HTTPHandlerUtil.buildParameters(exchange, getHTTPEndPoint(), methodAnnotations);
+                Map<String, Object> parameters = HTTPHandlerUtil.buildParameters(exchange, getHTTPEndPoint(), methodAnnotations);
                 //log.info("Parameters:" + parameters);
 
                 result = HTTPHandlerUtil.invokeMethod(bean, methodAnnotations, parameters);
