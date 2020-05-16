@@ -263,7 +263,7 @@ public class HTTPHandlerUtil {
     }
 
 
-    log.info("" +  methodAnnotations.method + " " + Arrays.toString(values));
+    //log.info("" +  methodAnnotations.method + " " + Arrays.toString(values));
     result = methodAnnotations.method.invoke(source, values);
 
     return result;
