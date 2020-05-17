@@ -8,6 +8,8 @@ import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.Const;
 
+import java.util.Date;
+
 public class TestEndPoint {
 
     public static class DataObject
@@ -44,5 +46,12 @@ public class TestEndPoint {
     {
         assert(dObject != null);
         System.out.println(dObject);
+    }
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name="tester", uris="/testdate")
+    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.ALL})
+    public Date testDataObject()
+    {
+        return new Date();
     }
 }

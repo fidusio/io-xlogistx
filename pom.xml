@@ -44,6 +44,8 @@
   <modules>
     <module>common</module>
     <module>http</module>
+    <module>shiro</module>
+    <module>security</module>
   </modules>
   
   
@@ -71,6 +73,7 @@
     <junit.version>5.6.1</junit.version>
     <java-websocket.version>1.4.1</java-websocket.version>
 	<zoxweb-core.version>2.2.3</zoxweb-core.version>
+    <shiro.version>1.5.3</shiro.version>
   </properties>
 
   <build>

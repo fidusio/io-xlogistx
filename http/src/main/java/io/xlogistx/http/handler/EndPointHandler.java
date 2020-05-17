@@ -68,7 +68,7 @@ extends BaseEndPointHandler {
                 if (result == null) {
                     HTTPHandlerUtil.sendSimpleMessage(exchange, HTTPStatusCode.OK, "Success");
                 } else {
-                    HTTPHandlerUtil.sendJSONResponse(exchange, HTTPStatusCode.OK, result, true);
+                    HTTPHandlerUtil.sendResponse(exchange, HTTPStatusCode.OK, null, result);
                 }
             }
             else

@@ -14,9 +14,8 @@
 
   
   
-  <description>XlogistX.IO commons</description>
-  <name>xlogistx http</name>
-  <groupId>io.xlogistx</groupId>
+  <description>XlogistX.IO common</description>
+  <name>xlogistx-common</name>
   <artifactId>xlogistx-common</artifactId>
   <packaging>jar</packaging>
 

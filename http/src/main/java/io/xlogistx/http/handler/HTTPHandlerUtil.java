@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 @SuppressWarnings("restriction")
 public class HTTPHandlerUtil {
+  private static final byte[] EMPTY_BUFFER = new byte[0];
 
   private static transient Logger log = Logger.getLogger(HTTPHandlerUtil.class.getName());
 
@@ -82,6 +83,31 @@ public class HTTPHandlerUtil {
     he.getResponseBody().write(buffer);
     if(close)
       he.close();
+  }
+
+  public static void sendResponse(HttpExchange he, HTTPStatusCode hsc,  HTTPMimeType mimeType, Object o)
+          throws IOException
+  {
+    byte[] buffer = EMPTY_BUFFER;
+    if (SharedUtil.isPrimitive(o.getClass()))
+    {
+      if(mimeType == null)
+      {
+        mimeType = HTTPMimeType.TEXT_PLAIN;
+      }
+      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), mimeType.getValue());
+      buffer = SharedStringUtil.getBytes("" + o);
+    }
+    else
+    {
+      mimeType = HTTPMimeType.APPLICATION_JSON;
+      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), mimeType.getValue());
+      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
+      buffer = SharedStringUtil.getBytes(GSONUtil.DEFAULT_GSON.toJson(o));
+    }
+    he.sendResponseHeaders(hsc.CODE, buffer.length);
+    he.getResponseBody().write(buffer);
+    he.close();
   }
 
 

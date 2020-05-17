@@ -14,10 +14,12 @@
 
   
   
-  <description>XlogistX.IO http</description>
-  <name>xlogistx-http</name>
-  <artifactId>xlogistx-http</artifactId>
+  <description>XlogistX.IO Security</description>
+  <name>xlogistx-security</name>
+  <artifactId>xlogistx-security</artifactId>
   <packaging>jar</packaging>
+
+  
 
 
   <dependencies>
@@ -31,20 +33,6 @@
 	  <artifactId>zoxweb-core</artifactId>
 	  <scope>provided</scope>
 	</dependency>
-
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.jsoup</groupId>
-      <artifactId>jsoup</artifactId>
-      <scope>provided</scope>
-    </dependency>
-	
-  
-
   </dependencies>
 
 </project>
