@@ -15,8 +15,9 @@
  */
 package io.xlogistx.shiro.authc;
 
+import io.xlogistx.shiro.DomainPrincipalCollection;
 import org.apache.shiro.authc.SimpleAuthenticationInfo;
-import org.zoxweb.server.security.shiro.DomainPrincipalCollection;
+
 
 @SuppressWarnings("serial")
 public class DomainAuthenticationInfo
