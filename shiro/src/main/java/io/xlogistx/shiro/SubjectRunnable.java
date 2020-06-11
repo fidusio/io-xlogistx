@@ -19,7 +19,4 @@ public abstract class SubjectRunnable
     {
         this.subject = subject;
     }
-
-
-
 }
