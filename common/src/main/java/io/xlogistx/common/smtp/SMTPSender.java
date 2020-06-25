@@ -1,16 +1,15 @@
 package io.xlogistx.common.smtp;
 
+
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
-import java.util.logging.Logger;
+
 
 public class SMTPSender {
 
-    private static final Logger log = Logger.getLogger(SMTPSender.class.getName());
+   //private static final Logger log = Logger.getLogger(SMTPSender.class.getName());
     private SMTPSender() {}
 
 
@@ -41,7 +40,7 @@ public class SMTPSender {
         Session session = Session.getInstance(props,
                 new javax.mail.Authenticator() {
                     protected PasswordAuthentication getPasswordAuthentication() {
-                        //log.info(user + ":" + password + " " + Thread.currentThread());
+                        //log.info(cfg.user + ":" + cfg.password + " " + Thread.currentThread());
                         return new PasswordAuthentication(cfg.user, cfg.password);
                     }
                 });
