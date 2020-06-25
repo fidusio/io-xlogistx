@@ -19,7 +19,6 @@ public class MemoryFileTest {
         for (int i = 0; i < count; i++) {
             out.put((byte) 'A');
         }
-
         System.out.println("Writing to Memory Mapped File is completed");
 
 

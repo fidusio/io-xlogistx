@@ -1,0 +1,8 @@
+{
+  "http_config" : {"url": "https://yahoo.com"},
+  "init_delay" : 5000,
+  "retries" : 5,
+  "retry_delay": "30sec",
+  "repeats": -1,
+  "repeat_delay": "1min"
+}

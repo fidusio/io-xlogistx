@@ -26,6 +26,7 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
     </dependency>
 	
 	<dependency>
@@ -33,6 +34,15 @@
 	  <artifactId>zoxweb-core</artifactId>
 	  <scope>provided</scope>
 	</dependency>
+
+      <dependency>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+      </dependency>
+    <dependency>
+      <groupId>com.sun.mail</groupId>
+      <artifactId>jakarta.mail</artifactId>
+    </dependency>
   </dependencies>
 
 </project>

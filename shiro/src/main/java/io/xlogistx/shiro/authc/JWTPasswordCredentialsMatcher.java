@@ -1,11 +1,12 @@
 package io.xlogistx.shiro.authc;
 
+import io.xlogistx.shiro.DomainPrincipalCollection;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.JWTProvider;
-import org.zoxweb.server.security.shiro.DomainPrincipalCollection;
+
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.security.JWT;
 import org.zoxweb.shared.security.SubjectAPIKey;
@@ -15,7 +16,7 @@ import org.zoxweb.shared.util.SharedStringUtil;
 import java.util.logging.Logger;
 
 public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
-	protected static final transient Logger log = Logger.getLogger(org.zoxweb.server.security.shiro.authc.JWTPasswordCredentialsMatcher.class.getName());
+	protected static final transient Logger log = Logger.getLogger(JWTPasswordCredentialsMatcher.class.getName());
 	@Override
 	public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)
 	{
@@ -58,7 +59,7 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 				
 				return CryptoUtil.isPasswordValid(passwordDAO, password);
 			}
-			else if (info.getCredentials() instanceof SubjectAPIKey && token instanceof org.zoxweb.server.security.shiro.authc.JWTAuthenticationToken)
+			else if (info.getCredentials() instanceof SubjectAPIKey && token instanceof JWTAuthenticationToken)
 			{
 				//log.info("JWTAuthenticationToken");
 				SubjectAPIKey sak = (SubjectAPIKey) info.getCredentials();
@@ -75,9 +76,9 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 					}
 				}
 				JWT jwt = JWTProvider.SINGLETON.decode(sak.getAPIKeyAsBytes(), (String)token.getCredentials());
-				if (info instanceof org.zoxweb.server.security.shiro.authc.DomainAuthenticationInfo)
+				if (info instanceof DomainAuthenticationInfo)
 				{
-					org.zoxweb.server.security.shiro.authc.DomainAuthenticationInfo dai = (org.zoxweb.server.security.shiro.authc.DomainAuthenticationInfo) info;
+					DomainAuthenticationInfo dai = (DomainAuthenticationInfo) info;
 					DomainPrincipalCollection dpc =	(DomainPrincipalCollection) dai.getPrincipals();
 					// if the token is not matching the domain id and app id we have a problem 
 					if ( !(dpc.getDomainID().equalsIgnoreCase(jwt.getPayload().getDomainID()) && 
