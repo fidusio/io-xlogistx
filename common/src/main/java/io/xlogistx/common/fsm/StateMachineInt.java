@@ -21,4 +21,6 @@ extends GetName, AutoCloseable
     void close();
 
     TaskSchedulerProcessor getTSP();
+    StateInt lookupState(String name);
+    StateInt lookupState(GetName name);
 }

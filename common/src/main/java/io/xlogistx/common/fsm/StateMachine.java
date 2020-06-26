@@ -3,6 +3,7 @@ package io.xlogistx.common.fsm;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.CanonicalID;
+import org.zoxweb.shared.util.GetName;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -18,6 +19,7 @@ public class StateMachine<C>
     private final String name;
     private final TaskSchedulerProcessor tsp;
     private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
+    private Map<String, StateInt<?>> states = new LinkedHashMap<String, StateInt<?>>();
     private C config;
 
     public StateMachine(String name)
@@ -44,6 +46,7 @@ public class StateMachine<C>
                 }
             }
             state.setStateMachine(this);
+            states.put(state.getName(), state);
         }
         return this;
     }
@@ -105,6 +108,17 @@ public class StateMachine<C>
 
     public TaskSchedulerProcessor getTSP(){
         return tsp;
+    }
+
+    @Override
+    public StateInt lookupState(String name) {
+        return states.get(name);
+    }
+
+    @Override
+    public StateInt lookupState(GetName name)
+    {
+        return lookupState(name.getName());
     }
 
     @Override
