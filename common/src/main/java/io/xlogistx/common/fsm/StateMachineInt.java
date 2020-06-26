@@ -5,13 +5,16 @@ import org.zoxweb.shared.util.GetName;
 
 
 
-public interface StateMachineInt
+public interface StateMachineInt<C>
 extends GetName, AutoCloseable
 {
 
     StateMachineInt register(StateInt state);
 
     StateMachineInt publish(TriggerInt trigger);
+
+    C getConfig();
+    StateMachineInt setConfig(C config);
 
     void start();
 

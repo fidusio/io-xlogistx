@@ -1,6 +1,7 @@
 package io.xlogistx.common.fsm;
 
 import org.zoxweb.shared.util.CanonicalID;
+import org.zoxweb.shared.util.GetName;
 
 import java.util.EventObject;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,6 +33,11 @@ implements TriggerInt<T>
     public Trigger(StateInt state, T data, String canonicalID)
     {
         this(state, state, data, canonicalID);
+    }
+
+    public Trigger(StateInt state, T data, GetName name)
+    {
+        this(state, state, data, name.getName());
     }
 
     @Override

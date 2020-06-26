@@ -1,5 +1,9 @@
 package io.xlogistx.common.fsm;
 
+import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.NVBase;
+import org.zoxweb.shared.util.NVGenericMap;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -8,14 +12,24 @@ public class State<P>
 {
 
     private String name;
-    private P config;
+    private NVGenericMap data = new NVGenericMap();
     private transient TriggerConsumerInt<?>[] cashedTriggers = new TriggerConsumerInt[0];
     private StateMachineInt stateMachine;
 
     private Set<TriggerConsumerInt<?>> triggerConsumers = new HashSet<>();
-    public State(String name)
+    public State(String name, NVBase<?> ...props)
     {
         this.name = name;
+        if(props != null)
+        {
+            for (NVBase<?> nvb : props) {
+                data.add(nvb);
+            }
+        }
+    }
+    public State(GetName name, NVBase<?> ...props)
+    {
+        this(name.getName(), props);
     }
 
     @Override
@@ -46,14 +60,9 @@ public class State<P>
         stateMachine = smi;
     }
 
-    public P getProperties()
+    public NVGenericMap getProperties()
     {
-        return config;
-    }
-
-    public void setProperties(P config)
-    {
-        this.config = config;
+        return data;
     }
 
     public String toString()

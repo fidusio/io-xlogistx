@@ -1,6 +1,7 @@
 package io.xlogistx.common.fsm;
 
 import org.zoxweb.shared.util.CanonicalID;
+import org.zoxweb.shared.util.GetName;
 
 public abstract class TriggerConsumer<T>
 implements TriggerConsumerInt<T>
@@ -11,6 +12,15 @@ implements TriggerConsumerInt<T>
     public TriggerConsumer(String ...canonicalIDs)
     {
         this.canonicalIDs = canonicalIDs;
+    }
+    public TriggerConsumer(GetName...gnCanonicalIDs)
+    {
+
+        canonicalIDs = new String[gnCanonicalIDs.length];
+        for(int i = 0; i < canonicalIDs.length; i++)
+        {
+            canonicalIDs[i] = gnCanonicalIDs[i].getName();
+        }
     }
 
     @Override

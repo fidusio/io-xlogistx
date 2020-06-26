@@ -10,14 +10,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-public class StateMachine
-    implements StateMachineInt
+public class StateMachine<C>
+    implements StateMachineInt<C>
 {
 
     private final static Logger log = Logger.getLogger(StateMachine.class.getName());
     private final String name;
     private final TaskSchedulerProcessor tsp;
     private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
+    private C config;
 
     public StateMachine(String name)
     {
@@ -72,6 +73,17 @@ public class StateMachine
             set.forEach(c -> tsp.queue(0, trigger, c));
         }
 
+        return this;
+    }
+
+    @Override
+    public C getConfig() {
+        return config;
+    }
+
+    @Override
+    public StateMachineInt setConfig(C config) {
+        this.config = config;
         return this;
     }
 
