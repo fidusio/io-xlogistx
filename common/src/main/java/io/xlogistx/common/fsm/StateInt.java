@@ -29,6 +29,9 @@ public interface StateInt<P>
 
     TriggerConsumerInt<?>[] triggers();
 
+    TriggerConsumerInt<?> lookupTriggerConsumer(String canonicalID);
+    TriggerConsumerInt<?> lookupTriggerConsumer(GetName canonicalID);
+
     StateInt register(TriggerConsumerInt<?> tc);
 
     StateMachineInt getStateMachine();

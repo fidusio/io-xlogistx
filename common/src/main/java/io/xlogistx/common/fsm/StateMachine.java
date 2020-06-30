@@ -5,10 +5,7 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.CanonicalID;
 import org.zoxweb.shared.util.GetName;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class StateMachine<C>
@@ -60,12 +57,14 @@ public class StateMachine<C>
             Set<TriggerConsumerInt<?>> tcSet = tcMap.get(canID);
             if (tcSet == null)
             {
-                tcSet = new HashSet<TriggerConsumerInt<?>>();
+                tcSet = new LinkedHashSet<TriggerConsumerInt<?>>();
                 tcMap.put(canID, tcSet);
             }
             tcSet.add(tc);
         }
     }
+
+
 
     @Override
     public StateMachineInt publish(TriggerInt trigger) {
@@ -73,7 +72,7 @@ public class StateMachine<C>
         if(set != null)
         {
             log.info("" + trigger);
-            set.forEach(c -> tsp.queue(0, trigger, c));
+            set.forEach(c -> tsp.queue(0, trigger, new TriggerConsumerHolder<>(c)));
         }
 
         return this;

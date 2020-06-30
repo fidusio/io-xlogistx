@@ -4,8 +4,9 @@ import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.NVBase;
 import org.zoxweb.shared.util.NVGenericMap;
 
-import java.util.HashSet;
-import java.util.Set;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class State<P>
     implements StateInt<P>
@@ -13,10 +14,10 @@ public class State<P>
 
     private String name;
     private NVGenericMap data = new NVGenericMap();
-    private transient TriggerConsumerInt<?>[] cashedTriggers = new TriggerConsumerInt[0];
+    //private transient TriggerConsumerInt<?>[] cashedTriggers = new TriggerConsumerInt[0];
     private StateMachineInt stateMachine;
 
-    private Set<TriggerConsumerInt<?>> triggerConsumers = new HashSet<>();
+    private Map<String, TriggerConsumerInt<?>> triggerConsumers = new LinkedHashMap<String, TriggerConsumerInt<?>> ();
     public State(String name, NVBase<?> ...props)
     {
         this.name = name;
@@ -34,7 +35,17 @@ public class State<P>
 
     @Override
     public synchronized TriggerConsumerInt<?>[] triggers() {
-        return cashedTriggers;
+        return triggerConsumers.values().toArray(new TriggerConsumerInt<?>[triggerConsumers.size()]);
+    }
+
+    @Override
+    public TriggerConsumerInt<?> lookupTriggerConsumer(String canonicalID) {
+        return triggerConsumers.get(canonicalID);
+    }
+
+    @Override
+    public TriggerConsumerInt<?> lookupTriggerConsumer(GetName canonicalID) {
+        return lookupTriggerConsumer(canonicalID.getName());
     }
 
     @Override
@@ -44,9 +55,9 @@ public class State<P>
 
     public synchronized StateInt register(TriggerConsumerInt<?> tc)
     {
-        triggerConsumers.add(tc);
+        for(String canID : tc.canonicalIDs())
+            triggerConsumers.put(canID, tc);
         tc.setSate(this);
-        cashedTriggers = triggerConsumers.toArray(new TriggerConsumerInt[0]);
         return this;
     }
 

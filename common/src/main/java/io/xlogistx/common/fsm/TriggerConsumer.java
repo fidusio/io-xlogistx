@@ -1,13 +1,21 @@
 package io.xlogistx.common.fsm;
 
-import org.zoxweb.shared.util.CanonicalID;
 import org.zoxweb.shared.util.GetName;
+
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.logging.Logger;
 
 public abstract class TriggerConsumer<T>
 implements TriggerConsumerInt<T>
 {
+    final static Logger log = Logger.getLogger(TriggerConsumer.class.getName());
     private String canonicalIDs[];
     private StateInt state;
+    protected AtomicLong execCounter = new AtomicLong();
+    private  Function<T, ?> function;
+
 
     public TriggerConsumer(String ...canonicalIDs)
     {
@@ -38,6 +46,23 @@ implements TriggerConsumerInt<T>
         this.state = state;
     }
 
+   public<R> TriggerConsumerInt<T> setFunction(Function<T, R> function)
+   {
+       this.function = function;
+       return this;
+   }
+
+   public<R> Function getFunction()
+   {
+       return function;
+   }
 
 
+    @Override
+    public String toString() {
+        return "TriggerConsumer{" +
+                "canonicalIDs=" + Arrays.toString(canonicalIDs) +
+                ", state=" + state + ", exec-counter=" + execCounter.get() +
+                '}';
+    }
 }
