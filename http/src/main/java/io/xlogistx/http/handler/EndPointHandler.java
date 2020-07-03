@@ -1,21 +1,11 @@
 package io.xlogistx.http.handler;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.http.HTTPEndPoint;
-import org.zoxweb.shared.http.HTTPHeaderName;
-import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.NVGenericMap;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.net.URI;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -24,15 +14,20 @@ extends BaseEndPointHandler {
     private static transient Logger log = Logger.getLogger(EndPointHandler.class.getName());
 
     private Object bean;
-    private ReflectionUtil.AnnotationMap annotationMap;
+   // private ReflectionUtil.AnnotationMap annotationMap;
     private ReflectionUtil.MethodAnnotations methodAnnotations;
 
 
-    public EndPointHandler(Object bean, ReflectionUtil.AnnotationMap annotationMap, ReflectionUtil.MethodAnnotations methodAnnotations)
+    public EndPointHandler(Object bean, ReflectionUtil.MethodAnnotations methodAnnotations)
     {
         this.bean = bean;
-        this.annotationMap = annotationMap;
+        //this.annotationMap = annotationMap;
         this.methodAnnotations = methodAnnotations;
+    }
+
+    public ReflectionUtil.MethodAnnotations getMethodAnnotations()
+    {
+        return methodAnnotations;
     }
 
     @Override
@@ -58,9 +53,11 @@ extends BaseEndPointHandler {
         Object result = null;
         try
         {
-            if (hep.isMethodSupported(exchange.getRequestMethod()))
+
+            if (getHTTPEndPoint().isMethodSupported(exchange.getRequestMethod()))
             {
-                Map<String, Object> parameters = HTTPHandlerUtil.buildParameters(exchange, getHTTPEndPoint(), methodAnnotations);
+                //log.info("Processing: " + getHTTPEndPoint());
+                Map<String, Object> parameters = HTTPHandlerUtil.buildParameters(exchange);
                 //log.info("Parameters:" + parameters);
 
                 result = HTTPHandlerUtil.invokeMethod(bean, methodAnnotations, parameters);
@@ -88,10 +85,11 @@ extends BaseEndPointHandler {
         // based on result return response
         //log.info("[" + count + "]:" + getHTTPEndPoint().getName() + "   END");
         ts = System.nanoTime() - ts;
-        //log.info("[" + count + "]:" + hep.getName() + " took " + Const.TimeInMillis.nanosToString(ts));
+        log.info("[" + count + "]:" + getHTTPEndPoint().getName() + " took " + Const.TimeInMillis.nanosToString(ts));
     }
 
     protected void init()
     {
     }
+
 }

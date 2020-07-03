@@ -3,6 +3,7 @@
   "description" : "",
   "application_env_var": "entry directory for application config files",
   "thread_pool_size" : 64,
+  "base_uri": "/v1/",
 
   "connections":
   [

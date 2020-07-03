@@ -10,6 +10,7 @@ import org.zoxweb.shared.util.Const;
 
 import java.util.Date;
 
+@SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC})
 public class TestEndPoint {
 
     public static class DataObject
@@ -23,35 +24,45 @@ public class TestEndPoint {
         }
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name="test", uris="/test/{intv}/{bool}/{tim}")
-    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.ALL})
-    public void test(@ParamProp(name="intv") int hif, @ParamProp(name="bool") boolean on, @ParamProp(name="tim")Const.TimeInMillis tim)
-    {
-        //System.out.println( hif + " " + on + " " + tim);
-    }
 
 
-    @EndPointProp(methods = {HTTPMethod.POST}, name="tester", uris="/testjson")
-    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.ALL})
-    public void testJson(@ParamProp(name="address", paramSource = Const.ParamSource.PAYLOAD) AddressDAO address)
+
+
+    @EndPointProp(methods = {HTTPMethod.POST}, name="testjson", uris="/testjson")
+    public void testJson(@ParamProp(name="address", source = Const.ParamSource.PAYLOAD) AddressDAO address)
     {
        assert(address != null);
        System.out.println(address);
     }
 
 
-    @EndPointProp(methods = {HTTPMethod.POST}, name="tester", uris="/testdata")
-    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.ALL})
-    public void testDataObject(@ParamProp(name="dataObject", paramSource = Const.ParamSource.PAYLOAD) DataObject dObject)
+    @EndPointProp(methods = {HTTPMethod.POST}, name="testdata", uris="/testdata")
+    public void testDataObject(@ParamProp(name="dataObject", source = Const.ParamSource.PAYLOAD) DataObject dObject)
     {
         assert(dObject != null);
         System.out.println(dObject);
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name="tester", uris="/testdate")
-    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.ALL})
+    @EndPointProp(methods = {HTTPMethod.GET}, name="dateTester", uris="/testdate")
     public Date testDataObject()
     {
         return new Date();
     }
+
+
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name="test", uris="/test/{intv}/{bool}/{tim}")
+    public void testnot(@ParamProp(name="intv") int hif, @ParamProp(name="bool") boolean on, @ParamProp(name="tim", optional = true)Const.TimeInMillis tim)
+    {
+        System.out.println( hif + " " + on + " " + tim);
+    }
+
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name="noparam", uris="/noparam")
+    public void noparam()
+    {
+        System.out.println( "empty");
+    }
+
+    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.NONE})
+    public void empty(){};
 }

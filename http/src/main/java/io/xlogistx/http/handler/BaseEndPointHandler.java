@@ -4,15 +4,20 @@ import com.sun.net.httpserver.HttpHandler;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.util.SharedUtil;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 
 public abstract class BaseEndPointHandler
     implements HttpHandler
 {
 
+    private static transient Logger log = Logger.getLogger(BaseEndPointHandler.class.getName());
     protected AtomicLong callCounter = new AtomicLong();
-    protected HTTPEndPoint hep;
 
+    private HTTPEndPoint hep;
+    private static final AtomicInteger counter = new AtomicInteger();
+    public final int ID = counter.incrementAndGet();
 
     public HTTPEndPoint getHTTPEndPoint()
     {

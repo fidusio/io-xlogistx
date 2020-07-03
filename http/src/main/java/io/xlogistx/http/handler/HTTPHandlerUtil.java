@@ -111,9 +111,13 @@ public class HTTPHandlerUtil {
   }
 
 
-  public static Map<String, Object> buildParameters(HttpExchange he, HTTPEndPoint hep, ReflectionUtil.MethodAnnotations ma) throws IOException {
+  public static Map<String, Object> buildParameters(HttpExchange he) throws IOException {
 
     String hePath = he.getHttpContext().getPath();
+//    log.info("" + he.getHttpContext().getHandler().getClass());
+    EndPointHandler eph = (EndPointHandler) he.getHttpContext().getHandler();
+    HTTPEndPoint hep = eph.getHTTPEndPoint();
+
     URI uri = he.getRequestURI();
 //    log.info("uri:" + uri);
 //    log.info("query:" + uri.getQuery());
@@ -121,13 +125,13 @@ public class HTTPHandlerUtil {
 //    log.info("uri path:" + uri.getPath());
 //    log.info("context path:" + hePath);
     // parse the path parameters
-      Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], uri.getPath(), false);
-//    log.info("ret step 1:" + ret);
+      Map<String, Object> parameters = HTTPUtil.parsePathParameters(eph.getHTTPEndPoint().getPaths()[0], uri.getPath(), false);
 
     // parse the query parameters if they are set in the body
     if (!SharedStringUtil.isEmpty(uri.getQuery()))
     {
       List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery());
+
       if(queryParameters != null && queryParameters.size() > 0)
       {
         for(GetNameValue<String> gnv : queryParameters)
@@ -160,15 +164,15 @@ public class HTTPHandlerUtil {
 
 
     // need to parse the payload parameters
-    for(Parameter p : ma.method.getParameters())
+    for(Parameter p : eph.getMethodAnnotations().method.getParameters())
     {
-      Annotation pAnnotation  = ma.parametersAnnotations.get(p);
+      Annotation pAnnotation  = eph.getMethodAnnotations().parametersAnnotations.get(p);
       if(pAnnotation != null  && pAnnotation instanceof ParamProp)
       {
         ParamProp pp = (ParamProp) pAnnotation;
         //log.info("" + pp);
 
-        if (pp.paramSource() == Const.ParamSource.PAYLOAD)
+        if (pp.source() == Const.ParamSource.PAYLOAD)
         {
           Class<?> pClassType = p.getType();
           if (contentType != null)
@@ -295,25 +299,27 @@ public class HTTPHandlerUtil {
     return result;
   }
 
-  public static boolean isMethodParameterAnnotated(ReflectionUtil.MethodAnnotations ma, Class<? extends Annotation> aClass)
-  {
 
-    if(ma != null)
-    {
-      for(Parameter p : ma.method.getParameters())
-      {
-        Annotation paAnnotations = ma.parametersAnnotations.get(p);
-        if(paAnnotations == null || paAnnotations.annotationType() != aClass)
-        {
-          return false;
-        }
-      }
-    }
-    else
-    {
-      return false;
-    }
 
-    return true;
-  }
+//  public static boolean isMethodParameterAnnotated(ReflectionUtil.MethodAnnotations ma, Class<? extends Annotation> aClass)
+//  {
+//
+//    if(ma != null)
+//    {
+//      for(Parameter p : ma.method.getParameters())
+//      {
+//        Annotation paAnnotations = ma.parametersAnnotations.get(p);
+//        if(paAnnotations == null || paAnnotations.annotationType() != aClass)
+//        {
+//          return false;
+//        }
+//      }
+//    }
+//    else
+//    {
+//      return false;
+//    }
+//
+//    return true;
+//  }
 }
