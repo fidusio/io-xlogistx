@@ -77,6 +77,7 @@ extends BaseEndPointHandler {
         }
         catch(InvocationTargetException e)
         {
+            e.getCause().printStackTrace();
             HTTPHandlerUtil.sendErrorMessage(exchange, HTTPStatusCode.SERVICE_UNAVAILABLE, "error invoking resource:" + e.getCause(), true);
         }
         catch (Exception e) {
