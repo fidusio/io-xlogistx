@@ -6,6 +6,7 @@ import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -73,7 +74,12 @@ extends BaseEndPointHandler {
                 // method not supported
                 HTTPHandlerUtil.sendErrorMessage(exchange, HTTPStatusCode.NOT_FOUND, exchange.getRequestMethod() + " not supported.", true);
             }
-        } catch (Exception e) {
+        }
+        catch(InvocationTargetException e)
+        {
+            HTTPHandlerUtil.sendErrorMessage(exchange, HTTPStatusCode.SERVICE_UNAVAILABLE, "error invoking resource:" + e.getCause(), true);
+        }
+        catch (Exception e) {
             e.printStackTrace();
             HTTPHandlerUtil.sendErrorMessage(exchange, HTTPStatusCode.SERVICE_UNAVAILABLE, "error invoking resource", true);
         }
