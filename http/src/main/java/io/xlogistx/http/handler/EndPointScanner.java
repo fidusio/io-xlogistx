@@ -69,116 +69,63 @@ public class EndPointScanner
                 else
                 {
                     log.info("Scan the class");
-                    ReflectionUtil.AnnotationMap classAM = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
+                    ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
 
                     //log.info("Class Annotation:" + classAM);
-                    if (classAM != null)
+                    if (classAnnotationMap != null)
                     {
                         HTTPEndPoint classHEP = null;
 
 
-                        if (classAM.getClassAnnotations() != null)
+                        if (classAnnotationMap.getClassAnnotations() != null)
                         {
                             classHEP = new HTTPEndPoint();
                             classHEP.setBean(beanName);
-                            classHEP = scanAnnotations(serverConfig.getBaseURI(), classHEP, classAM.getClassAnnotations());
+                            classHEP = scanAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
                             classHEP = mergeOuterIntoInner(configHEP, classHEP);
 
                         }
                         else
                         {
-                            log.info("" + classAM.getAnnotatedClass() + "has no class annotations");
+                            log.info("" + classAnnotationMap.getAnnotatedClass() + "has no class annotations");
                         }
-                        if (classAM.getMethodsAnnotations().size() > 0)
+                        if (classAnnotationMap.getMethodsAnnotations().size() > 0)
                         {
-                            for (Method method : classAM.getMethodsAnnotations().keySet().toArray(new Method[0]))
+                            for (Method method : classAnnotationMap.getMethodsAnnotations().keySet().toArray(new Method[0]))
                             {
 
-                                ReflectionUtil.MethodAnnotations methodAnnotations = classAM.getMethodsAnnotations().get(method);
-                                if (ReflectionUtil.isMethodAnnotatedAs(method, EndPointProp.class))
-                                {
-                                    HTTPEndPoint methodHEP = scanAnnotations(serverConfig.getBaseURI(),
-                                                                             new HTTPEndPoint(),
-                                                                             methodAnnotations.methodAnnotations);
+                                ReflectionUtil.MethodAnnotations methodAnnotations = classAnnotationMap.getMethodsAnnotations().get(method);
+                                try {
+                                    if (ReflectionUtil.isMethodAnnotatedAs(method, EndPointProp.class)) {
+                                        HTTPEndPoint methodHEP = scanAnnotations(serverConfig.getBaseURI(),
+                                                new HTTPEndPoint(),
+                                                methodAnnotations.methodAnnotations,
+                                                true);
 
-                                    methodHEP = mergeOuterIntoInner(classHEP, methodHEP);
+                                        methodHEP = mergeOuterIntoInner(classHEP, methodHEP);
 
-                                    EndPointHandler endPointHandler = new EndPointHandler(beanInstance, methodAnnotations);
-                                    endPointHandler.setHTTPEndPoint(methodHEP);
-                                    for (HttpServer hs : httpServers)
-                                    {
-                                        for (String path : methodHEP.getPaths())
-                                        {
-                                            String pathToBeAdded = HTTPUtil.basePath(path, false);
-                                            HttpContext httpContext = hs.createContext(pathToBeAdded);
-                                            httpContext.setHandler(endPointHandler);
-                                            log.info("["+endPointHandler.ID+"] :" + endPointHandler.getHTTPEndPoint());
+                                        EndPointHandler endPointHandler = new EndPointHandler(beanInstance, methodAnnotations);
+                                        endPointHandler.setHTTPEndPoint(methodHEP);
+                                        for (HttpServer hs : httpServers) {
+                                            for (String path : methodHEP.getPaths()) {
+                                                String pathToBeAdded = HTTPUtil.basePath(path, false);
+                                                HttpContext httpContext = hs.createContext(pathToBeAdded);
+                                                httpContext.setHandler(endPointHandler);
+                                                log.info("[" + endPointHandler.ID + "] :" + endPointHandler.getHTTPEndPoint());
+                                            }
                                         }
-                                    }
 
+                                    } else {
+                                        log.info(methodAnnotations.method + " NOT-AN-ENDPOINT");
+                                    }
                                 }
-                                else
+                                catch(Exception e)
                                 {
-                                    log.info(methodAnnotations.method + " NOT-AN-ENDPOINT");
+                                    e.printStackTrace();
+                                    log.info("Method:" + method + " failed to configure");
                                 }
                             }
-
-
-
-
-
-//                            classAM.getMethodsAnnotations().forEach(new BiConsumer<Method, ReflectionUtil.MethodAnnotations>() {
-//                                @Override
-//                                public void accept(Method method, ReflectionUtil.MethodAnnotations ma) {
-//                                    // parse the method annotations
-//                                    if (HTTPHandlerUtil.isMethodParameterAnnotated(ma, ParamProp.class))
-//                                    {
-//                                        for (Annotation a : ma.methodAnnotations) {
-//                                            if (a instanceof EndPointProp) {
-//                                                EndPointProp epp = (EndPointProp) a;
-//
-//                                                innerHep.setName(epp.name());
-//
-//                                                innerHep.setMethods(epp.methods());
-//                                                innerHep.setPaths(SharedStringUtil.parseString(epp.uris(), ",", " ", "\t"));
-//                                            } else if (a instanceof SecurityProp) {
-//                                                SecurityProp sp = (SecurityProp) a;
-//
-//                                                String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-//                                                String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
-//                                                ;
-//                                                AuthenticationType[] authTypes = sp.authentications();
-//                                                String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-//                                                innerHep.setPermissions(permissions);
-//                                                innerHep.setRoles(roles);
-//                                                innerHep.setAuthenticationTypes(authTypes);
-//                                                innerHep.setRestrictions(restrictions);
-//                                            }
-//                                        }
-//                                        mergeOuterIntoInner(outerHep, innerHep);
-//
-//                                        EndPointHandler endPointHandler = new EndPointHandler(bean, classAM, ma);
-//                                        endPointHandler.setHTTPEndPoint(innerHep);
-//                                        for (HttpServer hs : httpServers) {
-//                                            for (String path : innerHep.getPaths()) {
-//
-//                                                String pathToBeAdded = HTTPUtil.basePath(path, true);
-//                                                log.info("Original Path: " + path + " Path to be added: " + pathToBeAdded + " innerhep:" + innerHep + " " + ma) ;
-//                                                HttpContext httpContext = hs.createContext(pathToBeAdded, endPointHandler);
-//                                                //httpContext.setAuthenticator()
-//                                            }
-//                                        }
-//
-//                                    }
-//                                    else
-//                                    {
-//                                        log.info(ma.method + " has some parameters NOT ANNOTATED");
-//                                    }
-//                                }
-//                            });
-
                         }
-
                     }
 
                 }
@@ -195,14 +142,21 @@ public class EndPointScanner
 
 
 
-    private static HTTPEndPoint scanAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations)
+    private static HTTPEndPoint scanAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck)
     {
         for (Annotation a : annotations) {
             if (a instanceof EndPointProp) {
                 EndPointProp epp = (EndPointProp) a;
                 hep.setName(epp.name());
                 hep.setMethods(epp.methods());
-                hep.setPaths(SharedStringUtil.parseString(epp.uris(), ",", " ", "\t"));
+                String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
+                if(methodCheck)
+                {
+                    if(uris.length != 1)
+                        throw  new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
+                }
+                hep.setPaths(uris);
+
             } else if (a instanceof SecurityProp) {
                 SecurityProp sp = (SecurityProp) a;
 

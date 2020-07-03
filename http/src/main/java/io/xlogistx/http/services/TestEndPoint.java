@@ -63,6 +63,12 @@ public class TestEndPoint {
         System.out.println( "empty");
     }
 
+    @EndPointProp(methods = {HTTPMethod.GET}, name="invalid", uris="/not-set,/invalid")
+    public void invalid()
+    {
+        System.out.println( "empty");
+    }
+
     @SecurityProp(authentications = {SecurityConsts.AuthenticationType.NONE})
     public void empty(){};
 }
