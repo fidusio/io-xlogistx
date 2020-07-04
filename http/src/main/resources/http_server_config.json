@@ -69,6 +69,15 @@
     },
     {
       "bean":  "io.xlogistx.http.services.TestEndPoint"
+    },
+    {
+      "bean":  "io.xlogistx.http.services.SysCommand",
+      "properties":{
+        "reboot-command" : "reboot-command",
+        "reboot-delay" : "00:00:05",
+        "shutdown-command" : "shutdown command",
+        "shutdown-delay" : "00:00:05"
+      }
     }
   ]
 }

@@ -12,6 +12,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
+import org.zoxweb.shared.util.SetNVProperties;
 import org.zoxweb.shared.util.SharedStringUtil;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -49,6 +50,10 @@ public class EndPointScanner
                 Class<?> beanClass = Class.forName(beanName);
                 Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
                 BaseEndPointHandler beph = null;
+                if(beanInstance instanceof SetNVProperties)
+                {
+                    ((SetNVProperties) beanInstance).setProperties(configHEP.getProperties());
+                }
 
                 log.info("bean:" + beanName);
                 if (beanInstance instanceof BaseEndPointHandler)
