@@ -153,6 +153,7 @@ public class EndPointScanner
             if (a instanceof EndPointProp) {
                 EndPointProp epp = (EndPointProp) a;
                 hep.setName(epp.name());
+                hep.setDescription(epp.description());
                 hep.setMethods(epp.methods());
                 String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
                 if(methodCheck)

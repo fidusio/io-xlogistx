@@ -19,12 +19,18 @@
   <artifactId>xlogistx-http</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <xlgositx-common.version>1.0.0</xlgositx-common.version>
+  </properties>
+
 
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
     </dependency>
+
+
 	
 	<dependency>
 	  <groupId>org.zoxweb</groupId>
@@ -42,8 +48,12 @@
       <artifactId>jsoup</artifactId>
       <scope>provided</scope>
     </dependency>
-	
-  
+    <dependency>
+      <groupId>io.xlogistx</groupId>
+      <artifactId>xlogistx-common</artifactId>
+      <version>${xlgositx-common.version}</version>
+    </dependency>
+
 
   </dependencies>
 
