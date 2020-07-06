@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 import io.xlogistx.http.handler.EndPointScanner;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.http.HTTPServerConfig;
@@ -26,24 +27,7 @@ import java.util.logging.Logger;
 public class HTTPBasicServer
   implements DaemonController
 {
-//  static class ContextHandler implements HttpHandler {
-//
-//    public void handle(HttpExchange he) throws IOException {
-//      InputStream is = he.getRequestBody();
-//      is.close();
-//      NVGenericMap nvgm = new NVGenericMap();
-//      nvgm.add("context", he.getHttpContext().getPath());
-//      String json = GSONUtil.DEFAULT_GSON.toJson(nvgm);
-//      byte[] response = SharedStringUtil.getBytes(json);
-//      he.getResponseHeaders()
-//              .add(HTTPHeaderName.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
-//      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
-//      he.sendResponseHeaders(200, response.length);
-//      OutputStream os = he.getResponseBody();
-//      os.write(response);
-//      os.close();
-//    }
-//  }
+
 
 
   private final static Logger log = Logger.getLogger(HTTPBasicServer.class.getName());
@@ -153,6 +137,7 @@ public class HTTPBasicServer
 
   public static void main(String... args) {
     try {
+      LoggerUtil.enableDefaultLogger("io.xlogistx");
       int index = 0;
 
 
