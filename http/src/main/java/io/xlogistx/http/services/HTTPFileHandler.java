@@ -93,9 +93,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
             e.printStackTrace();            
             HTTPHandlerUtil.sendErrorMessage(he, HTTPStatusCode.BAD_REQUEST, "System error");
         }
-        finally {
-            he.close();
-        }
+
     }
 
     @Override
