@@ -10,6 +10,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.*;
 
@@ -20,6 +21,7 @@ import java.util.logging.Logger;
 @SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC,
                                  SecurityConsts.AuthenticationType.BEARER,
                                  SecurityConsts.AuthenticationType.JWT},
+              protocols = {URIScheme.HTTPS},
               roles = "local-admin,remote-admin")
 public class SysCommand
 extends PropertyHolder

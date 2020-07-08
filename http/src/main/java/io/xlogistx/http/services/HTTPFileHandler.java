@@ -57,10 +57,10 @@ public class HTTPFileHandler extends BaseEndPointHandler {
     public void handle(HttpExchange he) throws IOException {
         String path = he.getHttpContext().getPath();
         URI uri = he.getRequestURI();
-        log.info("path: " + path);
-        log.info("URI: " +  uri.getPath());
-        log.info("Remote IP: " + he.getRemoteAddress());
-        //log.info("Thread: " + Thread.currentThread());
+//        log.info("path: " + path);
+//        log.info("URI: " +  uri.getPath());
+//        log.info("Remote IP: " + he.getRemoteAddress());
+//        log.info("Thread: " + Thread.currentThread());
         try {
             String filename = uri.getPath().substring(path.length(), uri.getPath().length());
             if (SharedStringUtil.isEmpty(filename))
@@ -71,9 +71,8 @@ public class HTTPFileHandler extends BaseEndPointHandler {
                     filename = override;
                 }
             }
-            log.info("filename: " + filename);
             HTTPMimeType mime = HTTPMimeType.lookupByExtenstion(filename);
-            log.info("mime type: " + mime);
+            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
 
             if(mime != null)
                 he.getResponseHeaders()
@@ -93,6 +92,9 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         {
             e.printStackTrace();            
             HTTPHandlerUtil.sendErrorMessage(he, HTTPStatusCode.BAD_REQUEST, "System error");
+        }
+        finally {
+            he.close();
         }
     }
 

@@ -2,6 +2,7 @@ package io.xlogistx.http.handler;
 
 import com.sun.net.httpserver.HttpContext;
 
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.xlogistx.http.HTTPBasicServer;
 import org.zoxweb.server.http.HTTPUtil;
@@ -11,12 +12,15 @@ import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPServerConfig;
+import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
 import org.zoxweb.shared.util.SetNVProperties;
 import org.zoxweb.shared.util.SharedStringUtil;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class EndPointScanner
@@ -35,7 +39,7 @@ public class EndPointScanner
 
     public void scan()
     {
-        HttpServer[] httpServers = server.getHttpServers();
+
         for(HTTPEndPoint configHEP : serverConfig.getEndPoints())
         {
 
@@ -59,18 +63,10 @@ public class EndPointScanner
                 if (beanInstance instanceof BaseEndPointHandler)
                 {
                     // we just create the context
-
                     //
                     beph = (BaseEndPointHandler) beanInstance;
                     beph.setHTTPEndPoint(configHEP);
-                    // append the base_uri
-                    configHEP = updatePaths(serverConfig.getBaseURI(), configHEP);
-                    for (HttpServer hs : httpServers)
-                    {
-                        for (String path : configHEP.getPaths()) {
-                            hs.createContext(path, beph);
-                        }
-                    }
+                    mapHEP(configHEP, beph);
                 }
                 else
                 {
@@ -112,14 +108,8 @@ public class EndPointScanner
 
                                         EndPointHandler endPointHandler = new EndPointHandler(beanInstance, methodAnnotations);
                                         endPointHandler.setHTTPEndPoint(methodHEP);
-                                        for (HttpServer hs : httpServers) {
-                                            for (String path : methodHEP.getPaths()) {
-                                                String pathToBeAdded = HTTPUtil.basePath(path, false);
-                                                HttpContext httpContext = hs.createContext(pathToBeAdded);
-                                                httpContext.setHandler(endPointHandler);
-                                                log.info("[" + endPointHandler.ID + "] :" + endPointHandler.getHTTPEndPoint());
-                                            }
-                                        }
+
+                                        mapHEP(methodHEP, endPointHandler);
 
                                     } else {
                                         log.info(methodAnnotations.method + " NOT-AN-ENDPOINT");
@@ -147,6 +137,30 @@ public class EndPointScanner
     }
 
 
+    private void mapHEP(HTTPEndPoint hep, BaseEndPointHandler httpHandler)
+    {
+        for (Map.Entry<String, HttpServer> hs : server.getHTTPServersMap())
+        {
+            URIScheme serverProtocol = URIScheme.match(hs.getKey());
+            for (String path : hep.getPaths())
+            {
+                // check
+                if(hep.getProtocols() != null && hep.getProtocols().length > 0 )
+                {
+                    if(!hep.isProtocolSupported(serverProtocol))
+                    {
+                        log.info("Method:" + hep.getName() + "::" +path +" DO NOT supports:" +serverProtocol);
+                        continue;
+                    }
+                }
+                log.info("Method:" + hep.getName() +"::" +path + " supports:" +serverProtocol);
+                String pathToBeAdded = HTTPUtil.basePath(path, false);
+                HttpContext httpContext = hs.getValue().createContext(pathToBeAdded, httpHandler);
+                log.info("[" + httpHandler.ID + "] :" + httpHandler.getHTTPEndPoint());
+            }
+        }
+    }
+
 
     private static HTTPEndPoint scanAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck)
     {
@@ -156,6 +170,7 @@ public class EndPointScanner
                 hep.setName(epp.name());
                 hep.setDescription(epp.description());
                 hep.setMethods(epp.methods());
+
                 String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
                 if(methodCheck)
                 {
@@ -175,6 +190,7 @@ public class EndPointScanner
                 hep.setRoles(roles);
                 hep.setAuthenticationTypes(authTypes);
                 hep.setRestrictions(restrictions);
+                hep.setProtocols(sp.protocols());
             }
         }
         return updatePaths(baseURI, hep);
@@ -188,16 +204,18 @@ public class EndPointScanner
             if (outer.getMethods() != null && outer.getMethods().length > 0)
                 inner.setMethods(outer.getMethods());
 
-        if (pathOverride && outer.getPaths().length > 0)
-            inner.setPaths(outer.getPaths());
-        if (outer.getPermissions() != null && outer.getPermissions().length > 0)
-            inner.setPermissions(outer.getPermissions());
-        if (outer.getRoles() != null && outer.getRoles().length > 0)
-            inner.setRoles(outer.getRoles());
-        if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
-            inner.setAuthenticationTypes(outer.getAuthenticationTypes());
-        if (outer.getRestrictions() != null && outer.getRestrictions().length > 0)
-            inner.setRestrictions(outer.getRestrictions());
+            if (pathOverride && outer.getPaths().length > 0)
+                inner.setPaths(outer.getPaths());
+            if (outer.getPermissions() != null && outer.getPermissions().length > 0)
+                inner.setPermissions(outer.getPermissions());
+            if (outer.getRoles() != null && outer.getRoles().length > 0)
+                inner.setRoles(outer.getRoles());
+            if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
+                inner.setAuthenticationTypes(outer.getAuthenticationTypes());
+            if (outer.getRestrictions() != null && outer.getRestrictions().length > 0)
+                inner.setRestrictions(outer.getRestrictions());
+            if (outer.getProtocols() != null && outer.getProtocols().length > 0)
+                inner.setProtocols(outer.getProtocols());
 
             inner.getProperties().add(outer.getProperties().values(), true);
         }

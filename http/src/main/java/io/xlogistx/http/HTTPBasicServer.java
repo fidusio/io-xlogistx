@@ -26,10 +26,7 @@ import java.io.IOException;
 
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class HTTPBasicServer
@@ -48,10 +45,14 @@ public class HTTPBasicServer
     this.config = config;
   }
 
-  public HttpServer[] getHttpServers()
-  {
-    return servers.values().toArray(new HttpServer[0]);
-  }
+//  public HttpServer[] getHttpServers()
+//  {
+//    return servers.values().toArray(new HttpServer[0]);
+//  }
+  public Set<Map.Entry<String, HttpServer>> getHTTPServersMap(){return servers.entrySet();};
+
+
+
 
   public void start() throws IOException, GeneralSecurityException {
     if (isClosed) {
@@ -139,10 +140,10 @@ public class HTTPBasicServer
       }
 
 
-      HttpServer[] servers = getHttpServers();
+      Set<Map.Entry<String, HttpServer>>servers = getHTTPServersMap();
 
-      for (HttpServer server : servers)
-        server.start();
+      for (Map.Entry<String, HttpServer> server : servers)
+        server.getValue().start();
     }
   }
 
