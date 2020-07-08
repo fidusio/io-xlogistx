@@ -12,33 +12,33 @@
       "schemes": ["http"],
       "socket_config":
       {
-        "port": 6080,
+        "port": 80,
         "backlog": 250
       }
     }
-//  ,
-//    {
-//      "name": "https",
-//      "schemes": ["https"],
-//      "socket_config":
-//      {
-//        "port": 443,
-//        "backlog": 250
-//      },
-//      "ssl_config":
-//      {
-//        "name": "SSLCONFIG",
-//        "key_store": "filename.jks",
-//        "key_store_type": "pksc12",
-//        "key_store_password": "password",
-//        "protocols": [
-//          "TLSv1.2",
-//          "TLSv1.3"
-//        ],
-//        "ciphers": [
-//        ]
-//      }
-//    }
+  ,
+    {
+      "name": "https",
+      "schemes": ["https"],
+      "socket_config":
+      {
+        "port": 443,
+        "backlog": 250
+      },
+      "ssl_config":
+      {
+        "name": "SSLCONFIG",
+        "keystore_file": "/IdeaProjects/projects/io-xlogistx/http/src/main/resources/web.xlogistx.io.jks",
+        "keystore_type": "pkcs12",
+        "keystore_password": "password",
+        "protocols": [
+          "TLSv1.2",
+          "TLSv1.3"
+        ],
+        "ciphers": [
+        ]
+      }
+    }
   ],
   "endpoints":
   [
@@ -55,6 +55,7 @@
       "permissions": ["none"],
       "roles": ["none"],
       "methods": [ "GET"],
+      "protocols": ["HTTPS"],
       "properties": {
         "base_folder": "/webs/xlogistx.io",
         "default_file": "index.html"
@@ -66,7 +67,8 @@
     {
       "methods": ["POST", "get"],
       "bean":  "io.xlogistx.http.services.CurrentTimestamp"
-    },
+    }
+  ,
     {
       "bean":  "io.xlogistx.http.services.TestEndPoint"
     },
