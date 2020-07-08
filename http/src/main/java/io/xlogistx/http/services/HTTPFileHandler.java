@@ -63,6 +63,14 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         //log.info("Thread: " + Thread.currentThread());
         try {
             String filename = uri.getPath().substring(path.length(), uri.getPath().length());
+            if (SharedStringUtil.isEmpty(filename))
+            {
+                String override = getHTTPEndPoint().getProperties().getValue("default_file");
+                if(override != null)
+                {
+                    filename = override;
+                }
+            }
             log.info("filename: " + filename);
             HTTPMimeType mime = HTTPMimeType.lookupByExtenstion(filename);
             log.info("mime type: " + mime);

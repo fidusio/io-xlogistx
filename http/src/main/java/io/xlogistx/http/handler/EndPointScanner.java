@@ -67,8 +67,9 @@ public class EndPointScanner
                     configHEP = updatePaths(serverConfig.getBaseURI(), configHEP);
                     for (HttpServer hs : httpServers)
                     {
-                        for (String path : configHEP.getPaths())
+                        for (String path : configHEP.getPaths()) {
                             hs.createContext(path, beph);
+                        }
                     }
                 }
                 else
@@ -87,7 +88,7 @@ public class EndPointScanner
                             classHEP = new HTTPEndPoint();
                             classHEP.setBean(beanName);
                             classHEP = scanAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
-                            classHEP = mergeOuterIntoInner(configHEP, classHEP);
+                            classHEP = mergeOuterIntoInner(configHEP, classHEP, false);
 
                         }
                         else
@@ -107,7 +108,7 @@ public class EndPointScanner
                                                 methodAnnotations.methodAnnotations,
                                                 true);
 
-                                        methodHEP = mergeOuterIntoInner(classHEP, methodHEP);
+                                        methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
                                         EndPointHandler endPointHandler = new EndPointHandler(beanInstance, methodAnnotations);
                                         endPointHandler.setHTTPEndPoint(methodHEP);
@@ -180,23 +181,23 @@ public class EndPointScanner
     }
 
 
-    private static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner)
+    private static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride)
     {
 
         if(outer != null) {
             if (outer.getMethods() != null && outer.getMethods().length > 0)
                 inner.setMethods(outer.getMethods());
-//
-//        if (outer.getPaths().length > 0)
-//            inner.setPaths(outer.getPaths());
-            if (outer.getPermissions() != null && outer.getPermissions().length > 0)
-                inner.setPermissions(outer.getPermissions());
-            if (outer.getRoles() != null && outer.getRoles().length > 0)
-                inner.setRoles(outer.getRoles());
-            if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
-                inner.setAuthenticationTypes(outer.getAuthenticationTypes());
-            if (outer.getRestrictions() != null && outer.getRestrictions().length > 0)
-                inner.setRestrictions(outer.getRestrictions());
+
+        if (pathOverride && outer.getPaths().length > 0)
+            inner.setPaths(outer.getPaths());
+        if (outer.getPermissions() != null && outer.getPermissions().length > 0)
+            inner.setPermissions(outer.getPermissions());
+        if (outer.getRoles() != null && outer.getRoles().length > 0)
+            inner.setRoles(outer.getRoles());
+        if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
+            inner.setAuthenticationTypes(outer.getAuthenticationTypes());
+        if (outer.getRestrictions() != null && outer.getRestrictions().length > 0)
+            inner.setRestrictions(outer.getRestrictions());
 
             inner.getProperties().add(outer.getProperties().values(), true);
         }

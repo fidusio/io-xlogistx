@@ -3,7 +3,7 @@
   "description" : "",
   "application_env_var": "entry directory for application config files",
   "thread_pool_size" : 64,
-  "base_uri": "/v1/",
+  "base_uri": "",
 
   "connections":
   [
@@ -56,14 +56,14 @@
       "roles": ["none"],
       "methods": [ "GET"],
       "properties": {
-        "base_folder": "/temp/public"
+        "base_folder": "/webs/xlogistx.io",
+        "default_file": "index.html"
       }
     },
     {
       "bean":  "io.xlogistx.http.services.Ping"
     },
     {
-
       "methods": ["POST", "get"],
       "bean":  "io.xlogistx.http.services.CurrentTimestamp"
     },
