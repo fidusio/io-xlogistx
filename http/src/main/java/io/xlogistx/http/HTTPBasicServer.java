@@ -2,10 +2,13 @@ package io.xlogistx.http;
 
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
+
 import com.sun.net.httpserver.HttpsServer;
+
 import io.xlogistx.http.handler.EndPointScanner;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.http.HTTPServerConfig;
@@ -13,14 +16,19 @@ import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.DaemonController;
+import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import java.io.File;
 import java.io.IOException;
 
 import java.net.InetSocketAddress;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -45,7 +53,7 @@ public class HTTPBasicServer
     return servers.values().toArray(new HttpServer[0]);
   }
 
-  public void start() throws IOException {
+  public void start() throws IOException, GeneralSecurityException {
     if (isClosed) {
       if (config != null) {
         isClosed = false;
@@ -72,9 +80,30 @@ public class HTTPBasicServer
                 serverId = uriScheme.getName() + ":" + serverAddress.getPort();
                 isa = new InetSocketAddress(serverAddress.getPort());
                 HttpsServer httpsServer = HttpsServer.create(isa, serverAddress.getBacklog());
-                SSLContext sslContext = null;
+                NVGenericMap sslConfig = cc.getSSLConfig();
+                String ksPassword = sslConfig.getValue("keystore_password");
+                String aliasPassword = sslConfig.getValue("alias_password");
+                String trustStorePassword = sslConfig.getValue("truststore_password");
+                SSLContext sslContext = CryptoUtil.initSSLContext(sslConfig.getValue("keystore_file"),
+                        sslConfig.getValue("keystore_type"),
+                        ksPassword.toCharArray(),
+                        aliasPassword != null ?  aliasPassword.toCharArray() : null,
+                        (String)sslConfig.getValue("truststore_file"),
+                        trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
                 // create the SSLContext
+
+                List<String> protocols = sslConfig.getValue("protocols");
+                if(protocols != null)
+                {
+                  SSLParameters sslParameters = sslContext.getSupportedSSLParameters();
+                  log.info(Arrays.toString(sslContext.getSupportedSSLParameters().getProtocols()));
+                  sslParameters.setProtocols(protocols.toArray(new String[0]));
+                  log.info(Arrays.toString(sslContext.getSupportedSSLParameters().getProtocols()));
+
+                }
+
                 HttpsConfigurator httpsConfigurator = new HttpsConfigurator(sslContext);
+
                 httpsServer.setHttpsConfigurator(httpsConfigurator);
                 httpsServer.setExecutor(TaskUtil.getDefaultTaskProcessor());
                 servers.put(serverId, httpsServer);

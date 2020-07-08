@@ -42,10 +42,11 @@
   </developers>
 
   <modules>
-    <module>common</module>
-    <module>http</module>
-    <module>shiro</module>
-    <module>security</module>
+      <module>common</module>
+      <module>http</module>
+      <module>shiro</module>
+      <module>security</module>
+      <module>http-ws</module>
   </modules>
   
   
