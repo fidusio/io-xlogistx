@@ -94,14 +94,14 @@ public class HTTPBasicServer
                 // create the SSLContext
 
                 List<String> protocols = sslConfig.getValue("protocols");
-                if(protocols != null)
-                {
-                  SSLParameters sslParameters = sslContext.getSupportedSSLParameters();
-                  log.info(Arrays.toString(sslContext.getSupportedSSLParameters().getProtocols()));
-                  sslParameters.setProtocols(protocols.toArray(new String[0]));
-                  log.info(Arrays.toString(sslContext.getSupportedSSLParameters().getProtocols()));
-
-                }
+//                if(protocols != null)
+//                {
+//                  SSLParameters sslParameters = sslContext.getSupportedSSLParameters();
+//                  log.info(Arrays.toString(sslContext.getSupportedSSLParameters().getProtocols()));
+//                  sslParameters.setProtocols(protocols.toArray(new String[0]));
+//                  log.info(Arrays.toString(sslContext.getSupportedSSLParameters().getProtocols()));
+//
+//                }
 
                 HttpsConfigurator httpsConfigurator = new HttpsConfigurator(sslContext);
 
@@ -133,13 +133,12 @@ public class HTTPBasicServer
             }
           }
         }
-
-        // create end point scanner
-        EndPointScanner endPointScanner = new EndPointScanner(config, this);
-        endPointScanner.scan();
       }
 
 
+      // create end point scanner
+      EndPointScanner endPointScanner = new EndPointScanner(config, this);
+      endPointScanner.scan();
       Set<Map.Entry<String, HttpServer>>servers = getHTTPServersMap();
 
       for (Map.Entry<String, HttpServer> server : servers)
@@ -180,35 +179,14 @@ public class HTTPBasicServer
 
       log.info("" + hsc);
       log.info("" + hsc.getConnectionConfigs());
+      HTTPServerCreator httpServerCreator = new HTTPServerCreator();
+      httpServerCreator.setAppConfig(hsc);
+      httpServerCreator.createApp();
 
-      HTTPBasicServer server = new HTTPBasicServer(hsc);
-      server.start();
-
-//      int port = Integer.parseInt(args[index++]);
-//      HttpServer server = HttpServer.create(new InetSocketAddress(port), 250);
-//      String baseFolder = args[index++];
-//      for (; index < args.length; index++) {
-//        server.createContext("/" + args[index], new ContextHandler());
-//      }
-//      HttpContext hc = server.createContext("/.well-known/pki-validation/", new FileHandler("/public"));
-//      hc.setAuthenticator(new Authenticator() {
-//        @Override
-//        public Result authenticate(HttpExchange httpExchange) {
-//          return null;
-//        }
-//      });
-//      server.createContext("/toto", new FileHandler());
-//      server.setExecutor(TaskUtil.getDefaultTaskProcessor());
-//
-//      HttpContext hc = server.createContext("/", new HTTPFileHandler(baseFolder));
-//
-//      log.info(hc.getPath());
-//      server.start();
-//
-//      log.info("server started @ " + server.getAddress());
     } catch (Exception e) {
       e.printStackTrace();
       System.err.println("Usage: HTTPBasicServer server-config.json");
+      System.exit(-1);
     }
   }
 }

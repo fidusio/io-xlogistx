@@ -81,8 +81,9 @@ public class Main {
                             hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
                             log.info("" + hsc);
                             log.info("" + hsc.getConnectionConfigs());
-                            ws = new HTTPBasicServer(hsc);
-                            ws.start();
+                            HTTPServerCreator httpServerCreator = new HTTPServerCreator();
+                            httpServerCreator.setAppConfig(hsc);
+                            ws = httpServerCreator.createApp();
                             p.setValue(ws);
                             break;
                         case NI_CONFIG:

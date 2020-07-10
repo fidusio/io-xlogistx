@@ -29,6 +29,7 @@ extends PropertyHolder
     private static Logger log = Logger.getLogger(SysCommand.class.getName());
 
 
+
     @EndPointProp(methods = {HTTPMethod.GET}, name="system-reboot", uris="/system/reboot")
     public SimpleMessage systemReboot()
     {
@@ -103,6 +104,5 @@ extends PropertyHolder
 
     protected void propertiesUpdated()
     {
-
     }
 }

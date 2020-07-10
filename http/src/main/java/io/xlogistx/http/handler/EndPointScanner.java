@@ -39,8 +39,8 @@ public class EndPointScanner
 
     public void scan()
     {
-
-        for(HTTPEndPoint configHEP : serverConfig.getEndPoints())
+        HTTPEndPoint[]allHEP = serverConfig.getEndPoints();
+        for(HTTPEndPoint configHEP : allHEP)
         {
 
             // annotation override
@@ -53,6 +53,7 @@ public class EndPointScanner
                 String beanName = configHEP.getBean();
                 Class<?> beanClass = Class.forName(beanName);
                 Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
+                log.info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
                 BaseEndPointHandler beph = null;
                 if(beanInstance instanceof SetNVProperties)
                 {

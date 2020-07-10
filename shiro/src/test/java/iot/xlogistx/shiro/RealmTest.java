@@ -1,11 +1,17 @@
 package iot.xlogistx.shiro;
 
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.env.BasicIniEnvironment;
+import org.apache.shiro.env.Environment;
+import org.apache.shiro.mgt.SecurityManager;
+import org.apache.shiro.subject.Subject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class RealmTest {
     @BeforeAll
-    public void loadRealm()
+    public static void loadRealm()
     {
     }
 
@@ -20,5 +26,17 @@ public class RealmTest {
     public void testPermission()
     {
 
+    }
+
+    @Test
+    public void testIniLoading()
+    {
+        Environment env = new BasicIniEnvironment("classpath:shiro.ini");
+        SecurityManager securityManager = env.getSecurityManager();
+        SecurityUtils.setSecurityManager(securityManager);
+        Subject subject = SecurityUtils.getSubject();
+        UsernamePasswordToken token =  new UsernamePasswordToken("root", "secret");
+        subject.login(token);
+        System.out.println(subject.getPrincipal());
     }
 }

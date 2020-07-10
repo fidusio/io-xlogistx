@@ -20,7 +20,11 @@
   <packaging>jar</packaging>
 
   
-
+  <properties>
+    <commons-logging.version>1.2</commons-logging.version>
+    <commons-beanutils.version>1.9.4</commons-beanutils.version>
+    <slf4j-simple.version>1.7.9</slf4j-simple.version>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -40,6 +44,23 @@
         <version>${shiro.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>${commons-logging.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>${commons-beanutils.version}</version>
+    </dependency>
+
+    <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>${slf4j-simple.version}</version>
+    </dependency>
 
   </dependencies>
 
