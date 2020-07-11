@@ -48,34 +48,36 @@
       <module>security</module>
       <module>http-ws</module>
       <module>core</module>
+      <module>payment</module>
   </modules>
   
   
   <!-- Version definition -->
   <properties>
-    <skipTests>true</skipTests>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jdk.version>8</jdk.version>
-    <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-    <maven-plugin-source.version>3.0.1</maven-plugin-source.version>
-    <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
-    <maven-surefile-plugin.version>3.0.0-M4</maven-surefile-plugin.version>
-    <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
-    <maven-javadoc.version>2.10.4</maven-javadoc.version>
-    <common-codec.version>1.10</common-codec.version>
-    <commons-fileupload.version>1.4</commons-fileupload.version>
-    <ehcache-org.version>3.8.1</ehcache-org.version>
-    <gson.version>2.8.5</gson.version>
-    <javax-cache.version>1.1.1</javax-cache.version>
-    <javax-mail.version>1.6.5</javax-mail.version>
-    <javax-servlet.version>4.0.1</javax-servlet.version>
-    <jsoup.version>1.13.1</jsoup.version>
-    <snakeyaml.version>1.24</snakeyaml.version>
-    <websocket.version>1.1</websocket.version>
-    <junit.version>5.6.2</junit.version>
-    <java-websocket.version>1.4.1</java-websocket.version>
-	<zoxweb-core.version>2.2.3</zoxweb-core.version>
-    <shiro.version>1.5.3</shiro.version>
+        <skipTests>true</skipTests>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jdk.version>8</jdk.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-plugin-source.version>3.0.1</maven-plugin-source.version>
+        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+        <maven-surefile-plugin.version>3.0.0-M4</maven-surefile-plugin.version>
+        <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
+        <maven-javadoc.version>2.10.4</maven-javadoc.version>
+        <common-codec.version>1.10</common-codec.version>
+        <commons-fileupload.version>1.4</commons-fileupload.version>
+        <ehcache-org.version>3.8.1</ehcache-org.version>
+        <gson.version>2.8.5</gson.version>
+        <javax-cache.version>1.1.1</javax-cache.version>
+        <javax-mail.version>1.6.5</javax-mail.version>
+        <javax-servlet.version>4.0.1</javax-servlet.version>
+        <jsoup.version>1.13.1</jsoup.version>
+        <snakeyaml.version>1.24</snakeyaml.version>
+        <websocket.version>1.1</websocket.version>
+        <junit.version>5.6.2</junit.version>
+        <java-websocket.version>1.4.1</java-websocket.version>
+        <zoxweb-core.version>2.2.3</zoxweb-core.version>
+        <shiro.version>1.5.3</shiro.version>
+      <default-version>1.0.0</default-version>
   </properties>
 
   <build>
@@ -171,12 +173,14 @@
   </build>
   <dependencyManagement>
   <dependencies>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
+
+
+      <dependency>
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupiter-params</artifactId>
+          <version>${junit.version}</version>
+          <scope>test</scope>
+      </dependency>
 	
 	<dependency>
 	  <groupId>org.zoxweb</groupId>

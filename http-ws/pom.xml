@@ -15,9 +15,7 @@
     <packaging>jar</packaging>
 
 
-    <properties>
-        <default-version>1.0.0</default-version>
-    </properties>
+
     <build>
         <!--
         <directory>target</directory>
