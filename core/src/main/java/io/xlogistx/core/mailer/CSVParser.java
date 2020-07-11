@@ -1,4 +1,4 @@
-package io.xlogistx.server.mailer;
+package io.xlogistx.core.mailer;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;

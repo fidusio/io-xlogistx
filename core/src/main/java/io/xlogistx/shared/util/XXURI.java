@@ -52,6 +52,9 @@ public final class XXURI {
   public static final String USER_ADDRESSES = BASE + "/user/addresses";
   public static final String USER_CREDIT_CARDS = BASE + "/user/credit-cards";
   public static final String USER_PREFERENCE = BASE + "/user/preference";
+  public static final String USER_DELETE = BASE + "/user/delete";
+
+
 
   //SubjectAPIKey
   public static final String API_KEY_BASE = BASE + "/apikey";

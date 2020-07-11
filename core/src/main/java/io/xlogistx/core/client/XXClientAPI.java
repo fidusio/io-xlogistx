@@ -1,4 +1,4 @@
-package io.xlogistx.server.client;
+package io.xlogistx.core.client;
 
 
 import io.xlogistx.shared.data.ItemDAO;
@@ -500,6 +500,26 @@ public class XXClientAPI {
     hc.sendRequest();
   }
 
+  public static void deleteUser(String url, String subjectID, String password, String userToDelete)
+          throws IOException {
+    String uri = XXURI.USER_DELETE;
+    HTTPMessageConfigInterface hmci = createHMCI(url, uri, HTTPMethod.DELETE, subjectID, password);
+    NVGenericMap params = new NVGenericMap();
+    params.add(MetaToken.SUBJECT_ID,userToDelete);
+
+    // subject_id
+    // app_gid
+    // role = app_admin, app_user, app_user_provider
+    // crud= add, delete
+
+    // if super_admin role we can do it for any domain
+
+    // if app_admin can only do it for his domain
+    hmci.setContent(GWRAPPER.toJSONGenericMap(params, false, false, false));
+    HTTPCall hc = new HTTPCall(hmci);
+    hc.sendRequest();
+  }
+
   public static void simpleRegistration(String url, String subjectID, String password)
       throws IOException {
     String uri = XXURI.REGISTRATION;
@@ -591,6 +611,10 @@ public class XXClientAPI {
 
         case "login":
           login(url, subjectID, password, domainID, appID);
+          break;
+        case "deleteuser":
+          String userIDToDelete = args[index++];
+          deleteUser(url, subjectID, password, userIDToDelete);
           break;
         case "delaytest":
           //for(int i=0; i < 1000; i++)
