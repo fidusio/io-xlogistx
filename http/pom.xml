@@ -15,9 +15,8 @@
   
   
   <description>XlogistX.IO http</description>
-  <name>xlogistx-http</name>
   <artifactId>xlogistx-http</artifactId>
-  <packaging>jar</packaging>
+
 
   <properties>
     <xlgositx-common.version>1.0.0</xlgositx-common.version>

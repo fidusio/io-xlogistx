@@ -1,0 +1,27 @@
+{
+  "class_type": "org.zoxweb.shared.http.HTTPMessageConfig",
+  "name": "zip_code_api_config",
+  "url": "https://www.zipcodeapi.com",
+  "uri": "rest",
+  "redirect_enabled": true,
+  "http_method": "GET",
+  "parameters": [
+    {
+      "api_key": "yuvBMa4vBHGCQ6Hoy0RGT3ZrVwQ2t9N1DjDqtHW5oDHfJoDhpuYiyXKutAwXKkZo"
+    },
+    {
+      "format": "radius.json"
+    },
+    {
+      "zip_code": "91352"
+    },
+    {
+      "distance": "50"
+    },
+    {
+      "units": "mile"
+    }
+  ],
+  "enable_encoding": true,
+  "http_parameter_formatter": "URI_REST_ENCODED"
+}
