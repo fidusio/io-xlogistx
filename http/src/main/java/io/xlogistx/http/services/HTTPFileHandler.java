@@ -26,10 +26,7 @@ import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.util.logging.Logger;
 
@@ -43,7 +40,7 @@ import java.util.logging.Logger;
 public class HTTPFileHandler extends BaseEndPointHandler {
     private final static Logger log = Logger.getLogger(HTTPFileHandler.class.getName());
 
-    private String baseFolder;
+    private File baseFolder;
     public HTTPFileHandler()
     {
     }
@@ -61,6 +58,9 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 //        log.info("URI: " +  uri.getPath());
 //        log.info("Remote IP: " + he.getRemoteAddress());
 //        log.info("Thread: " + Thread.currentThread());
+        InputStream fileIS = null;
+        OutputStream responseOS = null;
+
         try {
             String filename = uri.getPath().substring(path.length(), uri.getPath().length());
             if (SharedStringUtil.isEmpty(filename))
@@ -72,17 +72,23 @@ public class HTTPFileHandler extends BaseEndPointHandler {
                 }
             }
             HTTPMimeType mime = HTTPMimeType.lookupByExtenstion(filename);
-            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
+//            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
 
             if(mime != null)
                 he.getResponseHeaders()
                         .add(HTTPHeaderName.CONTENT_TYPE.getName(), mime.getValue());
             File file = new File(baseFolder, filename);
-            if (!file.exists() || !file.isFile() || !file.canRead())
-                throw new FileNotFoundException();
+            if (!file.exists() || !file.isFile() || !file.canRead()) {
+                log.info("File Not Found:" + file.getName());
+                throw new FileNotFoundException(file.getName() + " not found");
+            }
 
             he.sendResponseHeaders(HTTPStatusCode.OK.CODE, file.length());
-            IOUtil.relayStreams(new FileInputStream(file), he.getResponseBody(), true);
+            fileIS = new FileInputStream(file);
+            responseOS = he.getResponseBody();
+            IOUtil.relayStreams(fileIS, responseOS, true);
+            log.info(SharedUtil.toCanonicalID(':', Thread.currentThread(), " filename", filename," size",
+                    file.length()," mime",mime," SENT"));
         }
         catch(FileNotFoundException e)
         {
@@ -93,6 +99,11 @@ public class HTTPFileHandler extends BaseEndPointHandler {
             e.printStackTrace();            
             HTTPHandlerUtil.sendErrorMessage(he, HTTPStatusCode.BAD_REQUEST, "System error");
         }
+
+        finally {
+            he.close();
+        }
+
 
     }
 
@@ -107,6 +118,6 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         File folder = new File(baseFolder);
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())
             throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath());
-        this.baseFolder = baseFolder;
+        this.baseFolder = folder;
     }
 }

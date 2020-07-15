@@ -155,7 +155,7 @@ public class EndPointScanner
                     }
                 }
                 log.info("Method:" + hep.getName() +"::" +path + " supports:" +serverProtocol);
-                String pathToBeAdded = HTTPUtil.basePath(path, false);
+                String pathToBeAdded = HTTPUtil.basePath(path, true);
                 HttpContext httpContext = hs.getValue().createContext(pathToBeAdded, httpHandler);
                 log.info("[" + httpHandler.ID + "] :" + httpHandler.getHTTPEndPoint());
             }

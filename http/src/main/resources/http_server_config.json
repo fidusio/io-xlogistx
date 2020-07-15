@@ -47,20 +47,7 @@
 //      "bean": "org.server.Handle",
 //      "methods": [ "GET", "POST"]
 //    },
-    {
-      "name": "public_file_loader",
-      "description": "This handler will point to a PATH and local directory to enable file loading",
-      "bean": "io.xlogistx.http.services.HTTPFileHandler",
-      "paths": ["/"],
-      "permissions": ["none"],
-      "roles": ["none"],
-      "methods": [ "GET"],
-      "protocols": ["HTTPS"],
-      "properties": {
-        "base_folder": "/webs/xlogistx.io",
-        "default_file": "index.html"
-      }
-    },
+
     {
       "bean":  "io.xlogistx.http.services.Ping"
     },
@@ -79,6 +66,20 @@
         "reboot-delay" : "00:00:05",
         "shutdown-command" : "shutdown command",
         "shutdown-delay" : "00:00:05"
+      }
+    },
+    {
+      "name": "public_file_loader",
+      "description": "This handler will point to a PATH and local directory to enable file loading",
+      "bean": "io.xlogistx.http.services.HTTPFileHandler",
+      "paths": ["/"],
+      "permissions": ["none"],
+      "roles": ["none"],
+      "methods": [ "GET"],
+      "protocols": ["HTTP", "HTTPS"],
+      "properties": {
+        "base_folder": "/webs/xlogistx.io",
+        "default_file": "index.html"
       }
     }
   ]

@@ -1,5 +1,6 @@
 package io.xlogistx.http.services;
 
+import io.xlogistx.common.data.PropertyHolder;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
@@ -9,11 +10,15 @@ import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NVPair;
 
 
 
-public class Ping {
+public class Ping
+    extends PropertyHolder
+{
+
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL})
@@ -23,8 +28,18 @@ public class Ping {
         response.setCreationTime(System.currentTimeMillis());
         if(detailed)
         {
-            response.getProperties().add(new NVPair("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS)));
+
+            response.getProperties().add("jdk_version", System.getProperty("java.version"));
+            response.getProperties().add("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS));
+            //response.getProperties().add("version", )
+            response.getProperties().add(TaskUtil.getDefaultTaskScheduler().getProperties());
+            response.getProperties().add(TaskUtil.getDefaultTaskProcessor().getProperties());
         }
         return response;
+    }
+
+    @Override
+    protected void propertiesUpdated() {
+
     }
 }

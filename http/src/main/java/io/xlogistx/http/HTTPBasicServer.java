@@ -20,39 +20,28 @@ import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import java.io.File;
 import java.io.IOException;
-
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 public class HTTPBasicServer
   implements DaemonController
 {
 
-
-
   private final static Logger log = Logger.getLogger(HTTPBasicServer.class.getName());
   private HTTPServerConfig config;
   private boolean isClosed = true;
   private Map<String, HttpServer> servers = new LinkedHashMap<String, HttpServer>();
-
   public HTTPBasicServer(HTTPServerConfig config)
   {
     this.config = config;
   }
 
-//  public HttpServer[] getHttpServers()
-//  {
-//    return servers.values().toArray(new HttpServer[0]);
-//  }
   public Set<Map.Entry<String, HttpServer>> getHTTPServersMap(){return servers.entrySet();};
-
-
-
 
   public void start() throws IOException, GeneralSecurityException {
     if (isClosed) {
@@ -63,6 +52,7 @@ public class HTTPBasicServer
       ConnectionConfig[] ccs = config.getConnectionConfigs();
 
       TaskUtil.setMinTaskProcessorThreadCount(config.getThreadPoolSize());
+      Executor executor = TaskUtil.getDefaultTaskProcessor();
       for(ConnectionConfig cc : ccs)
       {
         String[] schemes = cc.getSchemes();
@@ -106,7 +96,7 @@ public class HTTPBasicServer
                 HttpsConfigurator httpsConfigurator = new HttpsConfigurator(sslContext);
 
                 httpsServer.setHttpsConfigurator(httpsConfigurator);
-                httpsServer.setExecutor(TaskUtil.getDefaultTaskProcessor());
+                httpsServer.setExecutor(executor);
                 servers.put(serverId, httpsServer);
                 break;
               case HTTP:
@@ -115,7 +105,7 @@ public class HTTPBasicServer
                  serverId = uriScheme.getName() + ":" + serverAddress.getPort();
                  isa = new InetSocketAddress(serverAddress.getPort());
                  HttpServer httpServer = HttpServer.create(isa, serverAddress.getBacklog());
-                 httpServer.setExecutor(TaskUtil.getDefaultTaskProcessor());
+                 httpServer.setExecutor(executor);
                  servers.put(serverId, httpServer);
                 break;
               case FTP:
@@ -141,8 +131,10 @@ public class HTTPBasicServer
       endPointScanner.scan();
       Set<Map.Entry<String, HttpServer>>servers = getHTTPServersMap();
 
-      for (Map.Entry<String, HttpServer> server : servers)
+      for (Map.Entry<String, HttpServer> server : servers) {
         server.getValue().start();
+        log.info(server.getValue().getClass().getName());
+      }
     }
   }
 
