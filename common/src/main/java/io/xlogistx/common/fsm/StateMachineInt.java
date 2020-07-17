@@ -3,6 +3,7 @@ package io.xlogistx.common.fsm;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.GetName;
 
+import java.util.concurrent.Executor;
 
 
 public interface StateMachineInt<C>
@@ -20,7 +21,8 @@ extends GetName, AutoCloseable
 
     void close();
 
-    TaskSchedulerProcessor getTSP();
+    TaskSchedulerProcessor getScheduler();
+    Executor getExecutor();
     StateInt lookupState(String name);
     StateInt lookupState(GetName name);
 }

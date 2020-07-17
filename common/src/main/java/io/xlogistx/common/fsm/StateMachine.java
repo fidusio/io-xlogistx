@@ -1,11 +1,13 @@
 package io.xlogistx.common.fsm;
 
+import org.zoxweb.server.task.SupplierConsumerTask;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.CanonicalID;
 import org.zoxweb.shared.util.GetName;
 
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 public class StateMachine<C>
@@ -18,6 +20,8 @@ public class StateMachine<C>
     private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
     private Map<String, StateInt<?>> states = new LinkedHashMap<String, StateInt<?>>();
     private C config;
+    private Executor executor;
+
 
     public StateMachine(String name)
     {
@@ -28,6 +32,7 @@ public class StateMachine<C>
     {
         this.name = name;
         this.tsp = tsp;
+        executor = tsp.getExecutor();
     }
 
     @Override
@@ -72,7 +77,8 @@ public class StateMachine<C>
         if(set != null)
         {
             log.info("" + trigger);
-            set.forEach(c -> tsp.queue(0, trigger, new TriggerConsumerHolder<>(c)));
+
+            set.forEach(c -> executor.execute(new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c))));
         }
 
         return this;
@@ -105,8 +111,13 @@ public class StateMachine<C>
     }
 
 
-    public TaskSchedulerProcessor getTSP(){
+    public TaskSchedulerProcessor getScheduler(){
         return tsp;
+    }
+
+    @Override
+    public Executor getExecutor() {
+        return executor;
     }
 
     @Override
