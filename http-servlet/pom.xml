@@ -47,7 +47,7 @@
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-common</artifactId>
-            <version>${default-version}</version>
+            <version>${xlogistx-version}</version>
         </dependency>
 
 
