@@ -140,7 +140,7 @@ public class HTTPHandlerUtil {
       }
     }
 
-    LinkedList<String> contentTypeData = (LinkedList<String>)he.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName());
+    List<String> contentTypeData = he.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName());
     HTTPMimeType contentType = contentTypeData != null && contentTypeData.size() > 0 ? HTTPMimeType.lookup(contentTypeData.get(0)) : null;
 
     String  payload = null;

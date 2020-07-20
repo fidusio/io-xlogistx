@@ -49,6 +49,7 @@
       <module>http-ws</module>
       <module>core</module>
       <module>payment</module>
+      <module>http-servlet</module>
   </modules>
   
   
@@ -77,7 +78,7 @@
         <java-websocket.version>1.4.1</java-websocket.version>
         <zoxweb-core.version>2.2.3</zoxweb-core.version>
         <shiro.version>1.5.3</shiro.version>
-      <default-version>1.0.0</default-version>
+        <xlogistx-version>1.0.0</xlogistx-version>
   </properties>
 
   <build>

@@ -18,9 +18,7 @@
   <artifactId>xlogistx-http</artifactId>
 
 
-  <properties>
-    <xlgositx-common.version>1.0.0</xlgositx-common.version>
-  </properties>
+
 
 
   <dependencies>
@@ -50,7 +48,7 @@
     <dependency>
       <groupId>io.xlogistx</groupId>
       <artifactId>xlogistx-common</artifactId>
-      <version>${xlgositx-common.version}</version>
+      <version>${xlogistx-version}</version>
     </dependency>
 
 
