@@ -9,10 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <description>XlogistX.IO WS</description>
     <name>xlogistx-http-ws</name>
     <artifactId>xlogistx-http-ws</artifactId>
-    <packaging>jar</packaging>
+
 
 
 
