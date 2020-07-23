@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpContext;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import io.xlogistx.common.data.MethodHolder;
 import io.xlogistx.http.HTTPBasicServer;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.util.ReflectionUtil;
@@ -107,7 +108,7 @@ public class EndPointScanner
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
-                                        EndPointHandler endPointHandler = new EndPointHandler(beanInstance, methodAnnotations);
+                                        EndPointHandler endPointHandler = new EndPointHandler(new MethodHolder(beanInstance, methodAnnotations));
                                         endPointHandler.setHTTPEndPoint(methodHEP);
 
                                         mapHEP(methodHEP, endPointHandler);

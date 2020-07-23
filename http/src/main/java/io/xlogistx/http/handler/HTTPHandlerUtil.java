@@ -170,8 +170,6 @@ public class HTTPHandlerUtil {
       if(pAnnotation != null  && pAnnotation instanceof ParamProp)
       {
         ParamProp pp = (ParamProp) pAnnotation;
-        //log.info("" + pp);
-
         if (pp.source() == Const.ParamSource.PAYLOAD)
         {
           Class<?> pClassType = p.getType();
@@ -248,27 +246,6 @@ public class HTTPHandlerUtil {
         {
           parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String)currentValue).getValue());
         }
-
-//        SharedUtil.isPrimitive()
-//
-//        GetNameValue<?> currentGNV = gnvParameters.get(pp.name());
-//        GetNameValue<?> expectedGNV = null;
-//        if(currentGNV!=null && currentGNV.getValue() instanceof String)
-//          expectedGNV = SharedUtil.classToNVBase(p.getType(), pp.name(),  (String)currentGNV.getValue());
-//        if (currentGNV == null)
-//        {
-//          if(pp.optional())
-//            gnvParameters.add(expectedGNV);
-//          else
-//            throw new IllegalArgumentException("Missing parameter " + pp.name());
-//        }
-//        else if(expectedGNV != null && currentGNV.getClass() != expectedGNV.getClass())
-//        {
-//          // try to convert the string value
-//          gnvParameters.add(expectedGNV);
-//        }
-
-
       }
     }
 
@@ -278,26 +255,7 @@ public class HTTPHandlerUtil {
 
 
 
-  public static Object invokeMethod(Object source, ReflectionUtil.MethodAnnotations methodAnnotations, Map<String, Object> incomingData)
-          throws InvocationTargetException, IllegalAccessException
-  {
-    Object result = null;
-    List<Object> parameterValues = new ArrayList<Object>();
-    Parameter[] parameters = methodAnnotations.method.getParameters();
-    Object[] values = new Object[parameters.length];
 
-    for(int i =0; i < values.length; i++)
-    {
-      ParamProp pp = (ParamProp) methodAnnotations.parametersAnnotations.get(parameters[i]);
-      values[i] = incomingData.get(pp.name());
-    }
-
-
-    //log.info("" +  methodAnnotations.method + " " + Arrays.toString(values));
-    result = methodAnnotations.method.invoke(source, values);
-
-    return result;
-  }
 
 
 

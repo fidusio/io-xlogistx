@@ -1,6 +1,7 @@
 package io.xlogistx.http.handler;
 
 import com.sun.net.httpserver.HttpExchange;
+import io.xlogistx.common.data.MethodHolder;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.Const;
@@ -14,21 +15,18 @@ public class EndPointHandler
 extends BaseEndPointHandler {
     private static transient Logger log = Logger.getLogger(EndPointHandler.class.getName());
 
-    private Object bean;
-   // private ReflectionUtil.AnnotationMap annotationMap;
-    private ReflectionUtil.MethodAnnotations methodAnnotations;
+    private MethodHolder methodHolder;
 
 
-    public EndPointHandler(Object bean, ReflectionUtil.MethodAnnotations methodAnnotations)
+    public EndPointHandler(MethodHolder methodHolder)
     {
-        this.bean = bean;
-        //this.annotationMap = annotationMap;
-        this.methodAnnotations = methodAnnotations;
+        this.methodHolder = methodHolder;
+
     }
 
     public ReflectionUtil.MethodAnnotations getMethodAnnotations()
     {
-        return methodAnnotations;
+        return methodHolder.getMethodAnnotations();
     }
 
     @Override
@@ -61,7 +59,9 @@ extends BaseEndPointHandler {
                 Map<String, Object> parameters = HTTPHandlerUtil.buildParameters(exchange);
                 //log.info("Parameters:" + parameters);
 
-                result = HTTPHandlerUtil.invokeMethod(bean, methodAnnotations, parameters);
+                result = ReflectionUtil.invokeMethod(methodHolder.getInstance(),
+                                                     methodHolder.getMethodAnnotations(),
+                                                     parameters);
                 //log.info("Result:" + result);
                 if (result == null) {
                     HTTPHandlerUtil.sendSimpleMessage(exchange, HTTPStatusCode.OK, "Success");

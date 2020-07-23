@@ -15,6 +15,7 @@ import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
+import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.DaemonController;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SharedUtil;
@@ -157,7 +158,9 @@ public class HTTPBasicServer
 
 
   public static void main(String... args) {
+    long startTS = System.currentTimeMillis();
     try {
+
       LoggerUtil.enableDefaultLogger("io.xlogistx");
       int index = 0;
 
@@ -180,5 +183,9 @@ public class HTTPBasicServer
       System.err.println("Usage: HTTPBasicServer server-config.json");
       System.exit(-1);
     }
+    startTS = System.currentTimeMillis() - startTS;
+
+    log.info("Start up time:" + Const.TimeInMillis.toString(startTS));
+
   }
 }
