@@ -50,7 +50,6 @@
       <module>core</module>
       <module>payment</module>
       <module>http-servlet</module>
-      <module>micronaut</module>
   </modules>
   
   
