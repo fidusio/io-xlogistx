@@ -22,6 +22,7 @@
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <slf4j-simple.version>1.7.9</slf4j-simple.version>
     <javax-cache.version>1.1.1</javax-cache.version>
+    <ehcache-org.version>3.8.1</ehcache-org.version>
   </properties>
 
   <dependencies>
@@ -46,6 +47,7 @@
         <version>${shiro.version}</version>
     </dependency>
 
+
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
@@ -68,6 +70,12 @@
       <groupId>javax.cache</groupId>
       <artifactId>cache-api</artifactId>
       <version>${javax-cache.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.ehcache</groupId>
+      <artifactId>ehcache</artifactId>
+      <version>${ehcache-org.version}</version>
     </dependency>
 
   </dependencies>
