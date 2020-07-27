@@ -68,8 +68,8 @@ public class PayPalPaymentProcessor
     public APITokenDAO newConnection() throws APIException {
         try {
             return PayPalRestAPI.OAUTH2Token(URL,
-                    configInfo.getConfigParameters().get(PayPalPaymentProcessorCreator.Param.API_KEY).getValue(),
-                    configInfo.getConfigParameters().get(PayPalPaymentProcessorCreator.Param.API_SECRET).getValue());
+                    configInfo.getProperties().getValue(PayPalPaymentProcessorCreator.Param.API_KEY),
+                    configInfo.getProperties().getValue(PayPalPaymentProcessorCreator.Param.API_SECRET));
         } catch (IOException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             e.printStackTrace();
             throw new APIException(e.getMessage());

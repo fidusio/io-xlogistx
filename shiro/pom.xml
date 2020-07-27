@@ -21,6 +21,7 @@
     <commons-logging.version>1.2</commons-logging.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <slf4j-simple.version>1.7.9</slf4j-simple.version>
+    <javax-cache.version>1.1.1</javax-cache.version>
   </properties>
 
   <dependencies>
@@ -61,6 +62,12 @@
     <groupId>org.slf4j</groupId>
     <artifactId>slf4j-simple</artifactId>
     <version>${slf4j-simple.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.cache</groupId>
+      <artifactId>cache-api</artifactId>
+      <version>${javax-cache.version}</version>
     </dependency>
 
   </dependencies>
