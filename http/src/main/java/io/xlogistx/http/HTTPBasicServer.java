@@ -39,6 +39,7 @@ public class HTTPBasicServer
   private Map<String, HttpServer> servers = new LinkedHashMap<String, HttpServer>();
   public HTTPBasicServer(HTTPServerConfig config)
   {
+    SharedUtil.checkIfNulls("HTTPServerConfig null.", config);
     this.config = config;
   }
 
