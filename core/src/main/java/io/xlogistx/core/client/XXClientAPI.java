@@ -313,8 +313,10 @@ public class XXClientAPI {
   public static void login(String url, String subjectID, String password, String domainID,
       String appID) throws IOException {
     String uri = XXURI.LOGIN + "/" + domainID + "/" + appID;
+    System.out.println(uri);
     HTTPMessageConfigInterface hmci = createHMCI(url, uri, HTTPMethod.GET, subjectID, password);
     HTTPCall hc = new HTTPCall(hmci);
+
     System.out.println(hc.sendRequest());
   }
 

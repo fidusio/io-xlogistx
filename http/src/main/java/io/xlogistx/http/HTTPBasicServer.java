@@ -34,16 +34,16 @@ public class HTTPBasicServer
 {
 
   private final static Logger log = Logger.getLogger(HTTPBasicServer.class.getName());
-  private HTTPServerConfig config;
+  private final HTTPServerConfig config;
   private boolean isClosed = true;
-  private Map<String, HttpServer> servers = new LinkedHashMap<String, HttpServer>();
+  private final Map<String, HttpServer> servers = new LinkedHashMap<String, HttpServer>();
   public HTTPBasicServer(HTTPServerConfig config)
   {
     SharedUtil.checkIfNulls("HTTPServerConfig null.", config);
     this.config = config;
   }
 
-  public Set<Map.Entry<String, HttpServer>> getHTTPServersMap(){return servers.entrySet();};
+  public Set<Map.Entry<String, HttpServer>> getHTTPServersMap(){return servers.entrySet();}
 
   public void start() throws IOException, GeneralSecurityException {
     if (isClosed) {
@@ -85,7 +85,7 @@ public class HTTPBasicServer
                         trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
                 // create the SSLContext
 
-                List<String> protocols = sslConfig.getValue("protocols");
+//                List<String> protocols = sslConfig.getValue("protocols");
 //                if(protocols != null)
 //                {
 //                  SSLParameters sslParameters = sslContext.getSupportedSSLParameters();
@@ -111,15 +111,10 @@ public class HTTPBasicServer
                  servers.put(serverId, httpServer);
                 break;
               case FTP:
-                break;
               case FILE:
-                break;
               case MAIL_TO:
-                break;
               case DATA:
-                break;
               case WSS:
-                break;
               case WS:
                 break;
             }
@@ -149,11 +144,12 @@ public class HTTPBasicServer
   }
 
   @Override
-  public synchronized void close() throws IOException {
-
-    if(!isClosed()) {
-
+  public synchronized void close()
+  {
+    if(!isClosed())
+    {
       isClosed = true;
+      servers.values().forEach((s) -> s.stop(5));
     }
   }
 
@@ -174,7 +170,7 @@ public class HTTPBasicServer
         hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
 
       log.info("" + hsc);
-      log.info("" + hsc.getConnectionConfigs());
+      log.info("" + Arrays.toString(hsc.getConnectionConfigs()));
       HTTPServerCreator httpServerCreator = new HTTPServerCreator();
       httpServerCreator.setAppConfig(hsc);
       httpServerCreator.createApp();
