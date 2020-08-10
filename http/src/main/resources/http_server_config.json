@@ -3,6 +3,7 @@
   "description" : "",
   "application_env_var": "entry directory for application config files",
   "thread_pool_size" : 64,
+  "thread_pool_java_type" : true,
   "base_uri": "",
 
   "connections":
@@ -28,7 +29,7 @@
       "ssl_config":
       {
         "name": "SSLCONFIG",
-        "keystore_file": "/IdeaProjects/projects/io-xlogistx/http/src/main/resources/web.xlogistx.io.jks",
+        "keystore_file": "/IdeaProjects/projects/xlogistx/http/src/main/resources//web.xlogistx.io.jks",
         "keystore_type": "pkcs12",
         "keystore_password": "password",
         "protocols": [

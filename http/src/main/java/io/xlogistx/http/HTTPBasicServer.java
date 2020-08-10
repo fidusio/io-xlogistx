@@ -27,6 +27,8 @@ import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class HTTPBasicServer
@@ -55,6 +57,11 @@ public class HTTPBasicServer
 
       TaskUtil.setMinTaskProcessorThreadCount(config.getThreadPoolSize());
       Executor executor = TaskUtil.getDefaultTaskProcessor();
+      if(config.isThreadPoolJavaType())
+        executor = Executors.newCachedThreadPool();
+      else
+        executor = TaskUtil.getDefaultTaskProcessor();
+
       for(ConnectionConfig cc : ccs)
       {
         String[] schemes = cc.getSchemes();
@@ -163,6 +170,7 @@ public class HTTPBasicServer
 
 
       String filename = args[index++];
+      log.info("config file:" + filename);
       File file = IOUtil.locateFile(filename);
       HTTPServerConfig hsc = null;
 

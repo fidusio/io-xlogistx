@@ -24,6 +24,7 @@ import io.xlogistx.shiro.authc.JWTAuthenticationToken;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.web.session.mgt.ServletContainerSessionManager;
 import org.zoxweb.server.http.HTTPRequestAttributes;
 
 import org.zoxweb.server.util.GSONUtil;
@@ -52,6 +53,7 @@ import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
+
 @SuppressWarnings("serial")
 public abstract class ShiroBaseServlet
     extends HttpServlet
@@ -59,8 +61,8 @@ public abstract class ShiroBaseServlet
 
     public static final APIError DEFAULT_API_ERROR = new APIError(new AccessException("Access denied.", null, true));
     protected static final transient Logger log = Logger.getLogger(ShiroBaseServlet.class.getName());
-    
-    
+
+	ServletContainerSessionManager sdl;
     //public static final String SECURITY_CHECK = "SECURITY_CHECK";
     public static final String AUTO_LOGOUT = "AUTO_LOGOUT";
     public static final String APP_ID_IN_PATH = "APP_ID_IN_PATH";

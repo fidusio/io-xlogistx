@@ -17,6 +17,7 @@ public class StateMachine<C>
     private final static Logger log = Logger.getLogger(StateMachine.class.getName());
     private final String name;
     private final TaskSchedulerProcessor tsp;
+    private final boolean schedulerOnly;
     private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
     private Map<String, StateInt<?>> states = new LinkedHashMap<String, StateInt<?>>();
     private C config;
@@ -25,18 +26,20 @@ public class StateMachine<C>
 
     public StateMachine(String name)
     {
-        this(name, TaskUtil.getDefaultTaskScheduler());
+        this(name, TaskUtil.getDefaultTaskScheduler(), true);
     }
 
-    public StateMachine(String name, TaskSchedulerProcessor tsp)
+    public StateMachine(String name, TaskSchedulerProcessor tsp, boolean schedulerOnly)
     {
         this.name = name;
         this.tsp = tsp;
+        this.schedulerOnly = schedulerOnly;
         executor = tsp.getExecutor();
     }
 
     @Override
-    public StateMachineInt register(StateInt state) {
+    public StateMachineInt register(StateInt state)
+    {
         if(state != null)
         {
             TriggerConsumerInt<?>[] triggers = state.triggers();
@@ -72,31 +75,36 @@ public class StateMachine<C>
 
 
     @Override
-    public StateMachineInt publish(TriggerInt trigger) {
+    public StateMachineInt publish(TriggerInt trigger)
+    {
         Set<TriggerConsumerInt<?>> set = tcMap.get(trigger.getCanonicalID());
         if(set != null)
         {
             log.info("" + trigger);
-
-            set.forEach(c -> executor.execute(new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c))));
+            if(isScheduledTaskEnabled())
+                set.forEach(c -> tsp.queue(0, new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c))));
+            else
+                set.forEach(c -> executor.execute(new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c))));
         }
-
         return this;
     }
 
     @Override
-    public C getConfig() {
+    public C getConfig()
+    {
         return config;
     }
 
     @Override
-    public StateMachineInt setConfig(C config) {
+    public StateMachineInt setConfig(C config)
+    {
         this.config = config;
         return this;
     }
 
     @Override
-    public String getName() {
+    public String getName()
+    {
         return name;
     }
 
@@ -111,17 +119,26 @@ public class StateMachine<C>
     }
 
 
-    public TaskSchedulerProcessor getScheduler(){
+    public TaskSchedulerProcessor getScheduler()
+    {
         return tsp;
     }
 
     @Override
-    public Executor getExecutor() {
+    public Executor getExecutor()
+    {
         return executor;
     }
 
     @Override
-    public StateInt lookupState(String name) {
+    public boolean isScheduledTaskEnabled()
+    {
+        return schedulerOnly;
+    }
+
+    @Override
+    public StateInt lookupState(String name)
+    {
         return states.get(name);
     }
 
@@ -132,7 +149,8 @@ public class StateMachine<C>
     }
 
     @Override
-    public void close() {
+    public void close()
+    {
     }
 
 

@@ -23,6 +23,7 @@ extends GetName, AutoCloseable
 
     TaskSchedulerProcessor getScheduler();
     Executor getExecutor();
+    boolean isScheduledTaskEnabled();
     StateInt lookupState(String name);
     StateInt lookupState(GetName name);
 }

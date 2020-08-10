@@ -34,18 +34,6 @@ extends BaseEndPointHandler {
         // validate authentication
         long ts = System.nanoTime();
         long count = callCounter.getAndIncrement();
-
-//        URI uri = exchange.getRequestURI();
-//        log.info("uri:" + uri);
-//        log.info("query:" + uri.getQuery());
-//        log.info("raw query:" + uri.getRawQuery());
-//        log.info("uri path:" + uri.getPath());
-//        log.info("context path:"+exchange.getHttpContext().getPath());
-//        log.info("request headers:" + exchange.getRequestHeaders().entrySet());
-//        log.info("content type:" + ((LinkedList<String>)exchange.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName())).get(0));
-
-
-
         // validate path
         // inspect method
         // invoke method

@@ -97,7 +97,6 @@ public class Main {
                         case IP_BLOCKER:
                             IPBlockerConfig ipBlockerConfig = GSONUtil.fromJSON(IOUtil.inputStreamToString(gnvs.getValue()), IPBlockerConfig.class);
                             IPBlockerListener.Creator c = new IPBlockerListener.Creator();
-                            //log.info("\n" + GSONUtil.toJSON(appConfig, true, false, false));
                             c.setAppConfig(ipBlockerConfig);
                             ipBlocker = c.createApp();
                             p.setValue(ipBlocker);

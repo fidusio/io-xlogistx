@@ -316,8 +316,9 @@ public class XXClientAPI {
     System.out.println(uri);
     HTTPMessageConfigInterface hmci = createHMCI(url, uri, HTTPMethod.GET, subjectID, password);
     HTTPCall hc = new HTTPCall(hmci);
+    HTTPResponseData hrd = hc.sendRequest();
 
-    System.out.println(hc.sendRequest());
+    System.out.println(hrd);
   }
 
 

@@ -86,7 +86,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
             he.sendResponseHeaders(HTTPStatusCode.OK.CODE, file.length());
             fileIS = new FileInputStream(file);
             responseOS = he.getResponseBody();
-            IOUtil.relayStreams(fileIS, responseOS, true);
+            IOUtil.relayStreams(fileIS, responseOS, true, true);
             log.info(SharedUtil.toCanonicalID(':', Thread.currentThread(), " filename", filename," size",
                     file.length()," mime",mime," SENT"));
         }
