@@ -40,7 +40,7 @@ import java.util.logging.Logger;
 
 @SuppressWarnings("serial")
 public class ShiroAutoLoginServlet 
-	extends ShiroBaseServlet 
+	extends ShiroBaseServlet
 {	
 	private static final transient Logger log = Logger.getLogger(ShiroAutoLoginServlet.class.getName());
 	

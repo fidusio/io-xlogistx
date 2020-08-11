@@ -26,7 +26,6 @@ import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.session.mgt.ServletContainerSessionManager;
 import org.zoxweb.server.http.HTTPRequestAttributes;
-
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.cache.JWTTokenCache;
 import org.zoxweb.shared.annotation.DataProp;
