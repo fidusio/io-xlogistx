@@ -40,11 +40,7 @@
             <artifactId>xlogistx-common</artifactId>
             <version>${xlogistx-version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.xlogistx</groupId>
-            <artifactId>xlogistx-shiro</artifactId>
-            <version>${xlogistx-version}</version>
-        </dependency>
+
 
 
         <dependency>
