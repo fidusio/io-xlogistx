@@ -8,6 +8,7 @@ import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.Const;
 
+import java.util.Arrays;
 import java.util.Date;
 
 @SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC})
@@ -67,6 +68,14 @@ public class TestEndPoint {
     public void invalid()
     {
         System.out.println( "empty");
+    }
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name="array", uris="/array/{string-array}/{int-array}/{long-array}")
+    public void array(@ParamProp(name="string-array") String[] strArray, @ParamProp(name="int-array", optional = true) Integer[] intArray, @ParamProp(name="long-array", optional = true)long[] longArray)
+    {
+        System.out.println(Arrays.toString(strArray));
+        System.out.println(Arrays.toString(intArray));
+        System.out.println(Arrays.toString(longArray));
     }
 
     @SecurityProp(authentications = {SecurityConsts.AuthenticationType.NONE})

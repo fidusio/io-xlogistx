@@ -228,13 +228,12 @@ public class HTTPHandlerUtil {
 
         // check if null and optional
         Object currentValue = parameters.get(pp.name());
-        if (currentValue == null)
-        {
-          if(pp.optional())
-          {
-            if(SharedUtil.isPrimitive(p.getType()))
-            {
-              parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), null).getValue());
+
+        if (currentValue == null) {
+          if (pp.optional()) {
+            if (SharedUtil.isPrimitive(p.getType())) {
+              NVBase<?> paramValue = SharedUtil.classToNVBase(p.getType(), pp.name(), null);
+              parameters.put(pp.name(), paramValue != null ? paramValue.getValue() : null);
             }
             continue;
           }
@@ -242,7 +241,7 @@ public class HTTPHandlerUtil {
             throw new IllegalArgumentException("Missing parameter " + pp.name());
         }
 
-        if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()))
+        if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType()))
         {
           parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String)currentValue).getValue());
         }
