@@ -78,6 +78,17 @@ public class TestEndPoint {
         System.out.println(Arrays.toString(longArray));
     }
 
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name="array-invalid", uris="/array-invalid/{string-array}/{int-array}/{long-array}")
+    public void arrayInvalid(@ParamProp(name="string-array") String[] strArray, @ParamProp(name="string-array", optional = true) Integer[] intArray, @ParamProp(name="long-array", optional = true)long[] longArray)
+    {
+        System.out.println(Arrays.toString(strArray));
+        System.out.println(Arrays.toString(intArray));
+        System.out.println(Arrays.toString(longArray));
+    }
+
+
+
     @SecurityProp(authentications = {SecurityConsts.AuthenticationType.NONE})
     public void empty(){};
 }

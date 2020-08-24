@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.http.EndPointsManager;
 import io.xlogistx.http.HTTPBasicServer;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.util.ReflectionUtil;
@@ -20,6 +21,7 @@ import org.zoxweb.shared.util.SharedStringUtil;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -30,6 +32,7 @@ public class EndPointScanner
     private static transient Logger log = Logger.getLogger(EndPointScanner.class.getName());
     private final HTTPServerConfig serverConfig;
     private final HTTPBasicServer server;
+    private final EndPointsManager endPointsManager = new EndPointsManager();
 
     public EndPointScanner(HTTPServerConfig serverConfig, HTTPBasicServer server)
     {
@@ -37,6 +40,11 @@ public class EndPointScanner
         this.server = server;
     }
 
+
+    public EndPointsManager getEndPointsManager()
+    {
+        return endPointsManager;
+    }
 
     public void scan()
     {
@@ -85,8 +93,8 @@ public class EndPointScanner
                         {
                             classHEP = new HTTPEndPoint();
                             classHEP.setBean(beanName);
-                            classHEP = scanAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
-                            classHEP = mergeOuterIntoInner(configHEP, classHEP, false);
+                            classHEP = EndPointsManager.scanAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
+                            classHEP = EndPointsManager.mergeOuterIntoInner(configHEP, classHEP, false);
 
                         }
                         else
@@ -100,13 +108,16 @@ public class EndPointScanner
 
                                 ReflectionUtil.MethodAnnotations methodAnnotations = classAnnotationMap.getMethodsAnnotations().get(method);
                                 try {
-                                    if (ReflectionUtil.isMethodAnnotatedAs(method, EndPointProp.class)) {
-                                        HTTPEndPoint methodHEP = scanAnnotations(serverConfig.getBaseURI(),
+                                    //if (ReflectionUtil.isMethodAnnotatedAs(method, EndPointProp.class))
+                                    if (EndPointsManager.areAllParametersUniquelyAnnotatedParamProp(methodAnnotations))
+                                    {
+
+                                        HTTPEndPoint methodHEP = EndPointsManager.scanAnnotations(serverConfig.getBaseURI(),
                                                 new HTTPEndPoint(),
                                                 methodAnnotations.methodAnnotations,
                                                 true);
 
-                                        methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
+                                        methodHEP = EndPointsManager.mergeOuterIntoInner(classHEP, methodHEP, false);
 
                                         EndPointHandler endPointHandler = new EndPointHandler(new MethodHolder(beanInstance, methodAnnotations));
                                         endPointHandler.setHTTPEndPoint(methodHEP);
@@ -158,88 +169,14 @@ public class EndPointScanner
                 log.info("Method:" + hep.getName() +"::" +path + " supports:" +serverProtocol);
                 String pathToBeAdded = HTTPUtil.basePath(path, true);
                 HttpContext httpContext = hs.getValue().createContext(pathToBeAdded, httpHandler);
-                log.info("[" + httpHandler.ID + "] :" + httpHandler.getHTTPEndPoint());
+                endPointsManager.map(pathToBeAdded, httpHandler.getHTTPEndPoint(), httpHandler.getMethodHolder());
+                log.info(pathToBeAdded  + " [" + httpHandler.ID + "] :" + httpHandler.getHTTPEndPoint());
             }
         }
     }
 
 
-    private static HTTPEndPoint scanAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck)
-    {
-        for (Annotation a : annotations) {
-            if (a instanceof EndPointProp) {
-                EndPointProp epp = (EndPointProp) a;
-                hep.setName(epp.name());
-                hep.setDescription(epp.description());
-                hep.setMethods(epp.methods());
 
-                String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
-                if(methodCheck)
-                {
-                    if(uris.length != 1)
-                        throw  new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
-                }
-                hep.setPaths(uris);
-
-            } else if (a instanceof SecurityProp) {
-                SecurityProp sp = (SecurityProp) a;
-
-                String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-                String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");;
-                AuthenticationType[] authTypes = sp.authentications();
-                String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-                hep.setPermissions(permissions);
-                hep.setRoles(roles);
-                hep.setAuthenticationTypes(authTypes);
-                hep.setRestrictions(restrictions);
-                hep.setProtocols(sp.protocols());
-            }
-        }
-        return updatePaths(baseURI, hep);
-    }
-
-
-    private static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride)
-    {
-
-        if(outer != null) {
-            if (outer.getMethods() != null && outer.getMethods().length > 0)
-                inner.setMethods(outer.getMethods());
-
-            if (pathOverride && outer.getPaths().length > 0)
-                inner.setPaths(outer.getPaths());
-            if (outer.getPermissions() != null && outer.getPermissions().length > 0)
-                inner.setPermissions(outer.getPermissions());
-            if (outer.getRoles() != null && outer.getRoles().length > 0)
-                inner.setRoles(outer.getRoles());
-            if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
-                inner.setAuthenticationTypes(outer.getAuthenticationTypes());
-            if (outer.getRestrictions() != null && outer.getRestrictions().length > 0)
-                inner.setRestrictions(outer.getRestrictions());
-            if (outer.getProtocols() != null && outer.getProtocols().length > 0)
-                inner.setProtocols(outer.getProtocols());
-
-            inner.getProperties().add(outer.getProperties().values(), true);
-        }
-
-        return inner;
-    }
-
-
-    private static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep)
-    {
-        baseURI = SharedStringUtil.trimOrNull(baseURI);
-        if(baseURI != null)
-        {
-            String[] paths = hep.getPaths();
-            for(int i = 0; i < paths.length; i++)
-            {
-                paths[i] = SharedStringUtil.concat(baseURI, paths[i], "/");
-            }
-            hep.setPaths(paths);
-        }
-        return hep;
-    }
 
 
 

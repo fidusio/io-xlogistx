@@ -15,7 +15,6 @@ public class EndPointHandler
 extends BaseEndPointHandler {
     private static transient Logger log = Logger.getLogger(EndPointHandler.class.getName());
 
-    private MethodHolder methodHolder;
 
 
     public EndPointHandler(MethodHolder methodHolder)
@@ -24,10 +23,7 @@ extends BaseEndPointHandler {
 
     }
 
-    public ReflectionUtil.MethodAnnotations getMethodAnnotations()
-    {
-        return methodHolder.getMethodAnnotations();
-    }
+
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {

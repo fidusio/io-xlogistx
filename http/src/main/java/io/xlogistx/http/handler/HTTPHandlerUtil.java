@@ -4,7 +4,6 @@ import com.sun.net.httpserver.HttpExchange;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.util.GSONUtil;
-import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
@@ -12,7 +11,6 @@ import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 
 import java.lang.reflect.Parameter;
 import java.net.URI;
@@ -164,9 +162,9 @@ public class HTTPHandlerUtil {
 
 
     // need to parse the payload parameters
-    for(Parameter p : eph.getMethodAnnotations().method.getParameters())
+    for(Parameter p : eph.getMethodHolder().getMethodAnnotations().method.getParameters())
     {
-      Annotation pAnnotation  = eph.getMethodAnnotations().parametersAnnotations.get(p);
+      Annotation pAnnotation  = eph.getMethodHolder().getMethodAnnotations().parametersAnnotations.get(p);
       if(pAnnotation != null  && pAnnotation instanceof ParamProp)
       {
         ParamProp pp = (ParamProp) pAnnotation;

@@ -1,6 +1,8 @@
 package io.xlogistx.http.handler;
 
 import com.sun.net.httpserver.HttpHandler;
+import io.xlogistx.common.data.MethodHolder;
+import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -16,6 +18,7 @@ public abstract class BaseEndPointHandler
     protected AtomicLong callCounter = new AtomicLong();
 
     private HTTPEndPoint hep;
+    protected MethodHolder methodHolder;
     private static final AtomicInteger counter = new AtomicInteger();
     public final int ID = counter.incrementAndGet();
 
@@ -30,6 +33,14 @@ public abstract class BaseEndPointHandler
         this.hep = hep;
         init();
     }
+
+
+    public MethodHolder getMethodHolder()
+    {
+        return methodHolder;
+    }
+
+
 
     protected abstract void init();
 }

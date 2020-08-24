@@ -3,7 +3,6 @@ package io.xlogistx.common.fsm;
 import org.zoxweb.server.task.SupplierConsumerTask;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.shared.util.CanonicalID;
 import org.zoxweb.shared.util.GetName;
 
 import java.util.*;
