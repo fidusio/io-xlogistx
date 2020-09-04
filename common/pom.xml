@@ -19,6 +19,10 @@
   <artifactId>xlogistx-common</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <commons-csv.version>1.8</commons-csv.version>
+    <cron-util.version>9.1.0</cron-util.version>
+  </properties>
   
 
 
@@ -43,6 +47,19 @@
       <groupId>com.sun.mail</groupId>
       <artifactId>jakarta.mail</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.cronutils</groupId>
+      <artifactId>cron-utils</artifactId>
+      <version>${cron-util.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>${commons-csv.version}</version>
+    </dependency>
+
   </dependencies>
+
+
 
 </project>
