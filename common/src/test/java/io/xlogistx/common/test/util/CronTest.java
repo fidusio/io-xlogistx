@@ -63,7 +63,7 @@ public class CronTest {
             int index = 0;
             String cron = args[index++];
             long minDelay = Const.TimeInMillis.toMillis(args[index++]);
-            unixCronCalc(cron, 200);
+            unixCronCalc(cron, 10);
 
             ct.cron(args[0],
                     () -> {log.info("[1:" + Thread.currentThread() + "-" + new Date());
