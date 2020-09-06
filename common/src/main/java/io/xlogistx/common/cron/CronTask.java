@@ -1,13 +1,12 @@
 package io.xlogistx.common.cron;
 
-import com.cronutils.model.Cron;
-import com.cronutils.model.time.ExecutionTime;
+
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.Appointment;
+import org.zoxweb.shared.util.WaitTime;
 
 
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
+
 import java.util.logging.Logger;
 
 public class CronTask
@@ -15,51 +14,51 @@ public class CronTask
 {
 
     private static final transient Logger log = Logger.getLogger(CronTask.class.getName());
-    private final Cron cron;
+
     private final Runnable command;
-    private final ExecutionTime executionTime;
+
     private final TaskSchedulerProcessor tsp;
     private Appointment appointment;
+    private final WaitTime waitTime;
 
-    public CronTask(TaskSchedulerProcessor tsp, Cron cron, Runnable command)
+
+
+    public CronTask(TaskSchedulerProcessor tsp, WaitTime waitTime, Runnable command)
     {
         this.tsp = tsp;
-        this.cron = cron;
+        this.waitTime = waitTime;
         this.command = command;
-        executionTime = ExecutionTime.forCron(cron);
-        next(0);
+        next();
     }
 
     public void run()
     {
         command.run();
-        next(0);
+
+        if(!appointment.isClosed())
+            next();
     }
 
 
-    private synchronized void next(long millisIncrement)
+    private void next()
     {
-        ZonedDateTime zdt = ZonedDateTime.now().plus(millisIncrement, ChronoUnit.MILLIS);
 
-        long millisFromNow = executionTime.timeToNextExecution(zdt).get().toMillis();
-        //log.info(Const.TimeInMillis.toString(millisFromNow));
-        if(millisFromNow > 0)
-        {
-                if(appointment == null)
-                    appointment = tsp.queue(millisFromNow, this);
-                else
-                    appointment.setDelayInMillis(millisFromNow);
-        }
+       long millisFromNow = waitTime.nextWait();
+
+       //log.info(nextExecutionTime + " seconds: " + nextExecutionTime.getSecond() + " delay " + millisFromNow);
+
+        if (appointment == null)
+            appointment = tsp.queue(millisFromNow, this);
         else
-        {
-            log.info("We have negative time " + millisFromNow);
-            next(5);
-        }
+            appointment.setDelayInNanos(millisFromNow, 0);
+
+
+
     }
 
-    public Cron getCron()
+    public WaitTime getWaitTime()
     {
-        return cron;
+        return waitTime;
     }
 
     public synchronized void close()

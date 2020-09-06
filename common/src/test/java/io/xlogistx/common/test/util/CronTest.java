@@ -7,15 +7,21 @@ import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
+
 import io.xlogistx.common.cron.CronTool;
+import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.Const;
+
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.logging.Logger;
 
 
 public class CronTest {
-    public void unixCron() {
+    private static final transient Logger log = Logger.getLogger(CronTest.class.getName());
+    public static void unixCron() {
         CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
         CronParser unixParser = new CronParser(cronDefinition);
         String[] expressions = {" 0 5 * * 1", "0 */6 * * *"};
@@ -30,10 +36,44 @@ public class CronTest {
         }
     }
 
+    public static void unixCronCalc(String expression, int iterations) {
+        CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
+        CronParser unixParser = new CronParser(cronDefinition);
+
+        Cron cron = unixParser.parse(expression);
+        System.out.println(cron.asString());
+        ExecutionTime executionTime = ExecutionTime.forCron(cron);
+        ZonedDateTime zdt = ZonedDateTime.now();
+        for(int i = 0; i < iterations; i++)
+        {
+
+            Duration duration = executionTime.timeToNextExecution(zdt).get();
+            System.out.println(zdt + ", " +duration.toMillis());
+            zdt = executionTime.nextExecution(zdt).get();
+        }
+
+    }
+
 
     public static void main(String ...args)
     {
-        CronTool ct = new CronTool(TaskUtil.getDefaultTaskScheduler());
-        ct.cron(args[0], ()->{System.out.println(new Date());});
+        try {
+            LoggerUtil.enableDefaultLogger("io.xlogistx");
+            CronTool ct = new CronTool(TaskUtil.getDefaultTaskScheduler());
+            int index = 0;
+            String cron = args[index++];
+            long minDelay = Const.TimeInMillis.toMillis(args[index++]);
+            unixCronCalc(cron, 200);
+
+            ct.cron(args[0],
+                    () -> {log.info("[1:" + Thread.currentThread() + "-" + new Date());
+                           TaskUtil.sleep(5000);
+                           log.info(" 2:" + Thread.currentThread() + "-" + new Date() +"]");});
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
     }
 }

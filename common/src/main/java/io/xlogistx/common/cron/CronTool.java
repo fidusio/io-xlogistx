@@ -1,6 +1,5 @@
 package io.xlogistx.common.cron;
 
-import com.cronutils.model.Cron;
 import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.parser.CronParser;
@@ -23,7 +22,6 @@ public class CronTool {
 
     public Appointment cron(String cronSchedule, Runnable command)
     {
-        Cron cron = unixParser.parse(cronSchedule);
-        return new CronTask(tsp, cron, command).getAppointment();
+        return new CronTask(tsp, new CronWaitTime(unixParser.parse(cronSchedule)), command).getAppointment();
     }
 }
