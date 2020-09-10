@@ -3,6 +3,7 @@ package io.xlogistx.common.cron;
 
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.Appointment;
+import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.WaitTime;
 
 
@@ -40,12 +41,13 @@ public class CronTask
     }
 
 
-    private void next()
+    private synchronized void next()
     {
 
        long millisFromNow = waitTime.nextWait();
 
-       //log.info(nextExecutionTime + " seconds: " + nextExecutionTime.getSecond() + " delay " + millisFromNow);
+
+       log.info(Thread.currentThread()+ " next execution :" + Const.TimeInMillis.toString(millisFromNow));
 
         if (appointment == null)
             appointment = tsp.queue(millisFromNow, this);
