@@ -3,13 +3,16 @@ package io.xlogistx.common.cron;
 import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.parser.CronParser;
+import io.xlogistx.common.task.RunnableProperties;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
+import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.util.Appointment;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.SharedUtil;
 import org.zoxweb.shared.util.WaitTime;
 
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,6 +41,20 @@ public class CronTool {
         unixParser = new CronParser(cronDefinition);
     }
 
+
+    public Appointment cron(CronSchedulerConfig cc)
+            throws
+            ClassNotFoundException,
+            NoSuchMethodException,
+            InvocationTargetException,
+            InstantiationException,
+            IllegalAccessException
+    {
+        RunnableProperties bean = ReflectionUtil.createBean(cc.getBean());
+        bean.setProperties(cc.getProperties());
+        return cron(cc.getSchedule(), bean);
+    }
+
     public Appointment cron(String cronSchedule, Runnable command)
     {
         CronTask ct = lookupRegisteredCronTask(cronSchedule);
@@ -56,7 +73,6 @@ public class CronTool {
         }
         catch(Exception e)
         {
-
         }
 
         return new CronTask(tsp, new CronWaitTime(unixParser.parse(cronSchedule)), command).getAppointment();
@@ -94,6 +110,9 @@ public class CronTool {
             return null;
         return registeredTask.get(eType.name());
     }
+
+
+
 
 
 

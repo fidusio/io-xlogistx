@@ -1,0 +1,13 @@
+{
+  "schedules":
+          [
+            {
+              "bean": "iot.xlogistx.common.task.OSCommands","schedule": "30Sec",
+              "properties": {"commands": ["dir a", "ls -ls"]}
+            },
+            {
+              "bean": "","schedule": "",
+              "properties": {}
+            }
+          ]
+}

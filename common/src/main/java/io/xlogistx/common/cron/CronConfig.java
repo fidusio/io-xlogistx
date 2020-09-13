@@ -1,16 +1,16 @@
 package io.xlogistx.common.cron;
 
 import org.zoxweb.shared.data.PropertyDAO;
+import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.util.*;
 
 public class CronConfig
-    extends PropertyDAO
+    extends SetNameDescriptionDAO
 {
     public enum Param
             implements GetNVConfig
     {
-        BEAN(NVConfigManager.createNVConfig("bean", "Bean class name", "Bean", false, true, String.class)),
-        SCHEDULE(NVConfigManager.createNVConfig("schedule", "cron syntax", "Cron", false, true, String.class)),
+        SCHEDULES(NVConfigManager.createNVConfigEntity("schedules", "Cron Schedules", "Schedules", false, true, CronSchedulerConfig.NVC_CRON_SCHEDULER_CONFIG, NVConfigEntity.ArrayType.LIST)),
         ;
         private final NVConfig nvc;
 
@@ -41,7 +41,17 @@ public class CronConfig
             SharedUtil.extractNVConfigs(Param.values()),
             null,
             false,
-            PropertyDAO.NVC_PROPERTY_DAO);
+            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO);
+
+    public CronConfig()
+    {
+        super(NVC_CRON_CONFIG);
+    }
 
 
+    public CronSchedulerConfig[] getConfigs()
+    {
+       ArrayValues<NVEntity> av = (ArrayValues<NVEntity>) lookup(Param.SCHEDULES);
+       return (CronSchedulerConfig[]) av.values(new CronSchedulerConfig[av.size()]);
+    }
 }

@@ -61,7 +61,7 @@ public class EndPointScanner
             {
                 String beanName = configHEP.getBean();
                 Class<?> beanClass = Class.forName(beanName);
-                Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
+                Object beanInstance = ReflectionUtil.createBean(beanClass);
                 log.info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
                 BaseEndPointHandler beph = null;
                 if(beanInstance instanceof SetNVProperties)
