@@ -63,6 +63,11 @@ public class CronTask
         return waitTime;
     }
 
+    public Runnable getCommand()
+    {
+        return command;
+    }
+
     public synchronized void close()
     {
         appointment.close();
