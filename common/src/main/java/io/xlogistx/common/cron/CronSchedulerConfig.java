@@ -3,6 +3,8 @@ package io.xlogistx.common.cron;
 import org.zoxweb.shared.data.PropertyDAO;
 import org.zoxweb.shared.util.*;
 
+
+
 public class CronSchedulerConfig
     extends PropertyDAO
 {
@@ -68,6 +70,8 @@ public class CronSchedulerConfig
     {
         setValue(Param.BEAN, bean);
     }
+
+
 
 
 }

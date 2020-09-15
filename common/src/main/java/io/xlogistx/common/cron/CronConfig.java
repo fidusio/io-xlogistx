@@ -1,8 +1,9 @@
 package io.xlogistx.common.cron;
 
-import org.zoxweb.shared.data.PropertyDAO;
 import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.util.*;
+
+import java.util.Date;
 
 public class CronConfig
     extends SetNameDescriptionDAO
@@ -11,6 +12,7 @@ public class CronConfig
             implements GetNVConfig
     {
         SCHEDULES(NVConfigManager.createNVConfigEntity("schedules", "Cron Schedules", "Schedules", false, true, CronSchedulerConfig.NVC_CRON_SCHEDULER_CONFIG, NVConfigEntity.ArrayType.LIST)),
+        SETUP_DELAY(NVConfigManager.createNVConfig("setup_delay", "Setup delay in millis", "Bean", false, true, Date.class)),
         ;
         private final NVConfig nvc;
 
@@ -53,5 +55,15 @@ public class CronConfig
     {
        ArrayValues<NVEntity> av = (ArrayValues<NVEntity>) lookup(Param.SCHEDULES);
        return (CronSchedulerConfig[]) av.values(new CronSchedulerConfig[av.size()]);
+    }
+
+    public long getSetupDelay()
+    {
+        return lookupValue(Param.SETUP_DELAY);
+    }
+
+    public void setSetupDelay(long delay)
+    {
+        setValue(Param.SETUP_DELAY, delay);
     }
 }
