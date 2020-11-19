@@ -33,7 +33,7 @@ public class SMTPAPITester {
           String [] to = Arrays.copyOfRange(args, index, args.length);
 
           //sendSMTPS(from, new SMTPMessage(subject, message), new SMTPConfig(host, port, user, password), to);
-          SMTPSender.sendSMTPS(new SMTPConfig(host, port, user, password), from, new SMTPMessage(subject, message), Recipient.multiCreate(Recipient.Type.TO, to));
+          SMTPSender.sendEmails(new SMTPConfig(host, port, user, password), from, new SMTPMessage(subject, message), Recipient.multiCreate(Recipient.Type.TO, to));
           log.info("Message Sent Successfully from:" +  from + "\nto:" + Arrays.toString(to));
       }
       catch(Exception e)

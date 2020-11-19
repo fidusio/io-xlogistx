@@ -28,18 +28,20 @@ import org.zoxweb.server.util.GSONWrapper;
 import org.zoxweb.server.util.ZIPUtil;
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.data.FileInfoDAO;
-import org.zoxweb.shared.http.HTTPHeaderName;
-import org.zoxweb.shared.http.HTTPHeaderValue;
-import org.zoxweb.shared.http.HTTPMimeType;
-import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.SharedBase64.Base64Type;
 
+import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletRegistration;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -449,5 +451,39 @@ public class HTTPServletUtil
 
 		return content;
 	}
-	
+
+
+
+	public static HTTPEndPoint servletToEndPoint(Class<?> clazz)
+	{
+		HTTPEndPoint hep = new HTTPEndPoint();
+		for (Annotation a : clazz.getAnnotations())
+		{
+
+			if (a.annotationType() == WebServlet.class)
+			{
+				WebServlet ws = (WebServlet) a;
+				hep.setName(ws.name());
+				hep.setPaths(ws.urlPatterns());
+				hep.setBean(clazz.getName());
+			}
+		}
+
+		return hep;
+	}
+
+	public static ServletRegistration.Dynamic dynamicRegistration(ServletContext sc, String name, Class <? extends Servlet>  servletClass, String ... urlPatterns)
+	{
+		HTTPEndPoint hep = servletToEndPoint(servletClass);
+		log.info("" + hep);
+
+		if (SharedStringUtil.isEmpty(name))
+			name = hep.getName();
+		if(urlPatterns == null || urlPatterns.length == 0)
+			urlPatterns = hep.getPaths();
+
+		ServletRegistration.Dynamic registration = sc.addServlet(name, servletClass);
+		registration.addMapping(urlPatterns);
+		return registration;
+	}
 }

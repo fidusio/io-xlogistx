@@ -21,10 +21,10 @@ public class SMTPSender {
      * @param recipients list of recipients
      * @throws MessagingException
      */
-    public static void sendSMTPS(SMTPConfig cfg,
-                                 String from,
-                                 SMTPMessage msg,
-                                 Recipient ...recipients) throws MessagingException {
+    public static void sendEmails(SMTPConfig cfg,
+                                  String from,
+                                  SMTPMessage msg,
+                                  Recipient ...recipients) throws MessagingException {
         //Get properties object
         Properties props = new Properties();
         props.put("mail.smtp.host", cfg.host);
