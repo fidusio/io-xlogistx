@@ -78,9 +78,8 @@ public final class XXURI {
   public static final String MANAGEMENT_INVENTORY = BASE + "/management/inventory";
 
   // Service Provider URIs
-  public static final String SERVICE_PROVIDER_ORDER = BASE + "/service-provider/order/";
-  public static final String SERVICE_PROVIDER_ORDER_STATUS =
-      BASE + "/service-provider/order/status";
+  public static final String SERVICE_PROVIDER_ORDER = BASE + "/service-provider/order";
+  public static final String SERVICE_PROVIDER_ORDER_STATUS = BASE + "/service-provider/order/status";
 
   // Websocket URIs
   public static final String WS_NOTIFICATION = BASE + "/ws/notification";

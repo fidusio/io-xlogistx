@@ -44,6 +44,7 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Logger;
@@ -475,7 +476,6 @@ public class HTTPServletUtil
 	public static ServletRegistration.Dynamic dynamicRegistration(ServletContext sc, String name, Class <? extends Servlet>  servletClass, String ... urlPatterns)
 	{
 		HTTPEndPoint hep = servletToEndPoint(servletClass);
-		log.info("" + hep);
 
 		if (SharedStringUtil.isEmpty(name))
 			name = hep.getName();
@@ -485,5 +485,32 @@ public class HTTPServletUtil
 		ServletRegistration.Dynamic registration = sc.addServlet(name, servletClass);
 		registration.addMapping(urlPatterns);
 		return registration;
+	}
+
+	public static void dynamicRegistration(ServletContext sc, HTTPServerConfig endPoints)
+	{
+		log.info("" + endPoints);
+		for (HTTPEndPoint hep : endPoints.getEndPoints())
+		{
+			try
+			{
+
+				Class<?> c = Class.forName(hep.getBean());
+				HTTPEndPoint servletHep = servletToEndPoint(c);
+				if(hep.getName().equals(hep.getBean()))
+					hep.setName(servletHep.getName());
+				if(SharedUtil.isEmpty(hep.getPaths()))
+					hep.setPaths(servletHep.getPaths());
+
+				ServletRegistration.Dynamic registration = sc.addServlet(hep.getName(), (Class<? extends Servlet>) c);
+				registration.addMapping(hep.getPaths());
+				log.info("Created: " + hep.getName() + ":" + hep);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				log.info("Error loading: " + hep);
+			}
+		}
 	}
 }
