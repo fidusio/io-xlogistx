@@ -87,6 +87,18 @@ public class XXDataFactory
         return PriceRangeDAO.NVC_PRICE_RANGE_DAO;
       }
     },
+    SMTP_CONFIG(SMTPConfig.class.getName()) {
+      @SuppressWarnings("unchecked")
+      @Override
+      public SMTPConfig newInstance() {
+        return new SMTPConfig();
+      }
+
+      @Override
+      public NVConfigEntity getNVConfigEntity() {
+        return SMTPConfig.NVC_SMTP_CONFIG;
+      }
+    },
     ZIP_CODE_DISTANCE_DAO(ZipCodeDistanceDAO.class.getName()) {
       @SuppressWarnings("unchecked")
       @Override

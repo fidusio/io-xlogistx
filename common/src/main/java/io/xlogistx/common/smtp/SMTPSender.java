@@ -1,6 +1,8 @@
 package io.xlogistx.common.smtp;
 
 
+import io.xlogistx.shared.data.SMTPConfig;
+
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
@@ -27,9 +29,9 @@ public class SMTPSender {
                                   Recipient ...recipients) throws MessagingException {
         //Get properties object
         Properties props = new Properties();
-        props.put("mail.smtp.host", cfg.host);
-        props.put("mail.smtp.port", ""+cfg.port);
-        props.put("mail.smtp.socketFactory.port", ""+cfg.port);
+        props.put("mail.smtp.host", cfg.getHost());
+        props.put("mail.smtp.port", ""+cfg.getPort());
+        props.put("mail.smtp.socketFactory.port", ""+cfg.getPort());
         props.put("mail.smtp.starttls.enable","true");
         props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         props.put("mail.smtp.socketFactory.fallback", "false");
@@ -41,7 +43,7 @@ public class SMTPSender {
                 new javax.mail.Authenticator() {
                     protected PasswordAuthentication getPasswordAuthentication() {
                         //log.info(cfg.user + ":" + cfg.password + " " + Thread.currentThread());
-                        return new PasswordAuthentication(cfg.user, cfg.password);
+                        return new PasswordAuthentication(cfg.getUser(), cfg.getPassword());
                     }
                 });
         //compose message
@@ -70,7 +72,7 @@ public class SMTPSender {
         message.setText(msg.message);
         //send message
         Transport transport = session.getTransport("smtps");
-        transport.connect(cfg.host, cfg.port, cfg.user, cfg.password);
+        transport.connect(cfg.getHost(), cfg.getPort(), cfg.getUser(), cfg.getPassword());
         Transport.send(message);
     }
 }

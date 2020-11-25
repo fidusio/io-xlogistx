@@ -21,7 +21,7 @@
 
   <properties>
     <commons-csv.version>1.8</commons-csv.version>
-    <cron-util.version>9.1.0</cron-util.version>
+    <cron-util.version>9.1.3</cron-util.version>
   </properties>
   
 
@@ -38,6 +38,12 @@
 	  <artifactId>zoxweb-core</artifactId>
 	  <scope>provided</scope>
 	</dependency>
+    <dependency>
+      <groupId>io.xlogistx</groupId>
+      <artifactId>xlogistx-core</artifactId>
+      <scope>provided</scope>
+      <version>${xlogistx-version}</version>
+    </dependency>
 
       <dependency>
           <groupId>com.google.code.gson</groupId>

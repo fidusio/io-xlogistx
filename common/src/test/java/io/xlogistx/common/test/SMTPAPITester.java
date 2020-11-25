@@ -4,9 +4,9 @@ package io.xlogistx.common.test;
 
 
 import io.xlogistx.common.smtp.Recipient;
-import io.xlogistx.common.smtp.SMTPConfig;
 import io.xlogistx.common.smtp.SMTPMessage;
 import io.xlogistx.common.smtp.SMTPSender;
+import io.xlogistx.shared.data.SMTPConfig;
 
 import java.util.Arrays;
 

@@ -40,6 +40,8 @@ public final class XXURI {
   public static final String DEREGISTRATION = BASE + "/deregistration";
   public static final String PASSWORD_RESET = BASE + "/password/reset";
   public static final String PASSWORD_CHANGE = BASE + "/password/change";
+  public static final String FORM_MAILER = BASE + "/form/mailer";
+
 
   // file uri
   public static final String RESOURCE = BASE + "/resource";
