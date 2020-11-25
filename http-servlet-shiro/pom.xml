@@ -35,18 +35,18 @@
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-common</artifactId>
-            <version>${xlogistx-version}</version>
+            <version>${xlogistx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-shiro</artifactId>
-            <version>${xlogistx-version}</version>
+            <version>${xlogistx.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-http-servlet</artifactId>
-            <version>${xlogistx-version}</version>
+            <version>${xlogistx.version}</version>
         </dependency>
 
 

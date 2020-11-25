@@ -19,10 +19,6 @@
   <artifactId>xlogistx-common</artifactId>
   <packaging>jar</packaging>
 
-  <properties>
-    <commons-csv.version>1.8</commons-csv.version>
-    <cron-util.version>9.1.3</cron-util.version>
-  </properties>
   
 
 
@@ -42,7 +38,7 @@
       <groupId>io.xlogistx</groupId>
       <artifactId>xlogistx-core</artifactId>
       <scope>provided</scope>
-      <version>${xlogistx-version}</version>
+      <version>${xlogistx.version}</version>
     </dependency>
 
       <dependency>
