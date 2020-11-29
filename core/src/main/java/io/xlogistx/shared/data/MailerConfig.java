@@ -1,6 +1,7 @@
 package io.xlogistx.shared.data;
 
 import org.zoxweb.shared.data.SetNameDescriptionDAO;
+import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.util.*;
 
 public class MailerConfig
@@ -14,7 +15,8 @@ public class MailerConfig
                 .createNVConfigEntity("smtp_config", "User", "User", true, true, SMTPConfig.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
         DOCUMENT_TEMPLATE(NVConfigManager
                 .createNVConfigEntity("template", "Password", "Password", true, true, DocumentTemplate.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
-
+        FROM(NVConfigManager
+                .createNVConfig("from", "Sender email", "From", true, true, true, String.class, FilterType.EMAIL)),
 
         ;
 
@@ -31,14 +33,14 @@ public class MailerConfig
     }
 
     public static final NVConfigEntity NVC_MAILER_CONFIG = new NVConfigEntityLocal(
-            "MailerConfig",
+            "mailer_config",
             null,
             MailerConfig.class.getSimpleName(),
             true,
             false,
             false,
             false,
-            SMTPConfig.class,
+            MailerConfig.class,
             SharedUtil.extractNVConfigs(Param.values()),
             null,
             false,
@@ -71,5 +73,15 @@ public class MailerConfig
     public DocumentTemplate getDocumentTemplate()
     {
         return lookupValue(Param.DOCUMENT_TEMPLATE);
+    }
+
+    public String getFrom()
+    {
+        return lookupValue(Param.FROM);
+    }
+
+    public void setFrom(String email)
+    {
+        setValue(Param.FROM, email);
     }
 }

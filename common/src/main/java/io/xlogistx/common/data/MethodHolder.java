@@ -1,13 +1,7 @@
 package io.xlogistx.common.data;
 
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.annotation.ParamProp;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 
 public class MethodHolder {

@@ -37,7 +37,7 @@ public class SMTPConfig
     }
 
     public static final NVConfigEntity NVC_SMTP_CONFIG = new NVConfigEntityLocal(
-            "SMTPConfig",
+            "smtp_config",
             null,
             SMTPConfig.class.getSimpleName(),
             true,

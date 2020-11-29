@@ -2,6 +2,7 @@ package io.xlogistx.core.client;
 
 
 import io.xlogistx.shared.data.ItemDAO;
+import io.xlogistx.shared.data.MailerConfig;
 import io.xlogistx.shared.data.PriceDAO;
 import io.xlogistx.shared.data.PriceRangeDAO;
 import io.xlogistx.shared.data.XXDataConst.AppKey;
@@ -222,7 +223,7 @@ public class XXClientAPI {
   }
 
   public static AppConfigDAO updateAppConfigDAO(String urlIn, String subjectID, String password,
-      String domainID, String appID, File radius) throws APIException, IOException {
+      String domainID, String appID, File jsonFile) throws APIException, IOException {
     AppConfigDAO ret = lookupAppConfigDAO(urlIn, subjectID, password, domainID, appID);
 
 //		String url = "https://www.zipcodeapi.com";
@@ -244,14 +245,16 @@ public class XXClientAPI {
 //        
 //        
 //        System.out.println(GSONUtil.toJSON(hmc, true, false, true));
-    HTTPMessageConfig httpMessageConfig =  GWRAPPER
-            .fromJSON(IOUtil.inputStreamToString(radius), HTTPMessageConfig.class, Base64Type.DEFAULT);
+//    HTTPMessageConfig httpMessageConfig =  GWRAPPER
+//            .fromJSON(IOUtil.inputStreamToString(jsonFile), HTTPMessageConfig.class, Base64Type.DEFAULT);
 
-    NVGenericMap nvg = GSONUtil.fromJSONGenericMap(IOUtil.inputStreamToString(radius), null, Base64Type.DEFAULT);
-    nvg.setName("zip_code_api_config");
-    log.info(""+nvg);
+    NVEntity nve = GSONUtil.fromJSON(IOUtil.inputStreamToString(jsonFile));
+//    nvg.setName("zip_code_api_config");
+    log.info(""+nve.getClass());
+    //ret.getProperties().add(nve);
 
-    ret.getProperties().add(nvg);
+    //ret.getProperties().add(nvg);
+    log.info("Ret:" + ret);
 
     String commandURI = "" + XXURI.APP_CONFIG + "/" + domainID + "/" + appID;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig
@@ -259,7 +262,8 @@ public class XXClientAPI {
     hmci.setUser(subjectID);
     hmci.setPassword(password);
     hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
-    hmci.setContent(GWRAPPER.toJSON(ret, false));
+    hmci.setContent(GWRAPPER.toJSON(nve, false));
+
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     return GWRAPPER.fromJSON(hc.sendRequest().getData());
 
