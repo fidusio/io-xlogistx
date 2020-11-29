@@ -32,8 +32,13 @@ public class SMTPAPITester {
           String message = new Date() + " " + args[index++];
           String [] to = Arrays.copyOfRange(args, index, args.length);
 
+
+          String emails = "To:xlogistx@xlogistx.io, bcc:batata@batata.com, CC: ccd@email.com, tO: xlogistx@xlogistx.io";
+
+          System.out.println(Arrays.toString(Recipient.toRecipients(emails)));
+
           //sendSMTPS(from, new SMTPMessage(subject, message), new SMTPConfig(host, port, user, password), to);
-          SMTPSender.sendEmails(new SMTPConfig(host, port, user, password), from, new SMTPMessage(subject, message), Recipient.multiCreate(Recipient.Type.TO, to));
+          SMTPSender.sendEmails(new SMTPConfig(host, port, user, password), from, new SMTPMessage(subject, message), Recipient.toRecipients(Recipient.Type.TO, to));
           log.info("Message Sent Successfully from:" +  from + "\nto:" + Arrays.toString(to));
       }
       catch(Exception e)

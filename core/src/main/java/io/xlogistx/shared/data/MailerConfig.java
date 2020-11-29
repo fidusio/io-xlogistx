@@ -16,8 +16,9 @@ public class MailerConfig
         DOCUMENT_TEMPLATE(NVConfigManager
                 .createNVConfigEntity("template", "Password", "Password", true, true, DocumentTemplate.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
         FROM(NVConfigManager
-                .createNVConfig("from", "Sender email", "From", true, true, true, String.class, FilterType.EMAIL)),
-
+                .createNVConfig("from", "Sender email", "From", true, true, false, String.class, FilterType.EMAIL)),
+        RECIPIENTS(NVConfigManager
+                .createNVConfig("recipients", "Recipient emails", "Recipients", true, true, String.class)),
         ;
 
         private final NVConfig nvc;
@@ -83,5 +84,19 @@ public class MailerConfig
     public void setFrom(String email)
     {
         setValue(Param.FROM, email);
+    }
+
+    public String getRecipients()
+    {
+        return lookupValue(Param.RECIPIENTS);
+    }
+
+    /**
+     * Format : "to:email@email.com, bcc:hidden@email.com"
+     * @param emails
+     */
+    public void setRecipients(String emails)
+    {
+        setValue(Param.RECIPIENTS, emails);
     }
 }
