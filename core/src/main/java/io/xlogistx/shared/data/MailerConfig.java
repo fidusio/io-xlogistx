@@ -99,4 +99,5 @@ public class MailerConfig
     {
         setValue(Param.RECIPIENTS, emails);
     }
+
 }
