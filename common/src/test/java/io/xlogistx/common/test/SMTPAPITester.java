@@ -3,10 +3,11 @@ package io.xlogistx.common.test;
 
 
 
-import io.xlogistx.common.smtp.Recipient;
+import io.xlogistx.common.smtp.EmailRecipient;
 import io.xlogistx.common.smtp.SMTPMessage;
 import io.xlogistx.common.smtp.SMTPSender;
 import io.xlogistx.shared.data.SMTPConfig;
+import org.zoxweb.server.util.GSONUtil;
 
 import java.util.Arrays;
 
@@ -33,13 +34,19 @@ public class SMTPAPITester {
           String [] to = Arrays.copyOfRange(args, index, args.length);
 
 
-          String emails = "To:xlogistx@xlogistx.io, bcc:batata@batata.com, CC: ccd@email.com, tO: xlogistx@xlogistx.io";
+          String emails = "To:xlogistx@xlogistx.io, bcc:batata@batata.com, CC: ccd@email.com, tO: xlogistx@xlogistx.io, reply-to:authority@batata.io";
 
-          System.out.println(Arrays.toString(Recipient.toRecipients(emails)));
+          System.out.println(Arrays.toString(EmailRecipient.toRecipients(emails)));
 
           //sendSMTPS(from, new SMTPMessage(subject, message), new SMTPConfig(host, port, user, password), to);
-          SMTPSender.sendEmails(new SMTPConfig(host, port, user, password), from, new SMTPMessage(subject, message), Recipient.toRecipients(Recipient.Type.TO, to));
-          log.info("Message Sent Successfully from:" +  from + "\nto:" + Arrays.toString(to));
+          SMTPMessage smtpMessage = new SMTPMessage(subject, message);
+          smtpMessage.setFrom(from);
+
+          smtpMessage.addRecipients(EmailRecipient.toRecipients(EmailRecipient.Type.TO, to));
+          smtpMessage.addRecipients(EmailRecipient.toRecipients(emails));
+          log.info(GSONUtil.toJSON(smtpMessage, true, false, false));
+          SMTPSender.sendEmail(new SMTPConfig(host, port, user, password), smtpMessage);
+          log.info("Message Sent Successfully from:" +  from + "\nto:" + Arrays.toString(to) +" message id:" + smtpMessage.getCanonicalID());
       }
       catch(Exception e)
       {

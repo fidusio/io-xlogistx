@@ -4,29 +4,31 @@ package io.xlogistx.common.smtp;
 import io.xlogistx.shared.data.SMTPConfig;
 
 import javax.mail.*;
+
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+
+import java.util.LinkedHashSet;
 import java.util.Properties;
+import java.util.Set;
 
 
-public class SMTPSender {
+public class SMTPSender
+{
 
-   //private static final Logger log = Logger.getLogger(SMTPSender.class.getName());
     private SMTPSender() {}
 
-
     /**
-     * This method will send secure smtp message
-     * @param cfg smtp server configuration
-     * @param from sender email
-     * @param msg message content
-     * @param recipients list of recipients
-     * @throws MessagingException
+     * Send an email message
+     * @param cfg the smtp server config user must use secure server config
+     * @param smtpMessage to be send
+     * @return STMPMessage with canonical ID set.
+     * @throws MessagingException in case of failure
      */
-    public static void sendEmails(SMTPConfig cfg,
-                                  String from,
-                                  SMTPMessage msg,
-                                  Recipient ...recipients) throws MessagingException {
+    public static SMTPMessage sendEmail(SMTPConfig cfg,
+                                        SMTPMessage smtpMessage)
+            throws MessagingException
+    {
         //Get properties object
         Properties props = new Properties();
         props.put("mail.smtp.host", cfg.getHost());
@@ -49,30 +51,48 @@ public class SMTPSender {
         //compose message
 
         MimeMessage message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(from));
-        for (Recipient recipient : recipients)
-        {
-            switch (recipient.type)
-            {
-                case TO:
-                    message.addRecipient(Message.RecipientType.TO, new InternetAddress(recipient.email));
-                    break;
-                case CC:
-                    message.addRecipient(Message.RecipientType.CC, new InternetAddress(recipient.email));
-                    break;
-                case BCC:
-                    message.addRecipient(Message.RecipientType.BCC, new InternetAddress(recipient.email));
-                    break;
-            }
+        message.setFrom(new InternetAddress(smtpMessage.getFrom()));
 
 
-        }
+        setRecipients(EmailRecipient.Type.TO, message, smtpMessage.getTo());
+        setRecipients(EmailRecipient.Type.CC, message, smtpMessage.getCC());
+        setRecipients(EmailRecipient.Type.BCC, message, smtpMessage.getBCC());
+        setRecipients(EmailRecipient.Type.REPLY_TO, message, smtpMessage.getReplyTo());
 
-        message.setSubject(msg.subject);
-        message.setText(msg.message);
+
+
+        message.setSubject(smtpMessage.getSubject());
+        message.setText(smtpMessage.getContent());
         //send message
         Transport transport = session.getTransport("smtps");
         transport.connect(cfg.getHost(), cfg.getPort(), cfg.getUser(), cfg.getPassword());
         Transport.send(message);
+        smtpMessage.setCanonicalID(message.getMessageID());
+
+        return smtpMessage;
+    }
+
+    private static void setRecipients(EmailRecipient.Type type, Message message, String ...recipients) throws MessagingException {
+        Set<Address> replyTo = new LinkedHashSet<Address>();
+
+
+        for(String recipient : recipients ) {
+            switch (type) {
+                case TO:
+                    message.addRecipient(Message.RecipientType.TO, new InternetAddress(recipient));
+                    break;
+                case CC:
+                    message.addRecipient(Message.RecipientType.CC, new InternetAddress(recipient));
+                    break;
+                case BCC:
+                    message.addRecipient(Message.RecipientType.BCC, new InternetAddress(recipient));
+                    break;
+                case REPLY_TO:
+                    replyTo.add(new InternetAddress(recipient));
+                    break;
+            }
+        }
+        if(replyTo.size() > 0)
+            message.setReplyTo(replyTo.toArray(new InternetAddress[replyTo.size()]));
     }
 }
