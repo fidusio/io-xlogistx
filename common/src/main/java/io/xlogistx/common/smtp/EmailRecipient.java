@@ -15,9 +15,13 @@ public class EmailRecipient
     public enum Type
         implements GetName
     {
+        // Destination recipient
         TO("to"),
+        // Carbon Copy
         CC("cc"),
+        // Blind Carbon Copy
         BCC("bcc"),
+        // Reply To email, non standard type
         REPLY_TO("reply-to"),
         ;
 
@@ -140,8 +144,9 @@ public class EmailRecipient
     {
         String[] parsed = email.split(":");
 
-        for (int i=0; i < parsed.length; i++)
+        for (int i=0; i < parsed.length; i++) {
             parsed[i] = SharedStringUtil.trimOrNull(parsed[i]);
+        }
 
         if(parsed.length == 1)
             return toRecipient(Type.TO, parsed[0]);
@@ -151,6 +156,12 @@ public class EmailRecipient
         throw new IllegalArgumentException("Invalid Email format " + email);
     }
 
+
+    /**
+     * Parse comma separated email string ie: "to:user@email.com, cc:another@email.com, reply-to:sender@email.com"
+     * @param emails as comma separated string
+     * @return array of EmailRecipient objects
+     */
     public static EmailRecipient[] toRecipients(String emails)
     {
         String[] parsed = emails.split(",");

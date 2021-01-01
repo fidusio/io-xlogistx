@@ -19,6 +19,8 @@ public class SMTPAPITester {
     private static final Logger log = Logger.getLogger(SMTPAPITester.class.getName());
 
 
+
+
     public static void main(String ...args)
     {
       try
@@ -37,6 +39,20 @@ public class SMTPAPITester {
           String emails = "To:xlogistx@xlogistx.io, bcc:batata@batata.com, CC: ccd@email.com, tO: xlogistx@xlogistx.io, reply-to:authority@batata.io";
 
           System.out.println(Arrays.toString(EmailRecipient.toRecipients(emails)));
+
+
+          String[] emailsToTest ={"batata.com", "batata@batata.com"};
+          for (String email : emailsToTest)
+          {
+              try
+              {
+                  EmailRecipient.toRecipients(email);
+              }
+              catch(Exception e)
+              {
+                  e.printStackTrace();
+              }
+          }
 
           //sendSMTPS(from, new SMTPMessage(subject, message), new SMTPConfig(host, port, user, password), to);
           SMTPMessage smtpMessage = new SMTPMessage(subject, message);
