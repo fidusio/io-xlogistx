@@ -77,7 +77,7 @@
         <websocket.version>1.1</websocket.version>
         <junit.version>5.6.2</junit.version>
         <java-websocket.version>1.4.1</java-websocket.version>
-        <zoxweb-core.version>2.2.3</zoxweb-core.version>
+        <zoxweb-core.version>2.2.4</zoxweb-core.version>
         <shiro.version>1.7.0</shiro.version>
         <xlogistx.version>1.0.0</xlogistx.version>
         <commons-csv.version>1.8</commons-csv.version>
