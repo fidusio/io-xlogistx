@@ -437,13 +437,13 @@ public class HTTPServletUtil
 //	}
 
 
-	public static String inputStreamToString(Class<?> servlet, String resource) throws NullPointerException, IOException
+	public static String inputStreamToString(Class<?> clazz, String resource) throws NullPointerException, IOException
 	{
 		log.info("resource:" + resource);
 		String content = null;
 		try
 		{
-			content = (IOUtil.inputStreamToString(servlet.getClass().getResourceAsStream(resource), true));
+			content = (IOUtil.inputStreamToString(clazz.getResourceAsStream(resource), true));
 		}
 		catch(Exception e)
 		{

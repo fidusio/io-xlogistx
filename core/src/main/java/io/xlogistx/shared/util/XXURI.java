@@ -11,7 +11,7 @@ public final class XXURI {
 
 
   // Base URI
-  public static final String BASE = "/v1";
+  public static final String BASE = "";
 
   // COMMAND
   public static final String C_RENEW = "renew";
