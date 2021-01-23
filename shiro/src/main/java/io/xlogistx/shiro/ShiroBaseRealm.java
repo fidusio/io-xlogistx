@@ -51,7 +51,7 @@ import java.util.logging.Logger;
 
 public abstract class ShiroBaseRealm
     extends AuthorizingRealm
-    implements ShiroRulesManager, ShiroRealmDAOManager
+    implements ShiroRealmStore
 {
 
 	private static final transient Logger log = Logger.getLogger(Const.LOGGER_NAME);
@@ -381,14 +381,14 @@ public abstract class ShiroBaseRealm
 	}
 
 	
-	public ShiroAssociationDAO addShiroAssociationDAO(ShiroAssociationDAO association)
+	public ShiroAssociationDAO addShiroAssociation(ShiroAssociationDAO association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	
-	public ShiroAssociationDAO removeShiroAssociationDAO(ShiroAssociationDAO association)
+	public ShiroAssociationDAO removeShiroAssociation(ShiroAssociationDAO association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;

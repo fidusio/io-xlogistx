@@ -792,19 +792,19 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public ShiroAssociationDAO addShiroAssociationDAO(ShiroAssociationDAO association)
+	public ShiroAssociationDAO addShiroAssociation(ShiroAssociationDAO association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		
-		return addShiroAssociationDAO(association);
+		return getShiroBaseRealm().addShiroAssociation(association);
 	}
 
 	@Override
-	public ShiroAssociationDAO removeShiroAssociationDAO(ShiroAssociationDAO association)
+	public ShiroAssociationDAO removeShiroAssociation(ShiroAssociationDAO association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		
-		return  getShiroBaseRealm().removeShiroAssociationDAO(association);
+		return  getShiroBaseRealm().removeShiroAssociation(association);
 	}
 
 
