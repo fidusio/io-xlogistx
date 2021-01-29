@@ -31,12 +31,27 @@ public class RealmTest {
     @Test
     public void testIniLoading()
     {
-        Environment env = new BasicIniEnvironment("classpath:shiro.ini");
+//        Environment env = new BasicIniEnvironment("classpath:shiro.ini");
+//        SecurityManager securityManager = env.getSecurityManager();
+//        SecurityUtils.setSecurityManager(securityManager);
+//        Subject subject = SecurityUtils.getSubject();
+//        UsernamePasswordToken token =  new UsernamePasswordToken("root", "secret");
+//        subject.login(token);
+//        System.out.println(subject.getPrincipal());
+    }
+
+    @Test
+    public void testXlogIniLoading()
+    {
+        Environment env = new BasicIniEnvironment("classpath:shiro-xlog.ini");
         SecurityManager securityManager = env.getSecurityManager();
+        System.out.println(securityManager.getClass().getName());
         SecurityUtils.setSecurityManager(securityManager);
         Subject subject = SecurityUtils.getSubject();
         UsernamePasswordToken token =  new UsernamePasswordToken("root", "secret");
         subject.login(token);
         System.out.println(subject.getPrincipal());
     }
+
+
 }

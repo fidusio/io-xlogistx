@@ -1,17 +1,18 @@
 package io.xlogistx.shiro;
 
+import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.db.QueryMarker;
 import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.SubjectIDDAO;
 import org.zoxweb.shared.security.shiro.*;
 import org.zoxweb.shared.util.CRUD;
+import org.zoxweb.shared.util.GetValue;
 import org.zoxweb.shared.util.SubjectID;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class ShiroRealmManager
+public class XlogistXRealmManager
 implements ShiroRealmStore
 {
     private Map subjectMap = new LinkedHashMap<String, SubjectID<String>>();
@@ -313,6 +314,104 @@ implements ShiroRealmStore
      */
     @Override
     public ShiroAssociationDAO removeShiroAssociation(ShiroAssociationDAO association) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * Get the user password
+     *
+     * @param domainID
+     * @param userID
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public PasswordDAO getSubjectPassword(String domainID, String userID) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * Get the user roles
+     *
+     * @param domainID
+     * @param userID
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public Set<String> getSubjectRoles(String domainID, String userID) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * Get subject permissions
+     *
+     * @param domainID
+     * @param userID
+     * @param roleNames
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public Set<String> getSubjectPermissions(String domainID, String userID, Set<String> roleNames) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * @param subjectID
+     * @param params
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public UserIDDAO lookupUserID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * @param subjectID
+     * @param params
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public UserIDDAO lookupUserID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * @param subjectID
+     * @param params
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public SubjectIDDAO lookupSubjectID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    /**
+     * @param subjectID
+     * @param params
+     * @return
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public SubjectIDDAO lookupSubjectID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 

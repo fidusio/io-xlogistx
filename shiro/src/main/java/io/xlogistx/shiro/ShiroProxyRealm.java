@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 
-public class ShiroProxyRealm extends ShiroBaseRealm
+public abstract class ShiroProxyRealm extends ShiroBaseRealm
 {
 	private static final transient Logger log = Logger.getLogger(Const.LOGGER_NAME);
 
@@ -120,20 +120,20 @@ public class ShiroProxyRealm extends ShiroBaseRealm
 ////		return ret;
 //	}
 
-	@Override
-	protected PasswordDAO getUserPassword(String domainID, String userID) {
-		return null;
-	}
-
-	@Override
-	protected Set<String> getUserRoles(String domainID, String userID) {
-		return null;
-	}
-
-	@Override
-	protected Set<String> getUserPermissions(String domainID, String userID, Set<String> roleNames) {
-		return null;
-	}
+//	@Override
+//	protected PasswordDAO getUserPassword(String domainID, String userID) {
+//		return null;
+//	}
+//
+//	@Override
+//	protected Set<String> getUserRoles(String domainID, String userID) {
+//		return null;
+//	}
+//
+//	@Override
+//	protected Set<String> getUserPermissions(String domainID, String userID, Set<String> roleNames) {
+//		return null;
+//	}
 
 	public void setPermissionsLookupEnabled(boolean permissionsLookupEnabled)
     {
@@ -146,7 +146,7 @@ public class ShiroProxyRealm extends ShiroBaseRealm
 	}
 
 	@Override
-	public Set<String> getRecusiveNVEReferenceIDFromForm(String formReferenceID) {
+	public Set<String> getRecursiveNVEReferenceIDFromForm(String formReferenceID) {
 		return null;
 	}
 

@@ -168,7 +168,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 							try
 							{						
 										
-								Set<String> toAdds = realm.getRecusiveNVEReferenceIDFromForm(sard.getAssociate());
+								Set<String> toAdds = realm.getRecursiveNVEReferenceIDFromForm(sard.getAssociate());
 								if (toAdds != null)
 								{
 									//System.out.println(toAdds);
