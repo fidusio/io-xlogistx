@@ -61,6 +61,7 @@ public class EndPointScanner
             {
                 String beanName = configHEP.getBean();
                 Class<?> beanClass = Class.forName(beanName);
+                log.info("Bean to be create:" + beanName);
                 Object beanInstance = ReflectionUtil.createBean(beanClass);
                 log.info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
                 BaseEndPointHandler beph = null;

@@ -24,8 +24,9 @@ public class HTTPCallTest {
             hmci.setUser(user);
             hmci.setPassword(password);
 
-            new HTTPCall(hmci).sendRequest();
             System.out.println("URL:" + url);
+            new HTTPCall(hmci).sendRequest();
+
             long ts = System.currentTimeMillis();
             for(int i = 0; i < count; i++)
             {

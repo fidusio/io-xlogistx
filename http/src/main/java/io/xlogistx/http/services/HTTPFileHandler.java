@@ -20,14 +20,19 @@ import com.sun.net.httpserver.HttpExchange;
 import io.xlogistx.http.handler.BaseEndPointHandler;
 import io.xlogistx.http.handler.HTTPHandlerUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.http.HTTPHeaderName;
 import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPStatusCode;
-import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.*;
 
 import java.io.*;
 import java.net.URI;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+
+
+
 import java.util.logging.Logger;
 
 /**
@@ -39,6 +44,11 @@ import java.util.logging.Logger;
 @SuppressWarnings("restriction")
 public class HTTPFileHandler extends BaseEndPointHandler {
     private final static Logger log = Logger.getLogger(HTTPFileHandler.class.getName());
+
+    private boolean cacheEnabled = true;
+
+    private KVMapStore<String, byte[]> dataCache = new KVMapStoreDefault<String, byte[]>(new LinkedHashMap<String, byte[]>(), new HashSet<String>(), DSR.BYTES);
+
 
     private File baseFolder;
     public HTTPFileHandler()
@@ -52,6 +62,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
     }
 
     public void handle(HttpExchange he) throws IOException {
+        long callCount = callCounter.incrementAndGet();
         String path = he.getHttpContext().getPath();
         URI uri = he.getRequestURI();
 //        log.info("path: " + path);
@@ -59,10 +70,10 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 //        log.info("Remote IP: " + he.getRemoteAddress());
 //        log.info("Thread: " + Thread.currentThread());
         InputStream fileIS = null;
-        OutputStream responseOS = null;
-
+        //OutputStream responseOS = null;
+        String filename = null;
         try {
-            String filename = uri.getPath().substring(path.length(), uri.getPath().length());
+            filename = uri.getPath().substring(path.length(), uri.getPath().length());
             if (SharedStringUtil.isEmpty(filename))
             {
                 String override = getHTTPEndPoint().getProperties().getValue("default_file");
@@ -74,21 +85,28 @@ public class HTTPFileHandler extends BaseEndPointHandler {
             HTTPMimeType mime = HTTPMimeType.lookupByExtenstion(filename);
 //            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
 
+
+            byte[] content = lookupContent(filename);
+
             if(mime != null)
                 he.getResponseHeaders()
                         .add(HTTPHeaderName.CONTENT_TYPE.getName(), mime.getValue());
-            File file = new File(baseFolder, filename);
-            if (!file.exists() || !file.isFile() || !file.canRead()) {
-                log.info("File Not Found:" + file.getName());
-                throw new FileNotFoundException(file.getName() + " not found");
-            }
+//            File file = new File(baseFolder, filename);
+//            if (!file.exists() || !file.isFile() || !file.canRead()) {
+//                log.info("File Not Found:" + file.getName());
+//                throw new FileNotFoundException(file.getName() + " not found");
+//            }
+//
+//            he.sendResponseHeaders(HTTPStatusCode.OK.CODE, file.length());
+//            fileIS = new FileInputStream(file);
+//            responseOS = he.getResponseBody();
+//            IOUtil.relayStreams(fileIS, responseOS, true, true);
 
-            he.sendResponseHeaders(HTTPStatusCode.OK.CODE, file.length());
-            fileIS = new FileInputStream(file);
-            responseOS = he.getResponseBody();
-            IOUtil.relayStreams(fileIS, responseOS, true, true);
-            log.info(SharedUtil.toCanonicalID(':', Thread.currentThread(), " filename", filename," size",
-                    file.length()," mime",mime," SENT"));
+            he.sendResponseHeaders(HTTPStatusCode.OK.CODE, content.length);
+            he.getResponseBody().write(content);
+
+            log.info(SharedUtil.toCanonicalID(':', callCount, Thread.currentThread(), " filename", filename," size",
+                    content.length," mime",mime," SENT", " cache data size" , Const.SizeInBytes.toString(dataCache.dataSize())));
         }
         catch(FileNotFoundException e)
         {
@@ -96,15 +114,14 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         }
         catch(Exception e)
         {
-            e.printStackTrace();            
+            e.printStackTrace();
+            log.info(SharedUtil.toCanonicalID(':', callCount, " ****ERROR*** ",Thread.currentThread(), filename));
             HTTPHandlerUtil.sendErrorMessage(he, HTTPStatusCode.BAD_REQUEST, "System error");
         }
 
         finally {
             he.close();
         }
-
-
     }
 
     @Override
@@ -119,5 +136,59 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())
             throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath());
         this.baseFolder = folder;
+    }
+
+    public boolean isCacheEnabled()
+    {
+        return cacheEnabled;
+    }
+
+    public void setCacheEnabled(boolean enable)
+    {
+        this.cacheEnabled = enable;
+
+    }
+
+
+    private byte[] lookupContent(String filename) throws IOException
+    {
+        byte[] content = null;
+        UByteArrayOutputStream contentOS = null;
+        if (isCacheEnabled())
+        {
+            synchronized (this) {
+                content = dataCache.get(filename);
+
+                if (content == null)
+                {
+                    File file = new File(baseFolder, filename);
+                    if (!file.exists() || !file.isFile() || !file.canRead())
+                    {
+                        log.info("File Not Found:" + file.getName());
+                        throw new FileNotFoundException(file.getName() + " not found");
+                    }
+                    FileInputStream fileIS = new FileInputStream(file);
+                    contentOS = new UByteArrayOutputStream();
+                    IOUtil.relayStreams(fileIS, contentOS, true, true);
+                    content = contentOS.toByteArray();
+                    dataCache.put(filename, content);
+                }
+            }
+        }
+        else
+        {
+            File file = new File(baseFolder, filename);
+            if (!file.exists() || !file.isFile() || !file.canRead())
+            {
+                log.info("File Not Found:" + file.getName());
+                throw new FileNotFoundException(file.getName() + " not found");
+            }
+            FileInputStream fileIS = new FileInputStream(file);
+            contentOS = new UByteArrayOutputStream();
+            IOUtil.relayStreams(fileIS, contentOS, true, true);
+            content = contentOS.toByteArray();
+        }
+
+        return  content;
     }
 }
