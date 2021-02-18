@@ -175,6 +175,8 @@ public class ShiroUtil
 
 	public static  <V extends Realm> V getRealm(Class< ? extends Realm> c)
     {
+    	if (c == null)
+    		c = Realm.class;
 		return getRealm(SecurityUtils.getSecurityManager(), c);
 	}
 	

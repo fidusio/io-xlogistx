@@ -658,6 +658,20 @@ public class APISecurityManagerProvider
 		return getShiroBaseRealm().addSubject(subject);
 	}
 
+	/**
+	 * Add a subject
+	 *
+	 * @param subject
+	 * @return ShiroSubjectDAO
+	 * @throws NullPointerException
+	 * @throws IllegalArgumentException
+	 * @throws AccessException
+	 */
+	@Override
+	public SubjectIDDAO addSubject(SubjectIDDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
+		return null;
+	}
+
 	@Override
 	public ShiroSubjectDAO deleteSubject(ShiroSubjectDAO subject, boolean withRoles)
 			throws NullPointerException, IllegalArgumentException, AccessException {
@@ -822,6 +836,26 @@ public class APISecurityManagerProvider
 	 */
 	@Override
 	public PasswordDAO getSubjectPassword(String domainID, String userID) throws NullPointerException, IllegalArgumentException, AccessException {
+		return null;
+	}
+
+	@Override
+	public PasswordDAO setSubjectPassword(SubjectIDDAO subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+		return null;
+	}
+
+	@Override
+	public PasswordDAO setSubjectPassword(String subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+		return null;
+	}
+
+	@Override
+	public PasswordDAO setSubjectPassword(SubjectIDDAO subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+		return null;
+	}
+
+	@Override
+	public PasswordDAO setSubjectPassword(String subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
 		return null;
 	}
 

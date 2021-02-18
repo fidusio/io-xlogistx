@@ -38,6 +38,7 @@ import org.zoxweb.shared.data.UserIDDAO;
 
 import org.zoxweb.shared.security.SubjectAPIKey;
 
+import org.zoxweb.shared.security.SubjectIDDAO;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.*;
 
@@ -158,12 +159,12 @@ public class XlogistXShiroRealm
 	        {
 	            throw new AccountException("Null usernames are not allowed by this realm.");
 	        }
-	        UserIDDAO userIDDAO = shiroStore.lookupUserID(dupToken.getUsername(), "_id", "_user_id");
+	        SubjectIDDAO userIDDAO = shiroStore.lookupSubjectID(dupToken.getUsername(), "_id", "_user_id");
 	        if (userIDDAO == null)
 	        {
 	            throw new AccountException("Account not found usernames are not allowed by this realm.");
 	        }
-	        dupToken.setUserID(userIDDAO.getUserID());
+	        dupToken.setUserID(userIDDAO.getSubjectID());
 	        // String userID = upToken.getUserID();
 	        //log.info( dupToken.getUsername() +":"+dupToken.getUserID());
 	        // Null username is invalid
@@ -398,7 +399,7 @@ public class XlogistXShiroRealm
 		return shiroStore;
 	}
 
-	public void setShiroRealmStore(ShiroRealmStore shiroRealmStore)
+	public synchronized void setShiroRealmStore(ShiroRealmStore shiroRealmStore)
 	{
 		this.shiroStore = shiroRealmStore;
 	}

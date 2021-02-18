@@ -1,5 +1,7 @@
 package io.xlogistx.shiro;
 
+import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.db.QueryMarker;
@@ -10,13 +12,24 @@ import org.zoxweb.shared.util.CRUD;
 import org.zoxweb.shared.util.GetValue;
 import org.zoxweb.shared.util.SubjectID;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class XlogistXRealmManager
 implements ShiroRealmStore
 {
-    private Map subjectMap = new LinkedHashMap<String, SubjectID<String>>();
+    public enum KeyType
+    {
+        SUBJECT,
+        USER,
+        PASSWORD
+    }
 
+
+    private final Map<String, Object> cacheMap = new LinkedHashMap<>();
+
+    private static final Logger log = Logger.getLogger(XlogistXRealmManager.class.getName());
 
     /**
      * Add a subject
@@ -29,6 +42,21 @@ implements ShiroRealmStore
      */
     @Override
     public ShiroSubjectDAO addSubject(ShiroSubjectDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
+        return crudSubject(CRUD.CREATE, subject);
+    }
+
+
+    /**
+     * Add a subject
+     *
+     * @param subject
+     * @return ShiroSubjectDAO
+     * @throws NullPointerException
+     * @throws IllegalArgumentException
+     * @throws AccessException
+     */
+    @Override
+    public SubjectIDDAO addSubject(SubjectIDDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.CREATE, subject);
     }
 
@@ -329,7 +357,45 @@ implements ShiroRealmStore
      */
     @Override
     public PasswordDAO getSubjectPassword(String domainID, String userID) throws NullPointerException, IllegalArgumentException, AccessException {
+        return cacheGet(KeyType.PASSWORD, userID);
+    }
+
+    @Override
+    public PasswordDAO setSubjectPassword(SubjectIDDAO subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
+    }
+
+    @Override
+    public PasswordDAO setSubjectPassword(String subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+        return null;
+    }
+
+    @Override
+    public PasswordDAO setSubjectPassword(SubjectIDDAO subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+        PasswordDAO passwordDAO = null;
+        try
+        {
+            passwordDAO = CryptoUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
+            cachePut(KeyType.PASSWORD, subject.getSubjectID(), passwordDAO);
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return passwordDAO;
+    }
+
+    @Override
+    public PasswordDAO setSubjectPassword(String subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+        PasswordDAO passwordDAO = null;
+        try
+        {
+            passwordDAO = CryptoUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
+            cachePut(KeyType.PASSWORD, subject, passwordDAO);
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return passwordDAO;
     }
 
     /**
@@ -399,6 +465,8 @@ implements ShiroRealmStore
      */
     @Override
     public SubjectIDDAO lookupSubjectID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+
+
         return null;
     }
 
@@ -412,7 +480,7 @@ implements ShiroRealmStore
      */
     @Override
     public SubjectIDDAO lookupSubjectID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
-        return null;
+        return (SubjectIDDAO) cacheGet(KeyType.SUBJECT, subjectID);
     }
 
     @Override
@@ -441,19 +509,19 @@ implements ShiroRealmStore
     }
 
 
-    protected <T> T crudSubject(CRUD crud, ShiroSubjectDAO subject)
+    protected <T> T crudSubject(CRUD crud, SubjectID<String> subject)
     {
         synchronized (this) {
             switch (crud) {
 
                 case UPDATE:
                 case CREATE:
-                    subjectMap.put(subject.getSubjectID(), subject);
+                    cachePut(KeyType.SUBJECT, subject.getSubjectID(), subject);
                     return (T) subject;
                 case READ:
                     break;
                 case DELETE:
-                    return (T) subjectMap.remove(subject.getSubjectID());
+                    return (T) cacheRemove(KeyType.SUBJECT, subject.getSubjectID());
                 case MOVE:
                     break;
                 case SHARE:
@@ -463,5 +531,30 @@ implements ShiroRealmStore
             }
         }
         throw new IllegalArgumentException("Unsupported operation:" + crud);
+    }
+
+
+    private <V> V cachePut(KeyType kt, String id, V value)
+    {
+        cacheMap.put(toKey(kt, id), value);
+        return value;
+    }
+
+    private <V> V cacheGet(KeyType kt, String id)
+    {
+        return (V)cacheMap.get(toKey(kt,id));
+    }
+
+    private <V> V cacheRemove(KeyType kt, String id)
+    {
+        return (V)cacheMap.remove(toKey(kt,id));
+    }
+
+
+
+
+    private static String toKey(KeyType kt, String id)
+    {
+        return new StringBuilder().append(kt.name()).append("::").append(id).toString().toLowerCase();
     }
 }
