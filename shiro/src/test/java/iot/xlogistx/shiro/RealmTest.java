@@ -52,7 +52,7 @@ public class RealmTest {
     {
 
     }
-    
+
 
     @Test
     public void testValidLogin()
