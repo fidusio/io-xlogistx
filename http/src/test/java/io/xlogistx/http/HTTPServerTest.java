@@ -12,7 +12,7 @@ public class HTTPServerTest {
         {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 8001), 0);
             System.out.println(server.getClass().getName());
-            sun.net.httpserver.HttpServerImpl toto;
+
         }
         catch(Exception e)
         {
