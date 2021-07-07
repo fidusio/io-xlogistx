@@ -10,7 +10,7 @@ public abstract class RunnableProperties
     private NVGenericMap properties;
     public RunnableProperties()
     {
-        this(null);
+        this(new NVGenericMap());
     }
 
 
