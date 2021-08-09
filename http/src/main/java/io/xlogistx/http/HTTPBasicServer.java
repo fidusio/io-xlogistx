@@ -1,16 +1,22 @@
 package io.xlogistx.http;
 
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
 
 import com.sun.net.httpserver.HttpsServer;
 
+import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.http.handler.BaseEndPointHandler;
+import io.xlogistx.http.handler.EndPointHandler;
 import io.xlogistx.http.handler.EndPointScanner;
+import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
+import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.net.ConnectionConfig;
@@ -31,7 +37,8 @@ import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class HTTPBasicServer
-  implements DaemonController
+  implements DaemonController,
+        HTTPServerMapper
 {
 
   private final static Logger log = Logger.getLogger(HTTPBasicServer.class.getName());
@@ -130,8 +137,8 @@ public class HTTPBasicServer
 
 
       // create end point scanner
-      EndPointScanner endPointScanner = new EndPointScanner(config, this);
-      endPointScanner.scan();
+      EndPointScanner endPointScanner = new EndPointScanner(config);
+      endPointScanner.scan(this);
       Set<Map.Entry<String, HttpServer>>servers = getHTTPServersMap();
 
       for (Map.Entry<String, HttpServer> server : servers) {
@@ -191,5 +198,46 @@ public class HTTPBasicServer
 
     log.info("Start up time:" + Const.TimeInMillis.toString(startTS));
 
+  }
+
+  @Override
+  public boolean isInstanceNative(Object beanInstance) {
+    return beanInstance instanceof BaseEndPointHandler;
+  }
+
+  @Override
+  public void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder mh, Object beanInstance) {
+    EndPointHandler httpHandler;
+    if (beanInstance instanceof BaseEndPointHandler)
+    {
+      httpHandler = (EndPointHandler) beanInstance;
+    }
+    else
+    {
+      httpHandler = new EndPointHandler(mh);
+    }
+    httpHandler.setHTTPEndPoint(hep);
+
+    for (Map.Entry<String, HttpServer> hs : getHTTPServersMap())
+    {
+      URIScheme serverProtocol = URIScheme.match(hs.getKey());
+      for (String path : hep.getPaths())
+      {
+        // check
+        if(hep.getProtocols() != null && hep.getProtocols().length > 0 )
+        {
+          if(!hep.isProtocolSupported(serverProtocol))
+          {
+            log.info("Method:" + hep.getName() + "::" +path +" DO NOT supports:" +serverProtocol);
+            continue;
+          }
+        }
+        log.info("Method:" + hep.getName() +"::" +path + " supports:" +serverProtocol);
+        String pathToBeAdded = HTTPUtil.basePath(path, true);
+        HttpContext httpContext = hs.getValue().createContext(pathToBeAdded, httpHandler);
+        endPointsManager.map(pathToBeAdded, httpHandler.getHTTPEndPoint(), httpHandler.getMethodHolder());
+        log.info(pathToBeAdded  + " [" + httpHandler.ID + "] :" + httpHandler.getHTTPEndPoint());
+      }
+    }
   }
 }

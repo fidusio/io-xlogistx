@@ -11,7 +11,7 @@ public abstract class TriggerConsumer<T>
 implements TriggerConsumerInt<T>
 {
     final static Logger log = Logger.getLogger(TriggerConsumer.class.getName());
-    private String canonicalIDs[];
+    private final String[] canonicalIDs;
     private StateInt state;
     protected AtomicLong execCounter = new AtomicLong();
     private  Function<T, ?> function;

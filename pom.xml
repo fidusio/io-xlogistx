@@ -72,8 +72,8 @@
         <javax-cache.version>1.1.1</javax-cache.version>
         <javax-mail.version>1.6.7</javax-mail.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
-        <jsoup.version>1.13.1</jsoup.version>
-        <snakeyaml.version>1.26</snakeyaml.version>
+        <jsoup.version>1.14.1</jsoup.version>
+        <snakeyaml.version>1.29</snakeyaml.version>
         <websocket.version>1.1</websocket.version>
         <junit.version>5.6.2</junit.version>
         <java-websocket.version>1.4.1</java-websocket.version>

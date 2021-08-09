@@ -1,6 +1,6 @@
 package io.xlogistx.common.fsm;
 
-import org.zoxweb.shared.util.CanonicalID;
+
 import org.zoxweb.shared.util.GetName;
 
 import java.util.EventObject;
@@ -10,23 +10,24 @@ public class Trigger<T>
 extends EventObject
 implements TriggerInt<T>
 {
-    private static AtomicLong counter = new AtomicLong();
+    private final static AtomicLong counter = new AtomicLong();
 
-    private String canonicalID;
-    private T data;
-    private StateInt lastState;
-    private long id = counter.getAndIncrement();
-    private long timestamp = System.currentTimeMillis();
+    private final String canonicalID;
+    private final T data;
+    private final StateInt lastState;
+    private final long id = counter.getAndIncrement();
+    private final long timestamp = System.currentTimeMillis();
 
     /**
-     * Constructs a prototypical Event.
-     *
-     * @param source the object on which the Event initially occurred
-     * @throws IllegalArgumentException if source is null
+     *  Constructs a trigger Event.
+     * @param source of the event
+     * @param lastState last state
+     * @param data event data
+     * @param canonicalID of the trigger
      */
-    public Trigger(Object source, StateInt state, T data, String canonicalID) {
+    public Trigger(Object source, StateInt lastState, T data, String canonicalID) {
         super(source);
-        this.lastState = state;
+        this.lastState = lastState;
         this.data = data;
         this.canonicalID = canonicalID;
     }

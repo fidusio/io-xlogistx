@@ -59,7 +59,7 @@ extends PropertyHolder
         }
         else
         {
-            return new SimpleMessage("reboot misconfigured", HTTPStatusCode.BAD_REQUEST.CODE, "reconfigure endpoint");
+            return new SimpleMessage("reboot miss configured", HTTPStatusCode.BAD_REQUEST.CODE, "reconfigure endpoint");
         }
 
     }
@@ -91,7 +91,7 @@ extends PropertyHolder
         }
         else
         {
-            return new SimpleMessage("shutdown misconfigured", HTTPStatusCode.BAD_REQUEST.CODE, "reconfigure endpoint");
+            return new SimpleMessage("shutdown miss configured", HTTPStatusCode.BAD_REQUEST.CODE, "reconfigure endpoint");
         }
     }
 

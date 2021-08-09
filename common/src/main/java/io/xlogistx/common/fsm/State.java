@@ -12,9 +12,8 @@ public class State<P>
     implements StateInt<P>
 {
 
-    private String name;
-    private NVGenericMap data = new NVGenericMap();
-    //private transient TriggerConsumerInt<?>[] cashedTriggers = new TriggerConsumerInt[0];
+    private final String name;
+    private final NVGenericMap data = new NVGenericMap();
     private StateMachineInt stateMachine;
 
     private Map<String, TriggerConsumerInt<?>> triggerConsumers = new LinkedHashMap<String, TriggerConsumerInt<?>> ();
