@@ -1,4 +1,4 @@
-package io.xlogistx.http;
+package io.xlogistx.common.http;
 
 
 import io.xlogistx.common.data.MethodHolder;

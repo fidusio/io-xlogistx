@@ -1,5 +1,6 @@
 package io.xlogistx.http;
 
+import io.xlogistx.common.http.EndPointsManager;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.util.GSONUtil;
@@ -7,7 +8,6 @@ import org.zoxweb.shared.http.HTTPServerConfig;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 
 public class EndPointsManagerTest {

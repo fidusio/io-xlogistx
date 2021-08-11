@@ -1,9 +1,7 @@
-package io.xlogistx.http.handler;
+package io.xlogistx.common.http;
 
 
 import io.xlogistx.common.data.MethodHolder;
-import io.xlogistx.http.EndPointsManager;
-import io.xlogistx.http.HTTPServerMapper;
 
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;

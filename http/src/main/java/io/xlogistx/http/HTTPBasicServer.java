@@ -7,9 +7,11 @@ import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 
 import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.common.http.EndPointsManager;
+import io.xlogistx.common.http.HTTPServerMapper;
 import io.xlogistx.http.handler.BaseEndPointHandler;
 import io.xlogistx.http.handler.EndPointHandler;
-import io.xlogistx.http.handler.EndPointScanner;
+import io.xlogistx.common.http.EndPointScanner;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LoggerUtil;
@@ -167,38 +169,7 @@ public class HTTPBasicServer
   }
 
 
-  public static void main(String... args) {
-    long startTS = System.currentTimeMillis();
-    try {
 
-      LoggerUtil.enableDefaultLogger("io.xlogistx");
-      int index = 0;
-
-
-      String filename = args[index++];
-      log.info("config file:" + filename);
-      File file = IOUtil.locateFile(filename);
-      HTTPServerConfig hsc = null;
-
-      if(file != null)
-        hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
-
-      log.info("" + hsc);
-      log.info("" + Arrays.toString(hsc.getConnectionConfigs()));
-      HTTPServerCreator httpServerCreator = new HTTPServerCreator();
-      httpServerCreator.setAppConfig(hsc);
-      httpServerCreator.createApp();
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      System.err.println("Usage: HTTPBasicServer server-config.json");
-      System.exit(-1);
-    }
-    startTS = System.currentTimeMillis() - startTS;
-
-    log.info("Start up time:" + Const.TimeInMillis.toString(startTS));
-
-  }
 
   @Override
   public boolean isInstanceNative(Object beanInstance) {
@@ -239,5 +210,38 @@ public class HTTPBasicServer
         log.info(pathToBeAdded  + " [" + httpHandler.ID + "] :" + httpHandler.getHTTPEndPoint());
       }
     }
+  }
+
+  public static void main(String... args) {
+    long startTS = System.currentTimeMillis();
+    try {
+
+      LoggerUtil.enableDefaultLogger("io.xlogistx");
+      int index = 0;
+
+
+      String filename = args[index++];
+      log.info("config file:" + filename);
+      File file = IOUtil.locateFile(filename);
+      HTTPServerConfig hsc = null;
+
+      if(file != null)
+        hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
+
+      log.info("" + hsc);
+      log.info("" + Arrays.toString(hsc.getConnectionConfigs()));
+      HTTPServerCreator httpServerCreator = new HTTPServerCreator();
+      httpServerCreator.setAppConfig(hsc);
+      httpServerCreator.createApp();
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.err.println("Usage: HTTPBasicServer server-config.json");
+      System.exit(-1);
+    }
+    startTS = System.currentTimeMillis() - startTS;
+
+    log.info("Start up time:" + Const.TimeInMillis.toString(startTS));
+
   }
 }

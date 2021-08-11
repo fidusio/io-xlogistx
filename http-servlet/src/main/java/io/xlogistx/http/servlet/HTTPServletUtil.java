@@ -15,17 +15,20 @@
  */
 package io.xlogistx.http.servlet;
 
+import io.xlogistx.common.data.MethodHolder;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.zoxweb.server.http.HTTPRequestAttributes;
+import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.FileInfoStreamSource;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.GSONWrapper;
 import org.zoxweb.server.util.ZIPUtil;
+import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.data.FileInfoDAO;
 import org.zoxweb.shared.http.*;
@@ -42,11 +45,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Parameter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 
@@ -492,25 +495,167 @@ public class HTTPServletUtil
 		log.info("" + endPoints);
 		for (HTTPEndPoint hep : endPoints.getEndPoints())
 		{
-			try
-			{
+			dynamicRegistration(sc, hep);
+		}
+	}
 
-				Class<?> c = Class.forName(hep.getBean());
+
+	public static void dynamicRegistration(ServletContext sc, HTTPEndPoint hep)
+	{
+		try
+		{
+
+			Class<?> c = Class.forName(hep.getBean());
+			if (HttpServlet.class.isAssignableFrom(c)) {
 				HTTPEndPoint servletHep = servletToEndPoint(c);
-				if(hep.getName().equals(hep.getBean()))
-					hep.setName(servletHep.getName());
-				if(SharedUtil.isEmpty(hep.getPaths()))
-					hep.setPaths(servletHep.getPaths());
+				if (hep.getName().equals(hep.getBean())) hep.setName(servletHep.getName());
+				if (SharedUtil.isEmpty(hep.getPaths())) hep.setPaths(servletHep.getPaths());
 
 				ServletRegistration.Dynamic registration = sc.addServlet(hep.getName(), (Class<? extends Servlet>) c);
 				registration.addMapping(hep.getPaths());
 				log.info("Created: " + hep.getName() + ":" + hep);
 			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-				log.info("Error loading: " + hep);
-			}
 		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			log.info("Error loading: " + hep);
+		}
+
 	}
+
+
+//	public static Map<String, Object>  buildParameters(HttpServletRequest req, HTTPEndPoint hep, MethodHolder mh) throws URISyntaxException {
+//    	String hePath = req.getServletPath();
+//
+//
+//
+//		URI uri = new URI(req.getRequestURI());
+//
+//		// parse the path parameters
+//		Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], uri.getPath(), false);
+//
+//		// parse the query parameters if they are set in the body
+//		if (!SharedStringUtil.isEmpty(uri.getQuery()))
+//		{
+//			List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery());
+//
+//			if(queryParameters != null && queryParameters.size() > 0)
+//			{
+//				for(GetNameValue<String> gnv : queryParameters)
+//					parameters.put(gnv.getName(), gnv.getValue());
+//
+//			}
+//		}
+//
+//		List<String> contentTypeData = he.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName());
+//		HTTPMimeType contentType = contentTypeData != null && contentTypeData.size() > 0 ? HTTPMimeType.lookup(contentTypeData.get(0)) : null;
+//
+//		String  payload = null;
+//		// parse if not post for n=v&n2=v2 body
+//		if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMimeType.APPLICATION_WWW_URL_ENC)
+//		{
+//			payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
+//			List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload);
+//
+//			if(payloadParameters != null && payloadParameters.size() > 0)
+//			{
+//				for(GetNameValue<String> gnv : payloadParameters)
+//					parameters.put(gnv.getName(), gnv.getValue());
+//			}
+//		}
+//		else if (contentType == HTTPMimeType.APPLICATION_JSON)
+//		{
+//			payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
+//		}
+//		//log.info("payload:" + payload);
+//
+//
+//		// need to parse the payload parameters
+//		for(Parameter p : eph.getMethodHolder().getMethodAnnotations().method.getParameters())
+//		{
+//			Annotation pAnnotation  = eph.getMethodHolder().getMethodAnnotations().parametersAnnotations.get(p);
+//			if(pAnnotation != null  && pAnnotation instanceof ParamProp)
+//			{
+//				ParamProp pp = (ParamProp) pAnnotation;
+//				if (pp.source() == Const.ParamSource.PAYLOAD)
+//				{
+//					Class<?> pClassType = p.getType();
+//					if (contentType != null)
+//					{
+//
+//						switch (contentType)
+//						{
+//
+//							case APPLICATION_WWW_URL_ENC:
+//								// this case is impossible to happen
+//								break;
+//							case APPLICATION_JSON:
+//
+//								Object v = GSONUtil.DEFAULT_GSON.fromJson(payload, pClassType);
+//								parameters.put(pp.name(), v);
+//
+//
+//								break;
+//							case APPLICATION_OCTET_STREAM:
+//								break;
+//							case MULTIPART_FORM_DATA:
+//								break;
+//							case TEXT_CSV:
+//								break;
+//							case TEXT_CSS:
+//								break;
+//							case TEXT_HTML:
+//								break;
+//							case TEXT_JAVASCRIPT:
+//								break;
+//							case TEXT_PLAIN:
+//								break;
+//							case TEXT_YAML:
+//								break;
+//							case IMAGE_BMP:
+//								break;
+//							case IMAGE_GIF:
+//								break;
+//							case IMAGE_JPEG:
+//								break;
+//							case IMAGE_PNG:
+//								break;
+//							case IMAGE_SVG:
+//								break;
+//							case IMAGE_ICON:
+//								break;
+//							case IMAGE_TIF:
+//								break;
+//						}
+//
+//					}
+//
+//					// read the payload and convert string to class
+//				}
+//
+//				// check if null and optional
+//				Object currentValue = parameters.get(pp.name());
+//
+//				if (currentValue == null) {
+//					if (pp.optional()) {
+//						if (SharedUtil.isPrimitive(p.getType())) {
+//							NVBase<?> paramValue = SharedUtil.classToNVBase(p.getType(), pp.name(), null);
+//							parameters.put(pp.name(), paramValue != null ? paramValue.getValue() : null);
+//						}
+//						continue;
+//					}
+//					else
+//						throw new IllegalArgumentException("Missing parameter " + pp.name());
+//				}
+//
+//				if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType()))
+//				{
+//					parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String)currentValue).getValue());
+//				}
+//			}
+//		}
+//
+//		return parameters;
+//	}
 }
