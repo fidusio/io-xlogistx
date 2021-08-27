@@ -6,18 +6,18 @@ import org.zoxweb.shared.util.SharedUtil;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class CodecManager
+public class CodecManager<V extends MessageCodec>
     extends NamedDescription
 {
-    private final Map<String, MessageCodec> map = new LinkedHashMap<String, MessageCodec>();
+    private final Map<String, V> map = new LinkedHashMap<String, V>();
     private final ValueFilter<String, String> nameFilter;
-    public CodecManager(String name, ValueFilter nameFilter, String description){
+    public CodecManager(String name, ValueFilter<String, String> nameFilter, String description){
         super(name, description);
         SharedUtil.checkIfNulls("name filter can't b null", nameFilter);
         this.nameFilter = nameFilter;
     }
 
-    public CodecManager add(MessageCodec mc) {
+    public CodecManager add(V mc) {
         synchronized (map)
         {
             map.put(mc.getName(), mc);
@@ -25,12 +25,12 @@ public class CodecManager
         return this;
     }
 
-    public MessageCodec lookup(String codecName){
+    public V lookup(String codecName){
         return map.get(nameFilter.validate(codecName));
     }
 
-    public MessageCodec[] all()
+    public V[] all()
     {
-        return map.values().toArray(new MessageCodec[0]);
+        return (V[])map.values().toArray(new MessageCodec[0]);
     }
 }
