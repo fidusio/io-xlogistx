@@ -17,22 +17,20 @@ public class CodecManager
         this.nameFilter = nameFilter;
     }
 
-
-    public CodecManager add(MessageCodec mc)
-    {
-        return add(mc.getName(), mc);
-    }
-
-    public CodecManager add(String codecName, MessageCodec mc) {
-        codecName = nameFilter.validate(codecName);
+    public CodecManager add(MessageCodec mc) {
         synchronized (map)
         {
-            map.put(codecName, mc);
+            map.put(mc.getName(), mc);
         }
         return this;
     }
 
     public MessageCodec lookup(String codecName){
         return map.get(nameFilter.validate(codecName));
+    }
+
+    public MessageCodec[] all()
+    {
+        return map.values().toArray(new MessageCodec[0]);
     }
 }

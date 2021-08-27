@@ -2,13 +2,18 @@ package io.xlogistx.common.data;
 
 import org.zoxweb.shared.util.GetDescription;
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.SetDescription;
 import org.zoxweb.shared.util.SharedUtil;
 
 public class NamedDescription
-        implements GetName, GetDescription {
+        implements GetName, SetDescription {
     private final String name;
-    private final String description;
+    private String description;
 
+
+    public NamedDescription(String name){
+        this(name, null);
+    }
     public NamedDescription(String name, String description){
     SharedUtil.checkIfNulls("name can't be null.", name);
         this.name = name;
@@ -22,7 +27,13 @@ public class NamedDescription
     }
 
     @Override
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
     public String getName() {
         return name;
     }
+
 }
