@@ -49,7 +49,7 @@ public class HTTPHandlerUtil {
 
   public static void sendSimpleMessage(HttpExchange he, HTTPStatusCode hsc, SimpleMessage simpleMessage) throws IOException
   {
-    sendSimpleMessage(he, hsc, simpleMessage, false);
+    sendSimpleMessage(he, hsc, simpleMessage, true);
   }
   public static void sendSimpleMessage(HttpExchange he, HTTPStatusCode hsc, SimpleMessage simpleMessage, boolean close) throws IOException
   {
@@ -60,6 +60,7 @@ public class HTTPHandlerUtil {
     he.sendResponseHeaders(hsc.CODE, buffer.length);
     log.info("buffer:" + buffer + " " + message);
     he.getResponseBody().write(buffer);
+    he.getResponseBody().close();
     if(close)
       he.close();
   }

@@ -64,11 +64,8 @@ public class HTTPBasicServer
       ConnectionConfig[] ccs = config.getConnectionConfigs();
 
       TaskUtil.setMinTaskProcessorThreadCount(config.getThreadPoolSize());
-      Executor executor = TaskUtil.getDefaultTaskProcessor();
-      if(config.isThreadPoolJavaType())
-        executor = Executors.newCachedThreadPool();
-      else
-        executor = TaskUtil.getDefaultTaskProcessor();
+      Executor executor = config.isThreadPoolJavaType() ? Executors.newCachedThreadPool() : TaskUtil.getDefaultTaskProcessor();
+
 
       for(ConnectionConfig cc : ccs)
       {
@@ -92,11 +89,12 @@ public class HTTPBasicServer
                 String ksPassword = sslConfig.getValue("keystore_password");
                 String aliasPassword = sslConfig.getValue("alias_password");
                 String trustStorePassword = sslConfig.getValue("truststore_password");
-                SSLContext sslContext = CryptoUtil.initSSLContext(sslConfig.getValue("keystore_file"),
+                String trustStoreFilename = sslConfig.getValue("truststore_file");
+                SSLContext sslContext = CryptoUtil.initSSLContext(IOUtil.locateFile(sslConfig.getValue("keystore_file")),
                         sslConfig.getValue("keystore_type"),
                         ksPassword.toCharArray(),
                         aliasPassword != null ?  aliasPassword.toCharArray() : null,
-                        (String)sslConfig.getValue("truststore_file"),
+                        trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
                         trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
                 // create the SSLContext
 
@@ -178,10 +176,10 @@ public class HTTPBasicServer
 
   @Override
   public void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder mh, Object beanInstance) {
-    EndPointHandler httpHandler;
+    BaseEndPointHandler httpHandler;
     if (beanInstance instanceof BaseEndPointHandler)
     {
-      httpHandler = (EndPointHandler) beanInstance;
+      httpHandler = (BaseEndPointHandler) beanInstance;
     }
     else
     {

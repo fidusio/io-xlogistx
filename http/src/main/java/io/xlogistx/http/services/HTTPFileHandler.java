@@ -61,7 +61,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
        setBaseFolder(baseFolder);
     }
 
-    public void handle(HttpExchange he) throws IOException {
+    public synchronized void handle(HttpExchange he) throws IOException {
         long callCount = callCounter.incrementAndGet();
         String path = he.getHttpContext().getPath();
         URI uri = he.getRequestURI();
@@ -116,12 +116,15 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         {
             e.printStackTrace();
             log.info(SharedUtil.toCanonicalID(':', callCount, " ****ERROR*** ",Thread.currentThread(), filename));
-            HTTPHandlerUtil.sendErrorMessage(he, HTTPStatusCode.BAD_REQUEST, "System error");
+            //HTTPHandlerUtil.sendErrorMessage(he, HTTPStatusCode.BAD_REQUEST, "System error");
+
         }
 
         finally {
+            IOUtil.close(he.getResponseBody());
             he.close();
         }
+
     }
 
     @Override
