@@ -47,7 +47,17 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 
     private boolean cacheEnabled = true;
 
-    private KVMapStore<String, byte[]> dataCache = new KVMapStoreDefault<String, byte[]>(new LinkedHashMap<String, byte[]>(), new HashSet<String>(), DSR.BYTES);
+    private final KVMapStore<String, UByteArrayOutputStream> dataCache = new KVMapStoreDefault<String, UByteArrayOutputStream>(new LinkedHashMap<String, UByteArrayOutputStream>(), new HashSet<String>(), new DataSizeReader<UByteArrayOutputStream>() {
+        @Override
+        public long size(UByteArrayOutputStream ubaos) {
+            if(ubaos == null)
+                return 0;
+            return ubaos.size();
+        }
+
+//        sun.net.httpserver.SSLStreams;
+//        sun.security.ssl.SSLEngineImpl
+    });
 
 
     private File baseFolder;
@@ -61,7 +71,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
        setBaseFolder(baseFolder);
     }
 
-    public synchronized void handle(HttpExchange he) throws IOException {
+    public  void handle(HttpExchange he) throws IOException {
         long callCount = callCounter.incrementAndGet();
         String path = he.getHttpContext().getPath();
         URI uri = he.getRequestURI();
@@ -85,8 +95,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
             HTTPMimeType mime = HTTPMimeType.lookupByExtenstion(filename);
 //            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
 
-
-            byte[] content = lookupContent(filename);
+            UByteArrayOutputStream content = lookupContent(filename);
 
             if(mime != null)
                 he.getResponseHeaders()
@@ -102,11 +111,13 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 //            responseOS = he.getResponseBody();
 //            IOUtil.relayStreams(fileIS, responseOS, true, true);
 
-            he.sendResponseHeaders(HTTPStatusCode.OK.CODE, content.length);
-            he.getResponseBody().write(content);
+            he.sendResponseHeaders(HTTPStatusCode.OK.CODE, content.size());
+            content.writeTo(he.getResponseBody(), 4096);
+
+
 
             log.info(SharedUtil.toCanonicalID(':', callCount, Thread.currentThread(), " filename", filename," size",
-                    content.length," mime",mime," SENT", " cache data size" , Const.SizeInBytes.toString(dataCache.dataSize())));
+                    content.size()," mime",mime," SENT", " cache data size" , Const.SizeInBytes.toString(dataCache.dataSize())));
         }
         catch(FileNotFoundException e)
         {
@@ -122,7 +133,9 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 
         finally {
             IOUtil.close(he.getResponseBody());
+            IOUtil.close(he.getRequestBody());
             he.close();
+
         }
 
     }
@@ -130,6 +143,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
     @Override
     protected void init() {
         setBaseFolder(getHTTPEndPoint().getProperties().getValue("base_folder"));
+        setCacheEnabled(getHTTPEndPoint().getProperties().getValue("caching"));
     }
     
     public void setBaseFolder(String baseFolder) throws IllegalArgumentException {
@@ -153,16 +167,16 @@ public class HTTPFileHandler extends BaseEndPointHandler {
     }
 
 
-    private byte[] lookupContent(String filename) throws IOException
+    private UByteArrayOutputStream lookupContent(String filename) throws IOException
     {
-        byte[] content = null;
+        //byte[] content = null;
         UByteArrayOutputStream contentOS = null;
         if (isCacheEnabled())
         {
             synchronized (this) {
-                content = dataCache.get(filename);
+                contentOS = dataCache.get(filename);
 
-                if (content == null)
+                if (contentOS == null)
                 {
                     File file = new File(baseFolder, filename);
                     if (!file.exists() || !file.isFile() || !file.canRead())
@@ -173,8 +187,8 @@ public class HTTPFileHandler extends BaseEndPointHandler {
                     FileInputStream fileIS = new FileInputStream(file);
                     contentOS = new UByteArrayOutputStream();
                     IOUtil.relayStreams(fileIS, contentOS, true, true);
-                    content = contentOS.toByteArray();
-                    dataCache.put(filename, content);
+//                    content = contentOS.toByteArray();
+                    dataCache.put(filename, contentOS);
                 }
             }
         }
@@ -189,9 +203,9 @@ public class HTTPFileHandler extends BaseEndPointHandler {
             FileInputStream fileIS = new FileInputStream(file);
             contentOS = new UByteArrayOutputStream();
             IOUtil.relayStreams(fileIS, contentOS, true, true);
-            content = contentOS.toByteArray();
+//            content = contentOS.toByteArray();
         }
 
-        return  content;
+        return  contentOS;
     }
 }

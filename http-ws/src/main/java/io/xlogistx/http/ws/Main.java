@@ -87,7 +87,8 @@ public class Main {
                             p.setValue(ws);
                             break;
                         case NI_CONFIG:
-                            ConfigDAO configDAO = GSONUtil.fromJSON(IOUtil.inputStreamToString(gnvs.getValue()));
+                            file = IOUtil.locateFile(gnvs.getValue());
+                            ConfigDAO configDAO = GSONUtil.fromJSON(IOUtil.inputStreamToString(file));
                             System.out.println(GSONUtil.toJSON(configDAO, true, false, false));
                             NIOConfig nioConfig = new NIOConfig(configDAO);
                             nioSocket = nioConfig.createApp();
@@ -95,7 +96,8 @@ public class Main {
                             p.setValue(nioSocket);
                             break;
                         case IP_BLOCKER:
-                            IPBlockerConfig ipBlockerConfig = GSONUtil.fromJSON(IOUtil.inputStreamToString(gnvs.getValue()), IPBlockerConfig.class);
+                            file = IOUtil.locateFile(gnvs.getValue());
+                            IPBlockerConfig ipBlockerConfig = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), IPBlockerConfig.class);
                             IPBlockerListener.Creator c = new IPBlockerListener.Creator();
                             c.setAppConfig(ipBlockerConfig);
                             ipBlocker = c.createApp();

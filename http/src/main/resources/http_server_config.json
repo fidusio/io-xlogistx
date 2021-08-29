@@ -79,8 +79,9 @@
       "methods": [ "GET"],
       "protocols": ["HTTP", "HTTPS"],
       "properties": {
-        "base_folder": "/webs/xlogistx.io",
-        "default_file": "index.html"
+        "base_folder": "/home/mnael/webs/xlogistx.io",
+        "default_file": "index.html",
+        "caching": true
       }
     }
   ]

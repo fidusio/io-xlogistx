@@ -76,7 +76,8 @@ extends BaseEndPointHandler {
         // based on result return response
         //log.info("[" + count + "]:" + getHTTPEndPoint().getName() + "   END");
         ts = System.nanoTime() - ts;
-        log.info("[" + count + "]:" + getHTTPEndPoint().getName() + " took " + Const.TimeInMillis.nanosToString(ts));
+        if (count % 100 == 0)
+            log.info("[" + count + "]:" + getHTTPEndPoint().getName() + " took " + Const.TimeInMillis.nanosToString(ts));
     }
 
     protected void init()
