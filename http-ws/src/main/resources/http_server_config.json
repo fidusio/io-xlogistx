@@ -13,7 +13,7 @@
       "schemes": ["http"],
       "socket_config":
       {
-        "port": 8080,
+        "port": 7080,
         "backlog": 250
       }
     }

@@ -3,14 +3,17 @@
   "name": "NIOSocket",
   "bean_class_name": "org.zoxweb.server.net.NIOSocket",
   "content": [
-//    {
-//      "class_type": "org.zoxweb.shared.data.ConfigDAO",
-//      "name": "http_proxy",
-//      "bean_class_name": "org.zoxweb.server.http.proxy.NIOProxyProtocol$NIOProxyProtocolFactory",
-//      "properties": {
-//          "port": 8080,
-//	  "backlog": 256,
-//#          "log_file": "/var/log/proxy.logs",
+    {
+      "class_type": "org.zoxweb.shared.data.ConfigDAO",
+      "name": "http_proxy",
+      "bean_class_name": "org.zoxweb.server.http.proxy.NIOProxyProtocol$NIOProxyProtocolFactory",
+      "properties": {
+        "port": 8080,
+	    "backlog": 256
+
+//        ,
+//          "log_file": "/var/log/proxy.logs",
+//
 //          "incoming_inet_rule":
 //	    [
 //	 	"backend.zoxweb.com-255.255.255.255-allow",
@@ -21,14 +24,14 @@
 //          	"api.xlogistx.io-255.255.255.255-allow",
 //		"184.188.209.162-255.255.255.255-allow"
 //           ]
-//      }
-//    },
+      }
+    },
     {
       "class_type": "org.zoxweb.shared.data.ConfigDAO",
-      "name": "api_xlogistx_ssl_engine",
+      "name": "test_xlogistx_ssl_engine",
           "bean_class_name": "javax.net.ssl.SSLContext",
       "properties": {
-          "keystore_file": "web.xlogistx.io.jks",
+          "keystore_file": "test.xlogistx.io.jks",
           "keystore_type": "pkcs12",
           "keystore_password": "password"
       }
@@ -38,7 +41,7 @@
       "name": "https",
       "bean_class_name": "org.zoxweb.server.net.NIOTunnel$NIOTunnelFactory",
       "properties": {
-        "ssl_engine": "api_xlogistx_ssl_engine",
+        "ssl_engine": "test_xlogistx_ssl_engine",
         "port": 8443,
         "backlog": 250,
         "remote_host": "localhost:8080"
