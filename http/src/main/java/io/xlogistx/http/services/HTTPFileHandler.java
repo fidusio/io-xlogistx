@@ -117,7 +117,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 
 
             log.info(SharedUtil.toCanonicalID(':', callCount, Thread.currentThread(), " filename", filename," size",
-                    content.size()," mime",mime," SENT", " cache data size" , Const.SizeInBytes.toString(dataCache.dataSize())));
+                    content.size()," mime",mime," SENT", " cache data size" , Const.SizeInBytes.toString(dataCache.dataSize()), " cache average data size", Const.SizeInBytes.toString(dataCache.averageDataSize())));
         }
         catch(FileNotFoundException e)
         {
@@ -132,8 +132,8 @@ public class HTTPFileHandler extends BaseEndPointHandler {
         }
 
         finally {
-            IOUtil.close(he.getResponseBody());
-            IOUtil.close(he.getRequestBody());
+            //IOUtil.close(he.getResponseBody());
+            //IOUtil.close(he.getRequestBody());
             he.close();
 
         }

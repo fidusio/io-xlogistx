@@ -69,7 +69,9 @@ extends BaseEndPointHandler {
             HTTPHandlerUtil.sendErrorMessage(exchange, HTTPStatusCode.SERVICE_UNAVAILABLE, "error invoking resource", true);
         }
         finally {
+            //exchange.getResponseBody().close();
             exchange.close();
+
         }
 
 
