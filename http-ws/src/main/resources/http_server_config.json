@@ -13,33 +13,33 @@
       "schemes": ["http"],
       "socket_config":
       {
-        "port": 7080,
+        "port": 8080,
         "backlog": 250
       }
     }
-//  ,
-//    {
-//      "name": "https",
-//      "schemes": ["https"],
-//      "socket_config":
-//      {
-//        "port": 8443,
-//        "backlog": 250
-//      },
-//      "ssl_config":
-//      {
-//        "name": "SSLCONFIG",
-//        "keystore_file": "web.xlogistx.io.jks",
-//        "keystore_type": "pkcs12",
-//        "keystore_password": "password",
-//        "protocols": [
-//          "TLSv1.2",
-//          "TLSv1.3"
-//        ],
-//        "ciphers": [
-//        ]
-//      }
-//    }
+  ,
+    {
+      "name": "https",
+      "schemes": ["https"],
+      "socket_config":
+      {
+        "port": 8443,
+        "backlog": 250
+      },
+      "ssl_config":
+      {
+        "name": "SSLCONFIG",
+        "keystore_file": "web.xlogistx.io.jks",
+        "keystore_type": "pkcs12",
+        "keystore_password": "password",
+        "protocols": [
+          "TLSv1.2",
+          "TLSv1.3"
+        ],
+        "ciphers": [
+        ]
+      }
+    }
   ],
   "endpoints":
   [
