@@ -31,6 +31,10 @@ implements TriggerInt<T>
         this.data = data;
         this.canonicalID = canonicalID;
     }
+
+    public Trigger(Object source, StateInt lastState, T data, GetName canonicalID) {
+        this(source, lastState, data, canonicalID.getName());
+    }
     public Trigger(StateInt state, T data, String canonicalID)
     {
         this(state, state, data, canonicalID);

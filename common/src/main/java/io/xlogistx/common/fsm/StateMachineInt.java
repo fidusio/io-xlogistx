@@ -13,8 +13,9 @@ extends GetName, AutoCloseable
     StateMachineInt register(StateInt state);
 
     StateMachineInt publish(TriggerInt trigger);
+    StateMachineInt publishToCurrentState(TriggerInt trigger);
 
-    C getConfig();
+    <V extends C> V getConfig();
     StateMachineInt setConfig(C config);
 
     void start();
@@ -26,4 +27,10 @@ extends GetName, AutoCloseable
     boolean isScheduledTaskEnabled();
     StateInt lookupState(String name);
     StateInt lookupState(GetName name);
+
+
+    StateInt getCurrentState();
+
+    void setCurrentState(StateInt state);
+
 }

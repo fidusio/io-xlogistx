@@ -17,6 +17,16 @@ implements TriggerConsumerInt<T>
     private  Function<T, ?> function;
 
 
+    public TriggerConsumer(Function f, String ...canonicalIDs)
+    {
+        this(canonicalIDs);
+        function = f;
+    }
+    public TriggerConsumer(Function f, GetName ...canonicalIDs)
+    {
+        this(canonicalIDs);
+        function = f;
+    }
     public TriggerConsumer(String ...canonicalIDs)
     {
         this.canonicalIDs = canonicalIDs;
@@ -64,5 +74,26 @@ implements TriggerConsumerInt<T>
                 "canonicalIDs=" + Arrays.toString(canonicalIDs) +
                 ", state=" + state + ", exec-counter=" + execCounter.get() +
                 '}';
+    }
+
+    @Override
+    public void publish(TriggerInt triggerInt) {
+        if(triggerInt != null)
+            getState().getStateMachine().publish(triggerInt);
+    }
+
+    public void publish(T data, String canID) {
+        if(canID != null)
+            getState().getStateMachine().publish(new Trigger(getState(), data, canID));
+    }
+
+    public void publish(T data, GetName canID) {
+        if(canID != null)
+            getState().getStateMachine().publish(new Trigger(getState(), data, canID));
+    }
+
+    public StateMachineInt getStateMachine()
+    {
+        return getState().getStateMachine();
     }
 }

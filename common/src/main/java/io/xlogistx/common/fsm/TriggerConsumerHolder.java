@@ -16,9 +16,13 @@ public class TriggerConsumerHolder<T>
     {
         if (inner instanceof TriggerConsumer)
         {
-            ((TriggerConsumer<Object>) inner).execCounter.incrementAndGet();
+            TriggerConsumer temp = (TriggerConsumer) inner;
+            temp.execCounter.incrementAndGet();
+            temp.getState().getStateMachine().setCurrentState(temp.getState());
+
         }
         TriggerConsumer.log.info("" + inner);
+
         inner.accept(t);
     }
 }
