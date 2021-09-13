@@ -18,6 +18,7 @@ package io.xlogistx.common.ssl;
 import io.xlogistx.common.fsm.Trigger;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolProcessor;
@@ -31,8 +32,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngineResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
+
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -50,11 +50,12 @@ public class SSLNIOTunnel
 
 
 
-	private SocketChannel destinationChannel = null;
-
-	private ByteBuffer destinationBB = null;
+//	private SocketChannel destinationChannel = null;
+//
+//	private ByteBuffer destinationBB = null;
 
 	private SSLSessionSM sslSessionSM = null;
+	private SSLSessionConfig config = null;
 
 
 
@@ -86,8 +87,7 @@ public class SSLNIOTunnel
 	public void close()
     {
 		if(sslSessionSM != null)
-			//sslSessionSM.publish(new Trigger(this, null, null, SSLSessionSM.SessionState.CLOSE));
-			sslSessionSM.getConfig().close();
+			config.close();
 
 		log.info("closed:" + remoteAddress);
 	}
@@ -102,9 +102,8 @@ public class SSLNIOTunnel
 		try
     	{
 			// first call
-			if(sslSessionSM.getConfig().sslChannel == null)
+			if(config.sslChannel == null)
 			{
-				//sslSessionSM.getConfig().sslChannelReadState = false;
 
 				log.info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 				sslSessionSM.publish(new Trigger<Channel>(this, null, key.channel(), SSLSessionSM.SessionState.WAIT_FOR_HANDSHAKING));
@@ -114,94 +113,100 @@ public class SSLNIOTunnel
 
 			int read = 0;
 			log.info("AcceptNewData: " + key);
-			if (key.channel() == sslSessionSM.getConfig().sslChannel)
+			if (key.channel() == config.sslChannel)
 			{
 
-				if(sslSessionSM.getCurrentState().getName().equals(SSLSessionSM.SessionState.HANDSHAKING.getName()))
+				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
 				{
 					log.info("We are still HAND_SHAKING_BABY");
-					//sslSessionSM.getConfig().sslChannelReadState = false;
+
+					//config.sslChannelReadState = false;
 					sslSessionSM.publish(new Trigger<Channel>(this, null, key.channel(), SSLSessionSM.SessionState.HANDSHAKING));
 					log.info("CURRENT STATE: " + sslSessionSM.getCurrentState());
 					return;
 				}
-				if(destinationBB == null)
+				if(config.destinationBB == null)
 				{
-					destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
-					destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
-					sslSessionSM.getConfig().otherCloseable = destinationChannel;
-					getSelectorController().register(NIOChannelCleaner.DEFAULT, destinationChannel, SelectionKey.OP_READ, this, false);
+					config.destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+					config.destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
+
+					getSelectorController().register(null, config.destinationChannel, SelectionKey.OP_READ, this, false);
 				}
-				SSLSessionConfig config = sslSessionSM.getConfig();
+
 				// we need to unwrap
-				config.inNetData.clear();
-				config.inAppData.clear();
-				read = ((SocketChannel)config.sslChannel).read(config.inNetData);
+//				config.inNetData.clear();
+//				config.inAppData.clear();
+				read = config.sslChannel.read(config.inNetData);
 				log.info("Reading SSL data: " + read + " " + config.inNetData);
-				if(read > 0){
-					config.inNetData.flip();
-					SSLEngineResult result = null;
-					//synchronized (config.sslEngine){
-					result = config.sslEngine.unwrap(config.inNetData, config.inAppData);
-					//}
-
-					switch (result.getStatus())
-					{
-
-						case BUFFER_UNDERFLOW:
-						case BUFFER_OVERFLOW:
-							log.info("UNWRAP_PROBLEM: " + result);
-							break;
-						case OK:
-							ByteBufferUtil.write(destinationChannel, config.inAppData);
-							break;
-						case CLOSED:
-							if(result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP)
-							{
-								//peerAppData.flip();
-								config.outNetData.clear();
-								result = config.sslEngine.wrap(ByteBufferUtil.DUMMY, config.outNetData);
-								log.info(Thread.currentThread() + " READ-CLOSED-NEED_WRAP: " + result);
-								ByteBufferUtil.write((SocketChannel)config.sslChannel, config.outNetData);
-							}
-							close();
-							log.info("UNWRAP_PROBLEM: " + result);
-							break;
-					}
-				}
-
-			}
-			else if(key.channel() == destinationChannel)
-			{
-				destinationBB.clear();
-				read = destinationChannel.read(destinationBB);
 				if(read > 0)
 				{
-					SSLSessionConfig config =  sslSessionSM.getConfig();
-					config.outNetData.clear();
-					destinationBB.flip();
+					config.inNetData.flip();
 					SSLEngineResult result = null;
-				    //synchronized (config.sslEngine) {
-						result = config.sslEngine.wrap(destinationBB, config.outNetData);
-					//}
-
-
+					while (config.inNetData.hasRemaining()) {
+					  result = config.unwrap(config.inNetData, config.inAppData);
+					  log.info( "UNWRAPING-SSL-DATA:" + result +" " + config.inNetData);
+//					  if(result.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+//					  {
+//
+//					  }
+					}
+					config.inNetData.compact();
 
 					switch (result.getStatus())
 					{
-
-						case BUFFER_UNDERFLOW:
-						case BUFFER_OVERFLOW:
-							log.info("WRAP_PROBLEM: " + result);
-							break;
-						case OK:
-							ByteBufferUtil.write((ByteChannel) config.sslChannel, config.outNetData);
-							break;
-						case CLOSED:
-							log.info("WRAP_PROBLEM: " + result);
-							close();
-							break;
+					  case BUFFER_UNDERFLOW:
+					  case BUFFER_OVERFLOW:
+						log.info("READ-SSL-UNWRAP_PROBLEM: " + result);
+						break;
+					  case OK:
+						ByteBufferUtil.write(config.destinationChannel, config.inAppData);
+						config.inAppData.compact();
+						break;
+					  case CLOSED:
+						  log.info( " BEFORE-READ-CLOSED: " + result);
+						if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
+						  // peerAppData.flip();
+						  config.outNetData.clear();
+						  result = config.wrap(ByteBufferUtil.EMPTY, config.outNetData);
+						  log.info( " READ-CLOSED-NEED_WRAP: " + result + " outNetData: " + config.outNetData.position());
+						  ByteBufferUtil.write(config.sslChannel, config.outNetData);
+						}
+						close();
+						log.info( " CLOSED_PROBLEM: " + result);
+						break;
 					}
+				}
+			}
+			else if(key.channel() == config.destinationChannel)
+			{
+				config.destinationBB.clear();
+				read = config.destinationChannel.read(config.destinationBB);
+				if(read > 0)
+				{
+
+					log.info("BEFORE-WRAPPING-READ-DATA:" + config.outNetData);
+
+					SSLEngineResult result = null;
+					config.destinationBB.flip();
+					result = config.wrap(config.destinationBB, config.outNetData);
+					log.info("READ-WRAPPING-DATA:" + result);
+
+					switch (result.getStatus()) {
+					  case BUFFER_UNDERFLOW:
+					  case BUFFER_OVERFLOW:
+						log.info("WRAP_PROBLEM: " + result);
+						break;
+					  case OK:
+						ByteBufferUtil.write(config.sslChannel, config.outNetData);
+						config.outNetData.compact();
+
+						break;
+					  case CLOSED:
+						log.info("CLOSED-WRAP_PROBLEM: " + result);
+						close();
+						break;
+					}
+
 				}
 			}
 
@@ -254,17 +259,20 @@ public class SSLNIOTunnel
 
     			close();
     				
-    			if (debug) log.info(key + ":" + key.isValid()+ " " + Thread.currentThread());
+    			if (debug) log.info(key + ":" + key.isValid()+ " " );
     		}
     	}
     	catch(Exception e)
     	{
-    		if (debug) e.printStackTrace();
+    		e.printStackTrace();
+
+
     		close();
 
-    		if (debug) log.info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid()+ " " + Thread.currentThread() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
+    		if (debug) log.info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
     		
     	}
+		log.info( "End of SSLNIOTUNNEL-ACCEPT");
 	}
 
 
@@ -272,8 +280,9 @@ public class SSLNIOTunnel
 		// must be modified do the handshake
 
     	sslSessionSM = SSLSessionSM.create(sslContext, null);
-    	sslSessionSM.getConfig().selectorController = getSelectorController();
-    	sslSessionSM.getConfig().sslEngine = sslSessionSM.getConfig().sslContext.createSSLEngine();
+    	config = sslSessionSM.getConfig();
+    	config.selectorController = getSelectorController();
+
 
 
     	sslSessionSM.start();
@@ -284,23 +293,12 @@ public class SSLNIOTunnel
 
 
 
-//	@Override
-//	public boolean channelReadState(Channel channel)
-//	{
-//		if(channel == destinationChannel)
-//			return true;
-//
-//		if(channel == sslSessionSM.getConfig().sslChannel)
-//		{
-//			return sslSessionSM.getConfig().sslChannelReadState;
-//		}
-//
-//		return false;
-//	}
+
 
 	@SuppressWarnings("resource")
     public static void main(String... args)
     {
+    LoggerUtil.enableDefaultLogger("io.xlogistx");
 		try
 		{
 			int index = 0;

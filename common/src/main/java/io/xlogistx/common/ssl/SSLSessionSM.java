@@ -8,7 +8,7 @@ import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.GetName;
 
 import javax.net.ssl.*;
-import java.io.IOException;
+
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
@@ -19,6 +19,8 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
 {
 
 
+
+    private final static AtomicLong HANDSHAKE_COUNTER = new AtomicLong();
     public enum SessionState
     implements GetName
     {
@@ -45,7 +47,7 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
 
 
     private static final AtomicLong counter = new AtomicLong();
-    private static boolean debug = false;
+    private static boolean debug = true;
 
     private SSLSessionSM(long id, TaskSchedulerProcessor tsp) {
         super("SSLSessionStateMachine-" + id, tsp);
@@ -71,15 +73,14 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
 
     public static SSLSessionSM create(SSLContext sslContext, Executor e)
     {
-        SSLSessionConfig sslSessionConfig = new SSLSessionConfig();
-        sslSessionConfig.sslContext = sslContext;
+        SSLSessionConfig sslSessionConfig = new SSLSessionConfig(sslContext);
         return create(sslSessionConfig, e);
     }
 
 
 
     public static SSLSessionSM create(SSLSessionConfig config, Executor e){
-        SSLSessionSM sslSessionSM = new SSLSessionSM(counter.getAndIncrement(), e);
+        SSLSessionSM sslSessionSM = new SSLSessionSM(counter.incrementAndGet(), e);
         sslSessionSM.setConfig(config);
 
     TriggerConsumerInt<Void> init = new TriggerConsumer<Void>(StateInt.States.INIT) {
@@ -90,26 +91,26 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
           }
         };
 
-    TriggerConsumerInt<SelectableChannel> waitingForSSLChannel =
-        new TriggerConsumer<SelectableChannel>(SessionState.WAIT_FOR_HANDSHAKING) {
+    TriggerConsumerInt<SocketChannel> waitingForSSLChannel =
+        new TriggerConsumer<SocketChannel>(SessionState.WAIT_FOR_HANDSHAKING) {
           @Override
-          public void accept(SelectableChannel sslChannel) {
+          public void accept(SocketChannel sslChannel) {
             if(debug) log.info(SessionState.WAIT_FOR_HANDSHAKING + ":" + sslChannel);
             if (sslChannel != null) {
               SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
               if (config.sslChannel == null) {
                 config.sslChannel = sslChannel;
-                config.sslEngine = config.sslContext.createSSLEngine();
+                //config.sslEngine = config.sslContext.createSSLEngine();
                 // for now later support client mode
-                config.sslEngine.setUseClientMode(false);
+                config.setUseClientMode(false);
                 //config.sslEngine.setNeedClientAuth(false);
                 // create buffers
 
                   try {
-                      config.sslEngine.beginHandshake();
-                      config.inNetData = ByteBufferUtil.allocateByteBuffer(config.sslEngine.getSession().getPacketBufferSize());
-                      config.outNetData = ByteBufferUtil.allocateByteBuffer(config.sslEngine.getSession().getPacketBufferSize());
-                      config.inAppData = ByteBufferUtil.allocateByteBuffer(config.sslEngine.getSession().getApplicationBufferSize());
+                      config.beginHandshake();
+                      config.inNetData = ByteBufferUtil.allocateByteBuffer(config.getPacketBufferSize());
+                      config.outNetData = ByteBufferUtil.allocateByteBuffer(config.getPacketBufferSize());
+                      config.inAppData = ByteBufferUtil.allocateByteBuffer(config.getApplicationBufferSize());
                       //config.outAppData = ByteBufferUtil.allocateByteBuffer(config.sslEngine.getSession().getApplicationBufferSize());
                       if(debug) log.info("handshake begun " + config.inNetData.capacity() + ":" + config.inAppData.capacity());
 
@@ -129,100 +130,15 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
           }
         };
 
-    TriggerConsumerInt<SocketChannel> handShaking =
-        new TriggerConsumer<SocketChannel>(SessionState.HANDSHAKING) {
-
-          boolean readData = true;
-          SSLEngineResult result;
-          SSLEngineResult.HandshakeStatus status;
-
-          @Override
-          public void accept(SocketChannel sslChannel) {
-            if(debug) log.info("[" + Thread.currentThread() + "] " + SessionState.HANDSHAKING);
-            // the handshaking already started
-            // we need to unwrap network data to complete the handshaking process
-            SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
-            if (sslChannel != null) {
-              try {
-                if(debug) log.info("START Handshake " + config.sslEngine.getHandshakeStatus());
-                loop: while ((status = config.sslEngine.getHandshakeStatus()) != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
-                  if(debug) log.info(Thread.currentThread() + " Before switch SSLServerEngine status " + status);
-                  switch (status) {
-                    case FINISHED:
-                      break loop;
-                    case NEED_WRAP:
-                      result = config.sslEngine.wrap(ByteBufferUtil.DUMMY, config.outNetData); // at handshake stage, data in appOut won't be
-                                                // processed hence dummy buffer
-                      if (result.bytesProduced() > 0) {
-                        if(debug) log.info("Before writing data : " + config.outNetData);
-                        ByteBufferUtil.write(sslChannel, config.outNetData);
-                        config.outNetData.clear();
-                      }
-                      if(debug) log.info(status + " END : " + result);
-                      break;
-                    case NEED_TASK:
-                      Runnable task = config.sslEngine.getDelegatedTask(); // these are the tasks like key generation that
-                                                   // tend to take longer time to complete
-                      if (task != null) {
-                        task.run(); // it can be run at a different thread.
-                      }
-                      break;
-                    case NEED_UNWRAP:
-                      if (readData) {
-                        int byteRead = sslChannel.read(config.inNetData);
-                        log.info("BYTE_READ from socket:" + byteRead);
-                        config.inNetData.flip();
-                      }
-                      result =config.sslEngine.unwrap(config.inNetData, ByteBufferUtil.DUMMY);
-                      // at handshake stage, no data produced in appIn hence using dummy buffer
-                      log.info("[-> Read status : " + readData + " : " + result);
-
-                      if (config.inNetData.remaining() == 0) {
-                        config.inNetData.clear();
-                        readData = true;
-                      } else { // if there are data left in the buffer
-                        readData = false;
-                      }
-                       log.info("Read status : " + readData + " : " + result + " <-]");
-                      if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
-                        // enable reading
-                        //config.selectorController.enableSelectionKeyReading(sslChannel);
-                        return;
-                      }
-                  }
-                }
-                if (status == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING || status == SSLEngineResult.HandshakeStatus.FINISHED) {
-                  config.inNetData.clear();
-                  config.outNetData.clear();
-
-                  log.info(result + " **************************FINISHED*****************************");
-                  readData = true;
-                  publish(sslChannel, SessionState.READY);
-                }
-              } catch (IOException e) {
-                e.printStackTrace();
-                publish(sslChannel, SessionState.CLOSE);
-              }
-            }
-          }
-        };
 
         TriggerConsumerInt<SocketChannel> ready = new TriggerConsumer<SocketChannel>(SessionState.READY) {
             @Override
             public void accept(SocketChannel sslChannel) {
                 if(sslChannel != null)
                 {
-
                     SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
-                    log.info("READY-STATE SSL ENGINE " + config.sslEngine.getHandshakeStatus());
-                    //config.sslChannelReadState = true;
-                    //config.selectorController.enableSelectionKeyReading(sslChannel);
-
-
-                    //if(debug) log.info(getState().getName() + " readable " +  config.sslChannelReadState );
-
+                    log.info(getStateMachine().getName() + " socket status " +sslChannel.isOpen() + " READY-STATE SSL ENGINE " + config.getHandshakeStatus()  + " " + sslChannel);
                 }
-
             }
         };
 
@@ -240,7 +156,7 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
         sslSessionSM.setConfig(config)
             .register(new State(StateInt.States.INIT).register(init))
             .register(new State(SessionState.WAIT_FOR_HANDSHAKING).register(waitingForSSLChannel))
-            .register(new State(SessionState.HANDSHAKING).register(handShaking))
+            .register(new State(SessionState.HANDSHAKING).register(new HandshakingTC()))
             .register(new State(SessionState.READY).register(ready))
             .register(new State(SessionState.CLOSE).register(closed))
         ;
