@@ -116,7 +116,7 @@ public class SSLNIOTunnel
 			if (key.channel() == config.sslChannel)
 			{
 
-				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+				if(sslSessionSM.getCurrentState().getName().equals(SSLSessionSM.SessionState.HANDSHAKING.getName()))
 				{
 					log.info("We are still HAND_SHAKING_BABY");
 
@@ -134,23 +134,18 @@ public class SSLNIOTunnel
 				}
 
 				// we need to unwrap
-//				config.inNetData.clear();
-//				config.inAppData.clear();
 				read = config.sslChannel.read(config.inNetData);
 				log.info("Reading SSL data: " + read + " " + config.inNetData);
 				if(read > 0)
 				{
-					config.inNetData.flip();
+
 					SSLEngineResult result = null;
-					while (config.inNetData.hasRemaining()) {
-					  result = config.unwrap(config.inNetData, config.inAppData);
-					  log.info( "UNWRAPING-SSL-DATA:" + result +" " + config.inNetData);
-//					  if(result.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
-//					  {
-//
-//					  }
-					}
-					config.inNetData.compact();
+
+					result = config.smartUnwrap(config.inNetData, config.inAppData);
+
+					 log.info( "UNWRAPING-SSL-DATA:" + result +" " + config.inNetData);
+
+
 
 					switch (result.getStatus())
 					{
@@ -159,17 +154,16 @@ public class SSLNIOTunnel
 						log.info("READ-SSL-UNWRAP_PROBLEM: " + result);
 						break;
 					  case OK:
-						ByteBufferUtil.write(config.destinationChannel, config.inAppData);
-						config.inAppData.compact();
+						ByteBufferUtil.smartWrite(config.destinationChannel, config.inAppData);
 						break;
 					  case CLOSED:
 						  log.info( " BEFORE-READ-CLOSED: " + result);
 						if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
-						  // peerAppData.flip();
-						  config.outNetData.clear();
-						  result = config.wrap(ByteBufferUtil.EMPTY, config.outNetData);
+
+						  result = config.smartWrap(ByteBufferUtil.EMPTY, config.outNetData);
 						  log.info( " READ-CLOSED-NEED_WRAP: " + result + " outNetData: " + config.outNetData.position());
-						  ByteBufferUtil.write(config.sslChannel, config.outNetData);
+						  ByteBufferUtil.smartWrite(config.sslChannel, config.outNetData);
+
 						}
 						close();
 						log.info( " CLOSED_PROBLEM: " + result);
@@ -179,7 +173,7 @@ public class SSLNIOTunnel
 			}
 			else if(key.channel() == config.destinationChannel)
 			{
-				config.destinationBB.clear();
+
 				read = config.destinationChannel.read(config.destinationBB);
 				if(read > 0)
 				{
@@ -187,8 +181,9 @@ public class SSLNIOTunnel
 					log.info("BEFORE-WRAPPING-READ-DATA:" + config.outNetData);
 
 					SSLEngineResult result = null;
-					config.destinationBB.flip();
-					result = config.wrap(config.destinationBB, config.outNetData);
+
+					result = config.smartWrap(config.destinationBB, config.outNetData);
+
 					log.info("READ-WRAPPING-DATA:" + result);
 
 					switch (result.getStatus()) {
@@ -197,8 +192,8 @@ public class SSLNIOTunnel
 						log.info("WRAP_PROBLEM: " + result);
 						break;
 					  case OK:
-						ByteBufferUtil.write(config.sslChannel, config.outNetData);
-						config.outNetData.compact();
+						ByteBufferUtil.smartWrite(config.sslChannel, config.outNetData);
+
 
 						break;
 					  case CLOSED:
@@ -209,46 +204,6 @@ public class SSLNIOTunnel
 
 				}
 			}
-
-
-//			if(key.channel() == sslsc.sslChannel)
-//			{
-//				// reading encrypted data
-//				if (debug) log.info("incoming data on secure channel " + key);
-//				ByteBuffer temp = niosslServer.read((SocketChannel) key.channel(), sslsc.sslEngine, sslsc.appData);
-//				if(temp == null) {
-//					close();
-//					return;
-//				}
-//
-//
-//				ByteBufferUtil.write(destinationChannel, temp);
-//
-//				log.info("decrypted buffer : " + temp);
-//			}
-//			else if (key.channel() == destinationChannel)
-//			{
-//				if (debug) log.info("incoming data from remote channel " + key);
-//
-//				do
-//				{
-//
-//					destinationBB.clear();
-//
-//					// modify if currentSourceChannel == sourceChannel
-//					read = ((SocketChannel) key.channel()).read(destinationBB);
-//					if (debug) log.info("byte read: " + read);
-//					if (read > 0)
-//					{
-//						// modify currentDestinationChannel == sourceChannel
-//						niosslServer.write((SocketChannel) sslsc.sslChannel, sslsc.sslEngine, destinationBB);
-//					}
-//				}
-//				while(read > 0);
-//			}
-
-
-
 
     		
     		if (read == -1)
@@ -307,7 +262,7 @@ public class SSLNIOTunnel
 			String keystore = args[index++];
 			String ksType = args[index++];
 			String ksPassword = args[index++];
-			TaskUtil.setThreadMultiplier(4);
+			//TaskUtil.setThreadMultiplier(4);
 			SSLContext sslContext = CryptoUtil.initSSLContext(IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
 			new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOTunnelFactory(sslContext, remoteAddress), TaskUtil.getDefaultTaskProcessor());

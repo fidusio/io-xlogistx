@@ -217,7 +217,7 @@ public class StateMachine<C>
 
 
     @Override
-    public void close()
+    public synchronized void close()
     {
         if(!isClosed)
             isClosed = true;

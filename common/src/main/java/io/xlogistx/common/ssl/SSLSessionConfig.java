@@ -7,10 +7,7 @@ import org.zoxweb.server.net.SelectorController;
 
 import org.zoxweb.shared.util.SharedUtil;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
+import javax.net.ssl.*;
 import java.nio.ByteBuffer;
 
 import java.nio.channels.SelectableChannel;
@@ -24,6 +21,7 @@ implements AutoCloseable
     private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
     private SSLContext sslContext;
     private volatile SSLEngine sslEngine; // the crypto engine
+    volatile AtomicBoolean firstHandshake = new AtomicBoolean(false);
     volatile ByteBuffer inNetData; // encrypted data
     volatile ByteBuffer outNetData; // encrypted data
     volatile ByteBuffer inAppData; // clear text application data
@@ -78,15 +76,42 @@ implements AutoCloseable
 //        return sslEngine;
 //    }
 
-    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
-        return sslEngine.wrap(source, destination);
+//    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
+//        return sslEngine.wrap(source, destination);
+//    }
+
+    public synchronized SSLEngineResult smartWrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
+        source.flip();
+        SSLEngineResult ret = sslEngine.wrap(source, destination);
+        source.compact();
+        return ret;
     }
 
-    public synchronized SSLEngineResult unwrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
-        return sslEngine.unwrap(source, destination);
+
+
+    public synchronized SSLEngineResult smartUnwrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
+
+        source.flip();
+        SSLEngineResult ret = sslEngine.unwrap(source, destination);
+        source.compact();
+        return ret;
     }
 
-    public void beginHandshake() throws SSLException {
+    public SSLSession getSession()
+    {
+        return sslEngine.getSession();
+    }
+
+    public SSLSession getHandshakeSession()
+    {
+        return sslEngine.getHandshakeSession();
+    }
+
+//    public synchronized SSLEngineResult unwrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
+//        return sslEngine.unwrap(source, destination);
+//    }
+
+    public synchronized void beginHandshake() throws SSLException {
         sslEngine.beginHandshake();
     }
 

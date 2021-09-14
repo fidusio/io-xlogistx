@@ -2,11 +2,16 @@ package io.xlogistx.common.ssl;
 
 import io.xlogistx.common.fsm.TriggerConsumer;
 import org.zoxweb.server.io.ByteBufferUtil;
+import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
@@ -39,31 +44,28 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                             if(debug) log.info("IN-FINISHED-STATUS:" + config.getHandshakeStatus());
                             break;
                         case NEED_WRAP: {
-                            SSLEngineResult result = config.wrap(ByteBufferUtil.EMPTY, config.outNetData); // at handshake stage, data in appOut won't be
+                            SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outNetData); // at handshake stage, data in appOut won't be
                             // processed hence dummy buffer
-                            if (debug) log.info( "AFTER-HANDSHAKING-NEED_WRAP: " + result);
+                            if (debug) log.info( "AFTER-NEED_WRAP-HANDSHAKING: " + result);
 
                             switch (result.getStatus())
                             {
 
                                 case BUFFER_UNDERFLOW:
+
                                     break;
                                 case BUFFER_OVERFLOW:
+
                                     break;
                                 case OK:
-                                    int written = ByteBufferUtil.write(sslChannel, config.outNetData);
-                                    config.outNetData.compact();
-                                    if(debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outNetData + " written " + written);
+                                    int written = ByteBufferUtil.smartWrite(sslChannel, config.outNetData);
+                                    //postHandshakeIfNeeded(config, result, sslChannel);
+                                    if(debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outNetData + " written:" + written);
                                     break;
                                 case CLOSED:
+                                    publish(sslChannel, SSLSessionSM.SessionState.CLOSE);
                                     break;
                             }
-//                            //if(result.bytesProduced() > 0)
-//                            {
-//                                int written = ByteBufferUtil.write(sslChannel, config.outNetData);
-//                                config.outNetData.compact();
-//                                if(debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outNetData + " written " + written);
-//                            }
                         }
                             break;
                         case NEED_TASK:
@@ -72,7 +74,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                             if (task != null) {
                                 task.run(); // it can be run at a different thread.
                             }
-                            if (debug) log.info("AFTER-HANDSHAKING-NEED_TASK ");
+                            if (debug) log.info("AFTER-NEED_TASK-HANDSHAKING ");
                             break;
                         case NEED_UNWRAP: {
                             //if (readData)
@@ -85,11 +87,11 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                             }
                             else {
 
-                                config.inNetData.flip();
+
                                 //even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming data
-                                SSLEngineResult result = config.unwrap(config.inNetData, ByteBufferUtil.EMPTY);
-                                config.inNetData.compact();
-                                if (debug) log.info("AFTER-HANDSHAKING-NEED_UNWRAP: " + result + " bytesread: " +bytesRead);
+                                SSLEngineResult result = config.smartUnwrap(config.inNetData, ByteBufferUtil.EMPTY);
+
+                                if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytesread: " +bytesRead);
                                 switch (result.getStatus())
                                 {
 
@@ -118,11 +120,46 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                     }
                 }
                 if (status == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING ) {
-                    config.inNetData.clear();
-                    config.outNetData.clear();
+//                    config.inNetData.clear();
+//                    config.outNetData.clear();
 
-                    log.info(config.getHandshakeStatus() + " **************************FINISHED***************************** " +HANDSHAKE_COUNTER.incrementAndGet());
+                    long currentCount = HANDSHAKE_COUNTER.incrementAndGet();
+
+                    log.info(config.getHandshakeStatus() + " **************************FINISHED***************************** " + currentCount);
+                    SSLSession sslSession = config.getSession();
+
+                    log.info("Handshake session: " + SharedUtil.toCanonicalID(':',sslSession.getProtocol(),
+                            sslSession.getCipherSuite(),
+                            SharedStringUtil.bytesToHex(sslSession.getId())));
+
+
+                    if(!config.firstHandshake.getAndSet(true))
+                    {
+
+                        // for a weir reason we need todo maybe 2 sslsession.beginhandshake with tlsv1.3
+                        if (sslSession.getProtocol().equalsIgnoreCase("tlsv1.3"))
+                        {
+//                            try
+//                            {
+                                config.beginHandshake();
+                                log.info("AFTER FIRST HANDSHAKE : " + config.getHandshakeStatus());
+                                publish(sslChannel, SSLSessionSM.SessionState.HANDSHAKING);
+                                return;
+//                            }
+//                            catch (Exception e)
+//                            {
+//                                e.printStackTrace();
+//                            }
+                        }
+                    }
+
                     publish(sslChannel, SSLSessionSM.SessionState.READY);
+
+
+
+//                    TaskUtil.getDefaultTaskScheduler().queue(1000, ()->{
+//                        log.info(" )()()()()()()()()()()()()()()()()()() " +config.getHandshakeStatus());
+//                    });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -136,25 +173,14 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
     private SSLEngineResult postHandshakeIfNeeded(SSLSessionConfig config,  SSLEngineResult res, SocketChannel sslChannel) throws IOException {
         while (res.getHandshakeStatus() == FINISHED && res.getStatus() == SSLEngineResult.Status.OK) {
             if (!config.inNetData.hasRemaining()) {
-                //config.inNetData.clear();
 
                 int byteRead = sslChannel.read(config.inNetData);
                 if(byteRead == -1)
                     throw new IOException("ssl socket closed");
-
-
             }
-            config.inNetData.flip();
-            res = config.unwrap(config.inNetData, ByteBufferUtil.EMPTY);
-            config.inNetData.compact();
+            res = config.smartUnwrap(config.inNetData, ByteBufferUtil.EMPTY);
 
-//             = res.getHandshakeStatus();
-//
-//            if (log.isDebugEnabled())
-//                log.debug("Unrapped post-handshake data [status=" + res.getStatus() + ", handshakeStatus=" +
-//                        handshakeStatus + ']');
         }
-
         return res;
     }
 }
