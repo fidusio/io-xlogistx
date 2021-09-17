@@ -26,7 +26,7 @@ extends GetName, AutoCloseable
     Executor getExecutor();
     boolean isScheduledTaskEnabled();
     StateInt lookupState(String name);
-    StateInt lookupState(GetName name);
+    StateInt lookupState(Enum<?> name);
 
 
     StateInt getCurrentState();

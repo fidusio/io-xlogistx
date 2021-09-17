@@ -2,18 +2,19 @@ package io.xlogistx.common.fsm;
 
 
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.EventObject;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class Trigger<T>
+public class Trigger<D>
 extends EventObject
-implements TriggerInt<T>
+implements TriggerInt<D>
 {
     private final static AtomicLong counter = new AtomicLong();
 
     private final String canonicalID;
-    private final T data;
+    private final D data;
     private final StateInt lastState;
     private final long id = counter.getAndIncrement();
     private final long timestamp = System.currentTimeMillis();
@@ -25,24 +26,24 @@ implements TriggerInt<T>
      * @param data event data
      * @param canonicalID of the trigger
      */
-    public Trigger(Object source, StateInt lastState, T data, String canonicalID) {
+    public Trigger(Object source, StateInt lastState, D data, String canonicalID) {
         super(source);
         this.lastState = lastState;
         this.data = data;
         this.canonicalID = canonicalID;
     }
 
-    public Trigger(Object source, StateInt lastState, T data, GetName canonicalID) {
-        this(source, lastState, data, canonicalID.getName());
+    public Trigger(Object source, StateInt lastState, D data, Enum<?> canonicalID) {
+        this(source, lastState, data, SharedUtil.enumName(canonicalID));
     }
-    public Trigger(StateInt state, T data, String canonicalID)
+    public Trigger(StateInt state, D data, String canonicalID)
     {
         this(state, state, data, canonicalID);
     }
 
-    public Trigger(StateInt state, T data, GetName name)
+    public Trigger(StateInt state, D data, Enum<?> name)
     {
-        this(state, state, data, name.getName());
+        this(state, state, data,  SharedUtil.enumName(name));
     }
 
     @Override
@@ -51,7 +52,7 @@ implements TriggerInt<T>
     }
 
     @Override
-    public T get() {
+    public D get() {
         return data;
     }
 

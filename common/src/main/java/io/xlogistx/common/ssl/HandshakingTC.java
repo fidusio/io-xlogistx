@@ -2,7 +2,7 @@ package io.xlogistx.common.ssl;
 
 import io.xlogistx.common.fsm.TriggerConsumer;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.task.TaskUtil;
+
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -11,28 +11,29 @@ import javax.net.ssl.SSLSession;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.FINISHED;
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
 
 public class HandshakingTC extends TriggerConsumer<SocketChannel> {
 
-    private static final transient Logger log = Logger.getLogger(SSLNIOTunnel.class.getName());
+    private static final transient Logger log = Logger.getLogger(HandshakingTC.class.getName());
 
     public static boolean debug = true;
     private final static AtomicLong HANDSHAKE_COUNTER = new AtomicLong();
 
 
     HandshakingTC() {
-        super(SSLSessionSM.SessionState.HANDSHAKING);
+        super(SSLStateMachine.SessionState.HANDSHAKING);
     }
     @Override
     public void accept(SocketChannel sslChannel) {
         if (sslChannel != null) {
 
-            SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
+            SSLConfig config = (SSLConfig) getStateMachine().getConfig();
             //SSLEngineResult result = null;
             SSLEngineResult.HandshakeStatus status;
             try {
@@ -63,7 +64,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                                     if(debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outNetData + " written:" + written);
                                     break;
                                 case CLOSED:
-                                    publish(sslChannel, SSLSessionSM.SessionState.CLOSE);
+                                    publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
                                     break;
                             }
                         }
@@ -82,7 +83,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                             int bytesRead = sslChannel.read(config.inNetData);
                             if(bytesRead == -1) {
                                 if (debug) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: " + config.getHandshakeStatus() + " bytesread: " +bytesRead);
-                                publish(sslChannel, SSLSessionSM.SessionState.CLOSE);
+                                publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
                                 return;
                             }
                             else {
@@ -98,6 +99,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                                     case BUFFER_UNDERFLOW:
                                         // no incoming data available we need to wait for more socket data
                                         // return and let the NIOSocket or the data handler call back
+                                        //config.sslChannelSelectableStatus.set(true);
                                         return;
 
                                     case BUFFER_OVERFLOW:
@@ -109,7 +111,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                                         // check result here
                                         if (debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " +bytesRead);
 
-                                        publish(sslChannel, SSLSessionSM.SessionState.CLOSE);
+                                        publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
                                         break;
                                 }
                             }
@@ -137,14 +139,16 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                     {
 
                         // for a weir reason we need todo maybe 2 sslsession.beginhandshake with tlsv1.3
-                        if (sslSession.getProtocol().equalsIgnoreCase("tlsv1.3"))
+                        if (config.getSession().getProtocol().equalsIgnoreCase("tlsv1.3"))
                         {
 //                            try
 //                            {
                                 config.beginHandshake();
                                 log.info("AFTER FIRST HANDSHAKE : " + config.getHandshakeStatus());
-                                publish(sslChannel, SSLSessionSM.SessionState.HANDSHAKING);
-                                return;
+                                if (config.getHandshakeStatus() != NOT_HANDSHAKING) {
+                                    publish(sslChannel, SSLStateMachine.SessionState.HANDSHAKING);
+                                    return;
+                                }
 //                            }
 //                            catch (Exception e)
 //                            {
@@ -153,7 +157,8 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                         }
                     }
 
-                    publish(sslChannel, SSLSessionSM.SessionState.READY);
+
+                    publish(sslChannel, SSLStateMachine.SessionState.READY);
 
 
 
@@ -163,14 +168,14 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                publish(sslChannel, SSLSessionSM.SessionState.CLOSE);
+                publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
             }
         }
 
     }
 
 
-    private SSLEngineResult postHandshakeIfNeeded(SSLSessionConfig config,  SSLEngineResult res, SocketChannel sslChannel) throws IOException {
+    private SSLEngineResult postHandshakeIfNeeded(SSLConfig config, SSLEngineResult res, SocketChannel sslChannel) throws IOException {
         while (res.getHandshakeStatus() == FINISHED && res.getStatus() == SSLEngineResult.Status.OK) {
             if (!config.inNetData.hasRemaining()) {
 

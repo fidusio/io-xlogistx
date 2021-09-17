@@ -199,9 +199,9 @@ public class StateMachine<C>
     }
 
     @Override
-    public StateInt lookupState(GetName name)
+    public StateInt lookupState(Enum<?> name)
     {
-        return lookupState(name.getName());
+        return lookupState(SharedUtil.enumName(name));
     }
 
     @Override

@@ -15,7 +15,7 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SSLSessionSM extends StateMachine<SSLSessionConfig>
+public class SSLStateMachine extends StateMachine<SSLConfig>
 {
 
 
@@ -26,6 +26,11 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
     {
         WAIT_FOR_HANDSHAKING("wait-for-handshake"),
         HANDSHAKING("handshaking"),
+//        HS_NEED_WRAP("hs_need_wrap"),
+//        HS_NEED_UNWRAP("hs_need_unwrap"),
+//        HS_NOT_HANDSHAKING("hs_not_handshaking"),
+//        HS_FINISHED("hs_finish"),
+//        HS_NEED_TASK("hs_need_task"),
         READY("ready-state"),
         CLOSE("close"),
 
@@ -49,10 +54,10 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
     private static final AtomicLong counter = new AtomicLong();
     private static boolean debug = true;
 
-    private SSLSessionSM(long id, TaskSchedulerProcessor tsp) {
+    private SSLStateMachine(long id, TaskSchedulerProcessor tsp) {
         super("SSLSessionStateMachine-" + id, tsp);
     }
-    private SSLSessionSM(long id, Executor executor) {
+    private SSLStateMachine(long id, Executor executor) {
         super("SSLSessionStateMachine-" + id, executor);
     }
 
@@ -71,16 +76,16 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
 
 
 
-    public static SSLSessionSM create(SSLContext sslContext, Executor e)
+    public static SSLStateMachine create(SSLContext sslContext, Executor e)
     {
-        SSLSessionConfig sslSessionConfig = new SSLSessionConfig(sslContext);
+        SSLConfig sslSessionConfig = new SSLConfig(sslContext);
         return create(sslSessionConfig, e);
     }
 
 
 
-    public static SSLSessionSM create(SSLSessionConfig config, Executor e){
-        SSLSessionSM sslSessionSM = new SSLSessionSM(counter.incrementAndGet(), e);
+    public static SSLStateMachine create(SSLConfig config, Executor e){
+        SSLStateMachine sslSessionSM = new SSLStateMachine(counter.incrementAndGet(), e);
         sslSessionSM.setConfig(config);
 
     TriggerConsumerInt<Void> init = new TriggerConsumer<Void>(StateInt.States.INIT) {
@@ -97,7 +102,7 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
           public void accept(SocketChannel sslChannel) {
             if(debug) log.info(SessionState.WAIT_FOR_HANDSHAKING + ":" + sslChannel);
             if (sslChannel != null) {
-              SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
+              SSLConfig config = (SSLConfig) getStateMachine().getConfig();
               if (config.sslChannel == null) {
                 config.sslChannel = sslChannel;
                 //config.sslEngine = config.sslContext.createSSLEngine();
@@ -118,8 +123,12 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
 
                       //reset(config.inNetData, config.outNetData, config.inAppData, config.outAppData);
                       publish(sslChannel, SessionState.HANDSHAKING);
+
+                      // to be changed to
+                      //publish(config, config.getHandshakeStatus());
                   } catch (SSLException ex) {
                       ex.printStackTrace();
+                      config.close();
 
                       // maybe we should close
                   }
@@ -136,8 +145,9 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
             public void accept(SocketChannel sslChannel) {
                 if(sslChannel != null)
                 {
-                    SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
+                    SSLConfig config = (SSLConfig) getStateMachine().getConfig();
                     log.info(getStateMachine().getName() + " socket status " +sslChannel.isOpen() + " READY-STATE SSL ENGINE " + config.getHandshakeStatus()  + " " + sslChannel);
+                    //config.sslChannelSelectableStatus.set(true);
                 }
             }
         };
@@ -146,7 +156,7 @@ public class SSLSessionSM extends StateMachine<SSLSessionConfig>
             @Override
             public void accept(SocketChannel socketChannel) {
                 getStateMachine().close();
-                SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+                SSLConfig config = (SSLConfig) getState().getStateMachine().getConfig();
                 config.close();
 
                 if(debug) log.info(getStateMachine().getName() + " " + socketChannel + " closed");

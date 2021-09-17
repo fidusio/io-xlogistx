@@ -3,6 +3,7 @@ package io.xlogistx.common.fsm;
 import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.NVBase;
 import org.zoxweb.shared.util.NVGenericMap;
+import org.zoxweb.shared.util.SharedUtil;
 
 
 import java.util.LinkedHashMap;
@@ -27,9 +28,9 @@ public class State<P>
             }
         }
     }
-    public State(GetName name, NVBase<?> ...props)
+    public State(Enum<?> name, NVBase<?> ...props)
     {
-        this(name.getName(), props);
+        this(SharedUtil.enumName(name), props);
     }
 
     @Override

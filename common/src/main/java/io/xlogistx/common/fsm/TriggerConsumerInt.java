@@ -20,8 +20,8 @@ public interface TriggerConsumerInt<T>
 
 
     void publish(TriggerInt triggerInt);
-    void publish(T data, String canID);
-    void publish(T data, GetName canID);
+    <D> void publish(D data, String canID);
+    <D>void  publish(D data, Enum<?> canID);
 
     public StateMachineInt getStateMachine();
 

@@ -10,33 +10,34 @@ import org.zoxweb.shared.util.SharedUtil;
 import javax.net.ssl.*;
 import java.nio.ByteBuffer;
 
-import java.nio.channels.SelectableChannel;
+
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-class SSLSessionConfig
+class SSLConfig
 implements AutoCloseable
 {
-    private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
+    private static final transient Logger log = Logger.getLogger(SSLConfig.class.getName());
     private SSLContext sslContext;
     private volatile SSLEngine sslEngine; // the crypto engine
     volatile AtomicBoolean firstHandshake = new AtomicBoolean(false);
     volatile ByteBuffer inNetData; // encrypted data
     volatile ByteBuffer outNetData; // encrypted data
     volatile ByteBuffer inAppData; // clear text application data
-    //ByteBuffer outAppData; // data used during the handshake process
+    //volatile ByteBuffer outAppData; // data used during the handshake process
     volatile SocketChannel sslChannel; // the encrypted channel
     volatile SelectorController selectorController;
 
     volatile SocketChannel destinationChannel = null;
     volatile ByteBuffer destinationBB = null;
+    //volatile AtomicBoolean sslChannelSelectableStatus = new AtomicBoolean(false);
 
 
 
     //boolean sslChannelReadState = false;
     volatile private AtomicBoolean isClosed = new AtomicBoolean(false);
-    public SSLSessionConfig(SSLContext sslContext)
+    public SSLConfig(SSLContext sslContext)
     {
         SharedUtil.checkIfNulls("sslContext null", sslContext);
         this.sslContext = sslContext;
@@ -60,7 +61,7 @@ implements AutoCloseable
             IOUtil.close(sslChannel);
             IOUtil.close(destinationChannel);
             selectorController.cancelSelectionKey(sslChannel);
-            selectorController.cancelSelectionKey((SelectableChannel) destinationChannel);
+            selectorController.cancelSelectionKey(destinationChannel);
             log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel);
         }
 

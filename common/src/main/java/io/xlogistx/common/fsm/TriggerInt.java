@@ -5,8 +5,8 @@ import org.zoxweb.shared.util.GetName;
 
 import java.util.function.Supplier;
 
-public interface TriggerInt<T>
-extends Supplier<T>
+public interface TriggerInt<D>
+extends Supplier<D>
 {
     StateInt lastState();
     String getCanonicalID();

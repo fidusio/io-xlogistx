@@ -47,15 +47,8 @@ public class SSLNIOTunnel
 
 	private static boolean debug = true;
 
-
-
-
-//	private SocketChannel destinationChannel = null;
-//
-//	private ByteBuffer destinationBB = null;
-
-	private SSLSessionSM sslSessionSM = null;
-	private SSLSessionConfig config = null;
+	private SSLStateMachine sslSessionSM = null;
+	private SSLConfig config = null;
 
 
 
@@ -106,7 +99,7 @@ public class SSLNIOTunnel
 			{
 
 				log.info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				sslSessionSM.publish(new Trigger<Channel>(this, null, key.channel(), SSLSessionSM.SessionState.WAIT_FOR_HANDSHAKING));
+				sslSessionSM.publish(new Trigger<Channel>(this, null, key.channel(), SSLStateMachine.SessionState.WAIT_FOR_HANDSHAKING));
 				return;
 			}
 
@@ -116,12 +109,13 @@ public class SSLNIOTunnel
 			if (key.channel() == config.sslChannel)
 			{
 
-				if(sslSessionSM.getCurrentState().getName().equals(SSLSessionSM.SessionState.HANDSHAKING.getName()))
+				if(sslSessionSM.getCurrentState().getName().equals(SSLStateMachine.SessionState.HANDSHAKING.getName()))
+				//if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
 				{
 					log.info("We are still HAND_SHAKING_BABY");
 
 					//config.sslChannelReadState = false;
-					sslSessionSM.publish(new Trigger<Channel>(this, null, key.channel(), SSLSessionSM.SessionState.HANDSHAKING));
+					sslSessionSM.publish(new Trigger<Channel>(this, null, key.channel(), SSLStateMachine.SessionState.HANDSHAKING));
 					log.info("CURRENT STATE: " + sslSessionSM.getCurrentState());
 					return;
 				}
@@ -234,7 +228,7 @@ public class SSLNIOTunnel
 	protected void acceptConnection(NIOChannelCleaner ncc, AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
 		// must be modified do the handshake
 
-    	sslSessionSM = SSLSessionSM.create(sslContext, null);
+    	sslSessionSM = SSLStateMachine.create(sslContext, null);
     	config = sslSessionSM.getConfig();
     	config.selectorController = getSelectorController();
 
@@ -250,10 +244,11 @@ public class SSLNIOTunnel
 
 
 
+
 	@SuppressWarnings("resource")
     public static void main(String... args)
     {
-    LoggerUtil.enableDefaultLogger("io.xlogistx");
+    	LoggerUtil.enableDefaultLogger("io.xlogistx");
 		try
 		{
 			int index = 0;
