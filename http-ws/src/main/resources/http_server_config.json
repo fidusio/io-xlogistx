@@ -29,7 +29,7 @@
       "ssl_config":
       {
         "name": "SSLCONFIG",
-        "keystore_file": "web.xlogistx.io.jks",
+        "keystore_file": "test.xlogistx.io.jks",
         "keystore_type": "pkcs12",
         "keystore_password": "password",
         "protocols": [
