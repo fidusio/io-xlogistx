@@ -122,10 +122,10 @@ public class SSLStateMachine extends StateMachine<SSLConfig>
                       //config.sslChannelReadState = false;
 
                       //reset(config.inNetData, config.outNetData, config.inAppData, config.outAppData);
-                      publish(sslChannel, SessionState.HANDSHAKING);
+                      //publish(sslChannel, SessionState.HANDSHAKING);
 
                       // to be changed to
-                      //publish(config, config.getHandshakeStatus());
+                      publish(config, config.getHandshakeStatus());
                   } catch (SSLException ex) {
                       ex.printStackTrace();
                       config.close();
@@ -155,9 +155,10 @@ public class SSLStateMachine extends StateMachine<SSLConfig>
         TriggerConsumerInt<SocketChannel> closed = new TriggerConsumer<SocketChannel>(SessionState.CLOSE) {
             @Override
             public void accept(SocketChannel socketChannel) {
-                getStateMachine().close();
+
                 SSLConfig config = (SSLConfig) getState().getStateMachine().getConfig();
                 config.close();
+                getStateMachine().close();
 
                 if(debug) log.info(getStateMachine().getName() + " " + socketChannel + " closed");
             }
@@ -166,7 +167,8 @@ public class SSLStateMachine extends StateMachine<SSLConfig>
         sslSessionSM.setConfig(config)
             .register(new State(StateInt.States.INIT).register(init))
             .register(new State(SessionState.WAIT_FOR_HANDSHAKING).register(waitingForSSLChannel))
-            .register(new State(SessionState.HANDSHAKING).register(new HandshakingTC()))
+            //.register(new State(SessionState.HANDSHAKING).register(new HandshakingTC()))
+            .register(new HandshakingState())
             .register(new State(SessionState.READY).register(ready))
             .register(new State(SessionState.CLOSE).register(closed))
         ;
