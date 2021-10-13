@@ -35,17 +35,18 @@
           "keystore_type": "pkcs12",
           "keystore_password": "password"
       }
-    },
-    {
-      "class_type": "org.zoxweb.shared.data.ConfigDAO",
-      "name": "https",
-      "bean_class_name": "org.zoxweb.server.net.security.SSLNIOTunnelFactory",
-      "properties": {
-        "ssl_engine": "test_xlogistx_ssl_engine",
-        "port": 7443,
-        "backlog": 250,
-        "remote_host": "localhost:8080"
-      }
     }
+//  ,
+//    {
+//      "class_type": "org.zoxweb.shared.data.ConfigDAO",
+//      "name": "https",
+//      "bean_class_name": "org.zoxweb.server.net.security.SSLNIOTunnelFactory",
+//      "properties": {
+//        "ssl_engine": "test_xlogistx_ssl_engine",
+//        "port": 7443,
+//        "backlog": 250,
+//        "remote_host": "localhost:8080"
+//      }
+//    }
   ]
 }

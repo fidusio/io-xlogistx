@@ -63,14 +63,7 @@ public class SSLStateMachine extends StateMachine<SSLConfig>
 
 
 
-    private static void reset(ByteBuffer appIn, ByteBuffer appOut,
-                       ByteBuffer netIn,
-                       ByteBuffer netOut) {
-        appIn.clear();
-        appOut.clear();
-        netIn.clear();
-        netOut.clear();
-    }
+
 
 
 

@@ -126,14 +126,14 @@ public class SSLNIOTunnel
 				//if(sslSessionSM.getCurrentState().getName().equals(SSLStateMachine.SessionState.HANDSHAKING.getName()))
 				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
 				{
-					info("We are still HAND_SHAKING_BABY");
+					info("We are still HAND_SHAKING_BABY:" + config.getHandshakeStatus());
 
 					//config.sslChannelReadState = false;
 					sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
 					info("CURRENT STATE: " + config.getHandshakeStatus());
-					if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING){
-						sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
-					}
+//					if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING){
+//						sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
+//					}
 
 					return;
 
@@ -186,7 +186,8 @@ public class SSLNIOTunnel
 					  }
 					  else
 					  {
-					  	 info("MUST HANDSHAKE-AGAIN");
+					  	 info("UNWRAP-MUST-HANDSHAKE-AGAIN: " + result);
+					  	 sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
 					  }
 				}
 			}
@@ -233,7 +234,7 @@ public class SSLNIOTunnel
 
 					}
 					else {
-						  info("MUST HANDSHAKE-AGAIN:" + result);
+						  info("WRAP-MUST-HANDSHAKE-AGAIN:" + result);
 					  }
 				}
 			}
@@ -266,7 +267,7 @@ public class SSLNIOTunnel
 
 	protected void acceptConnection(NIOChannelCleaner ncc, AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
 		// must be modified do the handshake
-		((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
+		//((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
     	config = sslStateMachine.getConfig();
     	config.selectorController = getSelectorController();

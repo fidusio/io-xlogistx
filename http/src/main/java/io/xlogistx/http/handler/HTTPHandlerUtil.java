@@ -113,6 +113,7 @@ public class HTTPHandlerUtil {
   public static Map<String, Object> buildParameters(HttpExchange he) throws IOException {
 
     String hePath = he.getHttpContext().getPath();
+//    log.info("hePath: " + hePath);
 //    log.info("" + he.getHttpContext().getHandler().getClass());
     EndPointHandler eph = (EndPointHandler) he.getHttpContext().getHandler();
     HTTPEndPoint hep = eph.getHTTPEndPoint();
@@ -123,6 +124,12 @@ public class HTTPHandlerUtil {
 //    log.info("raw query:" + uri.getRawQuery());
 //    log.info("uri path:" + uri.getPath());
 //    log.info("context path:" + hePath);
+//    log.info("hep: " + hep);
+
+    if (!hep.isPathSupported(uri.getPath()))
+    {
+      throw new IOException("Invalid uri " + uri.getPath());
+    }
     // parse the path parameters
       Map<String, Object> parameters = HTTPUtil.parsePathParameters(eph.getHTTPEndPoint().getPaths()[0], uri.getPath(), false);
 
