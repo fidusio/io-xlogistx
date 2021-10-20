@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.xlogistx.common.ssl;
+package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.Trigger;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -22,9 +22,7 @@ import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolProcessor;
-
 import org.zoxweb.server.security.CryptoUtil;
-
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 
@@ -32,9 +30,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngineResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
-import java.net.SocketOption;
-import java.net.StandardSocketOptions;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;

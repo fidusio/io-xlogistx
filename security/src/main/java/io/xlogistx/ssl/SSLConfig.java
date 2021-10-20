@@ -1,16 +1,12 @@
-package io.xlogistx.common.ssl;
+package io.xlogistx.ssl;
 
 
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.net.SelectorController;
-
-
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.*;
 import java.nio.ByteBuffer;
-
-
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;

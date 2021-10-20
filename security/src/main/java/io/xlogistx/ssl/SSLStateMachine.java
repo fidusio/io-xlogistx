@@ -1,15 +1,12 @@
-package io.xlogistx.common.ssl;
+package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
 import org.zoxweb.server.io.ByteBufferUtil;
-
-
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.GetName;
 
-import javax.net.ssl.*;
-
-import java.nio.ByteBuffer;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Executor;

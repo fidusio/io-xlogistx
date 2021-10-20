@@ -1,8 +1,7 @@
-package io.xlogistx.common.ssl;
+package io.xlogistx.ssl;
 
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.ProtocolSessionFactoryBase;
-
 import org.zoxweb.shared.data.ConfigDAO;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 

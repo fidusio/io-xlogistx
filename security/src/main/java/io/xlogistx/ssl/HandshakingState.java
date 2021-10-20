@@ -1,4 +1,4 @@
-package io.xlogistx.common.ssl;
+package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
@@ -6,9 +6,7 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
-
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.util.logging.Logger;

@@ -33,6 +33,27 @@
 	  <artifactId>zoxweb-core</artifactId>
 	  <scope>provided</scope>
 	</dependency>
+
+
+      <dependency>
+          <groupId>io.xlogistx</groupId>
+          <artifactId>xlogistx-core</artifactId>
+          <scope>provided</scope>
+          <version>${xlogistx.version}</version>
+      </dependency>
+
+      <dependency>
+          <groupId>io.xlogistx</groupId>
+          <artifactId>xlogistx-common</artifactId>
+          <scope>provided</scope>
+          <version>${xlogistx.version}</version>
+      </dependency>
+
+      <dependency>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+      </dependency>
+
   </dependencies>
 
 </project>
