@@ -113,6 +113,26 @@ public class StateMachine<C>
         return this;
     }
 
+
+    @Override
+    public StateMachineInt publishSync(TriggerInt trigger)
+    {
+        if(isClosed())
+            throw new IllegalStateException("State machine closed");
+
+        Set<TriggerConsumerInt<?>> set = tcMap.get(trigger.getCanonicalID());
+        if(set != null)
+        {
+            log.info("" + trigger);
+
+            set.forEach(c -> {
+                SupplierConsumerTask sct = new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c));
+                sct.run();
+            });
+        }
+        return this;
+    }
+
     @Override
     public StateMachineInt publishToCurrentState(TriggerInt trigger) {
         if(isClosed())
@@ -159,14 +179,16 @@ public class StateMachine<C>
         return name;
     }
 
-    public void start()
+    public void start(boolean sync)
     {
-        if(tcMap.get(StateInt.States.INIT.getName()) != null)
-            publish(new Trigger<Void>(this, null, null, StateInt.States.INIT));
+        if (tcMap.get(StateInt.States.INIT.getName()) != null) {
+            if (sync)
+                publishSync(new Trigger<Void>(this, null, null, StateInt.States.INIT));
+            else
+                publish(new Trigger<Void>(this, null, null, StateInt.States.INIT));
+        }
         else
             throw new IllegalArgumentException("Not Init state");
-
-
     }
 
 

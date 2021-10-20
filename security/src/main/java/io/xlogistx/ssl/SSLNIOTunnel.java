@@ -266,12 +266,7 @@ public class SSLNIOTunnel
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
     	config = sslStateMachine.getConfig();
     	config.selectorController = getSelectorController();
-
-
-
-    	sslStateMachine.start();
-
-
+    	sslStateMachine.start(true);
 		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
 	}
 

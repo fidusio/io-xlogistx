@@ -13,12 +13,14 @@ extends GetName, AutoCloseable
     StateMachineInt register(StateInt state);
 
     StateMachineInt publish(TriggerInt trigger);
+
+    StateMachineInt publishSync(TriggerInt trigger);
     StateMachineInt publishToCurrentState(TriggerInt trigger);
 
     <V extends C> V getConfig();
     StateMachineInt setConfig(C config);
 
-    void start();
+    void start(boolean sync);
 
     void close();
 
