@@ -42,17 +42,17 @@ public class SMTPAPITester {
 
 
           String[] emailsToTest ={"batata.com", "batata@batata.com"};
-          for (String email : emailsToTest)
-          {
-              try
-              {
-                  EmailRecipient.toRecipients(email);
-              }
-              catch(Exception e)
-              {
-                  e.printStackTrace();
-              }
-          }
+//          for (String email : emailsToTest)
+//          {
+//              try
+//              {
+//                  EmailRecipient.toRecipients(email);
+//              }
+//              catch(Exception e)
+//              {
+//                  e.printStackTrace();
+//              }
+//          }
 
           //sendSMTPS(from, new SMTPMessage(subject, message), new SMTPConfig(host, port, user, password), to);
           SMTPMessage smtpMessage = new SMTPMessage(subject, message);
@@ -61,7 +61,9 @@ public class SMTPAPITester {
           smtpMessage.addRecipients(EmailRecipient.toRecipients(EmailRecipient.Type.TO, to));
           smtpMessage.addRecipients(EmailRecipient.toRecipients(emails));
           log.info(GSONUtil.toJSON(smtpMessage, true, false, false));
-          SMTPSender.sendEmail(new SMTPConfig(host, port, user, password), smtpMessage);
+          SMTPConfig sc = new SMTPConfig(host, port, user, password);
+          log.info(GSONUtil.toJSON(sc, true, false, false));
+          SMTPSender.sendEmail(sc, smtpMessage);
           log.info("Message Sent Successfully from:" +  from + "\nto:" + Arrays.toString(to) +" message id:" + smtpMessage.getCanonicalID());
       }
       catch(Exception e)

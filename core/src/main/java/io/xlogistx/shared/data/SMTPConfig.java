@@ -3,7 +3,7 @@ package io.xlogistx.shared.data;
 
 import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.filters.FilterType;
-import org.zoxweb.shared.filters.ValueFilter;
+//import org.zoxweb.shared.filters.ValueFilter;
 import org.zoxweb.shared.util.*;
 
 public class SMTPConfig

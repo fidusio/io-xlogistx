@@ -3,14 +3,17 @@ package io.xlogistx.common.smtp;
 
 import io.xlogistx.shared.data.SMTPConfig;
 
-import javax.mail.*;
+import jakarta.mail.*;
 
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+
+
 
 import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.Set;
+
 
 
 public class SMTPSender
@@ -42,7 +45,7 @@ public class SMTPSender
 
         //get Session
         Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
+                new jakarta.mail.Authenticator() {
                     protected PasswordAuthentication getPasswordAuthentication() {
                         //log.info(cfg.user + ":" + cfg.password + " " + Thread.currentThread());
                         return new PasswordAuthentication(cfg.getUser(), cfg.getPassword());
