@@ -15,10 +15,13 @@
  */
 package io.xlogistx.ssl;
 
+import io.xlogistx.common.fsm.StateInt;
 import io.xlogistx.common.fsm.Trigger;
+import io.xlogistx.common.task.CallbackTask;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.server.net.DefaultSKController;
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolProcessor;
@@ -30,7 +33,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngineResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.Channel;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
@@ -49,7 +52,7 @@ public class SSLNIOTunnel
 	private static AtomicLong tunnelCounter = new AtomicLong();
 
 	private SSLStateMachine sslStateMachine = null;
-	private SSLConfig config = null;
+	private SSLSessionConfig config = null;
 
 
 
@@ -104,147 +107,103 @@ public class SSLNIOTunnel
 		try
     	{
 			// first call
-			if(config.sslChannel == null)
+			if(sslStateMachine.getCurrentState().getName().equals(StateInt.States.INIT.getName()) &&
+					key.channel() == config.sslChannel)
 			{
+				config.beginHandshake();
 
 				info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				sslStateMachine.publish(new Trigger<Channel>(this, null, key.channel(), SSLStateMachine.SessionState.WAIT_FOR_HANDSHAKING));
-				return;
+				if(config.destinationBB == null)
+				{
+					synchronized (config)
+					{
+						if(config.destinationBB == null)
+						{
+							config.destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+							config.destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
+							getSelectorController().register(null, config.destinationChannel, SelectionKey.OP_READ, this, new DefaultSKController(), false);
+						}
+					}
+				}
+
 			}
 
 
-			int read = 0;
+
 			info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel)
 			{
-				SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();
-				//if(sslSessionSM.getCurrentState().getName().equals(SSLStateMachine.SessionState.HANDSHAKING.getName()))
-				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
-				{
-					info("We are still HAND_SHAKING_BABY:" + config.getHandshakeStatus());
 
-					//config.sslChannelReadState = false;
-					sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
-					info("CURRENT STATE: " + config.getHandshakeStatus());
-//					if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING){
-//						sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
-//					}
+				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, new CallbackTask<ByteBuffer>() {
+					@Override
+					public void exception(Exception e) {
+						// exception handling
+						e.printStackTrace();
+					}
 
-					return;
+					@Override
+					public void callback(ByteBuffer buffer) {
+						// data handling
+						if(buffer != null)
+						{
+							try{
 
-				}
-				if(config.destinationBB == null)
-				{
-					config.destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
-					config.destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
+								ByteBufferUtil.smartWrite(null, config.destinationChannel, buffer);
 
-					getSelectorController().register(null, config.destinationChannel, SelectionKey.OP_READ, this, false);
-				}
-
-				// we need to unwrap
-				read = config.sslChannel.read(config.inNetData);
-				info("Reading SSL data: " + read + " " + config.inNetData);
-				if(read > 0)
-				{
-
-					SSLEngineResult result = null;
-
-					result = config.smartUnwrap(config.inNetData, config.inAppData);
-
-					 info( "UNWRAPING-SSL-DATA:" + result +" " + config.inNetData);
-
-					  if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
-						switch (result.getStatus()) {
-						  case BUFFER_UNDERFLOW:
-						  case BUFFER_OVERFLOW:
-							info("READ-SSL-UNWRAP_PROBLEM: " + result);
-							break;
-						  case OK:
-							ByteBufferUtil.smartWrite(config.destinationChannel, config.inAppData);
-							break;
-						  case CLOSED:
-							info(" BEFORE-READ-CLOSED: " + result);
-							if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
-
-							  result = config.smartWrap(ByteBufferUtil.EMPTY, config.outNetData);
-							  info(
-								  " READ-CLOSED-NEED_WRAP: "
-									  + result
-									  + " outNetData: "
-									  + config.outNetData.position());
-							  ByteBufferUtil.smartWrite(config.sslChannel, config.outNetData);
 							}
-							close();
-							info(" CLOSED_PROBLEM: " + result);
-							break;
+							catch(IOException e)
+							{
+								e.printStackTrace();
+								// we should close
+								close();
+							}
+							finally{
+								// enable channel reading
+							}
 						}
-					  }
-					  else
-					  {
-					  	 info("UNWRAP-MUST-HANDSHAKE-AGAIN: " + result);
-					  	 sslStateMachine.publish(new Trigger<SSLConfig>(this, null, config, status));
-					  }
-				}
+					}
+				}));
+
+				// to be removed
+//				if(config.destinationBB == null)
+//				{
+//					config.destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+//					config.destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
+//
+//					getSelectorController().register(null, config.destinationChannel, SelectionKey.OP_READ, this, config, false);
+//				}
+
+
 			}
 			else if(key.channel() == config.destinationChannel)
 			{
-
-				read = config.destinationChannel.read(config.destinationBB);
-				if(read > 0)
-				{
-
-					info("BEFORE-WRAPPING-READ-DATA:" + config.outNetData);
-
-					SSLEngineResult result = null;
-
-					result = config.smartWrap(config.destinationBB, config.outNetData);
-
-					info("READ-WRAPPING-DATA:" + result);
-					  if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
-						switch (result.getStatus()) {
-						  case BUFFER_UNDERFLOW:
-						  case BUFFER_OVERFLOW:
-							info("WRAP_PROBLEM: " + result);
-							break;
-						  case OK:
-							int bytesWritten = ByteBufferUtil.smartWrite(config.sslChannel, config.outNetData);
-							info("Byteswritten to ssl channel " + bytesWritten );
-
-							break;
-						  case CLOSED:
-							info("CLOSED-WRAP_PROBLEM: " + result);
-							if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
-
-							  result = config.smartWrap(ByteBufferUtil.EMPTY, config.outNetData);
-							  info(
-								  " READ-CLOSED-NEED_WRAP: "
-									  + result
-									  + " outNetData: "
-									  + config.outNetData.position());
-							  ByteBufferUtil.smartWrite(config.sslChannel, config.outNetData);
-							}
-							close();
-							break;
-						}
-
+				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_WRAP, null, new CallbackTask<ByteBuffer>() {
+					@Override
+					public void exception(Exception e) {
+						// exception handling
+						e.printStackTrace();
 					}
-					else {
-						  info("WRAP-MUST-HANDSHAKE-AGAIN:" + result);
-					  }
-				}
+
+					@Override
+					public void callback(ByteBuffer buffer) {
+						// data handling
+						if(buffer != null)
+						{
+							try {
+								ByteBufferUtil.smartWrite(null, config.sslChannel, buffer);
+							} catch (IOException e) {
+								e.printStackTrace();
+								// we should close
+								close();
+							}
+						}
+					}
+				}));
+
 			}
 
     		
-    		if (read == -1)
-    		{
-    			if (debug) info("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+Read:" + read);
-    			
-    			//getSelectorController().cancelSelectionKey(key);
 
-    			close();
-    				
-    			if (debug) info(key + ":" + key.isValid()+ " " );
-    		}
     	}
     	catch(Exception e)
     	{
@@ -256,7 +215,7 @@ public class SSLNIOTunnel
     		if (debug) info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
     		
     	}
-		info( "End of SSLNIOTUNNEL-ACCEPT");
+		info( "End of SSLNIOTUNNEL-ACCEPT " + key.channel() + " ssl:" +(key.channel() == config.sslChannel) + "\n" + config.inAppData);
 	}
 
 
@@ -266,8 +225,11 @@ public class SSLNIOTunnel
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
     	config = sslStateMachine.getConfig();
     	config.selectorController = getSelectorController();
-    	sslStateMachine.start(true);
-		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
+		config.sslChannel = (SocketChannel) asc;
+		sslStateMachine.start(true);
+		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, new DefaultSKController(), isBlocking);
+
+
 	}
 
 
