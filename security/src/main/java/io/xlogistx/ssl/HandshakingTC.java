@@ -31,7 +31,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
     public void accept(SocketChannel sslChannel) {
         if (sslChannel != null) {
 
-            SSLConfig config = (SSLConfig) getStateMachine().getConfig();
+            SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
             //SSLEngineResult result = null;
             SSLEngineResult.HandshakeStatus status;
             try {
@@ -57,12 +57,12 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
 
                                     break;
                                 case OK:
-                                    int written = ByteBufferUtil.smartWrite(sslChannel, config.outNetData);
+                                    int written = ByteBufferUtil.smartWrite(config.ioLock, sslChannel, config.outNetData);
                                     //postHandshakeIfNeeded(config, result, sslChannel);
                                     if(debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outNetData + " written:" + written);
                                     break;
                                 case CLOSED:
-                                    publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
+                                    publish(SSLStateMachine.SessionState.CLOSE, sslChannel);
                                     break;
                             }
                         }
@@ -81,7 +81,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                             int bytesRead = sslChannel.read(config.inNetData);
                             if(bytesRead == -1) {
                                 if (debug) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: " + config.getHandshakeStatus() + " bytesread: " +bytesRead);
-                                publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
+                                publish(SSLStateMachine.SessionState.CLOSE, sslChannel);
                                 return;
                             }
                             else {
@@ -109,7 +109,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                                         // check result here
                                         if (debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " +bytesRead);
 
-                                        publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
+                                        publish(SSLStateMachine.SessionState.CLOSE, sslChannel);
                                         break;
                                 }
                             }
@@ -144,7 +144,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                                 config.beginHandshake();
                                 log.info("AFTER FIRST HANDSHAKE : " + config.getHandshakeStatus());
                                 if (config.getHandshakeStatus() != NOT_HANDSHAKING) {
-                                    publish(sslChannel, SSLStateMachine.SessionState.HANDSHAKING);
+                                    publish(SSLStateMachine.SessionState.HANDSHAKING, sslChannel);
                                     return;
                                 }
 //                            }
@@ -156,7 +156,7 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                     }
 
 
-                    publish(sslChannel, SSLStateMachine.SessionState.READY);
+                    publish(SSLStateMachine.SessionState.READY, sslChannel);
 
 
 
@@ -166,14 +166,14 @@ public class HandshakingTC extends TriggerConsumer<SocketChannel> {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                publish(sslChannel, SSLStateMachine.SessionState.CLOSE);
+                publish(SSLStateMachine.SessionState.CLOSE, sslChannel);
             }
         }
 
     }
 
 
-    private SSLEngineResult postHandshakeIfNeeded(SSLConfig config, SSLEngineResult res, SocketChannel sslChannel) throws IOException {
+    private SSLEngineResult postHandshakeIfNeeded(SSLSessionConfig config, SSLEngineResult res, SocketChannel sslChannel) throws IOException {
         while (res.getHandshakeStatus() == FINISHED && res.getStatus() == SSLEngineResult.Status.OK) {
             if (!config.inNetData.hasRemaining()) {
 

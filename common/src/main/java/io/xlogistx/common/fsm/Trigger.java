@@ -1,7 +1,6 @@
 package io.xlogistx.common.fsm;
 
 
-import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.EventObject;
@@ -22,28 +21,29 @@ implements TriggerInt<D>
     /**
      *  Constructs a trigger Event.
      * @param source of the event
+     * @param canonicalID of the trigger
      * @param lastState last state
      * @param data event data
-     * @param canonicalID of the trigger
      */
-    public Trigger(Object source, StateInt lastState, D data, String canonicalID) {
+    public Trigger(Object source, String canonicalID, StateInt lastState, D data) {
         super(source);
         this.lastState = lastState;
         this.data = data;
         this.canonicalID = canonicalID;
     }
 
-    public Trigger(Object source, StateInt lastState, D data, Enum<?> canonicalID) {
-        this(source, lastState, data, SharedUtil.enumName(canonicalID));
+    public Trigger(Object source, Enum<?> canonicalID, StateInt lastState, D data) {
+        this(source, SharedUtil.enumName(canonicalID), lastState, data);
     }
-    public Trigger(StateInt state, D data, String canonicalID)
+    public Trigger(StateInt state, String canonicalID, D data)
     {
-        this(state, state, data, canonicalID);
+        this(state, canonicalID, state, data);
     }
 
-    public Trigger(StateInt state, D data, Enum<?> name)
+
+    public Trigger(StateInt state, Enum<?> name, D data)
     {
-        this(state, state, data,  SharedUtil.enumName(name));
+        this(state, SharedUtil.enumName(name), state, data);
     }
 
     @Override

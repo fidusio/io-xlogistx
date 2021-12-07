@@ -1,8 +1,6 @@
 package io.xlogistx.common.fsm;
 
 
-import org.zoxweb.shared.util.GetName;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -20,8 +18,8 @@ public interface TriggerConsumerInt<T>
 
 
     void publish(TriggerInt triggerInt);
-    <D> void publish(D data, String canID);
-    <D>void  publish(D data, Enum<?> canID);
+    <D> void publish(String canID, D data);
+    <D>void  publish(Enum<?> canID, D data);
 
     public StateMachineInt getStateMachine();
 

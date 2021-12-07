@@ -1,6 +1,5 @@
 package io.xlogistx.common.fsm;
 
-import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.Arrays;
@@ -83,14 +82,14 @@ implements TriggerConsumerInt<T>
             getState().getStateMachine().publish(triggerInt);
     }
 
-    public <D>void publish(D data, String canID) {
+    public <D>void publish(String canID, D data) {
         if(canID != null)
-            getState().getStateMachine().publish(new Trigger(getState(), data, canID));
+            getState().getStateMachine().publish(new Trigger(getState(), canID, data));
     }
 
-    public <D> void publish(D data, Enum<?> canID) {
+    public <D> void publish(Enum<?> canID, D data) {
         if(canID != null)
-            getState().getStateMachine().publish(new Trigger(getState(), data, SharedUtil.enumName(canID)));
+            getState().getStateMachine().publish(new Trigger(getState(), SharedUtil.enumName(canID), data));
     }
 
     public StateMachineInt getStateMachine()

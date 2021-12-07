@@ -3,7 +3,6 @@ package io.xlogistx.common.fsm;
 import org.zoxweb.server.task.SupplierConsumerTask;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.*;
@@ -183,9 +182,9 @@ public class StateMachine<C>
     {
         if (tcMap.get(StateInt.States.INIT.getName()) != null) {
             if (sync)
-                publishSync(new Trigger<Void>(this, null, null, StateInt.States.INIT));
+                publishSync(new Trigger<Void>(this, StateInt.States.INIT, null, null));
             else
-                publish(new Trigger<Void>(this, null, null, StateInt.States.INIT));
+                publish(new Trigger<Void>(this, StateInt.States.INIT, null, null));
         }
         else
             throw new IllegalArgumentException("Not Init state");
