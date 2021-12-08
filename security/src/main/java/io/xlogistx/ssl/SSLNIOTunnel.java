@@ -85,7 +85,7 @@ public class SSLNIOTunnel
 	@Override
 	public String getDescription() 
 	{
-		return "SSLNIO Tunnel";
+		return "SSL NIO Tunnel";
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class SSLNIOTunnel
 				info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 				if(config.destinationBB == null)
 				{
-					synchronized (config)
+					//synchronized (config)
 					{
 						if(config.destinationBB == null)
 						{
@@ -147,8 +147,7 @@ public class SSLNIOTunnel
 						if(buffer != null)
 						{
 							try{
-
-								ByteBufferUtil.smartWrite(null, config.destinationChannel, buffer);
+								ByteBufferUtil.smartWrite(config.ioLock, config.destinationChannel, buffer);
 
 							}
 							catch(IOException e)
@@ -190,7 +189,7 @@ public class SSLNIOTunnel
 						if(buffer != null)
 						{
 							try {
-								ByteBufferUtil.smartWrite(null, config.sslChannel, buffer);
+								ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, buffer);
 							} catch (IOException e) {
 								e.printStackTrace();
 								// we should close
@@ -212,10 +211,10 @@ public class SSLNIOTunnel
 
     		close();
 
-    		if (debug) info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
+    		info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
     		
     	}
-		info( "End of SSLNIOTUNNEL-ACCEPT " + key.channel() + " ssl:" +(key.channel() == config.sslChannel) + "\n" + config.inAppData);
+		//info( "End of SSLNIOTUNNEL-ACCEPT " + key.channel() + " ssl:" +(key.channel() == config.sslChannel) + "\n" + config.inAppData);
 	}
 
 

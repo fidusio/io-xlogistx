@@ -13,6 +13,12 @@ import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 public class ReadyState extends State {
     private static final transient Logger log = Logger.getLogger(ReadyState.class.getName());
     public static boolean debug = true;
+
+    private static void info(String str)
+    {
+        if(debug)
+            log.info(str);
+    }
     class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
     {
         NeedWrap() {
@@ -29,8 +35,8 @@ public class ReadyState extends State {
                 try {
                     int bytesRead = config.destinationChannel.read(config.destinationBB);
                     if (bytesRead == -1) {
-                        if (debug)
-                          log.info(
+
+                          info(
                               "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
                                   + config.getHandshakeStatus()
                                   + " bytesread: "
@@ -41,8 +47,8 @@ public class ReadyState extends State {
 
 
                   SSLEngineResult result = config.smartWrap(config.destinationBB, config.outNetData); // at handshake stage, data in appOut won't be
-                  // processed hence dummy buffer
-                  if (debug) log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
+
+                  info("AFTER-NEED_WRAP-PROCESSING: " + result);
 
                   switch (result.getStatus()) {
                     case BUFFER_UNDERFLOW:
@@ -80,8 +86,8 @@ public class ReadyState extends State {
 
               int bytesRead = config.sslChannel.read(config.inNetData);
               if (bytesRead == -1) {
-                if (debug)
-                  log.info(
+
+                  info(
                       "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
                           + config.getHandshakeStatus()
                           + " bytesread: "
@@ -89,21 +95,21 @@ public class ReadyState extends State {
                 publish(SSLStateMachine.SessionState.CLOSE, callback);
                 return;
               }
-              else if(bytesRead > 0)
+              else //if(bytesRead > 0)
               {
 
                 // even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming
                 // data
                 SSLEngineResult result = config.smartUnwrap(config.inNetData, config.inAppData);
 
-                if (debug)
-                  log.info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytesread: " + bytesRead);
+
+                  info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead);
                 switch (result.getStatus()) {
                   case BUFFER_UNDERFLOW:
                     // no incoming data available we need to wait for more socket data
                     // return and let the NIOSocket or the data handler call back
                     // config.sslChannelSelectableStatus.set(true);
-                    //return;
+                    return;
 
                   case BUFFER_OVERFLOW:
                     throw new IllegalStateException("NEED_UNWRAP should never be " + result.getStatus());
@@ -114,8 +120,8 @@ public class ReadyState extends State {
                     break;
                   case CLOSED:
                     // check result here
-                    if (debug)
-                      log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
+
+                      info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
 
                     publish(SSLStateMachine.SessionState.CLOSE, callback);
                     break;
