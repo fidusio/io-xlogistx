@@ -32,7 +32,7 @@ public class HandshakingState extends State {
       {
         try
         {
-          SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outNetData); // at handshake stage, data in appOut won't be
+          SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outSSLNetData); // at handshake stage, data in appOut won't be
           // processed hence dummy buffer
           if (debug) log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
 
@@ -42,10 +42,10 @@ public class HandshakingState extends State {
             case BUFFER_OVERFLOW:
               throw new IllegalStateException(result.getStatus() + " invalid state context");
             case OK:
-              int written = ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outNetData);
+              int written = ByteBufferUtil.smartWrite(null, config.sslChannel, config.outSSLNetData);
               // postHandshakeIfNeeded(config, result, sslChannel);
 
-                if (debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outNetData  + " written:" + written);
+                if (debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
               publish(result.getHandshakeStatus(), callback);
               break;
             case CLOSED:
@@ -75,7 +75,7 @@ public class HandshakingState extends State {
       if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN")) {
         try {
 
-              int bytesRead = config.sslChannel.read(config.inNetData);
+              int bytesRead = config.sslChannel.read(config.inSSLNetData);
               if (bytesRead == -1) {
                 if (debug) log.info(
                       "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
@@ -90,12 +90,12 @@ public class HandshakingState extends State {
 
                 // even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming
                 // data
-                if (debug) log.info("BEFORE-UNWRAP: " + config.inNetData);
-                SSLEngineResult result = config.smartUnwrap(config.inNetData, ByteBufferUtil.EMPTY);
+                if (debug) log.info("BEFORE-UNWRAP: " + config.inSSLNetData);
+                SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, ByteBufferUtil.EMPTY);
 
 
               if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytesread: " + bytesRead);
-              if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING inNetData: " + config.inNetData + " inAppData: " +  config.inAppData);
+              if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING inNetData: " + config.inSSLNetData + " inAppData: " +  config.inAppData);
 
                 switch (result.getStatus()) {
                   case BUFFER_UNDERFLOW:
@@ -223,9 +223,9 @@ public class HandshakingState extends State {
         SSLSession sslSession = config.getSession();
         if (debug) log.info("Handshake session: " + SharedUtil.toCanonicalID(':',sslSession.getProtocol(),
                 sslSession.getCipherSuite(),
-                SharedStringUtil.bytesToHex(sslSession.getId()), config.inNetData));
+                SharedStringUtil.bytesToHex(sslSession.getId()), config.inSSLNetData));
 
-        if (config.inNetData.position() > 0)
+        if (config.inSSLNetData.position() > 0)
         {
             // we have data
             // the mother of all nasties

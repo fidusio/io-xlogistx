@@ -5,6 +5,7 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.net.SKController;
 import org.zoxweb.server.net.SelectorController;
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.*;
@@ -13,6 +14,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 class SSLSessionConfig
@@ -22,21 +24,21 @@ implements AutoCloseable, SKController
     private SSLContext sslContext;
     private volatile SSLEngine sslEngine; // the crypto engine
     volatile AtomicBoolean firstHandshake = new AtomicBoolean(false);
-    volatile ByteBuffer inNetData; // encrypted data
-    volatile ByteBuffer outNetData; // encrypted data
+    volatile ByteBuffer inSSLNetData; // encrypted data
+    volatile ByteBuffer outSSLNetData; // encrypted data
     volatile ByteBuffer inAppData; // clear text application data
     //volatile ByteBuffer outAppData; // data used during the handshake process
     volatile SocketChannel sslChannel; // the encrypted channel
     volatile boolean sslRead = true;
     volatile SelectorController selectorController;
 
-    volatile SocketChannel destinationChannel = null;
+    volatile SocketChannel remoteChannel = null;
     volatile boolean dcRead = true;
-    volatile ByteBuffer destinationBB = null;
+    volatile ByteBuffer inRemoteData = null;
 
     //volatile AtomicBoolean sslChannelSelectableStatus = new AtomicBoolean(false);
-    volatile AtomicBoolean handshakeStarted = new AtomicBoolean(false);
-    final  Lock ioLock =null;// new ReentrantLock();
+    //volatile AtomicBoolean handshakeStarted = new AtomicBoolean(false);
+    final  Lock ioLock = new ReentrantLock();
 
 
 
@@ -63,10 +65,18 @@ implements AutoCloseable, SKController
 //                }
                 IOUtil.close(() -> sslEngine.closeOutbound());
             }
-            IOUtil.close(sslChannel);
-            IOUtil.close(destinationChannel);
-            selectorController.cancelSelectionKey(sslChannel);
-            selectorController.cancelSelectionKey(destinationChannel);
+            try
+            {
+                //ioLock.lock();
+                IOUtil.close(sslChannel);
+                IOUtil.close(remoteChannel);
+                selectorController.cancelSelectionKey(sslChannel);
+                selectorController.cancelSelectionKey(remoteChannel);
+                //ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
+            }
+            finally{
+                //ioLock.unlock();
+            }
             log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel);
         }
 
@@ -122,9 +132,9 @@ implements AutoCloseable, SKController
     public synchronized void beginHandshake() throws SSLException {
         sslEngine.setUseClientMode(false);
         sslEngine.beginHandshake();
-        inNetData = ByteBufferUtil.allocateByteBuffer(getPacketBufferSize());
-        outNetData = ByteBufferUtil.allocateByteBuffer(getPacketBufferSize());
-        inAppData = ByteBufferUtil.allocateByteBuffer(getApplicationBufferSize());
+        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
     }
 
 
@@ -159,14 +169,14 @@ implements AutoCloseable, SKController
         log.info("stat:" + stat + " sk: " + sk);
         if(sk.channel() == sslChannel)
              sslRead = stat;
-        if(sk.channel() == destinationChannel)
+        if(sk.channel() == remoteChannel)
             dcRead = stat;
     }
     public boolean isSelectable(SelectionKey sk)
     {
         if(sk.channel() == sslChannel)
             return sslRead;
-        if(sk.channel() == destinationChannel)
+        if(sk.channel() == remoteChannel)
             return dcRead;
         //log.info("false " + sk);
         return true;

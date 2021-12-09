@@ -21,19 +21,12 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     public enum SessionState
     implements GetName
     {
-        WAIT_FOR_HANDSHAKING("wait-for-handshake"),
         HANDSHAKING("handshaking"),
-//        HS_NEED_WRAP("hs_need_wrap"),
-//        HS_NEED_UNWRAP("hs_need_unwrap"),
-//        HS_NOT_HANDSHAKING("hs_not_handshaking"),
-//        HS_FINISHED("hs_finish"),
-//        HS_NEED_TASK("hs_need_task"),
         /**
          * Read data state will unwrap data via it trigger in the read state
          * and in the handshaking state will unwrap data for the handshake process
          * it is identified by checking the SSLEngine NOT_HANDSHAKING status
          */
-        READ_DATA("read-data"),
         READY("ready-state"),
         CLOSE("close"),
 
@@ -93,61 +86,9 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
           }
         };
 
-    TriggerConsumerInt<SocketChannel> waitingForSSLChannel =
-        new TriggerConsumer<SocketChannel>(SessionState.WAIT_FOR_HANDSHAKING) {
-          @Override
-          public synchronized void accept(SocketChannel sslChannel) {
-            if(debug) log.info(SessionState.WAIT_FOR_HANDSHAKING + ":" + sslChannel);
-            if (sslChannel != null) {
-                SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
-              if (config.sslChannel == null) {
-                config.sslChannel = sslChannel;
-                //config.sslEngine = config.sslContext.createSSLEngine();
-                // for now later support client mode
-                config.setUseClientMode(false);
-                //config.sslEngine.setNeedClientAuth(false);
-                // create buffers
-
-                  try {
-                      config.beginHandshake();
-
-                      //config.outAppData = ByteBufferUtil.allocateByteBuffer(config.sslEngine.getSession().getApplicationBufferSize());
-                      if(debug) log.info("handshake begun " + config.inNetData.capacity() + ":" + config.inAppData.capacity() +
-                              ":" + config.getHandshakeStatus());
 
 
-                      //config.sslChannelReadState = false;
 
-                      //reset(config.inNetData, config.outNetData, config.inAppData, config.outAppData);
-                      //publish(sslChannel, SessionState.HANDSHAKING);
-
-                      // to be changed to config.getHandshakeStatus();
-                      publish(config.getHandshakeStatus(), config);
-                  } catch (SSLException ex) {
-                      ex.printStackTrace();
-                      config.close();
-
-                      // maybe we should close
-                  }
-
-                  // trigger wait_for_handshake
-              }
-            }
-          }
-        };
-
-
-        TriggerConsumerInt<SocketChannel> ready = new TriggerConsumer<SocketChannel>(SessionState.READY) {
-            @Override
-            public void accept(SocketChannel sslChannel) {
-                if(sslChannel != null)
-                {
-                    SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
-                    log.info(getStateMachine().getName() + " socket status " +sslChannel.isOpen() + " READY-STATE SSL ENGINE " + config.getHandshakeStatus()  + " " + sslChannel);
-                    //config.sslChannelSelectableStatus.set(true);
-                }
-            }
-        };
 
         TriggerConsumerInt<CallbackTask<ByteBuffer>> closed = new TriggerConsumer<CallbackTask<ByteBuffer>>(SessionState.CLOSE) {
             @Override
@@ -163,11 +104,8 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
 
         sslSessionSM.setConfig(config)
             .register(new State(StateInt.States.INIT).register(init))
-            //.register(new State(SessionState.WAIT_FOR_HANDSHAKING).register(waitingForSSLChannel))
-            //.register(new State(SessionState.HANDSHAKING).register(new HandshakingTC()))
             .register(new ReadyState())
             .register(new HandshakingState())
-            //.register(new State(SessionState.READY).register(ready))
             .register(new State(SessionState.CLOSE).register(closed))
         ;
 

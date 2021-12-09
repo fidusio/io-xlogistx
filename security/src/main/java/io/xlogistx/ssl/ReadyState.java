@@ -33,7 +33,7 @@ public class ReadyState extends State {
             if (config.getHandshakeStatus() == NOT_HANDSHAKING)
             {
                 try {
-                    int bytesRead = config.destinationChannel.read(config.destinationBB);
+                    int bytesRead = config.remoteChannel.read(config.inRemoteData);
                     if (bytesRead == -1) {
 
                           info(
@@ -46,7 +46,7 @@ public class ReadyState extends State {
                     }
 
 
-                  SSLEngineResult result = config.smartWrap(config.destinationBB, config.outNetData); // at handshake stage, data in appOut won't be
+                  SSLEngineResult result = config.smartWrap(config.inRemoteData, config.outSSLNetData); // at handshake stage, data in appOut won't be
 
                   info("AFTER-NEED_WRAP-PROCESSING: " + result);
 
@@ -55,7 +55,7 @@ public class ReadyState extends State {
                     case BUFFER_OVERFLOW:
                       throw new IllegalStateException(result.getStatus() + " invalid state context");
                     case OK:
-                      if(callback != null ) callback.callback(config.outNetData);
+                      if(callback != null ) callback.callback(config.outSSLNetData);
 
                       break;
                     case CLOSED:
@@ -84,7 +84,7 @@ public class ReadyState extends State {
       if (config.getHandshakeStatus() == NOT_HANDSHAKING) {
         try {
 
-              int bytesRead = config.sslChannel.read(config.inNetData);
+              int bytesRead = config.sslChannel.read(config.inSSLNetData);
               if (bytesRead == -1) {
 
                   info(
@@ -100,7 +100,7 @@ public class ReadyState extends State {
 
                 // even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming
                 // data
-                SSLEngineResult result = config.smartUnwrap(config.inNetData, config.inAppData);
+                SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, config.inAppData);
 
 
                   info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead);

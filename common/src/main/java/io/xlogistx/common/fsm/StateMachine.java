@@ -15,6 +15,7 @@ public class StateMachine<C>
 {
 
     protected final static Logger log = Logger.getLogger(StateMachine.class.getName());
+    public static boolean debug = false;
     private final String name;
     private final TaskSchedulerProcessor tsp;
     private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
@@ -44,7 +45,7 @@ public class StateMachine<C>
     public StateMachine(String name, Executor executor)
             throws NullPointerException
     {
-        log.info(name + ":" + executor);
+        if(debug) log.info(name + ":" + executor);
         SharedUtil.checkIfNulls("Name or Executor can't be null.", name);
         this.name = name;
         this.tsp = null;
@@ -97,7 +98,7 @@ public class StateMachine<C>
         Set<TriggerConsumerInt<?>> set = tcMap.get(trigger.getCanonicalID());
         if(set != null)
         {
-            log.info("" + trigger);
+            if(debug) log.info("" + trigger);
             if(isScheduledTaskEnabled())
                 set.forEach(c -> tsp.queue(0, new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c))));
             else
@@ -122,7 +123,7 @@ public class StateMachine<C>
         Set<TriggerConsumerInt<?>> set = tcMap.get(trigger.getCanonicalID());
         if(set != null)
         {
-            log.info("" + trigger);
+            if(debug) log.info("" + trigger);
 
             set.forEach(c -> {
                 SupplierConsumerTask sct = new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c));

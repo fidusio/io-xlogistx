@@ -26,6 +26,7 @@ import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolProcessor;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.task.TaskProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 
@@ -113,15 +114,15 @@ public class SSLNIOTunnel
 				config.beginHandshake();
 
 				info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				if(config.destinationBB == null)
+				if(config.inRemoteData == null)
 				{
 					//synchronized (config)
 					{
-						if(config.destinationBB == null)
+						if(config.inRemoteData == null)
 						{
-							config.destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
-							config.destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
-							getSelectorController().register(null, config.destinationChannel, SelectionKey.OP_READ, this, new DefaultSKController(), false);
+              				config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+							config.remoteChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
+							getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, this, new DefaultSKController(), false);
 						}
 					}
 				}
@@ -147,7 +148,7 @@ public class SSLNIOTunnel
 						if(buffer != null)
 						{
 							try{
-								ByteBufferUtil.smartWrite(config.ioLock, config.destinationChannel, buffer);
+								ByteBufferUtil.smartWrite(null, config.remoteChannel, buffer);
 
 							}
 							catch(IOException e)
@@ -174,7 +175,7 @@ public class SSLNIOTunnel
 
 
 			}
-			else if(key.channel() == config.destinationChannel)
+			else if(key.channel() == config.remoteChannel)
 			{
 				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_WRAP, null, new CallbackTask<ByteBuffer>() {
 					@Override
@@ -189,7 +190,7 @@ public class SSLNIOTunnel
 						if(buffer != null)
 						{
 							try {
-								ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, buffer);
+								ByteBufferUtil.smartWrite(null, config.sslChannel, buffer);
 							} catch (IOException e) {
 								e.printStackTrace();
 								// we should close
@@ -211,12 +212,18 @@ public class SSLNIOTunnel
 
     		close();
 
-    		info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
+    		info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + availableThreads());
     		
     	}
-		//info( "End of SSLNIOTUNNEL-ACCEPT " + key.channel() + " ssl:" +(key.channel() == config.sslChannel) + "\n" + config.inAppData);
+		info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" +availableThreads());
 	}
 
+
+	public  int availableThreads(){
+		if(getExecutor() instanceof TaskProcessor)
+			return ((TaskProcessor)getExecutor()).availableExecutorThreads();
+		return -1;
+	}
 
 	protected void acceptConnection(NIOChannelCleaner ncc, AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
 		// must be modified do the handshake
