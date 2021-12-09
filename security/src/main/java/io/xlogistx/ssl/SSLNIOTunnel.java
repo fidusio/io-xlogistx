@@ -16,7 +16,9 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.StateInt;
+import io.xlogistx.common.fsm.StateMachine;
 import io.xlogistx.common.fsm.Trigger;
+import io.xlogistx.common.fsm.TriggerConsumer;
 import io.xlogistx.common.task.CallbackTask;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
@@ -34,6 +36,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngineResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -45,12 +48,66 @@ import java.util.logging.Logger;
 public class SSLNIOTunnel
     extends ProtocolProcessor
 {
+
+	class WrapCallback
+	implements CallbackTask<ByteBuffer>
+	{
+		@Override
+		public void exception(Exception e) {
+			// exception handling
+			e.printStackTrace();
+		}
+
+		@Override
+		public void callback(ByteBuffer buffer) {
+			// data handling
+			if(buffer != null)
+			{
+				try {
+					ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, buffer);
+				} catch (IOException e) {
+					e.printStackTrace();
+					// we should close
+					close();
+				}
+			}
+		}
+	}
+
+	class UnwrapCallback
+			implements CallbackTask<ByteBuffer>
+	{
+		@Override
+		public void exception(Exception e) {
+			// exception handling
+			e.printStackTrace();
+		}
+
+		@Override
+		public void callback(ByteBuffer buffer) {
+			// data handling
+			if(buffer != null)
+			{
+				try{
+					ByteBufferUtil.smartWrite(null, config.remoteChannel, buffer);
+
+				}
+				catch(IOException e)
+				{
+					e.printStackTrace();
+					// we should close
+					close();
+				}
+
+			}
+		}
+	}
     private static final transient Logger log = Logger.getLogger(SSLNIOTunnel.class.getName());
 
-	private static boolean debug = true;
+	public static boolean debug = false;
 
 
-	private static AtomicLong tunnelCounter = new AtomicLong();
+	private final static AtomicLong tunnelCounter = new AtomicLong();
 
 	private SSLStateMachine sslStateMachine = null;
 	private SSLSessionConfig config = null;
@@ -62,19 +119,19 @@ public class SSLNIOTunnel
 	final private SSLContext sslContext;
 
 	private final long id = tunnelCounter.incrementAndGet();
+	private WrapCallback  wrapCallback = new WrapCallback();
+	private UnwrapCallback unwrapCallback = new UnwrapCallback();
 
 
 	private void info(String str)
 	{
-		log.info("[" + id +"] " +str);
+		if(debug) log.info("[" + id +"] " +str);
 	}
 
 	public SSLNIOTunnel(SSLContext sslContext, InetSocketAddressDAO remoteAddress)
 	{
 		this.remoteAddress = remoteAddress;
 		this.sslContext = sslContext;
-
-
 	}
 	
 	@Override
@@ -101,6 +158,8 @@ public class SSLNIOTunnel
 
 
 
+
+
 	@Override
 	public  void accept(SelectionKey key)
 	{
@@ -111,6 +170,7 @@ public class SSLNIOTunnel
 			if(sslStateMachine.getCurrentState().getName().equals(StateInt.States.INIT.getName()) &&
 					key.channel() == config.sslChannel)
 			{
+				config.setUseClientMode(false);
 				config.beginHandshake();
 
 				info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -120,9 +180,9 @@ public class SSLNIOTunnel
 					{
 						if(config.inRemoteData == null)
 						{
-              				config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+              				config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE/2);
 							config.remoteChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
-							getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, this, config, false);
+							getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, this, new DefaultSKController(), false);
 						}
 					}
 				}
@@ -135,34 +195,7 @@ public class SSLNIOTunnel
 			if (key.channel() == config.sslChannel)
 			{
 
-				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, new CallbackTask<ByteBuffer>() {
-					@Override
-					public void exception(Exception e) {
-						// exception handling
-						e.printStackTrace();
-					}
-
-					@Override
-					public void callback(ByteBuffer buffer) {
-						// data handling
-						if(buffer != null)
-						{
-							try{
-								ByteBufferUtil.smartWrite(null, config.remoteChannel, buffer);
-
-							}
-							catch(IOException e)
-							{
-								e.printStackTrace();
-								// we should close
-								close();
-							}
-							finally{
-								// enable channel reading
-							}
-						}
-					}
-				}));
+				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, unwrapCallback));
 
 				// to be removed
 //				if(config.destinationBB == null)
@@ -177,29 +210,7 @@ public class SSLNIOTunnel
 			}
 			else if(key.channel() == config.remoteChannel)
 			{
-				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_WRAP, null, new CallbackTask<ByteBuffer>() {
-					@Override
-					public void exception(Exception e) {
-						// exception handling
-						e.printStackTrace();
-					}
-
-					@Override
-					public void callback(ByteBuffer buffer) {
-						// data handling
-						if(buffer != null)
-						{
-							try {
-								ByteBufferUtil.smartWrite(null, config.sslChannel, buffer);
-							} catch (IOException e) {
-								e.printStackTrace();
-								// we should close
-								close();
-							}
-						}
-					}
-				}));
-
+				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_WRAP, null, wrapCallback));
 			}
 
     		
@@ -227,13 +238,13 @@ public class SSLNIOTunnel
 
 	protected void acceptConnection(NIOChannelCleaner ncc, AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
 		// must be modified do the handshake
-		//((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
+		((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
     	config = sslStateMachine.getConfig();
     	config.selectorController = getSelectorController();
 		config.sslChannel = (SocketChannel) asc;
 		sslStateMachine.start(true);
-		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, config, isBlocking);
+		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, new DefaultSKController(), isBlocking);
 
 
 	}
@@ -256,6 +267,15 @@ public class SSLNIOTunnel
 			String keystore = args[index++];
 			String ksType = args[index++];
 			String ksPassword = args[index++];
+			boolean dbg = (index < args.length);
+			if(dbg)
+			{
+				SSLStateMachine.debug = true;
+				ReadyState.debug = true;
+				HandshakingState.debug = true;
+				StateMachine.debug = true;
+				TriggerConsumer.debug = true;
+			}
 			//TaskUtil.setThreadMultiplier(4);
 			SSLContext sslContext = CryptoUtil.initSSLContext(IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 

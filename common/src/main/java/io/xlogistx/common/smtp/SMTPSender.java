@@ -39,7 +39,7 @@ public class SMTPSender
         props.put("mail.smtp.socketFactory.port", ""+cfg.getPort());
         props.put("mail.smtp.starttls.enable","true");
         props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-        props.put("mail.smtp.socketFactory.fallback", "false");
+        props.put("mail.smtp.socketFactory.fallback", "true");
         props.put("mail.smtp.auth", "true");
         //props.put("mail.debug", "true");
 

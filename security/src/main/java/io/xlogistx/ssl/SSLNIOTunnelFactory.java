@@ -49,7 +49,7 @@ public class SSLNIOTunnelFactory
     @Override
     public String getName() {
         // TODO Auto-generated method stub
-        return "NIOTunnelFactory";
+        return "SSLNIOTunnelFactory";
     }
 
     public void init()

@@ -6,9 +6,8 @@ import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.GetName;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -48,7 +47,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
 
 
     private static final AtomicLong counter = new AtomicLong();
-    private static boolean debug = true;
+    public static boolean debug = false;
 
     private SSLStateMachine(long id, TaskSchedulerProcessor tsp) {
         super("SSLSessionStateMachine-" + id, tsp);
@@ -76,30 +75,31 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     public static SSLStateMachine create(SSLSessionConfig config, Executor e){
         SSLStateMachine sslSessionSM = new SSLStateMachine(counter.incrementAndGet(), e);
         sslSessionSM.setConfig(config);
+        config.stateMachine = sslSessionSM;
 
     TriggerConsumerInt<Void> init = new TriggerConsumer<Void>(StateInt.States.INIT) {
           @Override
           public void accept(Void o) {
-              log.info(getState().getStateMachine().getName() + " CREATED");
+              if(debug) log.info(getState().getStateMachine().getName() + " CREATED");
               SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
               //publish(new Trigger<SelectableChannel>(getState(), null, SessionState.WAIT_FOR_HANDSHAKING));
           }
         };
 
+    TriggerConsumerInt<CallbackTask<ByteBuffer>> closed =
+        new TriggerConsumer<CallbackTask<ByteBuffer>>(SessionState.CLOSE) {
+          @Override
+          public void accept(CallbackTask<ByteBuffer> callback) {
 
-
-
-
-        TriggerConsumerInt<CallbackTask<ByteBuffer>> closed = new TriggerConsumer<CallbackTask<ByteBuffer>>(SessionState.CLOSE) {
-            @Override
-            public void accept(CallbackTask<ByteBuffer> callback) {
-
-                SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+            SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+            synchronized (config) {
+              if (!config.isClosed()) {
                 config.close();
-                getStateMachine().close();
-
-                if(debug) log.info(getStateMachine().getName() + " " + callback + " closed");
+              }
             }
+
+            if (debug) log.info(getStateMachine().getName() + " " + callback + " closed");
+          }
         };
 
         sslSessionSM.setConfig(config)
