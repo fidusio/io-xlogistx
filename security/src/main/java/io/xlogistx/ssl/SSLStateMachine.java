@@ -6,9 +6,8 @@ import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.shared.util.GetName;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -48,7 +47,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
 
 
     private static final AtomicLong counter = new AtomicLong();
-    private static boolean debug = true;
+    public static boolean debug = false;
 
     private SSLStateMachine(long id, TaskSchedulerProcessor tsp) {
         super("SSLSessionStateMachine-" + id, tsp);
@@ -80,7 +79,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     TriggerConsumerInt<Void> init = new TriggerConsumer<Void>(StateInt.States.INIT) {
           @Override
           public void accept(Void o) {
-              log.info(getState().getStateMachine().getName() + " CREATED");
+              if(debug) log.info(getState().getStateMachine().getName() + " CREATED");
               SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
               //publish(new Trigger<SelectableChannel>(getState(), null, SessionState.WAIT_FOR_HANDSHAKING));
           }
