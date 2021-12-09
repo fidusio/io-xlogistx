@@ -5,7 +5,6 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.net.SKController;
 import org.zoxweb.server.net.SelectorController;
-import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.*;
@@ -29,11 +28,11 @@ implements AutoCloseable, SKController
     volatile ByteBuffer inAppData; // clear text application data
     //volatile ByteBuffer outAppData; // data used during the handshake process
     volatile SocketChannel sslChannel; // the encrypted channel
-    volatile boolean sslRead = true;
+    volatile AtomicBoolean sslRead = new AtomicBoolean(true);
     volatile SelectorController selectorController;
 
     volatile SocketChannel remoteChannel = null;
-    volatile boolean dcRead = true;
+    volatile AtomicBoolean remoteRead = new AtomicBoolean(true);
     volatile ByteBuffer inRemoteData = null;
 
     //volatile AtomicBoolean sslChannelSelectableStatus = new AtomicBoolean(false);
@@ -166,18 +165,19 @@ implements AutoCloseable, SKController
 
     @Override
     public void setSelectable(SelectionKey sk, boolean stat) {
-        log.info("stat:" + stat + " sk: " + sk);
-        if(sk.channel() == sslChannel)
-             sslRead = stat;
-        if(sk.channel() == remoteChannel)
-            dcRead = stat;
+        //log.info("stat:" + stat + " sk: " + sk);
+        //if (stat)
+        {
+          if (sk.channel() == sslChannel) sslRead.set(stat);
+          if (sk.channel() == remoteChannel) remoteRead.set(stat);
+        }
     }
     public boolean isSelectable(SelectionKey sk)
     {
         if(sk.channel() == sslChannel)
-            return sslRead;
+            return sslRead.get();
         if(sk.channel() == remoteChannel)
-            return dcRead;
+            return remoteRead.get();
         //log.info("false " + sk);
         return true;
     }

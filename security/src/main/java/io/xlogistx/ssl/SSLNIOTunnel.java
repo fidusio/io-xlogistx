@@ -122,7 +122,7 @@ public class SSLNIOTunnel
 						{
               				config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
 							config.remoteChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
-							getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, this, new DefaultSKController(), false);
+							getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, this, config, false);
 						}
 					}
 				}
@@ -233,7 +233,7 @@ public class SSLNIOTunnel
     	config.selectorController = getSelectorController();
 		config.sslChannel = (SocketChannel) asc;
 		sslStateMachine.start(true);
-		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, new DefaultSKController(), isBlocking);
+		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, config, isBlocking);
 
 
 	}
