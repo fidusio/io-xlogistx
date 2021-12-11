@@ -75,7 +75,7 @@ implements AutoCloseable
                                 stateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, hs, null, new CallbackTask<ByteBuffer>() {
                                     @Override
                                     public void exception(Exception e) {
-
+                                        e.printStackTrace();
                                     }
 
                                     @Override
