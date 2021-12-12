@@ -120,6 +120,7 @@ public class HTTPBasicServer
                  serverId = uriScheme.getName() + ":" + serverAddress.getPort();
                  isa = new InetSocketAddress(serverAddress.getPort());
                  HttpServer httpServer = HttpServer.create(isa, serverAddress.getBacklog());
+                 log.info("http server: " +httpServer.getClass());
                  httpServer.setExecutor(executor);
                  servers.put(serverId, httpServer);
                 break;
@@ -211,6 +212,7 @@ public class HTTPBasicServer
   }
 
   public static void main(String... args) {
+
     long startTS = System.currentTimeMillis();
     try {
 
@@ -222,6 +224,7 @@ public class HTTPBasicServer
       log.info("config file:" + filename);
       File file = IOUtil.locateFile(filename);
       HTTPServerConfig hsc = null;
+
 
       if(file != null)
         hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);

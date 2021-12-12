@@ -28,7 +28,6 @@ import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolProcessor;
 import org.zoxweb.server.security.CryptoUtil;
-import org.zoxweb.server.task.TaskProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 
@@ -56,6 +55,7 @@ public class SSLNIOTunnel
 		public void exception(Exception e) {
 			// exception handling
 			e.printStackTrace();
+			log.info("Available Threads: " + TaskUtil.availableThreads(getExecutor()));
 		}
 
 		@Override
@@ -81,6 +81,7 @@ public class SSLNIOTunnel
 		public void exception(Exception e) {
 			// exception handling
 			e.printStackTrace();
+			log.info("Available Threads: " + TaskUtil.availableThreads(getExecutor()));
 		}
 
 		@Override
@@ -223,18 +224,14 @@ public class SSLNIOTunnel
 
     		close();
 
-    		info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + availableThreads());
+    		log.info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.availableThreads(getExecutor()));
     		
     	}
-		info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" +availableThreads());
+		info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" + TaskUtil.availableThreads(getExecutor()));
 	}
 
 
-	public  int availableThreads(){
-		if(getExecutor() instanceof TaskProcessor)
-			return ((TaskProcessor)getExecutor()).availableExecutorThreads();
-		return -1;
-	}
+
 
 	protected void acceptConnection(NIOChannelCleaner ncc, AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
 		// must be modified do the handshake

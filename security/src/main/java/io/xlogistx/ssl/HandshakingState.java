@@ -32,6 +32,9 @@ public class HandshakingState extends State {
       {
             try
             {
+              String msg = "[-> " + config.outSSLNetData;
+
+
               SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outSSLNetData); // at handshake stage, data in appOut won't be
               // processed hence dummy buffer
               if (debug) log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
@@ -39,8 +42,15 @@ public class HandshakingState extends State {
               switch (result.getStatus())
               {
                 case BUFFER_UNDERFLOW:
+                    throw new IllegalStateException(result.getStatus() + " invalid state context");
                 case BUFFER_OVERFLOW:
-                  throw new IllegalStateException(result.getStatus() + " invalid state context");
+                    // should process it differently
+//                    config.outSSLNetData.compact();
+                    //ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData);
+                    log.info( msg +" " + result + " " + config.outSSLNetData + " <-]");
+                    publish(result.getHandshakeStatus(),  callback);
+                  //throw new IllegalStateException(result.getStatus() + " invalid state context");
+                  break;
                 case OK:
               int written =
                   ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData);
