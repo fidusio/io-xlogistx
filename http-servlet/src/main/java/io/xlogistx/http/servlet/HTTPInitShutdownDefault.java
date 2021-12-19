@@ -35,6 +35,7 @@ public class HTTPInitShutdownDefault
 	//private IPBlockerListener ipBlocker = null;
 	public void contextInitialized(ServletContextEvent event) 
 	{
+		TaskUtil.setThreadMultiplier(8);
 		try
 		{
 			//log.info("" + ApplicationConfigManager.SINGLETON.loadDefault().getProperties());
@@ -93,8 +94,10 @@ public class HTTPInitShutdownDefault
 				//e.printStackTrace();
 			}
 		}
-		log.info("init done");
-		
+    	log.info("INIT DONE java version:"
+            + System.getProperty("java.version")
+            + ", "
+            + System.getProperty(" java.vm.specification.vendor"));
 	}
 	
 	

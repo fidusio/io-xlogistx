@@ -83,6 +83,7 @@
         <shiro.version>1.8.0</shiro.version>
         <xlogistx.version>1.0.0</xlogistx.version>
 
+
         <cron-util.version>9.1.6</cron-util.version>
   </properties>
 
@@ -242,6 +243,7 @@
       <artifactId>snakeyaml</artifactId>
       <version>${snakeyaml.version}</version>
 	</dependency>
+
 
   </dependencies>
   </dependencyManagement>

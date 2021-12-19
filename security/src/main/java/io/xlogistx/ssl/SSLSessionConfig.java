@@ -138,8 +138,13 @@ implements AutoCloseable
         source.flip();
         SSLEngineResult ret = sslEngine.wrap(source, destination);
         //if(ret.getStatus() == SSLEngineResult.Status.OK)
-            source.compact();
+        source.compact();
         return ret;
+    }
+
+
+    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException{
+        return sslEngine.wrap(source, destination);
     }
 
 
@@ -169,6 +174,8 @@ implements AutoCloseable
 
     public synchronized void beginHandshake() throws SSLException {
         sslEngine.beginHandshake();
+
+
         inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
         outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
         inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getApplicationBufferSize());
@@ -181,6 +188,11 @@ implements AutoCloseable
     public void setUseClientMode(boolean clientMode)
     {
         sslEngine.setUseClientMode(clientMode);
+    }
+
+    SSLEngine getSSLEngine()
+    {
+        return sslEngine;
     }
 
     public int getPacketBufferSize()

@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
+
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -90,7 +91,8 @@ public class HTTPBasicServer
                 String aliasPassword = sslConfig.getValue("alias_password");
                 String trustStorePassword = sslConfig.getValue("truststore_password");
                 String trustStoreFilename = sslConfig.getValue("truststore_file");
-                SSLContext sslContext = CryptoUtil.initSSLContext(IOUtil.locateFile(sslConfig.getValue("keystore_file")),
+                String protocol = sslConfig.getValue("protocol");
+                SSLContext sslContext = CryptoUtil.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
                         sslConfig.getValue("keystore_type"),
                         ksPassword.toCharArray(),
                         aliasPassword != null ?  aliasPassword.toCharArray() : null,

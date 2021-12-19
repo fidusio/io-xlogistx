@@ -43,11 +43,12 @@ public class ReadyState extends State {
                                   + " bytesread: "
                                   + bytesRead);
                         //publish(SSLStateMachine.SessionState.CLOSE, callback);
-                        IOUtil.close(config.remoteChannel);
+                        config.close();
+                        //IOUtil.close(config.remoteChannel);
                         return;
                     }
 
-
+                    //config.outSSLNetData.clear();
                   SSLEngineResult result = config.smartWrap(config.inRemoteData, config.outSSLNetData); // at handshake stage, data in appOut won't be
 
                   info("AFTER-NEED_WRAP-PROCESSING: " + result);
@@ -62,13 +63,15 @@ public class ReadyState extends State {
 
                       break;
                     case CLOSED:
-                      publish(SSLStateMachine.SessionState.CLOSE, callback);
+                        config.close();
                       break;
                   }
 
                 } catch (Exception e) {
-                  //e.printStackTrace();
-                  publish(SSLStateMachine.SessionState.CLOSE, callback);
+
+                  if(callback != null)callback.exception(e);
+                  config.close();
+                  //publish(SSLStateMachine.SessionState.CLOSE, callback);
                 }
             }
 
@@ -95,7 +98,8 @@ public class ReadyState extends State {
                           + config.getHandshakeStatus()
                           + " bytesread: "
                           + bytesRead);
-                publish(SSLStateMachine.SessionState.CLOSE, callback);
+                  config.close();
+                //publish(SSLStateMachine.SessionState.CLOSE, callback);
                 return;
               }
               else //if(bytesRead > 0)
@@ -128,14 +132,15 @@ public class ReadyState extends State {
 
                       info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
 
-                    publish(SSLStateMachine.SessionState.CLOSE, callback);
+                    config.close();
                     break;
                 }
               }
             } catch (Exception e) {
               //e.printStackTrace();
-              publish(SSLStateMachine.SessionState.CLOSE, callback);
-              if(callback != null)callback.exception(e);
+                if(callback != null)callback.exception(e);
+
+                config.close();
             }
       }
         }

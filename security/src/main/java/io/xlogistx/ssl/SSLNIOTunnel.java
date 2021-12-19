@@ -20,6 +20,7 @@ import io.xlogistx.common.fsm.StateMachine;
 import io.xlogistx.common.fsm.Trigger;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import io.xlogistx.common.task.CallbackTask;
+
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LoggerUtil;
@@ -40,8 +41,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
+import java.security.Security;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+
 
 
 public class SSLNIOTunnel
@@ -193,7 +196,7 @@ public class SSLNIOTunnel
 
 
 			info("AcceptNewData: " + key);
-			if (key.channel() == config.sslChannel)
+			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
 
 				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, unwrapCallback));
@@ -209,7 +212,7 @@ public class SSLNIOTunnel
 
 
 			}
-			else if(key.channel() == config.remoteChannel)
+			else if(key.channel() == config.remoteChannel&& key.channel().isOpen())
 			{
 				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_WRAP, null, wrapCallback));
 			}
@@ -254,10 +257,13 @@ public class SSLNIOTunnel
 	@SuppressWarnings("resource")
     public static void main(String... args)
     {
+
 		TaskUtil.setThreadMultiplier(8);
     	LoggerUtil.enableDefaultLogger("io.xlogistx");
 		try
 		{
+			//SSLContext clientContext = SSLContext.getInstance("TLS",new BouncyCastleProvider());
+			//Security.addProvider(new BouncyCastleJsseProvider());
 			int index = 0;
 			int port = Integer.parseInt(args[index++]);
 			InetSocketAddressDAO remoteAddress = new InetSocketAddressDAO(args[index++]);
@@ -274,7 +280,7 @@ public class SSLNIOTunnel
 				TriggerConsumer.debug = true;
 			}
 			//TaskUtil.setThreadMultiplier(4);
-			SSLContext sslContext = CryptoUtil.initSSLContext(IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
+			SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
 			new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOTunnelFactory(sslContext, remoteAddress), TaskUtil.getDefaultTaskProcessor());
 		}
