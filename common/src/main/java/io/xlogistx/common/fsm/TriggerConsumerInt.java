@@ -21,6 +21,10 @@ public interface TriggerConsumerInt<T>
     <D> void publish(String canID, D data);
     <D>void  publish(Enum<?> canID, D data);
 
+    void publishSync(TriggerInt triggerInt);
+    <D> void publishSync(String canID, D data);
+    <D>void  publishSync(Enum<?> canID, D data);
+
     public StateMachineInt getStateMachine();
 
 }

@@ -4,18 +4,16 @@ import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import io.xlogistx.common.task.CallbackTask;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.io.UByteArrayOutputStream;
-import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.server.util.RuntimeUtil;
-import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSession;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 
+import static io.xlogistx.ssl.SSLStateMachine.SessionState.REMOTE_CONNECT;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 
 public class HandshakingState extends State {
@@ -24,7 +22,7 @@ public class HandshakingState extends State {
 
     static class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
     {
-        private UByteArrayOutputStream baos = new UByteArrayOutputStream(512);
+        //private UByteArrayOutputStream baos = new UByteArrayOutputStream(512);
         NeedWrap() {
             super(NEED_WRAP);
         }
@@ -36,51 +34,18 @@ public class HandshakingState extends State {
       {
             try
             {
-              String msg = "[-> " + config.outSSLNetData + " ";
-
-              //if(config.outSSLNetData.hasRemaining()) config.outSSLNetData.clear();
-
               SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outSSLNetData); // at handshake stage, data in appOut won't be
-              msg+= config.outSSLNetData;
               // processed hence dummy buffer
               if (debug) log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
 
               switch (result.getStatus())
               {
                 case BUFFER_UNDERFLOW:
-                    throw new IllegalStateException(result.getStatus() + " invalid state context");
                 case BUFFER_OVERFLOW:
-                    // should process it differently
-//                    config.outSSLNetData.compact();
-                    //ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData, false);
-
-                    //
-                  //throw new IllegalStateException(result.getStatus() + " invalid state context");
-
-                    //publish(result.getHandshakeStatus(),  callback);
-                    //config.outSSLNetData.rewind();
-                    //config.outSSLNetData.limit(config.outSSLNetData.capacity());
-//                    int appSize = config.getApplicationBufferSize();
-//                    ByteBuffer b = ByteBuffer.allocate(appSize + config.outSSLNetData.position());
-//                    config.outSSLNetData.flip();
-//                    b.put(config.outSSLNetData);
-//                    config.outSSLNetData = b;
-                    // retry the operation.
-
-                    baos.reset();
-                    ByteBufferUtil.write(config.outSSLNetData, baos, false);
-                    config.outSSLNetData.reset();
-                    ByteBufferUtil.write(baos, config.outSSLNetData);
-
-
-                    log.info(msg + " " + result + " " + config.outSSLNetData + " <-]");
-                    //log.info("STACKTRACE\n" + RuntimeUtil.stackTrace());
-                    //publish(config.getHandshakeStatus(), callback);
-                  break;
+                    throw new IllegalStateException(result.getStatus() + " invalid state context");
                 case OK:
               int written =
                   ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData);
-                  // postHandshakeIfNeeded(config, result, sslChannel);
 
                     if (debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
                   publish(result.getHandshakeStatus(), callback);
@@ -234,39 +199,8 @@ public class HandshakingState extends State {
         @Override
         public void accept(CallbackTask<ByteBuffer> callback) {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-
-//            SSLEngineResult result = null;
-//            try {
-//                 result = config.smartWrap(ByteBufferUtil.EMPTY, config.outNetData);
-//                if (debug) log.info("LAST-WRAP:" + result + " out buffer: " + config.outNetData);
-//                switch (result.getStatus())
-//                {
-//
-//                    case BUFFER_UNDERFLOW:
-//                        break;
-//                    case BUFFER_OVERFLOW:
-//                        break;
-//                    case OK:
-//                        if(config.outNetData.position() > 0)
-//                            ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outNetData);
-//
-//                        if (result.getHandshakeStatus() != NOT_HANDSHAKING) {
-//                          publish(config.getHandshakeStatus(), callback);
-//                          return;
-//                        }
-//                        break;
-//                    case CLOSED:
-//                        publish(SSLStateMachine.SessionState.CLOSE, callback);
-//                        return;
-//
-//                }
-//
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-
-        SSLSession sslSession = config.getSession();
-        //log.info("Handshake session: " + SharedUtil.toCanonicalID(':',sslSession.getProtocol(), sslSession.getCipherSuite(), config.inSSLNetData));
+        // VERY CRUCIAL STEP TO BE PERFORMED
+        publish(REMOTE_CONNECT, config);
 
         if (config.inSSLNetData.position() > 0)
         {
@@ -274,9 +208,6 @@ public class HandshakingState extends State {
             // the mother of all nasties
             publish(NEED_UNWRAP, callback);
         }
-//        else
-//            config.sslRead.set(true);
-            //publish(SSLStateMachine.SessionState.READY, callback);
 
         }
     }

@@ -53,7 +53,7 @@ public class StateMachine<C>
     }
 
     @Override
-    public StateMachineInt register(StateInt state)
+    public synchronized StateMachineInt register(StateInt state)
     {
         if(state != null)
         {

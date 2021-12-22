@@ -42,13 +42,16 @@ public class ReadyState extends State {
                                   + config.getHandshakeStatus()
                                   + " bytesread: "
                                   + bytesRead);
-                        //publish(SSLStateMachine.SessionState.CLOSE, callback);
+
                         config.close();
-                        //IOUtil.close(config.remoteChannel);
+
                         return;
                     }
 
                     //config.outSSLNetData.clear();
+                    if (config.outSSLNetData.limit() != config.outSSLNetData.capacity()) {
+                        config.outSSLNetData.compact();
+                    }
                   SSLEngineResult result = config.smartWrap(config.inRemoteData, config.outSSLNetData); // at handshake stage, data in appOut won't be
 
                   info("AFTER-NEED_WRAP-PROCESSING: " + result);
@@ -99,7 +102,7 @@ public class ReadyState extends State {
                           + " bytesread: "
                           + bytesRead);
                   config.close();
-                //publish(SSLStateMachine.SessionState.CLOSE, callback);
+
                 return;
               }
               else //if(bytesRead > 0)

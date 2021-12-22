@@ -93,6 +93,21 @@ implements TriggerConsumerInt<T>
             getState().getStateMachine().publish(new Trigger(getState(), SharedUtil.enumName(canID), data));
     }
 
+    public void publishSync(TriggerInt triggerInt) {
+        if(triggerInt != null)
+            getState().getStateMachine().publishSync(triggerInt);
+    }
+
+    public <D>void publishSync(String canID, D data) {
+        if(canID != null)
+            getState().getStateMachine().publishSync(new Trigger(getState(), canID, data));
+    }
+
+    public <D> void publishSync(Enum<?> canID, D data) {
+        if(canID != null)
+            getState().getStateMachine().publishSync(new Trigger(getState(), SharedUtil.enumName(canID), data));
+    }
+
     public StateMachineInt getStateMachine()
     {
         return getState().getStateMachine();

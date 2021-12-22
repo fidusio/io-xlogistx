@@ -20,13 +20,17 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     public enum SessionState
     implements GetName
     {
+        READY("ready-state"),
         HANDSHAKING("handshaking"),
+        REMOTE_CONNECT("remote-connect"),
+
+
         /**
          * Read data state will unwrap data via it trigger in the read state
          * and in the handshaking state will unwrap data for the handshake process
          * it is identified by checking the SSLEngine NOT_HANDSHAKING status
          */
-        READY("ready-state"),
+
         CLOSE("close"),
 
         ;
