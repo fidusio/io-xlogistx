@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 ZoxWeb.com LLC.
+ * Copyright (c) 2017-2021 XlogistX.IO Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -156,8 +156,8 @@ public class SSLNIOTunnel
 	final private SSLContext sslContext;
 
 	private final long id = tunnelCounter.incrementAndGet();
-	private WrapCallback  wrapCallback = new WrapCallback();
-	private UnwrapCallback unwrapCallback = new UnwrapCallback();
+	private final WrapCallback  wrapCallback = new WrapCallback();
+	private final UnwrapCallback unwrapCallback = new UnwrapCallback();
 
 
 	private void info(String str)
@@ -209,22 +209,10 @@ public class SSLNIOTunnel
 			{
 				config.setUseClientMode(false);
 				config.beginHandshake();
-
+				config.inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getPacketBufferSize());
+				config.outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getPacketBufferSize());
+				config.inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getApplicationBufferSize());
 				info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//				if(config.inRemoteData == null)
-//				{
-//					//synchronized (config)
-//					{
-//						if(config.inRemoteData == null)
-//						{
-//              				config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE/2);
-//							config.remoteChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
-//							getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, this, new DefaultSKController(), false);
-//						}
-//					}
-//				}
-
-
 
 			}
 

@@ -168,20 +168,9 @@ implements AutoCloseable
         return sslEngine.getHandshakeSession();
     }
 
-//    public synchronized SSLEngineResult unwrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
-//        return sslEngine.unwrap(source, destination);
-//    }
 
     public synchronized void beginHandshake() throws SSLException {
         sslEngine.beginHandshake();
-
-
-        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
-        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
-        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getApplicationBufferSize());
-//        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
-//        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
-//        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
     }
 
 
@@ -190,10 +179,10 @@ implements AutoCloseable
         sslEngine.setUseClientMode(clientMode);
     }
 
-    SSLEngine getSSLEngine()
-    {
-        return sslEngine;
-    }
+//    SSLEngine getSSLEngine()
+//    {
+//        return sslEngine;
+//    }
 
     public int getPacketBufferSize()
     {
