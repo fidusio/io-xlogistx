@@ -7,13 +7,10 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLSession;
-
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 
-import static io.xlogistx.ssl.SSLStateMachine.SessionState.REMOTE_CONNECT;
+import static io.xlogistx.ssl.SSLStateMachine.SessionState.POST_HANDSHAKE;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 
 public class HandshakingState extends State {
@@ -42,26 +39,27 @@ public class HandshakingState extends State {
               {
                 case BUFFER_UNDERFLOW:
                 case BUFFER_OVERFLOW:
-                    throw new IllegalStateException(result.getStatus() + " invalid state context");
+                    config.forcedClose = true;
+                    throw new IllegalStateException(result + " invalid state context " + config.outSSLNetData + " " + config.sslChannel.getRemoteAddress());
                 case OK:
               int written =
                   ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData);
 
                     if (debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
-                  publish(result.getHandshakeStatus(), callback);
+                  publishSync(result.getHandshakeStatus(), callback);
                   break;
                 case CLOSED:
                     config.close();
-                  //publish(SSLStateMachine.SessionState.CLOSE, callback);
+                  //publishSync(SSLStateMachine.SessionState.CLOSE, callback);
                   break;
               }
 
             }
             catch (Exception e)
             {
-              e.printStackTrace();
+              log.info(""+e);
               config.close();
-              //publish(SSLStateMachine.SessionState.CLOSE, callback);
+              //publishSync(SSLStateMachine.SessionState.CLOSE, callback);
             }
           }
         }
@@ -86,9 +84,9 @@ public class HandshakingState extends State {
                           + config.getHandshakeStatus()
                           + " bytesread: "
                           + bytesRead);
-                //publish(SSLStateMachine.SessionState.CLOSE, callback);
+                //publishSync(SSLStateMachine.SessionState.CLOSE, callback);
                   config.close();
-                return;
+
               }
               else //if (bytesRead > 0)
               {
@@ -114,7 +112,7 @@ public class HandshakingState extends State {
                     throw new IllegalStateException("NEED_UNWRAP should never be " + result.getStatus());
                     // this should never happen
                   case OK:
-                      publish(result.getHandshakeStatus(), callback);
+                      publishSync(result.getHandshakeStatus(), callback);
 //                      if(config.inAppData.position() > 0 )
 //                          callback.callback(config.inAppData);
 
@@ -126,7 +124,7 @@ public class HandshakingState extends State {
                     // check result here
                    if (debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
 
-                    //publish(SSLStateMachine.SessionState.CLOSE, callback);
+                    //publishSync(SSLStateMachine.SessionState.CLOSE, callback);
                       config.close();
                     break;
                 }
@@ -134,7 +132,7 @@ public class HandshakingState extends State {
             } catch (Exception e) {
               e.printStackTrace();
               config.close();
-//              publish(SSLStateMachine.SessionState.CLOSE, callback);
+//              publishSync(SSLStateMachine.SessionState.CLOSE, callback);
 //              if(callback != null)callback.exception(e);
             }
       }
@@ -163,9 +161,9 @@ public class HandshakingState extends State {
                 toRun.run();
 
             }
-            SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();;
+            SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();
             if (debug) log.info("After run: " + status);
-            publish(status, callback);
+            publishSync(status, callback);
         }
     }
 
@@ -183,7 +181,7 @@ public class HandshakingState extends State {
             SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();
             if (status != NOT_HANDSHAKING)
                 log.info("Finished: " + status);
-            publish(status, callback);
+            publishSync(status, callback);
         }
 
     }
@@ -191,23 +189,23 @@ public class HandshakingState extends State {
 
     static class NotHandshaking extends TriggerConsumer<CallbackTask<ByteBuffer>>
     {
-        boolean first = false;
         NotHandshaking() {
             super(NOT_HANDSHAKING);
         }
 
         @Override
-        public void accept(CallbackTask<ByteBuffer> callback) {
-            SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-        // VERY CRUCIAL STEP TO BE PERFORMED
-        publish(REMOTE_CONNECT, config);
-
-        if (config.inSSLNetData.position() > 0)
+        public void accept(CallbackTask<ByteBuffer> callback)
         {
-            // we have data
-            // the mother of all nasties
-            publish(NEED_UNWRAP, callback);
-        }
+            SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+            // VERY CRUCIAL STEP TO BE PERFORMED
+            publishSync(POST_HANDSHAKE, null);
+
+            if (config.inSSLNetData.position() > 0)
+            {
+                // we have data
+                // the mother of all nasties
+                publishSync(NEED_UNWRAP, callback);
+            }
 
         }
     }

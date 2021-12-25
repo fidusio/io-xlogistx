@@ -2,7 +2,7 @@ package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
 import io.xlogistx.common.task.CallbackTask;
-import org.zoxweb.server.task.TaskSchedulerProcessor;
+
 import org.zoxweb.shared.util.GetName;
 
 import javax.net.ssl.SSLContext;
@@ -16,13 +16,13 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
 
 
 
-    private final static AtomicLong HANDSHAKE_COUNTER = new AtomicLong();
+    //private final static AtomicLong HANDSHAKE_COUNTER = new AtomicLong();
     public enum SessionState
     implements GetName
     {
         READY("ready-state"),
         HANDSHAKING("handshaking"),
-        REMOTE_CONNECT("remote-connect"),
+        POST_HANDSHAKE("post-handshake"),
 
 
         /**
@@ -53,9 +53,9 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     private static final AtomicLong counter = new AtomicLong();
     public static boolean debug = false;
 
-    private SSLStateMachine(long id, TaskSchedulerProcessor tsp) {
-        super("SSLSessionStateMachine-" + id, tsp);
-    }
+//    private SSLStateMachine(long id, TaskSchedulerProcessor tsp) {
+//        super("SSLSessionStateMachine-" + id, tsp);
+//    }
     private SSLStateMachine(long id, Executor executor) {
         super("SSLSessionStateMachine-" + id, executor);
     }
@@ -85,7 +85,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
           @Override
           public void accept(Void o) {
               if(debug) log.info(getState().getStateMachine().getName() + " CREATED");
-              SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
+              //SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
               //publish(new Trigger<SelectableChannel>(getState(), null, SessionState.WAIT_FOR_HANDSHAKING));
           }
         };

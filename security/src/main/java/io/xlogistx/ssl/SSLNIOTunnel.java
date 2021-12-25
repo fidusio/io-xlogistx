@@ -34,6 +34,7 @@ import javax.net.ssl.SSLEngineResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -42,7 +43,7 @@ import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-import static io.xlogistx.ssl.SSLStateMachine.SessionState.REMOTE_CONNECT;
+import static io.xlogistx.ssl.SSLStateMachine.SessionState.POST_HANDSHAKE;
 
 
 public class SSLNIOTunnel
@@ -50,32 +51,32 @@ public class SSLNIOTunnel
 {
 
 
-	static class RemoteConnect extends TriggerConsumer<SSLSessionConfig>
+	static class RemoteConnect extends TriggerConsumer<Void>
 	{
 		SSLNIOTunnel sslnt;
 		RemoteConnect(SSLNIOTunnel sslnt){
-			super(REMOTE_CONNECT);
+			super(POST_HANDSHAKE);
 			this.sslnt = sslnt;
 		}
 		@Override
-		public void accept(SSLSessionConfig config) {
-			if(config.inRemoteData == null)
+		public void accept(Void v) {
+			if(sslnt.config.inRemoteData == null)
 			{
-				synchronized (config)
+				synchronized (sslnt.config)
 				{
-					if(config.inRemoteData == null)
+					if(sslnt.config.inRemoteData == null)
 					{
 						try
 						{
-							config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE/2);
-							config.remoteChannel = SocketChannel.open((new InetSocketAddress(sslnt.remoteAddress.getInetAddress(), sslnt.remoteAddress.getPort())));
-							sslnt.getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, sslnt, new DefaultSKController(), false);
+							sslnt.config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+							sslnt.config.remoteChannel = SocketChannel.open((new InetSocketAddress(sslnt.remoteAddress.getInetAddress(), sslnt.remoteAddress.getPort())));
+							sslnt.getSelectorController().register(null, sslnt.config.remoteChannel, SelectionKey.OP_READ, sslnt, new DefaultSKController(), false);
 						}
 						catch(Exception e)
 						{
 							log.info("" + e);
 							log.info("connect to " + sslnt.remoteAddress + " FAILED");
-							config.close();
+							sslnt.config.close();
 						}
 					}
 				}
@@ -209,9 +210,9 @@ public class SSLNIOTunnel
 			{
 				config.setUseClientMode(false);
 				config.beginHandshake();
-				config.inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getPacketBufferSize());
-				config.outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getPacketBufferSize());
-				config.inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getApplicationBufferSize());
+//				config.inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getPacketBufferSize());
+//				config.outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getPacketBufferSize());
+//				config.inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, config.getApplicationBufferSize());
 				info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
 			}
@@ -221,21 +222,9 @@ public class SSLNIOTunnel
 			info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
-
 				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, unwrapCallback));
-
-				// to be removed
-//				if(config.destinationBB == null)
-//				{
-//					config.destinationBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.DEFAULT_BUFFER_SIZE);
-//					config.destinationChannel = SocketChannel.open((new InetSocketAddress(remoteAddress.getInetAddress(), remoteAddress.getPort())));
-//
-//					getSelectorController().register(null, config.destinationChannel, SelectionKey.OP_READ, this, config, false);
-//				}
-
-
 			}
-			else if(key.channel() == config.remoteChannel&& key.channel().isOpen())
+			else if(key.channel() == config.remoteChannel && key.channel().isOpen())
 			{
 				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, SSLEngineResult.HandshakeStatus.NEED_WRAP, null, wrapCallback));
 			}
@@ -263,8 +252,8 @@ public class SSLNIOTunnel
 		// must be modified do the handshake
 		//((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
+		config = sslStateMachine.getConfig();
 		sslStateMachine.register(new State("connect-remote").register(new RemoteConnect(this)));
-    	config = sslStateMachine.getConfig();
     	config.selectorController = getSelectorController();
 		config.sslChannel = (SocketChannel) asc;
 		sslStateMachine.start(true);
@@ -302,6 +291,10 @@ public class SSLNIOTunnel
 				HandshakingState.debug = true;
 				StateMachine.debug = true;
 				TriggerConsumer.debug = true;
+			}
+			else
+			{
+				SSLSessionConfig.debug = false;
 			}
 			//TaskUtil.setThreadMultiplier(4);
 			SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);

@@ -3,8 +3,6 @@ package io.xlogistx.ssl;
 import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import io.xlogistx.common.task.CallbackTask;
-import org.zoxweb.server.io.IOUtil;
-
 import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
@@ -102,10 +100,8 @@ public class ReadyState extends State {
                           + " bytesread: "
                           + bytesRead);
                   config.close();
-
-                return;
               }
-              else //if(bytesRead > 0)
+              else
               {
 
                 // even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming

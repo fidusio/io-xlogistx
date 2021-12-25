@@ -25,6 +25,8 @@ implements AutoCloseable
 //        , SKController
 {
     private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
+    public static boolean debug = true;
+
     //private final SSLContext sslContext;
     private final SSLEngine sslEngine; // the crypto engine
 
@@ -40,6 +42,7 @@ implements AutoCloseable
     //volatile AtomicBoolean remoteRead = new AtomicBoolean(true);
     volatile ByteBuffer inRemoteData = null;
     volatile SSLStateMachine stateMachine;
+    boolean forcedClose = false;
 
     //volatile AtomicBoolean sslChannelSelectableStatus = new AtomicBoolean(false);
     //volatile AtomicBoolean handshakeStarted = new AtomicBoolean(false);
@@ -57,47 +60,63 @@ implements AutoCloseable
     @Override
     public void close() {
         boolean stat = isClosed.getAndSet(true);
+        String msg = "";
         if (!stat) {
             //log.info("SSLSessionConfig-NOT-CLOSED-YET " +Thread.currentThread() + " " + sslChannel);
+            try
+            {
+                msg +=sslChannel.getRemoteAddress();
+            }
+            catch (Exception e){}
+
             if(sslEngine != null)
             {
                 sslEngine.closeOutbound();
                 try
                 {
-                    while(!sslEngine.isOutboundDone() && sslChannel.isOpen())
+
+
+                    //outSSLNetData.clear();
+                    if (forcedClose)
                     {
-                        SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
-                        //log.info("CLOSING-SSL-CONNECTION: "  + hs + " sslChannel: " + sslChannel);
-                        switch (hs)
-                        {
+                        IOUtil.close(sslChannel);
+                    }
+                    else
+                    {
+                        while (!sslEngine.isOutboundDone() && sslChannel.isOpen()) {
+                          SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
+                          // log.info("CLOSING-SSL-CONNECTION: "  + hs + " sslChannel: " + sslChannel);
+                          switch (hs) {
                             case NEED_WRAP:
                             case NEED_UNWRAP:
-                                stateMachine.publish(new Trigger<CallbackTask<ByteBuffer>>(this, hs, null, new CallbackTask<ByteBuffer>() {
-                                    @Override
-                                    public void exception(Exception e) {
-                                        e.printStackTrace();
-                                    }
-
-                                    @Override
-                                    public void callback(ByteBuffer buffer) {
-                                        if (buffer != null)
-                                        {
-                                            try {
-                                                log.info("Writing data back: " + buffer);
-                                                ByteBufferUtil.smartWrite(ioLock, sslChannel, buffer);
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
+                              stateMachine.publishSync(
+                                  new Trigger<CallbackTask<ByteBuffer>>(
+                                      this,
+                                      hs,
+                                      null,
+                                      new CallbackTask<ByteBuffer>() {
+                                        @Override
+                                        public void exception(Exception e) {
+                                          e.printStackTrace();
                                         }
-                                    }
-                                }));
-                                break;
+
+                                        @Override
+                                        public void callback(ByteBuffer buffer) {
+                                          if (buffer != null) {
+                                            try {
+                                              if (debug) log.info("Writing data back: " + buffer);
+                                              ByteBufferUtil.smartWrite(ioLock, sslChannel, buffer);
+                                            } catch (IOException e) {
+                                              e.printStackTrace();
+                                            }
+                                          }
+                                        }
+                                      }));
+                              break;
                             default:
-                                IOUtil.close(sslChannel);
-
+                              IOUtil.close(sslChannel);
+                          }
                         }
-
-
                     }
                 }
                 catch (Exception e)
@@ -115,7 +134,7 @@ implements AutoCloseable
             stateMachine.close();
             ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
 
-            //log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel);
+            if(debug) log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
         }
 
     }
@@ -143,18 +162,18 @@ implements AutoCloseable
     }
 
 
-    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException{
-        return sslEngine.wrap(source, destination);
-    }
+//    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException{
+//        return sslEngine.wrap(source, destination);
+//    }
 
 
 
-    public synchronized SSLEngineResult smartUnwrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
-
+    public synchronized SSLEngineResult smartUnwrap(ByteBuffer source, ByteBuffer destination) throws SSLException
+    {
         source.flip();
         SSLEngineResult ret = sslEngine.unwrap(source, destination);
         //if(ret.getStatus() == SSLEngineResult.Status.OK)
-            source.compact();
+        source.compact();
         return ret;
     }
 
@@ -171,6 +190,9 @@ implements AutoCloseable
 
     public synchronized void beginHandshake() throws SSLException {
         sslEngine.beginHandshake();
+        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
+        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
+        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getApplicationBufferSize());
     }
 
 
@@ -179,10 +201,6 @@ implements AutoCloseable
         sslEngine.setUseClientMode(clientMode);
     }
 
-//    SSLEngine getSSLEngine()
-//    {
-//        return sslEngine;
-//    }
 
     public int getPacketBufferSize()
     {
