@@ -198,6 +198,7 @@ public class HandshakingState extends State {
         {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             // VERY CRUCIAL STEP TO BE PERFORMED
+            config.sslos = new SSLOutputStream(config, false );
             publishSync(POST_HANDSHAKE, null);
 
             if (config.inSSLNetData.position() > 0)

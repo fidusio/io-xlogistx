@@ -68,7 +68,8 @@ public class SSLNIOTunnel
 					{
 						try
 						{
-							sslnt.config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
+
+							sslnt.config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
 							sslnt.config.remoteChannel = SocketChannel.open((new InetSocketAddress(sslnt.remoteAddress.getInetAddress(), sslnt.remoteAddress.getPort())));
 							sslnt.getSelectorController().register(null, sslnt.config.remoteChannel, SelectionKey.OP_READ, sslnt, new DefaultSKController(), false);
 						}

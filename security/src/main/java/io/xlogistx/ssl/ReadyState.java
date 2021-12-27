@@ -20,6 +20,8 @@ public class ReadyState extends State {
     }
     class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
     {
+
+
         NeedWrap() {
             super(NEED_WRAP);
         }
@@ -31,6 +33,8 @@ public class ReadyState extends State {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             if (config.getHandshakeStatus() == NOT_HANDSHAKING)
             {
+
+
                 try {
                     int bytesRead = config.remoteChannel.read(config.inRemoteData);
                     if (bytesRead == -1) {
@@ -46,26 +50,31 @@ public class ReadyState extends State {
                         return;
                     }
 
-                    //config.outSSLNetData.clear();
-                    if (config.outSSLNetData.limit() != config.outSSLNetData.capacity()) {
-                        config.outSSLNetData.compact();
-                    }
-                  SSLEngineResult result = config.smartWrap(config.inRemoteData, config.outSSLNetData); // at handshake stage, data in appOut won't be
+          // config.outSSLNetData.clear();
+          //                    if (config.outSSLNetData.limit() != config.outSSLNetData.capacity())
+          // {
+          //                        config.outSSLNetData.compact();
+          //                    }
 
-                  info("AFTER-NEED_WRAP-PROCESSING: " + result);
+                  if (config.sslos != null) config.sslos.write(config.inRemoteData);
+                  else
+                  {
+                      SSLEngineResult result = config.smartWrap(config.inRemoteData, config.outSSLNetData); // at handshake stage, data in appOut won't be
 
-                  switch (result.getStatus()) {
-                    case BUFFER_UNDERFLOW:
-                    case BUFFER_OVERFLOW:
-                      throw new IllegalStateException(result.getStatus() + " invalid state context");
-                    case OK:
-                      if(callback != null ) callback.callback(config.outSSLNetData);
+                    info("AFTER-NEED_WRAP-PROCESSING: " + result);
 
+                    switch (result.getStatus()) {
+                      case BUFFER_UNDERFLOW:
+                      case BUFFER_OVERFLOW:
+                        throw new IllegalStateException(result.getStatus() + " invalid state context");
+                      case OK:
+                        if (callback != null) callback.callback(config.outSSLNetData);
 
-                      break;
-                    case CLOSED:
+                        break;
+                      case CLOSED:
                         config.close();
-                      break;
+                        break;
+                    }
                   }
 
                 } catch (Exception e) {

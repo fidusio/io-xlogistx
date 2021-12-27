@@ -33,8 +33,9 @@ implements AutoCloseable
     volatile ByteBuffer inSSLNetData; // encrypted data
     volatile ByteBuffer outSSLNetData; // encrypted data
     volatile ByteBuffer inAppData; // clear text application data
-    //volatile ByteBuffer outAppData; // data used during the handshake process
+    volatile ByteBuffer outAppData = null; // data that might be used internally
     volatile SocketChannel sslChannel; // the encrypted channel
+    volatile SSLOutputStream sslos = null;
     //volatile AtomicBoolean sslRead = new AtomicBoolean(true);
     volatile SelectorController selectorController;
 
@@ -42,7 +43,7 @@ implements AutoCloseable
     //volatile AtomicBoolean remoteRead = new AtomicBoolean(true);
     volatile ByteBuffer inRemoteData = null;
     volatile SSLStateMachine stateMachine;
-    boolean forcedClose = false;
+    volatile boolean forcedClose = false;
 
     //volatile AtomicBoolean sslChannelSelectableStatus = new AtomicBoolean(false);
     //volatile AtomicBoolean handshakeStarted = new AtomicBoolean(false);
@@ -77,62 +78,54 @@ implements AutoCloseable
 
 
                     //outSSLNetData.clear();
-                    if (forcedClose)
-                    {
-                        IOUtil.close(sslChannel);
-                    }
-                    else
-                    {
-                        while (!sslEngine.isOutboundDone() && sslChannel.isOpen()) {
-                          SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
-                          // log.info("CLOSING-SSL-CONNECTION: "  + hs + " sslChannel: " + sslChannel);
-                          switch (hs) {
-                            case NEED_WRAP:
-                            case NEED_UNWRAP:
-                              stateMachine.publishSync(
-                                  new Trigger<CallbackTask<ByteBuffer>>(
-                                      this,
-                                      hs,
-                                      null,
-                                      new CallbackTask<ByteBuffer>() {
-                                        @Override
-                                        public void exception(Exception e) {
+
+
+                    while (!sslEngine.isOutboundDone() && sslChannel.isOpen() && !forcedClose) {
+                      SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
+                      // log.info("CLOSING-SSL-CONNECTION: "  + hs + " sslChannel: " + sslChannel);
+                      switch (hs) {
+                        case NEED_WRAP:
+                        case NEED_UNWRAP:
+                          stateMachine.publishSync(
+                              new Trigger<CallbackTask<ByteBuffer>>(this, hs,null,
+                                  new CallbackTask<ByteBuffer>() {
+                                    @Override
+                                    public void exception(Exception e) {
+                                      e.printStackTrace();
+                                    }
+
+                                    @Override
+                                    public void callback(ByteBuffer buffer) {
+                                      if (buffer != null) {
+                                        try {
+                                          if (debug) log.info("Writing data back: " + buffer);
+                                          ByteBufferUtil.smartWrite(ioLock, sslChannel, buffer);
+                                        } catch (IOException e) {
                                           e.printStackTrace();
                                         }
-
-                                        @Override
-                                        public void callback(ByteBuffer buffer) {
-                                          if (buffer != null) {
-                                            try {
-                                              if (debug) log.info("Writing data back: " + buffer);
-                                              ByteBufferUtil.smartWrite(ioLock, sslChannel, buffer);
-                                            } catch (IOException e) {
-                                              e.printStackTrace();
-                                            }
-                                          }
-                                        }
-                                      }));
-                              break;
-                            default:
-                              IOUtil.close(sslChannel);
-                          }
-                        }
+                                      }
+                                    }
+                                  }));
+                          break;
+                        default:
+                          IOUtil.close(sslChannel);
+                      }
                     }
+
                 }
                 catch (Exception e)
                 {
                     e.printStackTrace();
                 }
-                //IOUtil.close(() -> sslEngine.closeOutbound());
             }
 
-                //ioLock.lock();
+
             IOUtil.close(sslChannel);
             IOUtil.close(remoteChannel);
             selectorController.cancelSelectionKey(sslChannel);
             selectorController.cancelSelectionKey(remoteChannel);
             stateMachine.close();
-            ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
+            ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData, outAppData);
 
             if(debug) log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
         }
@@ -190,9 +183,9 @@ implements AutoCloseable
 
     public synchronized void beginHandshake() throws SSLException {
         sslEngine.beginHandshake();
-        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
-        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getPacketBufferSize());
-        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.HEAP, getApplicationBufferSize());
+        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
     }
 
 
