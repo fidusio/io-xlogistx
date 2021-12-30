@@ -18,85 +18,60 @@ public class ReadyState extends State {
         if(debug)
             log.info(str);
     }
-    class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
-    {
+//    class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
+//    {
+//
+//
+//        NeedWrap() {
+//            super(NEED_WRAP);
+//        }
+//
+//        @Override
+//        public void accept(CallbackTask<ByteBuffer> callback)
+//        {
+//
+//            SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+//            if (config.getHandshakeStatus() == NOT_HANDSHAKING)
+//            {
+//
+//
+//                try {
+//                    int bytesRead = config.remoteChannel.read(config.inRemoteData);
+//                    if (bytesRead == -1) {
+//
+//                          info(
+//                              "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
+//                                  + config.getHandshakeStatus()
+//                                  + " bytesread: "
+//                                  + bytesRead);
+//
+//                        config.close();
+//
+//                        return;
+//                    }
+//                     config.sslos.write(config.inRemoteData);
+//
+//                } catch (Exception e) {
+//
+//                  if(callback != null)callback.exception(e);
+//                  config.close();
+//
+//                }
+//            }
+//
+//        }
+//    }
 
-
-        NeedWrap() {
-            super(NEED_WRAP);
-        }
-
-        @Override
-        public void accept(CallbackTask<ByteBuffer> callback)
-        {
-
-            SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-            if (config.getHandshakeStatus() == NOT_HANDSHAKING)
-            {
-
-
-                try {
-                    int bytesRead = config.remoteChannel.read(config.inRemoteData);
-                    if (bytesRead == -1) {
-
-                          info(
-                              "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
-                                  + config.getHandshakeStatus()
-                                  + " bytesread: "
-                                  + bytesRead);
-
-                        config.close();
-
-                        return;
-                    }
-
-          // config.outSSLNetData.clear();
-          //                    if (config.outSSLNetData.limit() != config.outSSLNetData.capacity())
-          // {
-          //                        config.outSSLNetData.compact();
-          //                    }
-
-                  if (config.sslos != null) config.sslos.write(config.inRemoteData);
-                  else
-                  {
-                      SSLEngineResult result = config.smartWrap(config.inRemoteData, config.outSSLNetData); // at handshake stage, data in appOut won't be
-
-                    info("AFTER-NEED_WRAP-PROCESSING: " + result);
-
-                    switch (result.getStatus()) {
-                      case BUFFER_UNDERFLOW:
-                      case BUFFER_OVERFLOW:
-                        throw new IllegalStateException(result.getStatus() + " invalid state context");
-                      case OK:
-                        if (callback != null) callback.callback(config.outSSLNetData);
-
-                        break;
-                      case CLOSED:
-                        config.close();
-                        break;
-                    }
-                  }
-
-                } catch (Exception e) {
-
-                  if(callback != null)callback.exception(e);
-                  config.close();
-                  //publish(SSLStateMachine.SessionState.CLOSE, callback);
-                }
-            }
-
-        }
-    }
-
-    class NeedUnwrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
+    class NeedUnwrap extends TriggerConsumer<CallbackTask<ByteBuffer, SSLOutputStream>>
     {
         NeedUnwrap() {
             super(NEED_UNWRAP);
         }
 
     @Override
-    public void accept(CallbackTask<ByteBuffer> callback) {
+    public void accept(CallbackTask<ByteBuffer, SSLOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+      if(debug) log.info("" + config.getHandshakeStatus());
       if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen()) {
         try {
 
@@ -118,7 +93,7 @@ public class ReadyState extends State {
                 SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, config.inAppData);
 
 
-                  info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead);
+                if (debug) log.info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
                 switch (result.getStatus()) {
                   case BUFFER_UNDERFLOW:
                     // no incoming data available we need to wait for more socket data
@@ -132,13 +107,13 @@ public class ReadyState extends State {
                     // this should never happen
                   case OK:
 
-                    if(callback != null) callback.callback(config.inAppData);
+                    if(callback != null) callback.accept(config.inAppData);
                      // config.sslRead.set(true);
                     break;
                   case CLOSED:
                     // check result here
 
-                      info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
+                      if(debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
 
                     config.close();
                     break;
@@ -150,8 +125,8 @@ public class ReadyState extends State {
 
                 config.close();
             }
-      }
         }
+      }
     }
 
 
@@ -169,8 +144,8 @@ public class ReadyState extends State {
 
     public ReadyState() {
         super(SSLStateMachine.SessionState.READY);
-
-        register(new NeedWrap()).register(new NeedUnwrap());
+        register(new NeedUnwrap());
+        //register(new NeedWrap())
     }
 
 }

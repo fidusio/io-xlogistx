@@ -7,10 +7,10 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 
 import org.zoxweb.server.net.SelectorController;
+import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.*;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import java.nio.channels.SocketChannel;
@@ -36,22 +36,18 @@ implements AutoCloseable
     volatile ByteBuffer outAppData = null; // data that might be used internally
     volatile SocketChannel sslChannel; // the encrypted channel
     volatile SSLOutputStream sslos = null;
-    //volatile AtomicBoolean sslRead = new AtomicBoolean(true);
     volatile SelectorController selectorController;
 
     volatile SocketChannel remoteChannel = null;
-    //volatile AtomicBoolean remoteRead = new AtomicBoolean(true);
     volatile ByteBuffer inRemoteData = null;
     volatile SSLStateMachine stateMachine;
     volatile boolean forcedClose = false;
+    volatile InetSocketAddressDAO remoteAddress;
 
-    //volatile AtomicBoolean sslChannelSelectableStatus = new AtomicBoolean(false);
-    //volatile AtomicBoolean handshakeStarted = new AtomicBoolean(false);
     final Lock ioLock = new ReentrantLock();
 
 
 
-    //boolean sslChannelReadState = false;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     public SSLSessionConfig(SSLContext sslContext)
     {
@@ -66,7 +62,7 @@ implements AutoCloseable
             //log.info("SSLSessionConfig-NOT-CLOSED-YET " +Thread.currentThread() + " " + sslChannel);
             try
             {
-                msg +=sslChannel.getRemoteAddress();
+                msg += sslChannel.getRemoteAddress();
             }
             catch (Exception e){}
 
@@ -75,37 +71,14 @@ implements AutoCloseable
                 sslEngine.closeOutbound();
                 try
                 {
-
-
-                    //outSSLNetData.clear();
-
-
-                    while (!sslEngine.isOutboundDone() && sslChannel.isOpen() && !forcedClose) {
+                    while (!sslEngine.isOutboundDone() && sslChannel.isOpen() && !forcedClose)
+                    {
                       SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
-                      // log.info("CLOSING-SSL-CONNECTION: "  + hs + " sslChannel: " + sslChannel);
-                      switch (hs) {
+                      switch (hs)
+                      {
                         case NEED_WRAP:
                         case NEED_UNWRAP:
-                          stateMachine.publishSync(
-                              new Trigger<CallbackTask<ByteBuffer>>(this, hs,null,
-                                  new CallbackTask<ByteBuffer>() {
-                                    @Override
-                                    public void exception(Exception e) {
-                                      e.printStackTrace();
-                                    }
-
-                                    @Override
-                                    public void callback(ByteBuffer buffer) {
-                                      if (buffer != null) {
-                                        try {
-                                          if (debug) log.info("Writing data back: " + buffer);
-                                          ByteBufferUtil.smartWrite(ioLock, sslChannel, buffer);
-                                        } catch (IOException e) {
-                                          e.printStackTrace();
-                                        }
-                                      }
-                                    }
-                                  }));
+                          stateMachine.publishSync(new Trigger<CallbackTask<ByteBuffer, SSLOutputStream>>(this, hs,null,null));
                           break;
                         default:
                           IOUtil.close(sslChannel);
