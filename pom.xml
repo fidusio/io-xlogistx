@@ -51,7 +51,6 @@
       <module>payment</module>
       <module>http-servlet</module>
       <module>http-servlet-shiro</module>
-      <module>assembly</module>
   </modules>
   
   
