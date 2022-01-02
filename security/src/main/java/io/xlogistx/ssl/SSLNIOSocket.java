@@ -16,17 +16,15 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
-import io.xlogistx.common.task.CallbackTask;
+
 
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 
 import org.zoxweb.server.logging.LoggerUtil;
-import org.zoxweb.server.net.DefaultSKController;
-import org.zoxweb.server.net.NIOChannelCleaner;
-import org.zoxweb.server.net.NIOSocket;
-import org.zoxweb.server.net.ProtocolProcessor;
+import org.zoxweb.server.net.*;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.server.task.TaskUtil;
 
 import org.zoxweb.shared.net.InetSocketAddressDAO;
@@ -90,7 +88,7 @@ public class SSLNIOSocket
 	}
 
 
-	private static class TunnelCallback extends SessionCallback
+	private static class TunnelCallback extends SSLSessionCallback
 	{
 		@Override
 		public void exception(Exception e) {
@@ -105,7 +103,7 @@ public class SSLNIOSocket
 			if(buffer != null)
 			{
 				try{
-					ByteBufferUtil.smartWrite(null, config.remoteChannel, buffer);
+					ByteBufferUtil.smartWrite(null, getConfig().remoteChannel, buffer);
 
 				}
 				catch(IOException e)
@@ -148,7 +146,7 @@ public class SSLNIOSocket
 		this(sslContext, ra, new TunnelCallback());
 	}
 
-	public SSLNIOSocket(SSLContext sslContext, InetSocketAddressDAO ra, SessionCallback sessionCallback)
+	public SSLNIOSocket(SSLContext sslContext, InetSocketAddressDAO ra, SSLSessionCallback sessionCallback)
 	{
 		SharedUtil.checkIfNulls("context  can't be null", sslContext);
 		this.sslContext = sslContext;
@@ -210,7 +208,7 @@ public class SSLNIOSocket
 			if(debug) log.info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
-				sslStateMachine.publish(new Trigger<CallbackTask<ByteBuffer, SSLOutputStream>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, sessionCallback));
+				sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChanelOutputStream>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, sessionCallback));
 			}
 			else if (key.channel() == config.remoteChannel && key.channel().isOpen())
 			{

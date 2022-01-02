@@ -1,19 +1,20 @@
 package io.xlogistx.ssl;
 
-import io.xlogistx.common.task.CallbackTask;
 
 
+
+import org.zoxweb.server.net.SessionCallback;
+
+
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 
-public abstract class SessionCallback implements CallbackTask<ByteBuffer, SSLOutputStream>
+public abstract class SSLSessionCallback extends SessionCallback<SSLSessionConfig, ByteBuffer, OutputStream>
 {
-    protected  static final transient Logger log = Logger.getLogger(SessionCallback.class.getName());
-    protected SSLSessionConfig config;
-    final void setConfig(SSLSessionConfig config)
-    {
-        this.config = config;
-    }
+    protected  static final transient Logger log = Logger.getLogger(SSLSessionCallback.class.getName());
+
+
 
     @Override
     public void exception(Exception e) {
@@ -21,9 +22,9 @@ public abstract class SessionCallback implements CallbackTask<ByteBuffer, SSLOut
 
         log.info( e + "");
     }
-    final public SSLOutputStream get()
+    final public OutputStream get()
     {
-        return config.sslos;
+        return getConfig().sslos;
     }
 //    @Override
 //    public void accept(ByteBuffer inBuffer)

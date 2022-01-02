@@ -114,7 +114,7 @@ public class HTTPDownloadServlet
 				throw new FileNotFoundException("File not found " + gnv.getValue());
 			}
 			
-			HTTPMimeType mt = HTTPMimeType.lookupByExtenstion(file.getName());
+			HTTPMimeType mt = HTTPMimeType.lookupByExtension(file.getName());
 			
 			
 			InputStream is = file.toURI().toURL().openStream();

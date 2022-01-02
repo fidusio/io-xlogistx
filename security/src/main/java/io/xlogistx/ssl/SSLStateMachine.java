@@ -1,8 +1,9 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
-import io.xlogistx.common.task.CallbackTask;
 
+
+import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.shared.util.GetName;
 
 import javax.net.ssl.SSLContext;
@@ -90,10 +91,10 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
           }
         };
 
-    TriggerConsumerInt<CallbackTask<ByteBuffer, SSLOutputStream>> closed =
-        new TriggerConsumer<CallbackTask<ByteBuffer, SSLOutputStream>>(SessionState.CLOSE) {
+    TriggerConsumerInt<TaskCallback<ByteBuffer, SSLChanelOutputStream>> closed =
+        new TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>(SessionState.CLOSE) {
           @Override
-          public void accept(CallbackTask<ByteBuffer,SSLOutputStream> callback) {
+          public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
 
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             synchronized (config) {

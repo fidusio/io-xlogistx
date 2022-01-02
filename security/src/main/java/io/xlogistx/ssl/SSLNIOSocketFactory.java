@@ -13,13 +13,17 @@ public class SSLNIOSocketFactory
 
     private InetSocketAddressDAO remoteAddress;
     private SSLContext sslContext;
-    private Class<SessionCallback> scClass;
+    private Class<? extends SSLSessionCallback> scClass;
 
     public SSLNIOSocketFactory()
     {
 
     }
-
+    public SSLNIOSocketFactory(SSLContext sslContext,  Class<? extends SSLSessionCallback> scClass)
+    {
+        this.sslContext = sslContext;
+        this.scClass = scClass;
+    }
 
     public SSLNIOSocketFactory(SSLContext sslContext, InetSocketAddressDAO ra)
     {
@@ -36,7 +40,7 @@ public class SSLNIOSocketFactory
     @Override
     public SSLNIOSocket newInstance()
     {
-        SessionCallback sc = null;
+        SSLSessionCallback sc = null;
         try
         {
             if(scClass != null)
@@ -64,7 +68,7 @@ public class SSLNIOSocketFactory
         {
             if(getProperties().getValue("session_callback") != null)
             {
-                scClass = (Class<SessionCallback>) Class.forName(getProperties().getValue("session_callback"));
+                scClass = (Class<SSLSessionCallback>) Class.forName(getProperties().getValue("session_callback"));
             }
         }
         catch(Exception e)

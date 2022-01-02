@@ -2,7 +2,9 @@ package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
-import io.xlogistx.common.task.CallbackTask;
+
+import org.zoxweb.server.task.TaskCallback;
+
 import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
@@ -62,14 +64,14 @@ public class ReadyState extends State {
 //        }
 //    }
 
-    class NeedUnwrap extends TriggerConsumer<CallbackTask<ByteBuffer, SSLOutputStream>>
+    class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
     {
         NeedUnwrap() {
             super(NEED_UNWRAP);
         }
 
     @Override
-    public void accept(CallbackTask<ByteBuffer, SSLOutputStream> callback) {
+    public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
       if(debug) log.info("" + config.getHandshakeStatus());
       if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen()) {

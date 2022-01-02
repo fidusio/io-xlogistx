@@ -2,11 +2,12 @@ package io.xlogistx.ssl;
 
 
 import io.xlogistx.common.fsm.Trigger;
-import io.xlogistx.common.task.CallbackTask;
+
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 
 import org.zoxweb.server.net.SelectorController;
+import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -21,13 +22,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 class SSLSessionConfig
-implements AutoCloseable
-//        , SKController
+    implements AutoCloseable
 {
     private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
     public static boolean debug = true;
 
-    //private final SSLContext sslContext;
     private final SSLEngine sslEngine; // the crypto engine
 
     volatile ByteBuffer inSSLNetData; // encrypted data
@@ -35,7 +34,7 @@ implements AutoCloseable
     volatile ByteBuffer inAppData; // clear text application data
     volatile ByteBuffer outAppData = null; // data that might be used internally
     volatile SocketChannel sslChannel; // the encrypted channel
-    volatile SSLOutputStream sslos = null;
+    volatile SSLChanelOutputStream sslos = null;
     volatile SelectorController selectorController;
 
     volatile SocketChannel remoteChannel = null;
@@ -78,7 +77,7 @@ implements AutoCloseable
                       {
                         case NEED_WRAP:
                         case NEED_UNWRAP:
-                          stateMachine.publishSync(new Trigger<CallbackTask<ByteBuffer, SSLOutputStream>>(this, hs,null,null));
+                          stateMachine.publishSync(new Trigger<TaskCallback<ByteBuffer, SSLChanelOutputStream>>(this, hs,null,null));
                           break;
                         default:
                           IOUtil.close(sslChannel);
@@ -111,14 +110,6 @@ implements AutoCloseable
     }
 
 
-//    public SSLEngine getSSLEngine(){
-//        return sslEngine;
-//    }
-
-//    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
-//        return sslEngine.wrap(source, destination);
-//    }
-
     public synchronized SSLEngineResult smartWrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
         source.flip();
         SSLEngineResult ret = sslEngine.wrap(source, destination);
@@ -126,13 +117,6 @@ implements AutoCloseable
         source.compact();
         return ret;
     }
-
-
-//    public synchronized SSLEngineResult wrap(ByteBuffer source, ByteBuffer destination) throws SSLException{
-//        return sslEngine.wrap(source, destination);
-//    }
-
-
 
     public synchronized SSLEngineResult smartUnwrap(ByteBuffer source, ByteBuffer destination) throws SSLException
     {
@@ -188,23 +172,4 @@ implements AutoCloseable
         return sslEngine.getDelegatedTask();
     }
 
-
-//    @Override
-//    public void setSelectable(SelectionKey sk, boolean stat) {
-//        //log.info("stat:" + stat + " sk: " + sk);
-//        if (!stat)
-//        {
-//          if (sk.channel() == sslChannel) sslRead.set(stat);
-//          if (sk.channel() == remoteChannel) remoteRead.set(stat);
-//        }
-//    }
-//    public boolean isSelectable(SelectionKey sk)
-//    {
-//        if(sk.channel() == sslChannel)
-//            return sslRead.get();
-//        if(sk.channel() == remoteChannel)
-//            return remoteRead.get();
-//        //log.info("false " + sk);
-//        return true;
-//    }
 }

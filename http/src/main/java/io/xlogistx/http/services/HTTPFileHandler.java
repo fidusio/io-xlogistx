@@ -92,7 +92,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
                     filename = override;
                 }
             }
-            HTTPMimeType mime = HTTPMimeType.lookupByExtenstion(filename);
+            HTTPMimeType mime = HTTPMimeType.lookupByExtension(filename);
 //            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
 
             UByteArrayOutputStream content = lookupContent(filename);

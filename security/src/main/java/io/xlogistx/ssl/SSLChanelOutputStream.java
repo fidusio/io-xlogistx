@@ -13,16 +13,16 @@ import java.util.logging.Logger;
 
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
 
-public class SSLOutputStream extends OutputStream {
-    private static final transient Logger log = Logger.getLogger(SSLOutputStream.class.getName());
+public class SSLChanelOutputStream extends OutputStream {
+    private static final transient Logger log = Logger.getLogger(SSLChanelOutputStream.class.getName());
     public static boolean debug = false;
 
     private final SSLSessionConfig config;
-    protected SSLOutputStream(SSLSessionConfig config, boolean createBuffer)
+    protected SSLChanelOutputStream(SSLSessionConfig config, int outAppBufferSize)
     {
         this.config = config;
-        if(createBuffer && config.outAppData == null)
-            config.outAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, 2048);
+        if(outAppBufferSize > 0 && config.outAppData == null)
+            config.outAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, outAppBufferSize);
     }
 
     @Override
@@ -32,18 +32,22 @@ public class SSLOutputStream extends OutputStream {
     }
 
 
-    public void write(byte b[], int off, int len) throws IOException {
+    public synchronized void write(byte b[], int off, int len) throws IOException
+    {
         if (off > b.length || len > (b.length - off) || off < 0 || len < 0)
             throw new IndexOutOfBoundsException();
 
         // len == 0 condition implicitly handled by loop bounds
-       for(int i = off; i < len;)
+       for(; off < len;)
        {
-           int tempLen = len;
-           if(len - i > config.outAppData.capacity() - config.outAppData.position())
+           int tempLen = len - off;
+           if(tempLen > (config.outAppData.capacity() - config.outAppData.position()))
                tempLen = config.outAppData.capacity() - config.outAppData.position();
+
+
            config.outAppData.put(b, off, tempLen);
-           i+= write(config.outAppData);
+           write(config.outAppData);
+           off += tempLen;
        }
     }
 
@@ -52,8 +56,8 @@ public class SSLOutputStream extends OutputStream {
 
     /**
      *
-     * @param bb unencrypted to be encrypted and sent over the wire the wire
-     * @return
+     * @param bb unencrypted to be encrypted and sent over the wire
+     * @return the number of ecnrypted data sent
      * @throws IOException
      */
     public int write(ByteBuffer bb) throws IOException
