@@ -19,7 +19,7 @@ public class HandshakingState extends State {
     private static final transient Logger log = Logger.getLogger(HandshakingState.class.getName());
     public static boolean debug = false;
 
-    static class NeedWrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    static class NeedWrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         //private UByteArrayOutputStream baos = new UByteArrayOutputStream(512);
         NeedWrap() {
@@ -27,7 +27,7 @@ public class HandshakingState extends State {
         }
 
     @Override
-    public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
+    public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
       if (config.getHandshakeStatus() == NEED_WRAP)
       {
@@ -67,14 +67,14 @@ public class HandshakingState extends State {
         }
     }
 
-    static class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    static class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         NeedUnwrap() {
             super("NEED_UNWRAP", "NEED_UNWRAP_AGAIN");
         }
 
     @Override
-    public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
+    public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
         if(debug) log.info("" + config.getHandshakeStatus());
       if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN")) {
@@ -146,14 +146,14 @@ public class HandshakingState extends State {
 
 
 
-    static class NeedTask extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    static class NeedTask extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         NeedTask() {
             super(NEED_TASK);
         }
 
         @Override
-        public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
+        public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             Runnable toRun;
             /*= config.getDelegatedTask();
@@ -172,14 +172,14 @@ public class HandshakingState extends State {
 
 
 
-    static class Finished extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    static class Finished extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         Finished() {
             super(FINISHED);
         }
 
         @Override
-        public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
+        public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();
             if (status != NOT_HANDSHAKING)
@@ -189,18 +189,18 @@ public class HandshakingState extends State {
     }
 
 
-    static class NotHandshaking extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    static class NotHandshaking extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         NotHandshaking() {
             super(NOT_HANDSHAKING);
         }
 
         @Override
-        public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback)
+        public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
         {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             // VERY CRUCIAL STEP TO BE PERFORMED
-            config.sslos = new SSLChanelOutputStream(config, 512 );
+            config.sslos = new SSLChannelOutputStream(config, 512 );
             publishSync(POST_HANDSHAKE, config);
 
             if (config.inSSLNetData.position() > 0)
@@ -214,21 +214,21 @@ public class HandshakingState extends State {
     }
 
 
-    class Combined extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    class Combined extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         Combined()
         {
             super(NEED_UNWRAP, NEED_UNWRAP, FINISHED, NOT_HANDSHAKING);
         }
         @Override
-        public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
+        public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
           handshake(callback);
 
         }
     }
 
 
-    void handshake(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback){
+    void handshake(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback){
         SSLSessionConfig config = (SSLSessionConfig)getStateMachine().getConfig();
         SSLEngineResult.HandshakeStatus status;
 
@@ -346,7 +346,7 @@ public class HandshakingState extends State {
 
         if (!config.isClosed() && config.sslos == null)
         {
-            config.sslos = new SSLChanelOutputStream(config, 512);
+            config.sslos = new SSLChannelOutputStream(config, 512);
             getStateMachine().publishSync(new Trigger(this, SharedUtil.enumName(POST_HANDSHAKE), config));
 
             if (config.inSSLNetData.position() > 0) {

@@ -13,7 +13,7 @@ import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPStatusCode;
-import org.zoxweb.shared.net.InetSocketAddressDAO;
+
 import org.zoxweb.shared.util.*;
 
 import javax.net.ssl.SSLContext;
@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 public class MiniHTTPServer
     extends SSLSessionCallback
 {
+    public static boolean debug = false;
     UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
     @Override
     public void accept(ByteBuffer inBuffer) {
@@ -32,7 +33,7 @@ public class MiniHTTPServer
             try{
 
                 ByteBufferUtil.write(inBuffer, ubaos, true);
-                //log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
+                if(debug) log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
                 HTTPRawMessage hrm = new HTTPRawMessage(ubaos);
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
 
@@ -49,14 +50,14 @@ public class MiniHTTPServer
 
 //                ByteBufferUtil.write(ubaos, config.outAppData);
 
-                //log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
+                if(debug) log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
 //                get().write(config.outAppData);
 
             }
             catch(Exception e)
             {
                 e.printStackTrace();
-                log.info(""+e);
+                if (debug) log.info(""+e);
                 // we should close
 
             }
@@ -82,7 +83,6 @@ public class MiniHTTPServer
             String keystore = args[index++];
             String ksType = args[index++];
             String ksPassword = args[index++];
-            InetSocketAddressDAO remoteAddress = index < args.length ? new InetSocketAddressDAO(args[index++]) : null;
             boolean dbg = (index < args.length);
             if(dbg)
             {
@@ -91,6 +91,7 @@ public class MiniHTTPServer
                 HandshakingState.debug = true;
                 StateMachine.debug = true;
                 TriggerConsumer.debug = true;
+
             }
             else
             {

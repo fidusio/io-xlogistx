@@ -64,14 +64,14 @@ public class ReadyState extends State {
 //        }
 //    }
 
-    class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChanelOutputStream>>
+    class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         NeedUnwrap() {
             super(NEED_UNWRAP);
         }
 
     @Override
-    public void accept(TaskCallback<ByteBuffer, SSLChanelOutputStream> callback) {
+    public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
       if(debug) log.info("" + config.getHandshakeStatus());
       if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen()) {

@@ -32,9 +32,9 @@ class SSLSessionConfig
     volatile ByteBuffer inSSLNetData; // encrypted data
     volatile ByteBuffer outSSLNetData; // encrypted data
     volatile ByteBuffer inAppData; // clear text application data
-    volatile ByteBuffer outAppData = null; // data that might be used internally
+    //volatile ByteBuffer outAppData = null; // data that might be used internally
     volatile SocketChannel sslChannel; // the encrypted channel
-    volatile SSLChanelOutputStream sslos = null;
+    volatile SSLChannelOutputStream sslos = null;
     volatile SelectorController selectorController;
 
     volatile SocketChannel remoteChannel = null;
@@ -77,7 +77,7 @@ class SSLSessionConfig
                       {
                         case NEED_WRAP:
                         case NEED_UNWRAP:
-                          stateMachine.publishSync(new Trigger<TaskCallback<ByteBuffer, SSLChanelOutputStream>>(this, hs,null,null));
+                          stateMachine.publishSync(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, hs,null,null));
                           break;
                         default:
                           IOUtil.close(sslChannel);
@@ -97,7 +97,8 @@ class SSLSessionConfig
             selectorController.cancelSelectionKey(sslChannel);
             selectorController.cancelSelectionKey(remoteChannel);
             stateMachine.close();
-            ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData, outAppData);
+            ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
+            IOUtil.close(sslos);
 
             if(debug) log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
         }

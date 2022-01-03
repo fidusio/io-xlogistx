@@ -208,7 +208,7 @@ public class SSLNIOSocket
 			if(debug) log.info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
-				sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChanelOutputStream>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, sessionCallback));
+				sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, sessionCallback));
 			}
 			else if (key.channel() == config.remoteChannel && key.channel().isOpen())
 			{
