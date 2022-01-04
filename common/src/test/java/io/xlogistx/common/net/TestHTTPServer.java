@@ -15,7 +15,7 @@ import org.zoxweb.shared.util.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-public class SimpleHTTPServer
+public class TestHTTPServer
 extends PlainSessionCallback
 {
     public static boolean debug = false;
@@ -35,27 +35,25 @@ extends PlainSessionCallback
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
                 if(hmci != null)
                 {
-
-
                     NVGenericMap nvgm = new NVGenericMap();
                     nvgm.add("string", "hello");
                     nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
                     nvgm.add(new NVBoolean("bool", true));
                     nvgm.add(new NVFloat("float", (float) 12.43534));
 
-                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), null);
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), ubaos);
 
                     get().write(resp.getInternalBuffer(), 0, resp.size());
                     IOUtil.close(get());
                 }
-//                else
-//                    log.info("MISSING message");
-
-//                ByteBufferUtil.write(ubaos, config.outAppData);
+                else
+                {
+                    log.info("Message not complete yet");
+                }
 
                 if (debug)
                     log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
-//                get().write(config.outAppData);
+
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -80,7 +78,7 @@ extends PlainSessionCallback
             //TaskUtil.setThreadMultiplier(8);
 
 
-            new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(SimpleHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
+            new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(TestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
         }
         catch(Exception e)
         {

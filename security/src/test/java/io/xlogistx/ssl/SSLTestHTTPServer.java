@@ -20,53 +20,54 @@ import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-public class MiniHTTPServer
+public class SSLTestHTTPServer
     extends SSLSessionCallback
 {
     public static boolean debug = false;
     UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
-    @Override
+    HTTPRawMessage hrm = new HTTPRawMessage(ubaos);
     public void accept(ByteBuffer inBuffer) {
         // data handling
-        if(inBuffer != null)
-        {
-            try{
+        String msg = "" + inBuffer;
+        UByteArrayOutputStream resp = null;
+        if (inBuffer != null) {
+            try {
 
                 ByteBufferUtil.write(inBuffer, ubaos, true);
-                if(debug) log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
-                HTTPRawMessage hrm = new HTTPRawMessage(ubaos);
+//                if (debug)
+//                    log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
+                if(hmci != null)
+                {
+                    NVGenericMap nvgm = new NVGenericMap();
+                    nvgm.add("string", "hello");
+                    nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
+                    nvgm.add(new NVBoolean("bool", true));
+                    nvgm.add(new NVFloat("float", (float) 12.43534));
+
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), ubaos);
+
+                    get().write(resp.getInternalBuffer(), 0, resp.size());
+                    IOUtil.close(get());
+                }
+                else
+                {
+                    log.info("Message not complete yet");
+                }
+
+//                if (debug)
+//                    log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
 
 
-                NVGenericMap nvgm = new NVGenericMap();
-                nvgm.add("string", "hello");
-                nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
-                nvgm.add(new NVBoolean("bool", true));
-                nvgm.add(new NVFloat("float", (float) 12.43534));
-
-                HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), ubaos);
-
-                get().write(ubaos.getInternalBuffer(), 0, ubaos.size());
-
-//                ByteBufferUtil.write(ubaos, config.outAppData);
-
-                if(debug) log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
-//                get().write(config.outAppData);
-
-            }
-            catch(Exception e)
-            {
+            } catch (Exception e) {
                 e.printStackTrace();
-                if (debug) log.info(""+e);
+                log.info("" + e + " " + msg  + " " + resp);
+                IOUtil.close(get());
                 // we should close
 
             }
-            finally {
-                IOUtil.close(get());
-            }
 
         }
-
     }
 
     public static void main(String ...args)
@@ -103,7 +104,7 @@ public class MiniHTTPServer
             //TaskUtil.setThreadMultiplier(4);
             SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
-            new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(sslContext, MiniHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
+            new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(sslContext, SSLTestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
         }
         catch(Exception e)
         {
