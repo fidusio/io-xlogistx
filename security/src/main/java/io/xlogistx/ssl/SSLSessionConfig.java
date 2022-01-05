@@ -27,32 +27,34 @@ class SSLSessionConfig
     private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
     public static boolean debug = true;
 
-    private final SSLEngine sslEngine; // the crypto engine
 
-    volatile ByteBuffer inSSLNetData; // encrypted data
-    volatile ByteBuffer outSSLNetData; // encrypted data
-    volatile ByteBuffer inAppData; // clear text application data
-    //volatile ByteBuffer outAppData = null; // data that might be used internally
-    volatile SocketChannel sslChannel; // the encrypted channel
+
+    volatile ByteBuffer inSSLNetData = null ; // encrypted data
+    volatile ByteBuffer outSSLNetData = null; // encrypted data
+    volatile ByteBuffer inAppData = null; // clear text application data
+    volatile SocketChannel sslChannel = null; // the encrypted channel
     volatile SSLChannelOutputStream sslos = null;
-    volatile SelectorController selectorController;
+    volatile SelectorController selectorController = null;
 
     volatile SocketChannel remoteChannel = null;
     volatile ByteBuffer inRemoteData = null;
-    volatile SSLStateMachine stateMachine;
+    volatile SSLStateMachine stateMachine = null;
     volatile boolean forcedClose = false;
-    volatile InetSocketAddressDAO remoteAddress;
+    volatile InetSocketAddressDAO remoteAddress = null;
 
     final Lock ioLock = new ReentrantLock();
-
+    private final SSLEngine sslEngine; // the crypto engine
 
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
+    private final AtomicBoolean hasBegan = new AtomicBoolean(false);
+
     public SSLSessionConfig(SSLContext sslContext)
     {
         SharedUtil.checkIfNulls("sslContext null", sslContext);
         this.sslEngine = sslContext.createSSLEngine();
     }
+
     @Override
     public void close() {
         boolean stat = isClosed.getAndSet(true);
@@ -140,10 +142,14 @@ class SSLSessionConfig
 
 
     public synchronized void beginHandshake() throws SSLException {
-        sslEngine.beginHandshake();
-        inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
-        outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
-        inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
+        if (!hasBegan.get())
+        {
+            sslEngine.beginHandshake();
+            inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+            outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+            inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
+            hasBegan.getAndSet(true);
+        }
     }
 
 

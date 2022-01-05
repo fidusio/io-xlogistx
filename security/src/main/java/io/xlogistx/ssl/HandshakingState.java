@@ -29,10 +29,13 @@ public class HandshakingState extends State {
     @Override
     public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
+
       if (config.getHandshakeStatus() == NEED_WRAP)
       {
+
             try
             {
+
               SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outSSLNetData); // at handshake stage, data in appOut won't be
               // processed hence dummy buffer
               if (debug) log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
@@ -47,7 +50,8 @@ public class HandshakingState extends State {
               int written =
                   ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData);
 
-                    if (debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
+
+              if (debug) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
                   publishSync(result.getHandshakeStatus(), callback);
                   break;
                 case CLOSED:
@@ -59,8 +63,10 @@ public class HandshakingState extends State {
             }
             catch (Exception e)
             {
-              log.info(""+e);
-              config.close();
+                if(debug) e.printStackTrace();
+
+
+                config.close();
               //publishSync(SSLStateMachine.SessionState.CLOSE, callback);
             }
           }
@@ -132,12 +138,18 @@ public class HandshakingState extends State {
                     break;
                 }
               }
-            } catch (Exception e) {
-              log.info(""+e);
-              config.close();
+        }
+        catch (Exception e)
+        {
+            if(debug)
+                e.printStackTrace();
+            else
+                log.info(""+e);
+            config.close();
+
 //              publishSync(SSLStateMachine.SessionState.CLOSE, callback);
 //              if(callback != null)callback.exception(e);
-            }
+        }
       }
         }
     }

@@ -29,6 +29,7 @@ import org.zoxweb.server.task.TaskUtil;
 
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 
+import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLContext;
@@ -62,7 +63,7 @@ public class SSLNIOSocket
 		@Override
 		public void accept(SSLSessionConfig config)
 		{
-			if(config.remoteAddress != null &&config.inRemoteData == null)
+			if(config.remoteAddress != null && config.inRemoteData == null)
 			{
 				synchronized (config)
 				{
@@ -126,8 +127,8 @@ public class SSLNIOSocket
 
 
 
-	private SSLStateMachine sslStateMachine = null;
-	private SSLSessionConfig config = null;
+	private volatile SSLStateMachine sslStateMachine = null;
+	private volatile SSLSessionConfig config = null;
 	final public InetSocketAddressDAO remoteAddress;
 
 
@@ -200,7 +201,7 @@ public class SSLNIOSocket
 				config.beginHandshake();
 				sessionCallback.setConfig(config);
 
-				if(debug) log.info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+				//log.info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			}
 
 
@@ -271,15 +272,15 @@ public class SSLNIOSocket
     	LoggerUtil.enableDefaultLogger("io.xlogistx");
 		try
 		{
-			//SSLContext clientContext = SSLContext.getInstance("TLS",new BouncyCastleProvider());
-			//Security.addProvider(new BouncyCastleJsseProvider());
-			int index = 0;
-			int port = Integer.parseInt(args[index++]);
-			String keystore = args[index++];
-			String ksType = args[index++];
-			String ksPassword = args[index++];
-			InetSocketAddressDAO remoteAddress = index < args.length ? new InetSocketAddressDAO(args[index++]) : null;
-			boolean dbg = (index < args.length);
+			ParamUtil.ParamMap params = ParamUtil.parse("-", args);
+			int port = params.intValue("-port");
+			String keystore = params.stringValue("-keystore");
+			String ksType = params.stringValue("-kstype");
+			String ksPassword = params.stringValue("-kspassword");
+			boolean dbg = params.nameExists("-dbg");
+			String ra =  params.stringValue("-ra", true);
+			InetSocketAddressDAO remoteAddress = ra != null ? new InetSocketAddressDAO(ra) : null;
+
 			if(dbg)
 			{
 				SSLStateMachine.debug = true;
@@ -298,7 +299,7 @@ public class SSLNIOSocket
 			//TaskUtil.setThreadMultiplier(4);
 			SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
-			new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(sslContext, remoteAddress), TaskUtil.getDefaultTaskProcessor());
+			new NIOSocket(new InetSocketAddress(port), 512, new SSLNIOSocketFactory(sslContext, remoteAddress), TaskUtil.getDefaultTaskProcessor());
 		}
 		catch(Exception e)
 		{

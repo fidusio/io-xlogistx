@@ -64,9 +64,8 @@ public class SSLTestHTTPServer
                 log.info("" + e + " " + msg  + " " + resp);
                 IOUtil.close(get());
                 // we should close
-
             }
-
+            //log.info(""+ ByteBufferUtil.cacheCount() + ", " + ByteBufferUtil.cacheCapacity());
         }
     }
 
@@ -77,14 +76,13 @@ public class SSLTestHTTPServer
         LoggerUtil.enableDefaultLogger("io.xlogistx");
         try
         {
-            //SSLContext clientContext = SSLContext.getInstance("TLS",new BouncyCastleProvider());
-            //Security.addProvider(new BouncyCastleJsseProvider());
-            int index = 0;
-            int port = Integer.parseInt(args[index++]);
-            String keystore = args[index++];
-            String ksType = args[index++];
-            String ksPassword = args[index++];
-            boolean dbg = (index < args.length);
+
+            ParamUtil.ParamMap params = ParamUtil.parse("-", args);
+            int port = params.intValue("-port");
+            String keystore = params.stringValue("-keystore");
+            String ksType = params.stringValue("-kstype");
+            String ksPassword = params.stringValue("-kspassword");
+            boolean dbg = params.nameExists("-dbg");
             if(dbg)
             {
                 SSLStateMachine.debug = true;
@@ -108,9 +106,11 @@ public class SSLTestHTTPServer
         }
         catch(Exception e)
         {
+
             e.printStackTrace();
             TaskUtil.getDefaultTaskScheduler().close();
             TaskUtil.getDefaultTaskProcessor().close();
+            System.err.println("-port 8443 -keystore web.xlogistx.io.jks -kstype pkcs12 -kspassword password -ra 10.0.0.1:80");
         }
     }
 
