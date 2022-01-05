@@ -69,8 +69,12 @@ public class NIOPlainSocket
 	@Override
 	public void close() throws IOException
     {
-		IOUtil.close(sourceChannel);
-		IOUtil.close(sessionCallback.get());
+		if(!isClosed.getAndSet(true))
+		{
+			IOUtil.close(sourceChannel);
+			IOUtil.close(sessionCallback.get());
+			ByteBufferUtil.cache(sourceBB);
+		}
 	}
 
 
@@ -101,7 +105,6 @@ public class NIOPlainSocket
 			int read = 0 ;
     		do
             {
-
 				sourceBB.clear();
 				read = sourceChannel.read(sourceBB);
 

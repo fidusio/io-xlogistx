@@ -20,7 +20,7 @@ public class StateMachine<C>
     private final TaskSchedulerProcessor tsp;
     private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
     private Map<String, StateInt<?>> states = new LinkedHashMap<String, StateInt<?>>();
-    volatile private C config;
+    private C config;
     final private Executor executor;
     private volatile boolean isClosed = false;
 

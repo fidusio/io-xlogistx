@@ -33,7 +33,7 @@ class SSLSessionConfig
     volatile ByteBuffer outSSLNetData = null; // encrypted data
     volatile ByteBuffer inAppData = null; // clear text application data
     volatile SocketChannel sslChannel = null; // the encrypted channel
-    volatile SSLChannelOutputStream sslos = null;
+    volatile SSLChannelOutputStream sslOutputStream = null;
     volatile SelectorController selectorController = null;
 
     volatile SocketChannel remoteChannel = null;
@@ -69,10 +69,11 @@ class SSLSessionConfig
 
             if(sslEngine != null)
             {
-                sslEngine.closeOutbound();
+
                 try
                 {
-                    while (!sslEngine.isOutboundDone() && sslChannel.isOpen() && !forcedClose)
+                    sslEngine.closeOutbound();
+                    while (!forcedClose && hasBegan.get() && !sslEngine.isOutboundDone() && sslChannel.isOpen())
                     {
                       SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
                       switch (hs)
@@ -100,7 +101,7 @@ class SSLSessionConfig
             selectorController.cancelSelectionKey(remoteChannel);
             stateMachine.close();
             ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
-            IOUtil.close(sslos);
+            IOUtil.close(sslOutputStream);
 
             if(debug) log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
         }
@@ -148,6 +149,7 @@ class SSLSessionConfig
             inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
             outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
             inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
+            // at the end for a reason to make at the execution transactional
             hasBegan.getAndSet(true);
         }
     }

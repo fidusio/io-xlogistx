@@ -11,6 +11,6 @@ public abstract class SSLSessionCallback extends BaseSessionCallback<SSLSessionC
 
     final public OutputStream get()
     {
-        return getConfig().sslos;
+        return getConfig().sslOutputStream;
     }
 }

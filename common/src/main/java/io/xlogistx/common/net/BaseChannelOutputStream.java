@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public abstract class BaseChannelOutputStream extends OutputStream {
@@ -14,6 +15,7 @@ public abstract class BaseChannelOutputStream extends OutputStream {
 
     protected final ByteChannel outChannel;
     protected final ByteBuffer outAppData;
+    protected final AtomicBoolean isClosed = new AtomicBoolean(false);
     public BaseChannelOutputStream(ByteChannel config, int outAppBufferSize)
     {
         this.outChannel = config;

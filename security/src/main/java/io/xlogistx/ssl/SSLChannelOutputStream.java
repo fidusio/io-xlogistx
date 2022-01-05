@@ -33,29 +33,21 @@ public class SSLChannelOutputStream extends BaseChannelOutputStream {
         int written = -1;
         if (config.getHandshakeStatus() == NOT_HANDSHAKING)
         {
-//            try {
-                SSLEngineResult result = config.smartWrap(bb, config.outSSLNetData); // at handshake stage, data in appOut won't be
+            SSLEngineResult result = config.smartWrap(bb, config.outSSLNetData); // at handshake stage, data in appOut won't be
+            if(debug)
+                log.info("AFTER-NEED_WRAP-PROCESSING: " + result);
 
-                if(debug) log.info("AFTER-NEED_WRAP-PROCESSING: " + result);
-
-                switch (result.getStatus()) {
-                    case BUFFER_UNDERFLOW:
-                    case BUFFER_OVERFLOW:
-                        throw new IOException(result.getStatus() + " invalid state context");
-                    case OK:
-                       written = ByteBufferUtil.smartWrite(config.ioLock, outChannel, config.outSSLNetData);
-                        break;
-                    case CLOSED:
-                       throw new IOException("Closed");
-                }
-
-//            } catch (IOException e) {
-//
-//
-//                close();
-//                throw e;
-//                //publish(SSLStateMachine.SessionState.CLOSE, callback);
-//            }
+            switch (result.getStatus())
+            {
+                case BUFFER_UNDERFLOW:
+                case BUFFER_OVERFLOW:
+                    throw new IOException(result.getStatus() + " invalid state context");
+                case OK:
+                   written = ByteBufferUtil.smartWrite(config.ioLock, outChannel, config.outSSLNetData);
+                    break;
+                case CLOSED:
+                   throw new IOException("Closed");
+            }
         }
         else
         {
@@ -67,8 +59,11 @@ public class SSLChannelOutputStream extends BaseChannelOutputStream {
 
     public void close()
     {
-        config.close();
-        ByteBufferUtil.cache(outAppData);
+        if(!isClosed.getAndSet(true))
+        {
+            config.close();
+            ByteBufferUtil.cache(outAppData);
+        }
     }
 
 }

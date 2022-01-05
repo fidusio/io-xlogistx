@@ -103,9 +103,9 @@ public class SSLNIOSocket
 			// data handling
 			if(buffer != null)
 			{
-				try{
+				try
+				{
 					ByteBufferUtil.smartWrite(null, getConfig().remoteChannel, buffer);
-
 				}
 				catch(IOException e)
 				{
@@ -122,23 +122,11 @@ public class SSLNIOSocket
 
 
     private static final transient Logger log = Logger.getLogger(SSLNIOSocket.class.getName());
-
 	public static boolean debug = false;
-
-
-
-	private volatile SSLStateMachine sslStateMachine = null;
-	private volatile SSLSessionConfig config = null;
+	private SSLStateMachine sslStateMachine = null;
+	private SSLSessionConfig config = null;
 	final public InetSocketAddressDAO remoteAddress;
-
-
-
-
-
 	final private SSLContext sslContext;
-
-
-
 	private final SessionCallback sessionCallback;
 
 	public SSLNIOSocket(SSLContext sslContext, InetSocketAddressDAO ra)
@@ -182,11 +170,6 @@ public class SSLNIOSocket
 
 	}
 
-
-
-
-
-
 	@Override
 	public  void accept(SelectionKey key)
 	{
@@ -200,7 +183,6 @@ public class SSLNIOSocket
 				config.setUseClientMode(false);
 				config.beginHandshake();
 				sessionCallback.setConfig(config);
-
 				//log.info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			}
 
@@ -214,28 +196,20 @@ public class SSLNIOSocket
 			else if (key.channel() == config.remoteChannel && key.channel().isOpen())
 			{
 				int bytesRead = config.remoteChannel.read(config.inRemoteData);
-				if (bytesRead == -1) {
-
+				if (bytesRead == -1)
+				{
 					if (debug) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: "+ config.getHandshakeStatus()	+ " bytesread: "+ bytesRead);
 					config.close();
 					return;
 				}
-				config.sslos.write(config.inRemoteData);
+				config.sslOutputStream.write(config.inRemoteData);
 			}
-
-
-    		
-
     	}
     	catch(Exception e)
     	{
     		e.printStackTrace();
-
-
     		close();
-
     		log.info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.availableThreads(getExecutor()));
-    		
     	}
 		if(debug) log.info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" + TaskUtil.availableThreads(getExecutor()));
 	}
