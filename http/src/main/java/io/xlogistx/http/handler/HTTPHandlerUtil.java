@@ -136,7 +136,7 @@ public class HTTPHandlerUtil {
     // parse the query parameters if they are set in the body
     if (!SharedStringUtil.isEmpty(uri.getQuery()))
     {
-      List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery());
+      List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery(), false);
 
       if(queryParameters != null && queryParameters.size() > 0)
       {
@@ -154,7 +154,7 @@ public class HTTPHandlerUtil {
     if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMimeType.APPLICATION_WWW_URL_ENC)
     {
       payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
-      List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload);
+      List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload, false);
 
       if(payloadParameters != null && payloadParameters.size() > 0)
       {

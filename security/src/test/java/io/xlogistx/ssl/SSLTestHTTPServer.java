@@ -37,7 +37,7 @@ public class SSLTestHTTPServer
 //                if (debug)
 //                    log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
-                if(hmci != null)
+                if(hrm.isMessageComplete())
                 {
                     NVGenericMap nvgm = new NVGenericMap();
                     nvgm.add("string", "hello");

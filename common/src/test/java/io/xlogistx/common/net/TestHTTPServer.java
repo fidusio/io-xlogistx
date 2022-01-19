@@ -14,50 +14,76 @@ import org.zoxweb.shared.util.*;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TestHTTPServer
 extends PlainSessionCallback
 {
-    public static boolean debug = false;
-    UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
-    HTTPRawMessage hrm = new HTTPRawMessage(ubaos);
+    public static boolean debug = true;
+    public final static AtomicLong time = new AtomicLong(0);
+    public final static AtomicLong counter = new AtomicLong(0);
+    //UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
+    final static AtomicLong ts =  new AtomicLong(0);
+
+    HTTPRawMessage hrm = new HTTPRawMessage(new UByteArrayOutputStream(256));
     @Override
     public void accept(ByteBuffer inBuffer) {
         // data handling
-        String msg = "" + inBuffer;
+        //String msg = "" + inBuffer;
+        if( ts.get() == 0 )
+        {
+            synchronized (ts)
+            {
+                if (ts.get() == 0)
+                {
+                    ts.set(System.nanoTime());
+                }
+            }
+        }
         UByteArrayOutputStream resp = null;
+
         if (inBuffer != null) {
             try {
 
-               ByteBufferUtil.write(inBuffer, ubaos, true);
-                if (debug)
-                    log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
+               ByteBufferUtil.write(inBuffer, hrm.getUBAOS(), true);
+
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
-                if(hmci != null)
+                if(hrm.isMessageComplete())
                 {
+                    if (debug) {
+                        log.info("incoming data\n" + SharedStringUtil.toString(hrm.getUBAOS().getInternalBuffer(), 0, hrm.getUBAOS().size()));
+                        log.info("" + hmci);
+                    }
                     NVGenericMap nvgm = new NVGenericMap();
                     nvgm.add("string", "hello");
                     nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
                     nvgm.add(new NVBoolean("bool", true));
                     nvgm.add(new NVFloat("float", (float) 12.43534));
 
-                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), ubaos);
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), hrm.getUBAOS());
 
                     get().write(resp.getInternalBuffer(), 0, resp.size());
                     IOUtil.close(get());
+
+                    if (counter.incrementAndGet() %1000 == 0) {
+                        long sample = System.nanoTime();
+                        time.addAndGet(sample - ts.get());
+                        ts.set(0);
+                    }
+                    if (debug)
+                        log.info("data to be sent \n" + SharedStringUtil.toString(resp.getInternalBuffer(), 0, resp.size()));
                 }
                 else
                 {
                     log.info("Message not complete yet");
                 }
 
-                if (debug)
-                    log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
+
 
 
             } catch (Exception e) {
                 e.printStackTrace();
-                log.info("" + e + " " + msg + " " + ((ChannelOutputStream)get()).outAppData + " " + resp);
+                log.info("" + e + " "  + " " + ((ChannelOutputStream)get()).outAppData + " " + resp);
                 IOUtil.close(get());
                 // we should close
 
@@ -79,6 +105,16 @@ extends PlainSessionCallback
 
 
             new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(TestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
+            TaskUtil.getDefaultTaskScheduler().queue(Const.TimeInMillis.SECOND.MILLIS * 30, new Runnable() {
+                @Override
+                public void run() {
+                    long c = counter.get();
+                    long nanos = time.get();
+                    float rate = (float)c/(float)nanos;
+                    log.info("rate: " + rate*1000000000);
+                    log.info("nanos: " + nanos + " count: " + c);
+                    TaskUtil.getDefaultTaskScheduler().queue(Const.TimeInMillis.SECOND.MILLIS*30, this);
+            }});
         }
         catch(Exception e)
         {
