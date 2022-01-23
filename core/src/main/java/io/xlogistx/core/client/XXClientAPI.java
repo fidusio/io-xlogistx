@@ -81,8 +81,8 @@ public class XXClientAPI {
         HTTPMessageConfigInterface hmciToUse = HTTPMessageConfig
             .createAndInit(hmci.getURL(), hmci.getURI(), hmci.getMethod(),
                 hmci.isSecureCheckEnabled());
-        for (GetNameValue<String> gnv : hmci.getHeaderParameters().values()) {
-          hmciToUse.getHeaderParameters().add(gnv);
+        for (GetNameValue<String> gnv : hmci.getHeaders().values()) {
+          hmciToUse.getHeaders().add(gnv);
         }
 
         for (GetNameValue<String> gnv : hmci.getParameters().values()) {

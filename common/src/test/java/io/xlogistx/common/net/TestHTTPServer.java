@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TestHTTPServer
 extends PlainSessionCallback
 {
-    public static boolean debug = true;
+    public static boolean debug = false;
     public final static AtomicLong time = new AtomicLong(0);
     public final static AtomicLong counter = new AtomicLong(0);
     //UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);

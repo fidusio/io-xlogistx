@@ -10,6 +10,7 @@ import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 import static io.xlogistx.ssl.SSLStateMachine.SessionState.POST_HANDSHAKE;
@@ -18,6 +19,8 @@ import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 public class HandshakingState extends State {
     private static final transient Logger log = Logger.getLogger(HandshakingState.class.getName());
     public static boolean debug = false;
+
+    private static AtomicLong counter = new AtomicLong(0);
 
     static class NeedWrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
@@ -351,6 +354,7 @@ public class HandshakingState extends State {
 
     public HandshakingState() {
         super(SSLStateMachine.SessionState.HANDSHAKING);
+        counter.incrementAndGet();
         register(new NeedTask())
                 .register(new NeedWrap())
                 .register(new NeedUnwrap())
