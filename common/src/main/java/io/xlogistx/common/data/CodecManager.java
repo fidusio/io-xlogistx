@@ -20,7 +20,7 @@ public class CodecManager<V extends MessageCodec>
     public CodecManager add(V mc) {
         synchronized (map)
         {
-            map.put(mc.getName(), mc);
+            map.put(nameFilter.validate(mc.getName()), mc);
         }
         return this;
     }
