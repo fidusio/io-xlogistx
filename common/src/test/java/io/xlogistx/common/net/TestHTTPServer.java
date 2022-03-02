@@ -1,5 +1,6 @@
 package io.xlogistx.common.net;
 
+import io.xlogistx.common.http.URIMap;
 import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -24,6 +25,7 @@ extends PlainSessionCallback
     public final static AtomicLong counter = new AtomicLong(0);
     //UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
     final static AtomicLong ts =  new AtomicLong(0);
+    final static URIMap<String> uriMap = new URIMap<>();
 
     HTTPRawMessage hrm = new HTTPRawMessage(new UByteArrayOutputStream(256));
     @Override
@@ -48,11 +50,13 @@ extends PlainSessionCallback
                ByteBufferUtil.write(inBuffer, hrm.getUBAOS(), true);
 
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
+                String match = uriMap.lookup(hmci.getURI());
                 if(hrm.isMessageComplete())
                 {
                     if (debug) {
                         log.info("incoming data\n" + SharedStringUtil.toString(hrm.getUBAOS().getInternalBuffer(), 0, hrm.getUBAOS().size()));
                         log.info("" + hmci);
+                        log.info("uriMatch : "+ match);
                     }
                     NVGenericMap nvgm = new NVGenericMap();
                     nvgm.add("string", "hello");
@@ -102,6 +106,8 @@ extends PlainSessionCallback
             int port = Integer.parseInt(args[index++]);
 
             //TaskUtil.setThreadMultiplier(8);
+            uriMap.put("/hello", "/hello found");
+            uriMap.put("/", "/ found");
 
 
             new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(TestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
