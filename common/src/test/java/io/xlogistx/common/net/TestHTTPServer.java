@@ -44,28 +44,38 @@ extends PlainSessionCallback
         }
         UByteArrayOutputStream resp = null;
 
-        if (inBuffer != null) {
-            try {
+        if (inBuffer != null)
+        {
+            try
+            {
 
                ByteBufferUtil.write(inBuffer, hrm.getUBAOS(), true);
 
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
-                String match = uriMap.lookup(hmci.getURI());
+
                 if(hrm.isMessageComplete())
                 {
+                    String match = uriMap.lookup(hmci.getURI());
+
                     if (debug) {
                         log.info("incoming data\n" + SharedStringUtil.toString(hrm.getUBAOS().getInternalBuffer(), 0, hrm.getUBAOS().size()));
                         log.info("" + hmci);
                         log.info("uriMatch : "+ match);
                     }
-                    NVGenericMap nvgm = new NVGenericMap();
-                    nvgm.add("string", "hello");
-                    nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
-                    nvgm.add(new NVBoolean("bool", true));
-                    nvgm.add(new NVFloat("float", (float) 12.43534));
 
-                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), hrm.getUBAOS());
-
+                    if (match != null)
+                    {
+                        NVGenericMap nvgm = new NVGenericMap();
+                        nvgm.add("string", "hello");
+                        nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
+                        nvgm.add(new NVBoolean("bool", true));
+                        nvgm.add(new NVFloat("float", (float) 12.43534));
+                        resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), hrm.getUBAOS());
+                    }
+                    else
+                    {
+                        resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(HTTPStatusCode.NOT_FOUND), hrm.getUBAOS());
+                    }
                     get().write(resp.getInternalBuffer(), 0, resp.size());
                     IOUtil.close(get());
 
@@ -85,7 +95,9 @@ extends PlainSessionCallback
 
 
 
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 e.printStackTrace();
                 log.info("" + e + " "  + " " + ((ChannelOutputStream)get()).outAppData + " " + resp);
                 IOUtil.close(get());
@@ -118,7 +130,7 @@ extends PlainSessionCallback
                     long nanos = time.get();
                     float rate = (float)c/(float)nanos;
                     log.info("rate: " + rate*1000000000);
-                    log.info("nanos: " + nanos + " count: " + c);
+                    log.info("nanos: " + Const.TimeInMillis.nanosToString(nanos) + " count: " + c);
                     TaskUtil.getDefaultTaskScheduler().queue(Const.TimeInMillis.SECOND.MILLIS*30, this);
             }});
         }
