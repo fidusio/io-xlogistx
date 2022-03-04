@@ -118,8 +118,17 @@ extends PlainSessionCallback
             int port = Integer.parseInt(args[index++]);
 
             //TaskUtil.setThreadMultiplier(8);
-            uriMap.put("/hello", "/hello found");
-            uriMap.put("/", "/ found");
+
+            String[] uris ={
+              "/timestamp",
+              "/ping",
+              "/stats/detailed"
+            };
+            for(String uri : uris)
+            {
+                uriMap.put(uri, uri);
+            }
+
 
 
             new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(TestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
