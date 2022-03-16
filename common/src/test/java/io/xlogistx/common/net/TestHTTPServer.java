@@ -129,6 +129,12 @@ extends PlainSessionCallback
                 uriMap.put(uri, uri);
             }
 
+            for(int i = 0; i < 1000; i++)
+            {
+                uriMap.put("/dummy"+i, "/dummy"+i);
+            }
+            log.info("Total URIs: " + uriMap.size());
+
 
 
             new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(TestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
