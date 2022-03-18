@@ -71,7 +71,6 @@ public class SSLNIOSocket
 					{
 						try
 						{
-
 							config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
 							config.remoteChannel = SocketChannel.open((new InetSocketAddress(config.remoteAddress.getInetAddress(), config.remoteAddress.getPort())));
 							sslns.getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, sslns, new DefaultSKController(), false);

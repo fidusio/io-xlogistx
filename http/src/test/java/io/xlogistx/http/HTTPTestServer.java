@@ -1,6 +1,8 @@
-package io.xlogistx.common.net;
+package io.xlogistx.http;
 
 import io.xlogistx.common.http.URIMap;
+import io.xlogistx.common.net.NIOPlainSocketFactory;
+import io.xlogistx.common.net.PlainSessionCallback;
 import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -9,6 +11,7 @@ import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.data.CurrentTimestamp;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.*;
@@ -17,7 +20,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class TestHTTPServer
+public class HTTPTestServer
 extends PlainSessionCallback
 {
     public static boolean debug = false;
@@ -65,12 +68,14 @@ extends PlainSessionCallback
 
                     if (match != null)
                     {
-                        NVGenericMap nvgm = new NVGenericMap();
-                        nvgm.add("string", "hello");
-                        nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
-                        nvgm.add(new NVBoolean("bool", true));
-                        nvgm.add(new NVFloat("float", (float) 12.43534));
-                        resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), hrm.getUBAOS());
+//                        NVGenericMap nvgm = new NVGenericMap();
+//                        nvgm.add("string", "hello");
+//                        nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
+//                        nvgm.add(new NVBoolean("bool", true));
+//                        nvgm.add(new NVFloat("float", (float) 12.43534));
+
+                        CurrentTimestamp ct = new CurrentTimestamp();
+                        resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hrm.getUBAOS());
                     }
                     else
                     {
@@ -99,7 +104,7 @@ extends PlainSessionCallback
             catch (Exception e)
             {
                 e.printStackTrace();
-                log.info("" + e + " "  + " " + ((ChannelOutputStream)get()).outAppData + " " + resp);
+                log.info("" + e + " "  + " " + get()+ " " + resp);
                 IOUtil.close(get());
                 // we should close
 
@@ -137,7 +142,7 @@ extends PlainSessionCallback
 
 
 
-            new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(TestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
+            new NIOSocket(new InetSocketAddress(port), 128, new NIOPlainSocketFactory(HTTPTestServer.class), TaskUtil.getDefaultTaskProcessor());
             TaskUtil.getDefaultTaskScheduler().queue(Const.TimeInMillis.SECOND.MILLIS * 30, new Runnable() {
                 @Override
                 public void run() {

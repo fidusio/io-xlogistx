@@ -1,7 +1,9 @@
-package io.xlogistx.ssl;
+package io.xlogistx.http;
 
 import io.xlogistx.common.fsm.StateMachine;
 import io.xlogistx.common.fsm.TriggerConsumer;
+import io.xlogistx.common.net.BaseSessionCallback;
+import io.xlogistx.ssl.*;
 import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -11,6 +13,7 @@ import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.data.CurrentTimestamp;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPStatusCode;
 
@@ -20,7 +23,7 @@ import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-public class SSLTestHTTPServer
+public class HTTPSSLTestServer
     extends SSLSessionCallback
 {
     public static boolean debug = false;
@@ -39,21 +42,15 @@ public class SSLTestHTTPServer
                 HTTPMessageConfigInterface hmci = hrm.parse(true);
                 if(hrm.isMessageComplete())
                 {
-                    NVGenericMap nvgm = new NVGenericMap();
-                    nvgm.add("string", "hello");
-                    nvgm.add(new NVLong("timestamp", System.currentTimeMillis()));
-                    nvgm.add(new NVBoolean("bool", true));
-                    nvgm.add(new NVFloat("float", (float) 12.43534));
-
-                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(nvgm, HTTPStatusCode.OK), ubaos);
-
-                    get().write(resp.getInternalBuffer(), 0, resp.size());
-                    IOUtil.close(get());
+                    CurrentTimestamp ct = new CurrentTimestamp();
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hrm.getUBAOS());
                 }
                 else
                 {
-                    log.info("Message not complete yet");
+                    BaseSessionCallback.log.info("Message not complete yet");
                 }
+                get().write(resp.getInternalBuffer(), 0, resp.size());
+                IOUtil.close(get());
 
 //                if (debug)
 //                    log.info("data to be sent \n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
@@ -61,7 +58,7 @@ public class SSLTestHTTPServer
 
             } catch (Exception e) {
                 e.printStackTrace();
-                log.info("" + e + " " + msg  + " " + resp);
+                BaseSessionCallback.log.info("" + e + " " + msg  + " " + resp);
                 IOUtil.close(get());
                 // we should close
             }
@@ -102,7 +99,7 @@ public class SSLTestHTTPServer
             //TaskUtil.setThreadMultiplier(4);
             SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
-            new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(sslContext, SSLTestHTTPServer.class), TaskUtil.getDefaultTaskProcessor());
+            new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(sslContext, HTTPSSLTestServer.class), TaskUtil.getDefaultTaskProcessor());
         }
         catch(Exception e)
         {

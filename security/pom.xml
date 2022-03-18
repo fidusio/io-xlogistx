@@ -18,7 +18,6 @@
   <name>xlogistx-security</name>
   <artifactId>xlogistx-security</artifactId>
   <properties>
-      <bouncycastle.version>1.70</bouncycastle.version>
   </properties>
   
 
@@ -49,39 +48,7 @@
           <scope>provided</scope>
           <version>${xlogistx.version}</version>
       </dependency>
-      <!--
-     <dependency>
-         <groupId>org.bouncycastle</groupId>
-         <artifactId>bcprov-jdk15on</artifactId>
-         <scope>provided</scope>
-         <version>${bouncycastle.version}</version>
-     </dependency>
 
-     <dependency>
-         <groupId>org.bouncycastle</groupId>
-         <artifactId>bcprov-ext-jdk15on</artifactId>
-         <version>${bouncycastle.version}</version>
-     </dependency>
-     <dependency>
-         <groupId>org.bouncycastle</groupId>
-         <artifactId>bctls-jdk15on</artifactId>
-         <version>${bouncycastle.version}</version>
-     </dependency>
-
-
-     <dependency>
-         <groupId>org.bouncycastle</groupId>
-         <artifactId>bcpkix-jdk15on</artifactId>
-         <version>${bouncycastle.version}</version>
-     </dependency>
-     <dependency>
-         <groupId>org.bouncycastle</groupId>
-         <artifactId>bctls-fips</artifactId>
-         <version>1.0.12.2</version>
-         <scope>provided</scope>
-     </dependency>
-
-     -->
 
       <dependency>
           <groupId>com.google.code.gson</groupId>

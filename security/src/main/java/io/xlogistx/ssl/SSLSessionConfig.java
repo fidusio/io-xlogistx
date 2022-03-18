@@ -21,7 +21,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
-class SSLSessionConfig
+public class SSLSessionConfig
     implements AutoCloseable
 {
     private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
@@ -42,7 +42,7 @@ class SSLSessionConfig
     volatile boolean forcedClose = false;
     volatile InetSocketAddressDAO remoteAddress = null;
 
-    final Lock ioLock = new ReentrantLock();
+    final Lock ioLock = null;//new ReentrantLock();
     private final SSLEngine sslEngine; // the crypto engine
 
 
