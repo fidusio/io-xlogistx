@@ -71,7 +71,7 @@
         <ehcache-org.version>3.9.6</ehcache-org.version>
         <gson.version>2.9.0</gson.version>
         <javax-cache.version>1.1.1</javax-cache.version>
-        <jakarta-mail.version>2.1.0</jakarta-mail.version>
+        <jakarta-mail.version>2.0.1</jakarta-mail.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
         <jsoup.version>1.14.3</jsoup.version>
         <snakeyaml.version>1.30</snakeyaml.version>
@@ -226,8 +226,8 @@
     </dependency>
 
     <dependency>
-        <groupId>jakarta.mail</groupId>
-        <artifactId>jakarta.mail-api</artifactId>
+        <groupId>com.sun.mail</groupId>
+        <artifactId>jakarta.mail</artifactId>
       <version>${jakarta-mail.version}</version>
     </dependency>
 

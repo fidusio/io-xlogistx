@@ -57,9 +57,10 @@ public class SMTPAPITester {
           //sendSMTPS(from, new SMTPMessage(subject, message), new SMTPConfig(host, port, user, password), to);
           SMTPMessage smtpMessage = new SMTPMessage(subject, message);
           smtpMessage.setFrom(from);
-
+          log.info("to: " + Arrays.toString(to));
           smtpMessage.addRecipients(EmailRecipient.toRecipients(EmailRecipient.Type.TO, to));
-          smtpMessage.addRecipients(EmailRecipient.toRecipients(emails));
+
+          //smtpMessage.addRecipients(EmailRecipient.toRecipients(emails));
           log.info(GSONUtil.toJSON(smtpMessage, true, false, false));
           SMTPConfig sc = new SMTPConfig(host, port, user, password);
           log.info(GSONUtil.toJSON(sc, true, false, false));
