@@ -29,6 +29,8 @@ public final class XXURI {
   public static final String AUTO_LOGIN = BASE + "/auto-login";
 
   public static final String TIMESTAMP = BASE + "/timestamp";
+  public static final String SUNRISE_SUNSET = BASE + "/sunrise-sunset";
+
 
 
   // Common (ALL users) URIs

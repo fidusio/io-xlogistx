@@ -12,7 +12,8 @@ public class CronConfig
             implements GetNVConfig
     {
         SCHEDULES(NVConfigManager.createNVConfigEntity("schedules", "Cron Schedules", "Schedules", false, true, CronSchedulerConfig.NVC_CRON_SCHEDULER_CONFIG, NVConfigEntity.ArrayType.LIST)),
-        SETUP_DELAY(NVConfigManager.createNVConfig("setup_delay", "Setup delay in millis", "Bean", false, true, Date.class)),
+        SETUP_DELAY(NVConfigManager.createNVConfig("setup_delay", "Setup delay in millis", "SetupDelay", false, true, Date.class)),
+        API_ENDPOINT(NVConfigManager.createNVConfig("api_endpoint", "API Endpoint Service", "APIEndPoint", false, true, String.class)),
         ;
         private final NVConfig nvc;
 
@@ -65,5 +66,15 @@ public class CronConfig
     public void setSetupDelay(long delay)
     {
         setValue(Param.SETUP_DELAY, delay);
+    }
+
+    public String getAPIEndpoint()
+    {
+        return lookupValue(Param.API_ENDPOINT);
+    }
+
+    public void getAPIEndpoint(String apiEndpoint)
+    {
+        setValue(Param.API_ENDPOINT, apiEndpoint);
     }
 }
