@@ -16,12 +16,12 @@ public abstract class BaseChannelOutputStream extends OutputStream {
     protected final ByteChannel outChannel;
     protected final ByteBuffer outAppData;
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
-    public BaseChannelOutputStream(ByteChannel config, int outAppBufferSize)
+    public BaseChannelOutputStream(ByteChannel outByteChannel, int outAppBufferSize)
     {
-        this.outChannel = config;
-        if(outAppBufferSize > 0) {
+        this.outChannel = outByteChannel;
+        if(outAppBufferSize > 0)
+        {
             outAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, outAppBufferSize);
-
         }
         else
             throw new IllegalArgumentException("Invalid buffer size");

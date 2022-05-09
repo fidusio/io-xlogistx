@@ -86,21 +86,16 @@ public class NIOPlainSocket
 
 			if(sourceChannel == null)
 			{
-				synchronized (this) {
-					if(sourceChannel == null) {
+				synchronized (this)
+				{
+					if(sourceChannel == null)
+					{
 						sourceChannel = (SocketChannel) key.channel();
 						sourceSK = key;
 						sessionCallback.setConfig(sourceChannel);
 					}
 				}
-
 			}
-
-
-
-
-
-
 
 			int read = 0 ;
     		do
