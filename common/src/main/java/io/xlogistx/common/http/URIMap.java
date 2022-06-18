@@ -84,12 +84,19 @@ public class URIMap<V> {
         return uriMap.size();
     }
 
-    private static String normalize(String str)
+    public static String normalize(String str)
     {
         str = SharedStringUtil.toTrimmedLowerCase(str);
         if(str.endsWith("/") && str.length() > 1)
         {
             str = str.substring(0, str.length() - 1);
+        }
+
+        int indexQuestionMark =  str.indexOf("?");
+
+        if(indexQuestionMark != -1)
+        {
+            str = str.substring(0, indexQuestionMark);
         }
 
         return str;

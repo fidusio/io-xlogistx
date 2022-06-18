@@ -19,7 +19,12 @@
   <artifactId>xlogistx-common</artifactId>
   <packaging>jar</packaging>
 
-  
+  <repositories>
+    <repository>
+      <id>javaxt.com</id>
+      <url>https://www.javaxt.com/maven</url>
+    </repository>
+  </repositories>
 
 
   <dependencies>
@@ -61,6 +66,14 @@
       <artifactId>commons-csv</artifactId>
       <version>${commons-csv.version}</version>
     </dependency>
+
+
+      <dependency>
+        <groupId>javaxt</groupId>
+        <artifactId>javaxt-core</artifactId>
+        <version>1.11.1</version>
+      </dependency>
+
 
   </dependencies>
 
