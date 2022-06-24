@@ -18,13 +18,13 @@ public class StateMachine<C>
     public static boolean debug = false;
     private final String name;
     private final TaskSchedulerProcessor tsp;
-    private Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
-    private Map<String, StateInt<?>> states = new LinkedHashMap<String, StateInt<?>>();
+    private final Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
+    private final Map<String, StateInt> states = new LinkedHashMap<String, StateInt>();
     private C config;
-    final private Executor executor;
+    private final Executor executor;
     private volatile boolean isClosed = false;
 
-    AtomicReference<StateInt> currentState = new AtomicReference<StateInt>();
+    private final AtomicReference<StateInt> currentState = new AtomicReference<>();
 
 
     public StateMachine(String name)
@@ -53,7 +53,7 @@ public class StateMachine<C>
     }
 
     @Override
-    public synchronized StateMachineInt register(StateInt state)
+    public synchronized StateMachineInt<C> register(StateInt state)
     {
         if(state != null)
         {
@@ -73,8 +73,8 @@ public class StateMachine<C>
 
     private synchronized void mapTriggerConsumer(TriggerConsumerInt<?> tc)
     {
-        String cids[] = tc.canonicalIDs();
-        for (String canID : cids)
+        String canonicalIDs[] = tc.canonicalIDs();
+        for (String canID : canonicalIDs)
         {
 
             Set<TriggerConsumerInt<?>> tcSet = tcMap.get(canID);

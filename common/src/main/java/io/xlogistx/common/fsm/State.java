@@ -8,16 +8,18 @@ import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class State<P>
     implements StateInt<P>
 {
 
+    protected static final Logger log = Logger.getLogger(State.class.getName());
     private final String name;
     private final NVGenericMap data = new NVGenericMap();
-    private StateMachineInt stateMachine;
+    private volatile StateMachineInt stateMachine;
 
-    private Map<String, TriggerConsumerInt<?>> triggerConsumers = new LinkedHashMap<String, TriggerConsumerInt<?>> ();
+    private final  Map<String, TriggerConsumerInt<?>> triggerConsumers = new LinkedHashMap<String, TriggerConsumerInt<?>> ();
     public State(String name, NVBase<?> ...props)
     {
         this.name = name;
