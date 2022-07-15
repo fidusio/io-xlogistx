@@ -23,7 +23,7 @@ public class ShiroJCacheManager
 	 javax.cache.CacheManager cacheManager = null;
 	 MutableConfiguration<?, ?> configuration = null;
 	 
-	 private static final transient Logger log = Logger.getLogger(ShiroJCacheManager.class.getName());
+	 private static final Logger log = Logger.getLogger(ShiroJCacheManager.class.getName());
 
 	
 
