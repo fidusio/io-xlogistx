@@ -15,6 +15,14 @@ public final class Challenge {
         CAPTCHA
     }
 
+    public enum Status
+    {
+        VALID,
+        INVALID,
+        MISSING_CORRELATION,
+        ERROR
+    }
+
     private final long result;
     private final String preText;
     private final Type type;
