@@ -2,6 +2,7 @@ package io.xlogistx.http.servlet;
 
 import io.xlogistx.common.data.Challenge;
 
+import io.xlogistx.common.data.ChallengeManager;
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.*;
@@ -10,7 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 ;
 import java.io.IOException;
-import java.util.Map;
+
 import java.util.logging.Logger;
 
 public final class HTTPCaptchaUtil {
@@ -18,7 +19,7 @@ public final class HTTPCaptchaUtil {
     private static final Logger log =Logger.getLogger(HTTPCaptchaUtil.class.getName());
     private HTTPCaptchaUtil(){}
 
-    public static Challenge.Status validateCaptcha(ArrayValues<GetNameValue<String>> formData,  Map<String, Challenge> challengeMap,
+    public static Challenge.Status validateCaptcha(ArrayValues<GetNameValue<String>> formData,
                                                    HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Challenge challenge = null;
 
@@ -36,7 +37,7 @@ public final class HTTPCaptchaUtil {
         }
 
         // match the captcha-id with the challenge
-        challenge = challengeMap.get(captchaIDParam.getValue());
+        challenge = ChallengeManager.SINGLETON.lookupChallenge(captchaIDParam.getValue());
         if(challenge == null)
         {
             // no challenge found
@@ -46,18 +47,14 @@ public final class HTTPCaptchaUtil {
         }
         // parse the captcha value
         long captchaValue = Long.parseLong(captchaParam.getValue());
-        if(captchaValue != challenge.getResult())
+        if(!ChallengeManager.SINGLETON.validate(challenge, captchaValue))
         {
             // challenge failed
             HTTPServletUtil.sendJSON(req, resp, HTTPStatusCode.BAD_REQUEST, new APIError("Invalid CAPTCHA"));
             log.info("Captcha challenge mismatch expected: " + challenge.getResult() + " user sent: " + captchaValue);
             return Challenge.Status.INVALID;
         }
-        else
-        {
-            // challenge succeeded remove from cache
-            challengeMap.remove(challenge.getId());
-        }
+
 
 
 

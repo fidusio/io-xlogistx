@@ -5,8 +5,6 @@ import java.security.SecureRandom;
 public final class Challenge {
 
 
-    public static final String CAPTCHA = "CAPTCHA";
-
     public static final SecureRandom SR = new SecureRandom();
     public enum Type
     {

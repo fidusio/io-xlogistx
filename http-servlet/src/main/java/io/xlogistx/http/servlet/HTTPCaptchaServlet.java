@@ -16,12 +16,13 @@
 package io.xlogistx.http.servlet;
 
 import io.xlogistx.common.data.Challenge;
+import io.xlogistx.common.data.ChallengeManager;
 import io.xlogistx.common.image.ImageInfo;
 import io.xlogistx.common.image.TextToImage;
 
 import org.zoxweb.server.http.HTTPRequestAttributes;
 import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.server.task.TaskUtil;
+
 import org.zoxweb.shared.util.*;
 
 
@@ -33,7 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.awt.*;
 import java.io.IOException;
 
-import java.util.Map;
+
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -105,21 +106,9 @@ public class HTTPCaptchaServlet
 		resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 		resp.setHeader("Access-Control-Expose-Headers", "Captcha-Id");
 		resp.setContentLength(imageInfo.data.available());
+		ChallengeManager.SINGLETON.addChallenge(challenge, Const.TimeInMillis.MINUTE.MILLIS*30);
 		IOUtil.relayStreams(imageInfo.data, resp.getOutputStream(), true);
-		Map<String, Challenge> captchaMap = ResourceManager.SINGLETON.lookup(Challenge.CAPTCHA);
-		if(captchaMap != null)
-		{
-			captchaMap.put(challenge.getId(), challenge);
-			//
-			TaskUtil.getDefaultTaskScheduler().queue(Const.TimeInMillis.MINUTE.MILLIS*30,()->{
 
-				Challenge c = captchaMap.remove(challenge.getId());
-				log.info("Challenge clean up: " + c);
-			});
-		}
-
-		// cache.put(uuid, num
-		// )
 
 
 		log.info("Result: " + challenge.getResult() + " ID:" + imageInfo.id);
