@@ -13,7 +13,7 @@ implements TriggerConsumerInt<T>
     final static Logger log = Logger.getLogger(TriggerConsumer.class.getName());
     public static boolean debug = false;
     private final String[] canonicalIDs;
-    private StateInt state;
+    private StateInt<?> state;
     protected AtomicLong execCounter = new AtomicLong();
     private  Function<T, ?> function;
 

@@ -1,5 +1,7 @@
 package io.xlogistx.common.data;
 
+import org.zoxweb.shared.util.Appointment;
+
 import java.security.SecureRandom;
 
 public final class Challenge {
@@ -25,6 +27,10 @@ public final class Challenge {
     private final String preText;
     private final Type type;
     private final String id;
+
+
+
+    private Appointment appointment;
     private Challenge(String preText, Type type, long result, String id)
     {
         this.preText = preText;
@@ -87,6 +93,11 @@ public final class Challenge {
 
         return ret;
     }
-
+    Appointment getAppointment() {
+        return appointment;
+    }
+    void setAppointment(Appointment appointment) {
+        this.appointment = appointment;
+    }
 
 }

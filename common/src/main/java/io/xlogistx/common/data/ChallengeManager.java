@@ -1,16 +1,18 @@
 package io.xlogistx.common.data;
 
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.task.TaskUtil;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public class ChallengeManager {
+
+
     private static final Logger log = Logger.getLogger(ChallengeManager.class.getName());
     public static final ChallengeManager SINGLETON = new ChallengeManager();
 
-    private Map<String, Challenge> challengeMap = new ConcurrentHashMap<String, Challenge>();
+    private final Map<String, Challenge> challengeMap = new ConcurrentHashMap<>();
 
     private ChallengeManager()
     {
@@ -25,13 +27,19 @@ public class ChallengeManager {
             challengeMap.put(challenge.getId(), challenge);
             if(timeout > 0)
             {
-                TaskUtil.getDefaultTaskScheduler().queue(timeout, ()->{
-                   log.info("Challenge removed: " + removeChallenge(challenge.getId()));
-                });
+                String challengeID = challenge.getId();
+                challenge.setAppointment(TaskUtil.getDefaultTaskScheduler().queue(timeout, ()->{
+                   log.info("Challenge removed: " + removeChallenge(challengeID));
+                }));
             }
         }
     }
 
+
+    public Challenge[] getAll()
+    {
+        return challengeMap.values().toArray(new Challenge[0]);
+    }
 
     public Challenge lookupChallenge(String id)
     {
@@ -42,6 +50,12 @@ public class ChallengeManager {
     public synchronized Challenge removeChallenge(String id)
     {
         return challengeMap.remove(id);
+
+    }
+
+    public int size()
+    {
+        return challengeMap.size();
     }
 
 
@@ -54,14 +68,18 @@ public class ChallengeManager {
 
     public synchronized boolean validate(String id, long result)
     {
+        boolean validation = false;
         Challenge challenge = lookupChallenge(id);
         if (challenge != null)
         {
             removeChallenge(id);
-            return challenge.getResult() == result;
+            // cancel the appointment
+            IOUtil.close(challenge.getAppointment());
+            validation = challenge.getResult() == result;
+            log.info(challenge.getId() + " validation status " + validation);
         }
 
-        return false;
+        return validation;
     }
 
 
