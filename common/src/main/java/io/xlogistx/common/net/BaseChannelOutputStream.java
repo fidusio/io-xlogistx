@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public abstract class BaseChannelOutputStream extends OutputStream {
-    protected static final transient Logger log = Logger.getLogger(BaseChannelOutputStream.class.getName());
+    protected static final Logger log = Logger.getLogger(BaseChannelOutputStream.class.getName());
     public static boolean debug = false;
 
     protected final ByteChannel outChannel;

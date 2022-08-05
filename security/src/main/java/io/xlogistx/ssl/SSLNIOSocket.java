@@ -120,7 +120,7 @@ public class SSLNIOSocket
 
 
 
-    private static final transient Logger log = Logger.getLogger(SSLNIOSocket.class.getName());
+    private static final Logger log = Logger.getLogger(SSLNIOSocket.class.getName());
 	public static boolean debug = false;
 	private SSLStateMachine sslStateMachine = null;
 	private SSLSessionConfig config = null;
