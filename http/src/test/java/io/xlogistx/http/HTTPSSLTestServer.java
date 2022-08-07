@@ -49,13 +49,13 @@ public class HTTPSSLTestServer
                 {
                     BaseSessionCallback.log.info("Message not complete yet");
                 }
-                byte[] data = resp.getInternalBuffer();
-                int len = resp.size();
-                for(int i = 0; i < len; i++)
-                {
-                    get().write(data[i]);
-                }
-//                get().write(resp.getInternalBuffer(), 0, resp.size());
+//                byte[] data = resp.getInternalBuffer();
+//                int len = resp.size();
+//                for(int i = 0; i < len; i++)
+//                {
+//                    get().write(data[i]);
+//                }
+                get().write(resp.getInternalBuffer(), 0, resp.size());
                 IOUtil.close(get());
 
 //                if (debug)
@@ -75,7 +75,7 @@ public class HTTPSSLTestServer
     public static void main(String ...args)
     {
         TaskUtil.setThreadMultiplier(8);
-        TaskUtil.setMaxTasksQueue(2048);
+        //TaskUtil.setMaxTasksQueue(2048);
         LoggerUtil.enableDefaultLogger("io.xlogistx");
         try
         {
