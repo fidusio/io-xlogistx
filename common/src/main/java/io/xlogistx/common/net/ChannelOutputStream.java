@@ -35,6 +35,7 @@ public class ChannelOutputStream extends BaseChannelOutputStream {
         {
             IOUtil.close(outChannel);
             ByteBufferUtil.cache(outAppData);
+            //ByteBufferUtil.cache(oneByteBuffer);
         }
     }
 

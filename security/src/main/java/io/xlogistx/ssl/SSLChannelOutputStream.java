@@ -63,6 +63,7 @@ public class SSLChannelOutputStream extends BaseChannelOutputStream {
         {
             config.close();
             ByteBufferUtil.cache(outAppData);
+            //ByteBufferUtil.cache(oneByteBuffer);
         }
     }
 

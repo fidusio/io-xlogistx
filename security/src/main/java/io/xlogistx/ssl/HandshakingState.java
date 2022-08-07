@@ -20,7 +20,7 @@ public class HandshakingState extends State {
 
     public static boolean debug = false;
 
-    private static AtomicLong counter = new AtomicLong(0);
+    private final static AtomicLong counter = new AtomicLong(0);
 
     static class NeedWrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
@@ -81,13 +81,15 @@ public class HandshakingState extends State {
     {
         SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
         if(debug) log.info("" + config.getHandshakeStatus());
-          if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN")) {
+
+          if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN"))
+          {
             try {
 
                   int bytesRead = config.sslChannel.read(config.inSSLNetData);
                   if (bytesRead == -1)
                   {
-                      if (debug) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: " + config.getHandshakeStatus() + " bytesread: " + bytesRead);
+                      if (debug) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: " + config.getHandshakeStatus() + " bytes read: " + bytesRead);
                       config.close();
                   }
                   else //if (bytesRead > 0)
@@ -99,7 +101,7 @@ public class HandshakingState extends State {
                     SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, ByteBufferUtil.EMPTY);
 
 
-                  if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytesread: " + bytesRead);
+                  if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytes read: " + bytesRead);
                   if (debug) log.info("AFTER-NEED_UNWRAP-HANDSHAKING inNetData: " + config.inSSLNetData + " inAppData: " +  config.inAppData);
 
                     switch (result.getStatus()) {
@@ -110,14 +112,14 @@ public class HandshakingState extends State {
                         // config.sslRead.set(true);
                         return;
                       case BUFFER_OVERFLOW:
-                        throw new IllegalStateException("NEED_UNWRAP should never be " + result.getStatus());
+                        throw new IllegalStateException("NEED_UNWRAP should never happen: " + result.getStatus());
                         // this should never happen
                       case OK:
                           publishSync(result.getHandshakeStatus(), callback);
                         break;
                       case CLOSED:
                         // check result here
-                       if (debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
+                       if (debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytes read: " + bytesRead);
                           config.close();
                         break;
                     }

@@ -49,7 +49,13 @@ public class HTTPSSLTestServer
                 {
                     BaseSessionCallback.log.info("Message not complete yet");
                 }
-                get().write(resp.getInternalBuffer(), 0, resp.size());
+                byte[] data = resp.getInternalBuffer();
+                int len = resp.size();
+                for(int i = 0; i < len; i++)
+                {
+                    get().write(data[i]);
+                }
+//                get().write(resp.getInternalBuffer(), 0, resp.size());
                 IOUtil.close(get());
 
 //                if (debug)

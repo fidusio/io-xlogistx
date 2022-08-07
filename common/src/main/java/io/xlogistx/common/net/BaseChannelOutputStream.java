@@ -15,6 +15,8 @@ public abstract class BaseChannelOutputStream extends OutputStream {
 
     protected final ByteChannel outChannel;
     protected final ByteBuffer outAppData;
+    //protected final ByteBuffer oneByteBuffer = ByteBufferUtil.allocateByteBuffer(1);
+    protected final byte[] oneByteBuffer = new byte[1];
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
     public BaseChannelOutputStream(ByteChannel outByteChannel, int outAppBufferSize)
     {
@@ -30,7 +32,10 @@ public abstract class BaseChannelOutputStream extends OutputStream {
     @Override
     public synchronized void write(int b) throws IOException
     {
-        throw new IOException("Not supported method");
+        oneByteBuffer[0] = (byte) b;
+        write(oneByteBuffer, 0 ,1);
+
+//        throw new IOException("Not supported method");
     }
 
 
