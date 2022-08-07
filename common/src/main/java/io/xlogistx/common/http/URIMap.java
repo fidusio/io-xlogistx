@@ -47,10 +47,10 @@ public class URIMap<V> {
      */
     public V lookup(String uri)
     {
-        V ret  = null;
+
         uri = normalize(uri);
         // try to match
-        ret = uriMap.get(uri);
+        V ret = uriMap.get(uri);
 
         if (ret == null)
         {
