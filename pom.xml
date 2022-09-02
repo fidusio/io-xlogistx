@@ -69,11 +69,11 @@
         <commons-csv.version>1.9.0</commons-csv.version>
         <commons-fileupload.version>1.4</commons-fileupload.version>
         <ehcache-org.version>3.9.6</ehcache-org.version>
-        <gson.version>2.9.0</gson.version>
+        <gson.version>2.9.1</gson.version>
         <javax-cache.version>1.1.1</javax-cache.version>
         <jakarta-mail.version>2.0.1</jakarta-mail.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
-        <jsoup.version>1.14.3</jsoup.version>
+        <jsoup.version>1.15.3</jsoup.version>
         <snakeyaml.version>1.30</snakeyaml.version>
         <websocket.version>1.1</websocket.version>
         <junit.version>5.8.2</junit.version>

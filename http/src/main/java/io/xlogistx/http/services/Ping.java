@@ -33,6 +33,8 @@ public class Ping
             response.getProperties().add("jdk_version", System.getProperty("java.version"));
             response.getProperties().add("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS));
             response.getProperties().add("current_thread", Thread.currentThread().getName());
+            response.getProperties().add("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
+            + "," + System.getProperty("os.arch"));
             //response.getProperties().add("version", )
             response.getProperties().add(TaskUtil.getDefaultTaskScheduler().getProperties());
             response.getProperties().add(TaskUtil.getDefaultTaskProcessor().getProperties());
