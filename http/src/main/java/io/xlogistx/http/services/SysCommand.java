@@ -22,7 +22,7 @@ import java.util.logging.Logger;
 @SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC,
                                  SecurityConsts.AuthenticationType.BEARER,
                                  SecurityConsts.AuthenticationType.JWT},
-              protocols = {URIScheme.HTTPS},
+//              protocols = {URIScheme.HTTPS},
               roles = "local-admin,remote-admin")
 public class SysCommand
 extends PropertyHolder
