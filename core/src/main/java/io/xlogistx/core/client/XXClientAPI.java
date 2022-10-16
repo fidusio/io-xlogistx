@@ -81,11 +81,11 @@ public class XXClientAPI {
         HTTPMessageConfigInterface hmciToUse = HTTPMessageConfig
             .createAndInit(hmci.getURL(), hmci.getURI(), hmci.getMethod(),
                 hmci.isSecureCheckEnabled());
-        for (GetNameValue<String> gnv : hmci.getHeaders().values()) {
+        for (GetNameValue<?> gnv : hmci.getHeaders().values()) {
           hmciToUse.getHeaders().add(gnv);
         }
 
-        for (GetNameValue<String> gnv : hmci.getParameters().values()) {
+        for (GetNameValue<?> gnv : hmci.getParameters().values()) {
           hmciToUse.getParameters().add(gnv);
         }
         JWT jwt = JWT
