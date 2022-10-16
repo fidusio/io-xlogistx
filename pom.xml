@@ -59,12 +59,17 @@
         <skipTests>true</skipTests>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jdk.version>8</jdk.version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-plugin-source.version>3.0.1</maven-plugin-source.version>
-        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
-        <maven-surefile-plugin.version>3.0.0-M5</maven-surefile-plugin.version>
-        <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
-        <maven-javadoc.version>2.10.4</maven-javadoc.version>
+        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-plugin-source.version>3.2.1</maven-plugin-source.version>
+        <maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>
+        <maven-surefile-plugin.version>3.0.0-M7</maven-surefile-plugin.version>
+        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
+        <maven-javadoc.version>3.4.1</maven-javadoc.version>
+        <exec-maven.version>3.1.0</exec-maven.version>
+
+
+
+
         <commons-codec.version>1.15</commons-codec.version>
         <commons-csv.version>1.9.0</commons-csv.version>
         <commons-fileupload.version>1.4</commons-fileupload.version>
@@ -76,12 +81,12 @@
         <jsoup.version>1.15.3</jsoup.version>
         <snakeyaml.version>1.31</snakeyaml.version>
         <websocket.version>1.1</websocket.version>
-        <junit.version>5.8.2</junit.version>
+        <junit.version>5.9.0</junit.version>
         <java-websocket.version>1.4.1</java-websocket.version>
-        <zoxweb-core.version>2.2.5</zoxweb-core.version>
+        <zoxweb-core.version>2.2.7</zoxweb-core.version>
         <shiro.version>1.9.0</shiro.version>
         <xlogistx.version>1.0.0</xlogistx.version>
-
+        <java-xt-core.version>1.12.0</java-xt-core.version>
 
         <cron-util.version>9.1.6</cron-util.version>
   </properties>

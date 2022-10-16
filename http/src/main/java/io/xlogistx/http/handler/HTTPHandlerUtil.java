@@ -74,7 +74,7 @@ public class HTTPHandlerUtil {
 
   public static void sendJSONResponse(HttpExchange he, HTTPStatusCode hsc, Object o, boolean close) throws IOException
   {
-    String message = GSONUtil.DEFAULT_GSON.toJson(o);
+    String message = GSONUtil.toJSONDefault(o);
     byte buffer[] = SharedStringUtil.getBytes(message);
     he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
     he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
@@ -102,7 +102,7 @@ public class HTTPHandlerUtil {
       mimeType = HTTPMimeType.APPLICATION_JSON;
       he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), mimeType.getValue());
       he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
-      buffer = SharedStringUtil.getBytes(GSONUtil.DEFAULT_GSON.toJson(o));
+      buffer = SharedStringUtil.getBytes(GSONUtil.toJSONDefault(o));
     }
     he.sendResponseHeaders(hsc.CODE, buffer.length);
     he.getResponseBody().write(buffer);
@@ -190,7 +190,7 @@ public class HTTPHandlerUtil {
                   break;
                 case APPLICATION_JSON:
 
-                  Object v = GSONUtil.DEFAULT_GSON.fromJson(payload, pClassType);
+                  Object v = GSONUtil.fromJSONDefault(payload, pClassType);
                   parameters.put(pp.name(), v);
 
 

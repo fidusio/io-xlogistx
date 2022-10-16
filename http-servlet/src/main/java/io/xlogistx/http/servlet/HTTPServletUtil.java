@@ -317,7 +317,7 @@ public class HTTPServletUtil
 	  }
 
 
-	  return sendJSON( req,  resp,  code, false, GSONUtil.DEFAULT_GSON.toJson(obj));
+	  return sendJSON( req,  resp,  code, false, GSONUtil.toJSONDefault(obj));
     }
 	
 	
