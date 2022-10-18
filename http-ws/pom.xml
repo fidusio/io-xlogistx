@@ -13,7 +13,9 @@
     <artifactId>xlogistx-http-ws</artifactId>
 
 
-
+    <properties>
+        <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>
+    </properties>
 
     <build>
         <!--
@@ -39,6 +41,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
