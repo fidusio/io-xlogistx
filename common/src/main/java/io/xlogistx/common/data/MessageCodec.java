@@ -3,7 +3,8 @@ package io.xlogistx.common.data;
 
 import org.zoxweb.shared.util.DataDecoder;
 import org.zoxweb.shared.util.DataEncoder;
-import org.zoxweb.shared.util.NVGenericMap;
+import org.zoxweb.shared.util.NamedDescription;
+
 
 public abstract class MessageCodec<EI, EO, DI, DO>
     extends NamedDescription

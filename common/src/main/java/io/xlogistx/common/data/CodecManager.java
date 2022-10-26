@@ -2,6 +2,7 @@ package io.xlogistx.common.data;
 
 import org.zoxweb.shared.filters.ValueFilter;
 
+import org.zoxweb.shared.util.NamedDescription;
 import org.zoxweb.shared.util.SharedUtil;
 import java.util.LinkedHashMap;
 import java.util.Map;

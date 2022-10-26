@@ -1,5 +1,6 @@
 package io.xlogistx.common.data;
 
+import org.zoxweb.shared.util.NamedDescription;
 import org.zoxweb.shared.util.SharedUtil;
 
 public class DataTriggerAfterWait<D>
