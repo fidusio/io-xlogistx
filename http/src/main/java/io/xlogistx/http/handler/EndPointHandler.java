@@ -9,12 +9,10 @@ import org.zoxweb.shared.util.Const;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
-import java.util.logging.Logger;
+
 
 public class EndPointHandler
 extends BaseEndPointHandler {
-    private static transient Logger log = Logger.getLogger(EndPointHandler.class.getName());
-
 
 
     public EndPointHandler(MethodHolder methodHolder)

@@ -1,6 +1,7 @@
 package io.xlogistx.http.servlet;
 
 import io.xlogistx.common.data.MethodHolder;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.api.APIError;
 
 import org.zoxweb.shared.http.HTTPEndPoint;
@@ -19,12 +20,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
+
 
 public class HTTPBeanServlet
 extends HttpServlet {
     public static final APIError DEFAULT_API_ERROR = new APIError(new AccessException("Access denied.", null, true));
-    protected static final transient Logger log = Logger.getLogger(HTTPBeanServlet.class.getName());
+    public final static LogWrapper log = new LogWrapper(HTTPBeanServlet.class);
     private static AtomicLong serviceCounter = new AtomicLong();
     private final MethodHolder mh;
     private final HTTPEndPoint hep;

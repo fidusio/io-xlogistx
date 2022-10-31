@@ -1,5 +1,6 @@
 package io.xlogistx.common.fsm;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.SupplierConsumerTask;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
@@ -14,8 +15,9 @@ public class StateMachine<C>
     implements StateMachineInt<C>
 {
 
-    protected final static Logger log = Logger.getLogger(StateMachine.class.getName());
-    public static boolean debug = false;
+    public final static LogWrapper log = new LogWrapper(StateMachine.class).setEnabled(false);
+    //protected final static Logger log = Logger.getLogger(StateMachine.class.getName());
+    //public static boolean debug = false;
     private final String name;
     private final TaskSchedulerProcessor tsp;
     private final Map<String, Set<TriggerConsumerInt<?>>> tcMap = new LinkedHashMap<String, Set<TriggerConsumerInt<?>>>();
@@ -45,7 +47,7 @@ public class StateMachine<C>
     public StateMachine(String name, Executor executor)
             throws NullPointerException
     {
-        if(debug) log.info(name + ":" + executor);
+        if(log.isEnabled()) log.info(name + ":" + executor);
         SharedUtil.checkIfNulls("Name or Executor can't be null.", name);
         this.name = name;
         this.tsp = null;
@@ -98,7 +100,7 @@ public class StateMachine<C>
         Set<TriggerConsumerInt<?>> set = tcMap.get(trigger.getCanonicalID());
         if(set != null)
         {
-            if(debug) log.info("" + trigger);
+            if(log.isEnabled()) log.info("" + trigger);
             if(isScheduledTaskEnabled())
                 set.forEach(c -> tsp.queue(0, new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c))));
             else
@@ -123,7 +125,7 @@ public class StateMachine<C>
         Set<TriggerConsumerInt<?>> set = tcMap.get(trigger.getCanonicalID());
         if(set != null)
         {
-            if(debug) log.info("" + trigger);
+            if(log.isEnabled()) log.info("" + trigger);
 
             set.forEach(c -> {
                 SupplierConsumerTask sct = new SupplierConsumerTask(trigger, new TriggerConsumerHolder<>(c));

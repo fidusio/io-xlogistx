@@ -12,14 +12,14 @@ import java.util.logging.Logger;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 
 public class ReadyState extends State {
-    private static final transient Logger log = Logger.getLogger(ReadyState.class.getName());
-    public static boolean debug = false;
+//    private static final transient Logger log = Logger.getLogger(ReadyState.class.getName());
+//    public static boolean debug = false;
 
-    private static void info(String str)
-    {
-        if(debug)
-            log.info(str);
-    }
+//    private static void info(String str)
+//    {
+//        if(log.isEnabled())
+//            log.info(str);
+//    }
 //    class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
 //    {
 //
@@ -73,14 +73,14 @@ public class ReadyState extends State {
     @Override
     public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-      if(debug) log.info("" + config.getHandshakeStatus());
+      if(log.isEnabled()) log.info("" + config.getHandshakeStatus());
       if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen()) {
         try {
 
               int bytesRead = config.sslChannel.read(config.inSSLNetData);
               if (bytesRead == -1) {
 
-                  info(
+                  log.info(
                       "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
                           + config.getHandshakeStatus()
                           + " bytesread: "
@@ -95,7 +95,7 @@ public class ReadyState extends State {
                 SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, config.inAppData);
 
 
-                if (debug) log.info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
+                if (log.isEnabled()) log.info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
                 switch (result.getStatus()) {
                   case BUFFER_UNDERFLOW:
                     // no incoming data available we need to wait for more socket data
@@ -115,7 +115,7 @@ public class ReadyState extends State {
                   case CLOSED:
                     // check result here
 
-                      if(debug) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
+                      if(log.isEnabled()) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
 
                     config.close();
                     break;

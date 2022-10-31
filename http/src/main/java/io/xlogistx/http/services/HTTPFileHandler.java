@@ -21,6 +21,7 @@ import io.xlogistx.http.handler.BaseEndPointHandler;
 import io.xlogistx.http.handler.HTTPHandlerUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
+
 import org.zoxweb.shared.http.HTTPHeaderName;
 import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPStatusCode;
@@ -33,7 +34,6 @@ import java.util.LinkedHashMap;
 
 
 
-import java.util.logging.Logger;
 
 /**
  * File handler for the built in http server that is shipped with java jre and jdk.
@@ -43,7 +43,7 @@ import java.util.logging.Logger;
  */
 @SuppressWarnings("restriction")
 public class HTTPFileHandler extends BaseEndPointHandler {
-    private final static Logger log = Logger.getLogger(HTTPFileHandler.class.getName());
+
 
     private boolean cacheEnabled = true;
 

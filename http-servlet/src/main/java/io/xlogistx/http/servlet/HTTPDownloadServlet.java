@@ -33,6 +33,7 @@ package io.xlogistx.http.servlet;
 import org.zoxweb.server.http.HTTPRequestAttributes;
 import org.zoxweb.server.io.FileInfoStreamSource;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO;
 import org.zoxweb.shared.data.FileInfoDAO;
@@ -52,7 +53,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Logger;
+
 
 
 /**
@@ -66,7 +67,7 @@ public class HTTPDownloadServlet
 	extends HttpServlet
 	implements HTTPDownloadHandler
 {
-	private static final transient Logger log = Logger.getLogger(HTTPDownloadServlet.class.getName());
+	public final static LogWrapper log = new LogWrapper(HTTPDownloadServlet.class);
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException,

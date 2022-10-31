@@ -16,17 +16,19 @@
 package io.xlogistx.http.servlet.shiro;
 
 
+import org.zoxweb.server.logging.LogWrapper;
+
 import javax.websocket.HandshakeResponse;
 import javax.websocket.server.HandshakeRequest;
 import javax.websocket.server.ServerEndpointConfig;
-import java.util.logging.Logger;
+
 
 public class ShiroWebSocketSessionConfigurator
     extends ServerEndpointConfig.Configurator
 {
     public static final String HTTP_SESSION = "http_session";
     @SuppressWarnings("unused")
-    private static final Logger log = Logger.getLogger(ShiroWebSocketSessionConfigurator.class.getName());
+    public final static LogWrapper log = new LogWrapper(ShiroWebSocketSessionConfigurator.class.getName());
     @Override
     public void modifyHandshake(ServerEndpointConfig config, HandshakeRequest request, HandshakeResponse response)
     {

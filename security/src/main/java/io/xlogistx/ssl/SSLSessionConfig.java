@@ -6,6 +6,7 @@ import io.xlogistx.common.fsm.Trigger;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.SelectorController;
 import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
@@ -18,13 +19,12 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
+
 
 public class SSLSessionConfig
     implements AutoCloseable
 {
-    private static final transient Logger log = Logger.getLogger(SSLSessionConfig.class.getName());
+    public final static LogWrapper log = new LogWrapper(SSLSessionConfig.class.getName());
     public static boolean debug = true;
 
 

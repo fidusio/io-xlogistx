@@ -23,6 +23,7 @@ import io.xlogistx.common.image.TextToImage;
 import org.zoxweb.server.http.HTTPRequestAttributes;
 import org.zoxweb.server.io.IOUtil;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.*;
 
 
@@ -36,13 +37,12 @@ import java.io.IOException;
 
 
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @SuppressWarnings("serial")
 public class HTTPCaptchaServlet
 	extends HttpServlet
 {
-	private static final Logger log = Logger.getLogger(HTTPCaptchaServlet.class.getName());
+	public final static LogWrapper log = new LogWrapper(HTTPCaptchaServlet.class);
 
 	
 	

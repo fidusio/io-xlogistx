@@ -14,6 +14,7 @@ import io.xlogistx.http.handler.EndPointHandler;
 import io.xlogistx.common.http.EndPointScanner;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
@@ -37,14 +38,14 @@ import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.logging.Logger;
 
 public class HTTPBasicServer
   implements DaemonController,
         HTTPServerMapper
 {
 
-  private final static Logger log = Logger.getLogger(HTTPBasicServer.class.getName());
+
+  public final static LogWrapper log = new LogWrapper(HTTPBasicServer.class);
   private final HTTPServerConfig config;
   private boolean isClosed = true;
   private final Map<String, HttpServer> servers = new LinkedHashMap<String, HttpServer>();

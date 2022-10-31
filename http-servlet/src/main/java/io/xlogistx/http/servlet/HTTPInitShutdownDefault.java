@@ -16,6 +16,7 @@
 package io.xlogistx.http.servlet;
 
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.server.util.ServiceManager;
@@ -23,14 +24,14 @@ import org.zoxweb.shared.data.ApplicationConfigDAO;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import java.util.logging.Logger;
+
 
 
 public class HTTPInitShutdownDefault
 	implements ServletContextListener
 {
 
-	private static final transient Logger log = Logger.getLogger("");
+	public final static LogWrapper log = new LogWrapper(HTTPInitShutdownDefault.class);
 	//private NIOConfig nioConfig = null;
 	//private IPBlockerListener ipBlocker = null;
 	public void contextInitialized(ServletContextEvent event) 

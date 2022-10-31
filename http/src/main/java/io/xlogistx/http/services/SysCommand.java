@@ -11,12 +11,12 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
-import org.zoxweb.shared.http.URIScheme;
+
 import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
-import java.util.logging.Logger;
+
 
 
 @SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC,
@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 public class SysCommand
 extends PropertyHolder
 {
-    private static Logger log = Logger.getLogger(SysCommand.class.getName());
+
 
 
 

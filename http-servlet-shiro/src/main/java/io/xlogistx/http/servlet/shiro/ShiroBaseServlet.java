@@ -26,6 +26,7 @@ import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.session.mgt.ServletContainerSessionManager;
 import org.zoxweb.server.http.HTTPRequestAttributes;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.cache.JWTTokenCache;
 import org.zoxweb.shared.annotation.DataProp;
@@ -50,7 +51,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
+
 
 
 @SuppressWarnings("serial")
@@ -59,7 +60,7 @@ public abstract class ShiroBaseServlet
 {
 
     public static final APIError DEFAULT_API_ERROR = new APIError(new AccessException("Access denied.", null, true));
-    protected static final Logger log = Logger.getLogger(ShiroBaseServlet.class.getName());
+	public final static LogWrapper log = new LogWrapper(ShiroBaseServlet.class);
 
 	ServletContainerSessionManager sdl;
     //public static final String SECURITY_CHECK = "SECURITY_CHECK";

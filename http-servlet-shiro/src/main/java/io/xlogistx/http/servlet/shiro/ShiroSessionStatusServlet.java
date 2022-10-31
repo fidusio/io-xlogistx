@@ -20,13 +20,13 @@ import org.apache.shiro.session.InvalidSessionException;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
-import org.zoxweb.shared.util.Const;
+
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.logging.Logger;
+
 
 
 @SuppressWarnings("serial")
@@ -34,7 +34,7 @@ public class ShiroSessionStatusServlet
     extends ShiroBaseServlet
 {
 	
-	private static final transient Logger log = Logger.getLogger(Const.LOGGER_NAME);
+
 
 	@Override
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)

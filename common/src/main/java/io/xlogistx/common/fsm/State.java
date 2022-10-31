@@ -1,5 +1,6 @@
 package io.xlogistx.common.fsm;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.NVBase;
 import org.zoxweb.shared.util.NVGenericMap;
@@ -8,13 +9,15 @@ import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.logging.Logger;
+
 
 public class State<P>
     implements StateInt<P>
 {
 
-    protected static final Logger log = Logger.getLogger(State.class.getName());
+
+    public final static LogWrapper log = new LogWrapper(State.class);
+    //protected static final Logger log = Logger.getLogger(State.class.getName());
     private final String name;
     private final NVGenericMap data = new NVGenericMap();
     private volatile StateMachineInt stateMachine;

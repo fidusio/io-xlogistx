@@ -21,7 +21,7 @@ public class TriggerConsumerHolder<T>
             temp.getState().getStateMachine().setCurrentState(temp.getState());
 
         }
-        if(TriggerConsumer.debug)
+        if(TriggerConsumer.log.isEnabled())
             TriggerConsumer.log.info("" + inner);
 
         inner.accept(t);

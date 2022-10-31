@@ -3,6 +3,7 @@ package io.xlogistx.http.handler;
 import com.sun.net.httpserver.HttpExchange;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.data.SimpleMessage;
@@ -15,13 +16,13 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 import java.net.URI;
 import java.util.*;
-import java.util.logging.Logger;
+
 
 @SuppressWarnings("restriction")
 public class HTTPHandlerUtil {
   private static final byte[] EMPTY_BUFFER = new byte[0];
 
-  private static transient Logger log = Logger.getLogger(HTTPHandlerUtil.class.getName());
+  public final static LogWrapper log = new LogWrapper(HTTPHandlerUtil.class);
 
   private HTTPHandlerUtil()
   {

@@ -256,11 +256,10 @@ public class SSLNIOSocket
 
 			if(dbg)
 			{
-				SSLStateMachine.debug = true;
-				ReadyState.debug = true;
-				HandshakingState.debug = true;
-				StateMachine.debug = true;
-				TriggerConsumer.debug = true;
+
+
+				StateMachine.log.setEnabled(true);
+				TriggerConsumer.log.setEnabled(true);
 			}
 			else
 			{

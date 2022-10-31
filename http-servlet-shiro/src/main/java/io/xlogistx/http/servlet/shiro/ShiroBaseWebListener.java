@@ -17,16 +17,17 @@ package io.xlogistx.http.servlet.shiro;
 
 import org.apache.shiro.web.env.EnvironmentLoaderListener;
 import org.apache.shiro.web.mgt.WebSecurityManager;
+import org.zoxweb.server.logging.LogWrapper;
 
 import javax.servlet.ServletContextEvent;
-import java.util.logging.Logger;
+
 
 
 public abstract class ShiroBaseWebListener
     extends EnvironmentLoaderListener
 {
 
-	private static final transient Logger log = Logger.getLogger(ShiroBaseWebListener.class.getName());
+	public final static LogWrapper log = new LogWrapper(ShiroBaseWebListener.class.getName());
 	
 	protected abstract void init(WebSecurityManager wsm);
 

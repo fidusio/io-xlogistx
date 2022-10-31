@@ -1,5 +1,6 @@
 package io.xlogistx.common.fsm;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.Arrays;
@@ -10,8 +11,9 @@ import java.util.logging.Logger;
 public abstract class TriggerConsumer<T>
 implements TriggerConsumerInt<T>
 {
-    final static Logger log = Logger.getLogger(TriggerConsumer.class.getName());
-    public static boolean debug = false;
+    public final static LogWrapper log = new LogWrapper(TriggerConsumer.class).setEnabled(false);
+    //final static Logger log = Logger.getLogger(TriggerConsumer.class.getName());
+   // public static boolean debug = false;
     private final String[] canonicalIDs;
     private StateInt<?> state;
     protected AtomicLong execCounter = new AtomicLong();

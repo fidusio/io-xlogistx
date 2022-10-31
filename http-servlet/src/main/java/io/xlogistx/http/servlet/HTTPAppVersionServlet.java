@@ -15,6 +15,7 @@
  */
 package io.xlogistx.http.servlet;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO.ApplicationDefaultParam;
 import org.zoxweb.shared.http.HTTPMimeType;
@@ -26,13 +27,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
+
 
 @SuppressWarnings("serial")
 public class HTTPAppVersionServlet 
 	extends HttpServlet
 {
-	private static final transient Logger log = Logger.getLogger(HTTPAppVersionServlet.class.getName());
+	public final static LogWrapper log = new LogWrapper(HTTPAppVersionServlet.class);
 	private AtomicReference<String> version = new AtomicReference<String>();
 	
 	

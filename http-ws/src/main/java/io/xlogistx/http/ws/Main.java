@@ -4,6 +4,7 @@ package io.xlogistx.http.ws;
 import io.xlogistx.http.HTTPBasicServer;
 import io.xlogistx.http.HTTPServerCreator;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOConfig;
 import org.zoxweb.server.net.NIOSocket;
@@ -17,10 +18,10 @@ import org.zoxweb.shared.util.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.logging.Logger;
+
 
 public class Main {
-    private final static Logger log = Logger.getLogger(Main.class.getName());
+    public final static LogWrapper log = new LogWrapper(Main.class.getName());
     public enum Param
         implements SetNameValue<Object>
     {

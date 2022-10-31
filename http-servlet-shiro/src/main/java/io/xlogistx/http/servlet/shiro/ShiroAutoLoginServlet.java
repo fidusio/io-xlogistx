@@ -35,14 +35,14 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.logging.Logger;
+
 
 
 @SuppressWarnings("serial")
 public class ShiroAutoLoginServlet 
 	extends ShiroBaseServlet
 {	
-	private static final transient Logger log = Logger.getLogger(ShiroAutoLoginServlet.class.getName());
+
 	
 	public  void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException

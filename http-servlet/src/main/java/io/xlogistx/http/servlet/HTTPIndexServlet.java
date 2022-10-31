@@ -15,6 +15,7 @@
  */
 package io.xlogistx.http.servlet;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO;
 import org.zoxweb.shared.data.ApplicationConfigDAO.ApplicationDefaultParam;
@@ -25,14 +26,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.logging.Logger;
+
 
 @SuppressWarnings("serial")
 public class HTTPIndexServlet
     extends HttpServlet
 {
-	
-	private static final transient Logger log = Logger.getLogger("");
+
+	public final static LogWrapper log = new LogWrapper(HTTPIndexServlet.class);
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException,

@@ -3,20 +3,21 @@ package io.xlogistx.http.servlet;
 import io.xlogistx.common.data.Challenge;
 
 import io.xlogistx.common.data.ChallengeManager;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-;
+
 import java.io.IOException;
 
-import java.util.logging.Logger;
+
 
 public final class HTTPCaptchaUtil {
 
-    private static final Logger log =Logger.getLogger(HTTPCaptchaUtil.class.getName());
+    public final static LogWrapper log = new LogWrapper(HTTPCaptchaUtil.class);
     private HTTPCaptchaUtil(){}
 
     public static Challenge.Status validateCaptcha(ArrayValues<GetNameValue<String>> formData,
