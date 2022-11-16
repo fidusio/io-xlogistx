@@ -63,17 +63,19 @@
         <maven-plugin-source.version>3.2.1</maven-plugin-source.version>
         <maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>
         <maven-surefile-plugin.version>3.0.0-M7</maven-surefile-plugin.version>
+        <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>
         <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
         <maven-javadoc.version>3.4.1</maven-javadoc.version>
         <exec-maven.version>3.1.0</exec-maven.version>
 
 
 
-
+        <commons-logging.version>1.2</commons-logging.version>
+        <commons-beanutils.version>1.9.4</commons-beanutils.version>
         <commons-codec.version>1.15</commons-codec.version>
         <commons-csv.version>1.9.0</commons-csv.version>
         <commons-fileupload.version>1.4</commons-fileupload.version>
-        <ehcache-org.version>3.9.6</ehcache-org.version>
+        <ehcache-org.version>3.9.10</ehcache-org.version>
         <gson.version>2.10</gson.version>
         <javax-cache.version>1.1.1</javax-cache.version>
         <jakarta-mail.version>2.0.1</jakarta-mail.version>
@@ -83,10 +85,20 @@
         <websocket.version>1.1</websocket.version>
         <junit.version>5.9.0</junit.version>
         <java-websocket.version>1.4.1</java-websocket.version>
+
+        <websocket.version>1.1</websocket.version>
+        <javax-servlet.version>4.0.1</javax-servlet.version>
+
         <zoxweb-core.version>2.3.2</zoxweb-core.version>
         <shiro.version>1.9.0</shiro.version>
         <xlogistx.version>1.0.0</xlogistx.version>
         <java-xt-core.version>1.12.0</java-xt-core.version>
+        <squareup.version>6.0.0.20200625</squareup.version>
+
+
+        <slf4j-simple.version>2.0.3</slf4j-simple.version>
+        <javax-cache.version>1.1.1</javax-cache.version>
+
 
         <cron-util.version>9.1.6</cron-util.version>
   </properties>

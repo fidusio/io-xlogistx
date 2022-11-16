@@ -16,14 +16,7 @@
   <name>xlogistx-shiro</name>
   <artifactId>xlogistx-shiro</artifactId>
 
-  
-  <properties>
-    <commons-logging.version>1.2</commons-logging.version>
-    <commons-beanutils.version>1.9.4</commons-beanutils.version>
-    <slf4j-simple.version>1.7.9</slf4j-simple.version>
-    <javax-cache.version>1.1.1</javax-cache.version>
-    <ehcache-org.version>3.8.1</ehcache-org.version>
-  </properties>
+
 
   <dependencies>
     <dependency>
