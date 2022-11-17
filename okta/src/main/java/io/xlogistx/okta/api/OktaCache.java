@@ -17,7 +17,6 @@ public class OktaCache {
 
     public enum RateCount
     {
-        HTTP,
         SUCCESS,
         FAILED
     }

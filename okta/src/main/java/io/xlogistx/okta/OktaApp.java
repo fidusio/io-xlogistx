@@ -1,6 +1,7 @@
 package io.xlogistx.okta;
 
 import io.xlogistx.okta.api.*;
+import org.zoxweb.server.http.HTTPCall;
 import org.zoxweb.server.security.BCrypt;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
@@ -75,15 +76,15 @@ public class OktaApp {
             int bCryptLog = 10;
             int count = params.intValue("count", 1);
             String ratePerUnit = params.stringValue("rate", "50/min");
-            String search = params.stringValue("search", null, true);
+            //String search = params.stringValue("search", null, true);
             String group = params.stringValue("group", null, true);
             boolean deleteGroupUsers = params.booleanValue("deleteGroupUsers", true);
             String[] groups = (params.stringValue("groups", null, true) != null) ? SharedStringUtil.parseString(params.stringValue("groups", null, true), ",", true) : null;
 
-            TaskUtil.setMaxTasksQueue(2000);
+//            TaskUtil.setMaxTasksQueue(2000);
             if(threadCount > 0)
                 TaskUtil.setTaskProcessorThreadCount(threadCount);
-            TaskUtil.getDefaultTaskScheduler();
+//            TaskUtil.getDefaultTaskScheduler();
             OktaCache.SINGLETON.getCache().addObject(RATE_CONTROLLER, new RateController("app",ratePerUnit));
 
 
@@ -199,9 +200,9 @@ public class OktaApp {
 
                 case "LOOKUP": {
                     SharedUtil.checkIfNulls("LOGIN Missing parameters username, password", userName);
-                    OktaUser user = oktaAdapter.lookupUser(userName);
+
                     long userNameTS = System.currentTimeMillis();
-                    user = oktaAdapter.lookupUser(userName);
+                    OktaUser user = oktaAdapter.lookupUser(userName);
                     userNameTS = System.currentTimeMillis() - userNameTS;
                     ///OktaAdapter.log.setEnabled(true);
                     long okaIdTS = System.currentTimeMillis();
@@ -286,7 +287,7 @@ public class OktaApp {
                             for (OktaUser user : oktaUsers) {
                                 boolean delete = true;
                                 if (match != null) {
-                                    delete = user.getOktaProfile().getUserName().indexOf(match) != -1;
+                                    delete = user.getOktaProfile().getUserName().contains(match);
                                 }
 
 
@@ -403,21 +404,21 @@ public class OktaApp {
             }
             ts = System.currentTimeMillis() - ts;
 
-            //float rate = 1000 * ((float) count / (float) ts);
             RateCounter total = new RateCounter("total");
             total.register(ts, count);
-            RateCounter http = OktaCache.SINGLETON.rateCounter(OktaCache.RateCount.HTTP);
-            //log.info("It took " + Const.TimeInMillis.toString(ts) + " to " + command + " " + count + " " + rate + "/tps");
+
+
             RateCounter success = OktaCache.SINGLETON.rateCounter(OktaCache.RateCount.SUCCESS);
             RateCounter failed = OktaCache.SINGLETON.rateCounter(OktaCache.RateCount.FAILED);
-            RateCounter httpRC = OktaCache.SINGLETON.rateCounter(OktaCache.RateCount.HTTP);
+
             log.info("***["+ command + "]*** took " + Const.TimeInMillis.toString(total.getDeltas()) + " transactions " + total.getCounts()
                      + " success: " + success.getCounts() + " failed: " + failed.getCounts()
                      + "\n stats " + total.rate(Const.TimeInMillis.SECOND.MILLIS) + "/tps"
-                     + " " + total.rate(Const.TimeInMillis.MINUTE.MILLIS) + "/tpm" + " average http call duration: " + http.average() + " millis"
-                    + " taskProcessor " + TaskUtil.info()
-                    + " HTTPCalls sent " + http.getCounts() + " average request time  : " + http.average() + " millis"
+                     + " " + total.rate(Const.TimeInMillis.MINUTE.MILLIS) + "/tpm " + HTTPCall.HTTP_CALLS
+                     +"\n" + TaskUtil.info()
             );
+
+
         } catch (Exception e) {
             error("Processing error", e);
         }
@@ -426,7 +427,6 @@ public class OktaApp {
 
         log.info("Finished total GSONDefault calls " + GSONUtil.getJSONDefaultCount());
         log.info("OktaAPIRate: " + oktaAdapter.getCurrentAPIRate());
-        RateCounter http = OktaCache.SINGLETON.rateCounter(OktaCache.RateCount.HTTP);
-        log.info("HTTPCalls send " +http + " average request time  : " + http.average() + " millis" );
+
     }
 }

@@ -139,7 +139,7 @@ public class DefaultOktaAdapter
             hmciDeactivate.setContentType("application/json");
             hmciDeactivate.setAccept("application/json");
             hmciDeactivate.setAuthentication(getHTTPAuthentication());
-            send(new HTTPCall(hmciDeactivate));
+            send(hmciDeactivate);
 
         }
 
@@ -150,7 +150,7 @@ public class DefaultOktaAdapter
         hmciDelete.setAccept("application/json");
         hmciDelete.setAuthentication(getHTTPAuthentication());
 
-        send(new HTTPCall(hmciDelete));
+        send(hmciDelete);
 
 
         return this;
@@ -266,16 +266,16 @@ public class DefaultOktaAdapter
         return this;
     }
 
-    private HTTPResponseData send(HTTPCall hc) throws IOException
+    private HTTPResponseData send(HTTPMessageConfigInterface hmci) throws IOException
     {
         HTTPResponseData ret = null;
 
 
         if (isHttpCallingEnabled())
         {
-            long ts = System.currentTimeMillis();
+
             try {
-                ret = hc.sendRequest();
+                ret = HTTPCall.send(hmci);
                 if(ret == null)
                     return null;
                 try {
@@ -309,12 +309,6 @@ public class DefaultOktaAdapter
 
                 throw  callException;
             }
-            finally
-            {
-                ts = System.currentTimeMillis() - ts;
-                RateCounter http = OktaCache.SINGLETON.rateCounter(OktaCache.RateCount.HTTP);
-                http.register(ts);
-            }
         }
 
 
@@ -323,7 +317,7 @@ public class DefaultOktaAdapter
 
 
     private <T> T send(HTTPMessageConfigInterface hmci, Class<T> responseType) throws IOException {
-        HTTPResponseData hrd = send(new HTTPCall(hmci));
+        HTTPResponseData hrd = send(hmci);
         if (hrd != null)
         {
             try {
