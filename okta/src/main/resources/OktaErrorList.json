@@ -1,1 +1,1002 @@
-[{"codeId":"E0000001","httpStatus":400,"description":"API validation failed for the current request. This is a fairly general error that signifies that endpoint\u0027s precondition has been violated. Such preconditions are endpoint specific. Users are encouraged to navigate to the documentation for the endpoint and read through the \"Response Parameter\" section. For example, the documentation for \"Suspend User\" indicates that suspending a user who is not active will result in the `E0000001` error code."},{"codeId":"E0000002","httpStatus":400,"description":"The request was not valid: {0}"},{"codeId":"E0000003","httpStatus":400,"description":"The request body was not well-formed."},{"codeId":"E0000004","httpStatus":401,"description":"Authentication failed"},{"codeId":"E0000005","httpStatus":403,"description":"Invalid session"},{"codeId":"E0000006","httpStatus":403,"description":"You do not have permission to perform the requested action"},{"codeId":"E0000007","httpStatus":404,"description":"Not found: {0}"},{"codeId":"E0000008","httpStatus":404,"description":"The requested path was not found"},{"codeId":"E0000009","httpStatus":500,"description":"Internal Server Error"},{"codeId":"E0000010","httpStatus":503,"description":"Service is in read only mode"},{"codeId":"E0000011","httpStatus":401,"description":"Invalid token provided"},{"codeId":"E0000012","httpStatus":404,"description":"Unsupported media type"},{"codeId":"E0000013","httpStatus":403,"description":"Invalid client app id"},{"codeId":"E0000014","httpStatus":403,"description":"Update of credentials failed"},{"codeId":"E0000015","httpStatus":401,"description":"You do not have permission to access the feature you are requesting"},{"codeId":"E0000016","httpStatus":403,"description":"Activation failed because the user is already active"},{"codeId":"E0000017","httpStatus":403,"description":"Password reset failed"},{"codeId":"E0000018","httpStatus":400,"description":"Bad request. Accept and/or Content-Type headers are likely not set."},{"codeId":"E0000019","httpStatus":400,"description":"Bad request. Accept and/or Content-Type headers likely do not match supported values."},{"codeId":"E0000020","httpStatus":400,"description":"Bad request."},{"codeId":"E0000021","httpStatus":400,"description":"Bad request. Accept and/or Content-Type headers likely do not match supported values."},{"codeId":"E0000022","httpStatus":405,"description":"The endpoint does not support the provided HTTP method"},{"codeId":"E0000023","httpStatus":403,"description":"Operation failed because user profile is mastered under another system"},{"codeId":"E0000024","httpStatus":400,"description":"Bad request. This operation on app metadata is not yet supported."},{"codeId":"E0000025","httpStatus":400,"description":"App version assignment failed."},{"codeId":"E0000026","httpStatus":404,"description":"This endpoint has been deprecated."},{"codeId":"E0000027","httpStatus":400,"description":"Group push bad request : {0}"},{"codeId":"E0000028","httpStatus":400,"description":"The request is missing a required parameter."},{"codeId":"E0000029","httpStatus":400,"description":"Invalid paging request."},{"codeId":"E0000030","httpStatus":400,"description":"Bad request. Invalid date. Dates must be of the form yyyy-MM-dd\u0027T\u0027HH:mm:ss.SSSZZ, e.g. 2013-01-01T12:00:00.000-07:00."},{"codeId":"E0000031","httpStatus":400,"description":"Invalid search criteria."},{"codeId":"E0000032","httpStatus":403,"description":"Unlock is not allowed for this user."},{"codeId":"E0000033","httpStatus":400,"description":"Bad request. Can\u0027t specify a search query and filter in the same request."},{"codeId":"E0000034","httpStatus":403,"description":"Forgot password not allowed on specified user."},{"codeId":"E0000035","httpStatus":403,"description":"Change password not allowed on specified user."},{"codeId":"E0000036","httpStatus":403,"description":"Change recovery question not allowed on specified user."},{"codeId":"E0000037","httpStatus":400,"description":"Type mismatch exception. {0}"},{"codeId":"E0000038","httpStatus":403,"description":"This operation is not allowed in the user\u0027s current status."},{"codeId":"E0000039","httpStatus":403,"description":"Operation on application settings failed."},{"codeId":"E0000040","httpStatus":400,"description":"Application label must not be the same as an existing application label."},{"codeId":"E0000041","httpStatus":400,"description":"Credentials should not be set on this resource based on the scheme."},{"codeId":"E0000042","httpStatus":403,"description":"Setting the error page redirect URL failed."},{"codeId":"E0000043","httpStatus":403,"description":"Self service application assignment is not enabled."},{"codeId":"E0000044","httpStatus":403,"description":"Self service application assignment is not supported."},{"codeId":"E0000045","httpStatus":400,"description":"Field mapping bad request."},{"codeId":"E0000046","httpStatus":403,"description":"Deactivate application for user forbidden."},{"codeId":"E0000047","httpStatus":429,"description":"API call exceeded rate limit due to too many requests."},{"codeId":"E0000048","httpStatus":404,"description":"Entity not found exception."},{"codeId":"E0000049","httpStatus":500,"description":"Invalid SCIM data from SCIM implementation."},{"codeId":"E0000050","httpStatus":400,"description":"Invalid SCIM data from client."},{"codeId":"E0000051","httpStatus":500,"description":"No response from SCIM implementation."},{"codeId":"E0000052","httpStatus":501,"description":"Endpoint not implemented."},{"codeId":"E0000053","httpStatus":400,"description":"Invalid SCIM filter."},{"codeId":"E0000054","httpStatus":400,"description":"Invalid pagination properties."},{"codeId":"E0000055","httpStatus":409,"description":"Duplicate group."},{"codeId":"E0000056","httpStatus":403,"description":"Delete application forbidden."},{"codeId":"E0000057","httpStatus":403,"description":"Access to this application is denied due to a policy."},{"codeId":"E0000058","httpStatus":403,"description":"Access to this application requires MFA: {0}"},{"codeId":"E0000059","httpStatus":400,"description":"The connector configuration could not be tested. Make sure that the URL, Authentication Parameters are correct and that there is an implementation available at the URL provided."},{"codeId":"E0000060","httpStatus":501,"description":"Unsupported operation."},{"codeId":"E0000061","httpStatus":403,"description":"Tab error: {0}"},{"codeId":"E0000062","httpStatus":409,"description":"The specified user is already assigned to the application."},{"codeId":"E0000063","httpStatus":400,"description":"Invalid combination of parameters specified."},{"codeId":"E0000064","httpStatus":401,"description":"Password is expired and must be changed."},{"codeId":"E0000065","httpStatus":500,"description":"Internal error processing app metadata."},{"codeId":"E0000066","httpStatus":400,"description":"APNS is not configured, contact your admin"},{"codeId":"E0000067","httpStatus":504,"description":"Factors Service Error."},{"codeId":"E0000068","httpStatus":403,"description":"Invalid Passcode/Answer"},{"codeId":"E0000069","httpStatus":403,"description":"User Locked"},{"codeId":"E0000070","httpStatus":202,"description":"Waiting for ACK"},{"codeId":"E0000071","httpStatus":400,"description":"Unsupported OS Version: {0}"},{"codeId":"E0000072","httpStatus":403,"description":"MIM policy settings have disallowed enrollment for this user"},{"codeId":"E0000073","httpStatus":403,"description":"User rejected authentication"},{"codeId":"E0000074","httpStatus":400,"description":"Factor Service Error"},{"codeId":"E0000075","httpStatus":403,"description":"Cannot modify the {0} attribute because it has a field mapping and profile push is enabled."},{"codeId":"E0000076","httpStatus":405,"description":"Cannot modify the app user because it is mastered by an external app."},{"codeId":"E0000077","httpStatus":403,"description":"Cannot modify the {0} attribute because it is read-only."},{"codeId":"E0000078","httpStatus":403,"description":"Cannot modify the {0} attribute because it is immutable."},{"codeId":"E0000079","httpStatus":403,"description":"This operation is not allowed in the current authentication state."},{"codeId":"E0000080","httpStatus":403,"description":"The password does not meet the complexity requirements of the current password policy."},{"codeId":"E0000081","httpStatus":403,"description":"Cannot modify the {0} attribute because it is a reserved attribute for this application."},{"codeId":"E0000082","httpStatus":403,"description":"Each code can only be used once. Please wait for a new code and try again."},{"codeId":"E0000083","httpStatus":403,"description":"PassCode is valid but exceeded time window."},{"codeId":"E0000084","httpStatus":403,"description":"App evaluation error."},{"codeId":"E0000085","httpStatus":403,"description":"You do not have permission to access your account at this time."},{"codeId":"E0000086","httpStatus":403,"description":"This policy cannot be activated at this time."},{"codeId":"E0000087","httpStatus":403,"description":"The recovery question answer did not match our records."},{"codeId":"E0000088","httpStatus":400,"description":"Org Creator API subdomain validation exception: An object with this field already exists."},{"codeId":"E0000089","httpStatus":400,"description":"Org Creator API name validation exception."},{"codeId":"E0000090","httpStatus":409,"description":"The role specified is already assigned to the user."},{"codeId":"E0000091","httpStatus":400,"description":"The provided role type was not the same as required role type."},{"codeId":"E0000092","httpStatus":403,"description":"Access to this application requires re-authentication: {0}"},{"codeId":"E0000093","httpStatus":400,"description":"Target count limit exceeded"},{"codeId":"E0000094","httpStatus":400,"description":"The provided filter is unsupported."},{"codeId":"E0000095","httpStatus":403,"description":"Recovery not allowed for unknown user."},{"codeId":"E0000096","httpStatus":409,"description":"This certificate has already been uploaded with kid\u003d{0}."},{"codeId":"E0000097","httpStatus":403,"description":"There is no verified phone number on file."},{"codeId":"E0000098","httpStatus":400,"description":"This phone number is invalid."},{"codeId":"E0000099","httpStatus":403,"description":"Only numbers located in US and Canada are allowed. Contact your administrator if this is a problem."},{"codeId":"E0000100","httpStatus":503,"description":"Unable to perform search query."},{"codeId":"E0000101","httpStatus":400,"description":"There was an issue with the app binary file you uploaded. {0}"},{"codeId":"E0000102","httpStatus":403,"description":"YubiKey cannot be deleted while assigned to an user. Please deactivate YubiKey using reset MFA and try again"},{"codeId":"E0000103","httpStatus":403,"description":"Action on device already in queue or in progress"},{"codeId":"E0000104","httpStatus":403,"description":"Device is already locked and cannot be locked again"},{"codeId":"E0000105","httpStatus":403,"description":"You have accessed an account recovery link that has expired or been previously used."},{"codeId":"E0000107","httpStatus":403,"description":"The entity is not in the expected state for the requested transition."},{"codeId":"E0000108","httpStatus":409,"description":"OEM generic duplicate resource."},{"codeId":"E0000109","httpStatus":429,"description":"An SMS message was recently sent. Please wait 30 seconds before trying again."},{"codeId":"E0000110","httpStatus":403,"description":"You have accessed a link that has expired or has been previously used."},{"codeId":"E0000111","httpStatus":403,"description":"Cannot modify the {0} object because it is read-only."},{"codeId":"E0000112","httpStatus":409,"description":"Cannot update this user because they are still being activated. Please try again in a few minutes."},{"codeId":"E0000113","httpStatus":409,"description":"{0}."},{"codeId":"E0000115","httpStatus":503,"description":"There was an issue while uploading the app binary file. {0}"},{"codeId":"E0000116","httpStatus":400,"description":"{0}"},{"codeId":"E0000117","httpStatus":403,"description":"Cannot assign apps or update app profiles for an inactive user."},{"codeId":"E0000118","httpStatus":429,"description":"An email was recently sent. Please wait 5 seconds before trying again."},{"codeId":"E0000119","httpStatus":403,"description":"Your account is locked. Please contact your administrator."},{"codeId":"E0000120","httpStatus":400,"description":"The custom domain requested is already in use by another organization."},{"codeId":"E0000121","httpStatus":400,"description":"Invalid phone extension. Please enter a valid phone extension."},{"codeId":"E0000122","httpStatus":406,"description":"Accept Header did not contain supported media type \u0027application/json\u0027"},{"codeId":"E0000123","httpStatus":400,"description":"Array specified in enum field must match const values specified in oneOf field."},{"codeId":"E0000124","httpStatus":400,"description":"Could not create user. To create a user and expire their password immediately, a password must be specified"},{"codeId":"E0000125","httpStatus":400,"description":"Could not create user. To create a user and expire their password immediately, \"activate\" must be true"},{"codeId":"E0000126","httpStatus":400,"description":"Self service is not supported with the current settings."},{"codeId":"E0000127","httpStatus":409,"description":"Invalid linked objection definition. {0}"},{"codeId":"E0000131","httpStatus":400,"description":"{0}"},{"codeId":"E0000132","httpStatus":400,"description":"The registration is already active for the given user, client and device combination"},{"codeId":"E0000133","httpStatus":429,"description":"A phone call was recently made. Please wait 30 seconds before trying again."},{"codeId":"E0000134","httpStatus":502,"description":"Okta could not communicate correctly with an inline hook."},{"codeId":"E0000135","httpStatus":400,"description":"An inline hook responded with an error."},{"codeId":"E0000136","httpStatus":409,"description":"Mobile phone conflict exception."},{"codeId":"E0000137","httpStatus":504,"description":"Okta did not receive a response from an inline hook."},{"codeId":"E0000138","httpStatus":500,"description":"There was an internal error with call provider(s)."},{"codeId":"E0000139","httpStatus":503,"description":"Telephony provider error."},{"codeId":"E0000140","httpStatus":400,"description":"Telephony opt out error."},{"codeId":"E0000141","httpStatus":400,"description":"Feature cannot be enabled or disabled due to dependencies/dependents conflicts."},{"codeId":"E0000142","httpStatus":403,"description":"This User Type cannot be deleted."},{"codeId":"E0000143","httpStatus":403,"description":"App instance operation not allowed."},{"codeId":"E0000145","httpStatus":409,"description":"Some users returned by the search cannot be parsed because the user schema has been changed to be inconsistent with their stale profile data."},{"codeId":"E0000146","httpStatus":429,"description":"Your organization has reached the limit of sms requests that can be sent within a 24 hour period."},{"codeId":"E0000147","httpStatus":429,"description":"Your organization has reached the limit of call requests that can be sent within a 24 hour period."},{"codeId":"E0000148","httpStatus":403,"description":"Cannot modify/disable this authenticator because it is enabled in one or more policies. {0}"},{"codeId":"E0000149","httpStatus":406,"description":"The HTTP request is not acceptable."},{"codeId":"E0000150","httpStatus":403,"description":"You have reached the limit of sms requests, please try again later."},{"codeId":"E0000151","httpStatus":403,"description":"You have reached the limit of call requests, please try again later."},{"codeId":"E0000152","httpStatus":403,"description":"Illegal device status, cannot perform action."},{"codeId":"E0000153","httpStatus":410,"description":"Invalid device id, it no longer exists."},{"codeId":"E0000154","httpStatus":410,"description":"Invalid factor id, it is not currently active."},{"codeId":"E0000155","httpStatus":423,"description":"User is not currently active."},{"codeId":"E0000156","httpStatus":410,"description":"Invalid user id; the user either does not exist or has been deleted."},{"codeId":"E0000157","httpStatus":409,"description":"Another authenticator with key: {0} is already active."},{"codeId":"E0000158","httpStatus":400,"description":"Invalid Enrollment. User verification required."},{"codeId":"E0000159","httpStatus":400,"description":"Invalid Enrollment. FIPS compliance required."},{"codeId":"E0000161","httpStatus":403,"description":"Unique domain name required."},{"codeId":"E0000162","httpStatus":403,"description":"Domain count limit reached."},{"codeId":"E0000163","httpStatus":404,"description":"Domain ID not found."},{"codeId":"E0000165","httpStatus":403,"description":"Domain not verified."},{"codeId":"E0000166","httpStatus":403,"description":"CAPTCHA count limit reached. At most one CAPTCHA instance is allowed per Org. Please remove existing CAPTCHA to create a new one."},{"codeId":"E0000167","httpStatus":403,"description":"{0}"},{"codeId":"E0000168","httpStatus":403,"description":"CAPTCHA cannot be removed. This CAPTCHA is associated with org-wide CAPTCHA settings, please unassociate it before removing it."},{"codeId":"E0000170","httpStatus":400,"description":"Org Creator API subdomain validation exception: Using a reserved value. Try again with a different value."},{"codeId":"E0000171","httpStatus":400,"description":"Org Creator API subdomain validation exception: The value is already in use by a different request."},{"codeId":"E0000172","httpStatus":400,"description":"Org Creator API subdomain validation exception: The value exceeds the max length."},{"codeId":"E0000174","httpStatus":403,"description":"You canât disable Okta FastPass because it is being used by one or more application sign-on policies. First, go to each policy and remove any device conditions. Then, come back and try again."},{"codeId":"E0000176","httpStatus":400,"description":"Failed to create LogStreaming event source. {0}"},{"codeId":"E0000177","httpStatus":400,"description":"Failed to delete LogStreaming event source. {0}"},{"codeId":"E0000178","httpStatus":400,"description":"This realm cannot be deleted. {0}"},{"codeId":"E0000179","httpStatus":400,"description":"There is a required attribute that is externally sourced."},{"codeId":"E0000180","httpStatus":423,"description":"Factor id is currently not active."},{"codeId":"E0000181","httpStatus":503,"description":"Service temporarily unavailable."},{"codeId":"E0000182","httpStatus":409,"description":"A default email template customization already exists."},{"codeId":"E0000183","httpStatus":409,"description":"An email template customization for that language already exists."},{"codeId":"E0000184","httpStatus":409,"description":"A default email template customization can\u0027t be deleted."},{"codeId":"E0000185","httpStatus":409,"description":"The isDefault parameter of the default email template customization can\u0027t be set to false."},{"codeId":"E0000186","httpStatus":429,"description":"Your free tier organization has reached the limit of sms requests that can be sent within a 30 day period."},{"codeId":"E0000187","httpStatus":409,"description":"Cannot delete push provider because it is being used by a custom app authenticator."},{"codeId":"E0000188","httpStatus":409,"description":"Domain update conflict exception."},{"codeId":"E0000189","httpStatus":422,"description":"This template does not support the recipients value."},{"codeId":"E0000190","httpStatus":403,"description":"Delete LDAP interface instance forbidden."},{"codeId":"E0000191","httpStatus":404,"description":"Verification timed out. Please try again."},{"codeId":"E0000192","httpStatus":400,"description":"Roles cannot be granted to groups with group membership rules. {0}"},{"codeId":"E0000193","httpStatus":400,"description":"Roles can only be granted to groups with 5000 or less users. {0}"},{"codeId":"E0000194","httpStatus":400,"description":"Roles can only be granted to Okta groups, AD groups and LDAP groups. {0}"},{"codeId":"E0000195","httpStatus":409,"description":"Api validation failed due to conflict: {0}"},{"codeId":"E0000197","httpStatus":409,"description":"Unique email domain name required."},{"codeId":"E0000198","httpStatus":404,"description":"Email domain not found."},{"codeId":"E0000200","httpStatus":409,"description":"A default brand cannot be deleted."},{"codeId":"E0000201","httpStatus":409,"description":"A brand associated with a domain cannot be deleted."},{"codeId":"E0000202","httpStatus":409,"description":"Brand name already exists."},{"codeId":"E0000203","httpStatus":409,"description":"Failed to associate this domain with the given brandId."},{"codeId":"E0000204","httpStatus":429,"description":"You have reached the limit of sms requests, please try again later."},{"codeId":"E0000205","httpStatus":429,"description":"You have reached the limit of call requests, please try again later."},{"codeId":"E0000206","httpStatus":409,"description":"Failed to delete the mapping for the provided brandId and domainId."},{"codeId":"E0000207","httpStatus":401,"description":"The username and/or the password you entered is incorrect. Please try again."},{"codeId":"E0000208","httpStatus":400,"description":"Failed to get access token. The request was invalid, reason: {0}."},{"codeId":"E0000209","httpStatus":400,"description":"{0} cannot be modified/deleted because it is currently being used in an Enroll Policy. Please make changes to the Enroll Policy before modifying/deleting the group."},{"codeId":"E0000211","httpStatus":400,"description":"Roles cannot be granted to built-in groups: {0}"},{"codeId":"E0000212","httpStatus":403,"description":"Origin validation failed."},{"codeId":"E0000213","httpStatus":403,"description":"Cannot update page settings for the default brand."},{"codeId":"E0000214","httpStatus":400,"description":"User has no custom authenticator enrollments that have CIBA as a transactionType"}]
+[
+  {
+    "codeId": "E0000001",
+    "httpStatus": 400,
+    "description": "API validation failed for the current request. This is a fairly general error that signifies that endpoint\u0027s precondition has been violated. Such preconditions are endpoint specific. Users are encouraged to navigate to the documentation for the endpoint and read through the \"Response Parameter\" section. For example, the documentation for \"Suspend User\" indicates that suspending a user who is not active will result in the `E0000001` error code."
+  },
+  {
+    "codeId": "E0000002",
+    "httpStatus": 400,
+    "description": "The request was not valid: {0}"
+  },
+  {
+    "codeId": "E0000003",
+    "httpStatus": 400,
+    "description": "The request body was not well-formed."
+  },
+  {
+    "codeId": "E0000004",
+    "httpStatus": 401,
+    "description": "Authentication failed"
+  },
+  {
+    "codeId": "E0000005",
+    "httpStatus": 403,
+    "description": "Invalid session"
+  },
+  {
+    "codeId": "E0000006",
+    "httpStatus": 403,
+    "description": "You do not have permission to perform the requested action"
+  },
+  {
+    "codeId": "E0000007",
+    "httpStatus": 404,
+    "description": "Not found: {0}"
+  },
+  {
+    "codeId": "E0000008",
+    "httpStatus": 404,
+    "description": "The requested path was not found"
+  },
+  {
+    "codeId": "E0000009",
+    "httpStatus": 500,
+    "description": "Internal Server Error"
+  },
+  {
+    "codeId": "E0000010",
+    "httpStatus": 503,
+    "description": "Service is in read only mode"
+  },
+  {
+    "codeId": "E0000011",
+    "httpStatus": 401,
+    "description": "Invalid token provided"
+  },
+  {
+    "codeId": "E0000012",
+    "httpStatus": 404,
+    "description": "Unsupported media type"
+  },
+  {
+    "codeId": "E0000013",
+    "httpStatus": 403,
+    "description": "Invalid client app id"
+  },
+  {
+    "codeId": "E0000014",
+    "httpStatus": 403,
+    "description": "Update of credentials failed"
+  },
+  {
+    "codeId": "E0000015",
+    "httpStatus": 401,
+    "description": "You do not have permission to access the feature you are requesting"
+  },
+  {
+    "codeId": "E0000016",
+    "httpStatus": 403,
+    "description": "Activation failed because the user is already active"
+  },
+  {
+    "codeId": "E0000017",
+    "httpStatus": 403,
+    "description": "Password reset failed"
+  },
+  {
+    "codeId": "E0000018",
+    "httpStatus": 400,
+    "description": "Bad request. Accept and/or Content-Type headers are likely not set."
+  },
+  {
+    "codeId": "E0000019",
+    "httpStatus": 400,
+    "description": "Bad request. Accept and/or Content-Type headers likely do not match supported values."
+  },
+  {
+    "codeId": "E0000020",
+    "httpStatus": 400,
+    "description": "Bad request."
+  },
+  {
+    "codeId": "E0000021",
+    "httpStatus": 400,
+    "description": "Bad request. Accept and/or Content-Type headers likely do not match supported values."
+  },
+  {
+    "codeId": "E0000022",
+    "httpStatus": 405,
+    "description": "The endpoint does not support the provided HTTP method"
+  },
+  {
+    "codeId": "E0000023",
+    "httpStatus": 403,
+    "description": "Operation failed because user profile is mastered under another system"
+  },
+  {
+    "codeId": "E0000024",
+    "httpStatus": 400,
+    "description": "Bad request. This operation on app metadata is not yet supported."
+  },
+  {
+    "codeId": "E0000025",
+    "httpStatus": 400,
+    "description": "App version assignment failed."
+  },
+  {
+    "codeId": "E0000026",
+    "httpStatus": 404,
+    "description": "This endpoint has been deprecated."
+  },
+  {
+    "codeId": "E0000027",
+    "httpStatus": 400,
+    "description": "Group push bad request : {0}"
+  },
+  {
+    "codeId": "E0000028",
+    "httpStatus": 400,
+    "description": "The request is missing a required parameter."
+  },
+  {
+    "codeId": "E0000029",
+    "httpStatus": 400,
+    "description": "Invalid paging request."
+  },
+  {
+    "codeId": "E0000030",
+    "httpStatus": 400,
+    "description": "Bad request. Invalid date. Dates must be of the form yyyy-MM-dd\u0027T\u0027HH:mm:ss.SSSZZ, e.g. 2013-01-01T12:00:00.000-07:00."
+  },
+  {
+    "codeId": "E0000031",
+    "httpStatus": 400,
+    "description": "Invalid search criteria."
+  },
+  {
+    "codeId": "E0000032",
+    "httpStatus": 403,
+    "description": "Unlock is not allowed for this user."
+  },
+  {
+    "codeId": "E0000033",
+    "httpStatus": 400,
+    "description": "Bad request. Can\u0027t specify a search query and filter in the same request."
+  },
+  {
+    "codeId": "E0000034",
+    "httpStatus": 403,
+    "description": "Forgot password not allowed on specified user."
+  },
+  {
+    "codeId": "E0000035",
+    "httpStatus": 403,
+    "description": "Change password not allowed on specified user."
+  },
+  {
+    "codeId": "E0000036",
+    "httpStatus": 403,
+    "description": "Change recovery question not allowed on specified user."
+  },
+  {
+    "codeId": "E0000037",
+    "httpStatus": 400,
+    "description": "Type mismatch exception. {0}"
+  },
+  {
+    "codeId": "E0000038",
+    "httpStatus": 403,
+    "description": "This operation is not allowed in the user\u0027s current status."
+  },
+  {
+    "codeId": "E0000039",
+    "httpStatus": 403,
+    "description": "Operation on application settings failed."
+  },
+  {
+    "codeId": "E0000040",
+    "httpStatus": 400,
+    "description": "Application label must not be the same as an existing application label."
+  },
+  {
+    "codeId": "E0000041",
+    "httpStatus": 400,
+    "description": "Credentials should not be set on this resource based on the scheme."
+  },
+  {
+    "codeId": "E0000042",
+    "httpStatus": 403,
+    "description": "Setting the error page redirect URL failed."
+  },
+  {
+    "codeId": "E0000043",
+    "httpStatus": 403,
+    "description": "Self service application assignment is not enabled."
+  },
+  {
+    "codeId": "E0000044",
+    "httpStatus": 403,
+    "description": "Self service application assignment is not supported."
+  },
+  {
+    "codeId": "E0000045",
+    "httpStatus": 400,
+    "description": "Field mapping bad request."
+  },
+  {
+    "codeId": "E0000046",
+    "httpStatus": 403,
+    "description": "Deactivate application for user forbidden."
+  },
+  {
+    "codeId": "E0000047",
+    "httpStatus": 429,
+    "description": "API call exceeded rate limit due to too many requests."
+  },
+  {
+    "codeId": "E0000048",
+    "httpStatus": 404,
+    "description": "Entity not found exception."
+  },
+  {
+    "codeId": "E0000049",
+    "httpStatus": 500,
+    "description": "Invalid SCIM data from SCIM implementation."
+  },
+  {
+    "codeId": "E0000050",
+    "httpStatus": 400,
+    "description": "Invalid SCIM data from client."
+  },
+  {
+    "codeId": "E0000051",
+    "httpStatus": 500,
+    "description": "No response from SCIM implementation."
+  },
+  {
+    "codeId": "E0000052",
+    "httpStatus": 501,
+    "description": "Endpoint not implemented."
+  },
+  {
+    "codeId": "E0000053",
+    "httpStatus": 400,
+    "description": "Invalid SCIM filter."
+  },
+  {
+    "codeId": "E0000054",
+    "httpStatus": 400,
+    "description": "Invalid pagination properties."
+  },
+  {
+    "codeId": "E0000055",
+    "httpStatus": 409,
+    "description": "Duplicate group."
+  },
+  {
+    "codeId": "E0000056",
+    "httpStatus": 403,
+    "description": "Delete application forbidden."
+  },
+  {
+    "codeId": "E0000057",
+    "httpStatus": 403,
+    "description": "Access to this application is denied due to a policy."
+  },
+  {
+    "codeId": "E0000058",
+    "httpStatus": 403,
+    "description": "Access to this application requires MFA: {0}"
+  },
+  {
+    "codeId": "E0000059",
+    "httpStatus": 400,
+    "description": "The connector configuration could not be tested. Make sure that the URL, Authentication Parameters are correct and that there is an implementation available at the URL provided."
+  },
+  {
+    "codeId": "E0000060",
+    "httpStatus": 501,
+    "description": "Unsupported operation."
+  },
+  {
+    "codeId": "E0000061",
+    "httpStatus": 403,
+    "description": "Tab error: {0}"
+  },
+  {
+    "codeId": "E0000062",
+    "httpStatus": 409,
+    "description": "The specified user is already assigned to the application."
+  },
+  {
+    "codeId": "E0000063",
+    "httpStatus": 400,
+    "description": "Invalid combination of parameters specified."
+  },
+  {
+    "codeId": "E0000064",
+    "httpStatus": 401,
+    "description": "Password is expired and must be changed."
+  },
+  {
+    "codeId": "E0000065",
+    "httpStatus": 500,
+    "description": "Internal error processing app metadata."
+  },
+  {
+    "codeId": "E0000066",
+    "httpStatus": 400,
+    "description": "APNS is not configured, contact your admin"
+  },
+  {
+    "codeId": "E0000067",
+    "httpStatus": 504,
+    "description": "Factors Service Error."
+  },
+  {
+    "codeId": "E0000068",
+    "httpStatus": 403,
+    "description": "Invalid Passcode/Answer"
+  },
+  {
+    "codeId": "E0000069",
+    "httpStatus": 403,
+    "description": "User Locked"
+  },
+  {
+    "codeId": "E0000070",
+    "httpStatus": 202,
+    "description": "Waiting for ACK"
+  },
+  {
+    "codeId": "E0000071",
+    "httpStatus": 400,
+    "description": "Unsupported OS Version: {0}"
+  },
+  {
+    "codeId": "E0000072",
+    "httpStatus": 403,
+    "description": "MIM policy settings have disallowed enrollment for this user"
+  },
+  {
+    "codeId": "E0000073",
+    "httpStatus": 403,
+    "description": "User rejected authentication"
+  },
+  {
+    "codeId": "E0000074",
+    "httpStatus": 400,
+    "description": "Factor Service Error"
+  },
+  {
+    "codeId": "E0000075",
+    "httpStatus": 403,
+    "description": "Cannot modify the {0} attribute because it has a field mapping and profile push is enabled."
+  },
+  {
+    "codeId": "E0000076",
+    "httpStatus": 405,
+    "description": "Cannot modify the app user because it is mastered by an external app."
+  },
+  {
+    "codeId": "E0000077",
+    "httpStatus": 403,
+    "description": "Cannot modify the {0} attribute because it is read-only."
+  },
+  {
+    "codeId": "E0000078",
+    "httpStatus": 403,
+    "description": "Cannot modify the {0} attribute because it is immutable."
+  },
+  {
+    "codeId": "E0000079",
+    "httpStatus": 403,
+    "description": "This operation is not allowed in the current authentication state."
+  },
+  {
+    "codeId": "E0000080",
+    "httpStatus": 403,
+    "description": "The password does not meet the complexity requirements of the current password policy."
+  },
+  {
+    "codeId": "E0000081",
+    "httpStatus": 403,
+    "description": "Cannot modify the {0} attribute because it is a reserved attribute for this application."
+  },
+  {
+    "codeId": "E0000082",
+    "httpStatus": 403,
+    "description": "Each code can only be used once. Please wait for a new code and try again."
+  },
+  {
+    "codeId": "E0000083",
+    "httpStatus": 403,
+    "description": "PassCode is valid but exceeded time window."
+  },
+  {
+    "codeId": "E0000084",
+    "httpStatus": 403,
+    "description": "App evaluation error."
+  },
+  {
+    "codeId": "E0000085",
+    "httpStatus": 403,
+    "description": "You do not have permission to access your account at this time."
+  },
+  {
+    "codeId": "E0000086",
+    "httpStatus": 403,
+    "description": "This policy cannot be activated at this time."
+  },
+  {
+    "codeId": "E0000087",
+    "httpStatus": 403,
+    "description": "The recovery question answer did not match our records."
+  },
+  {
+    "codeId": "E0000088",
+    "httpStatus": 400,
+    "description": "Org Creator API subdomain validation exception: An object with this field already exists."
+  },
+  {
+    "codeId": "E0000089",
+    "httpStatus": 400,
+    "description": "Org Creator API name validation exception."
+  },
+  {
+    "codeId": "E0000090",
+    "httpStatus": 409,
+    "description": "The role specified is already assigned to the user."
+  },
+  {
+    "codeId": "E0000091",
+    "httpStatus": 400,
+    "description": "The provided role type was not the same as required role type."
+  },
+  {
+    "codeId": "E0000092",
+    "httpStatus": 403,
+    "description": "Access to this application requires re-authentication: {0}"
+  },
+  {
+    "codeId": "E0000093",
+    "httpStatus": 400,
+    "description": "Target count limit exceeded"
+  },
+  {
+    "codeId": "E0000094",
+    "httpStatus": 400,
+    "description": "The provided filter is unsupported."
+  },
+  {
+    "codeId": "E0000095",
+    "httpStatus": 403,
+    "description": "Recovery not allowed for unknown user."
+  },
+  {
+    "codeId": "E0000096",
+    "httpStatus": 409,
+    "description": "This certificate has already been uploaded with kid\u003d{0}."
+  },
+  {
+    "codeId": "E0000097",
+    "httpStatus": 403,
+    "description": "There is no verified phone number on file."
+  },
+  {
+    "codeId": "E0000098",
+    "httpStatus": 400,
+    "description": "This phone number is invalid."
+  },
+  {
+    "codeId": "E0000099",
+    "httpStatus": 403,
+    "description": "Only numbers located in US and Canada are allowed. Contact your administrator if this is a problem."
+  },
+  {
+    "codeId": "E0000100",
+    "httpStatus": 503,
+    "description": "Unable to perform search query."
+  },
+  {
+    "codeId": "E0000101",
+    "httpStatus": 400,
+    "description": "There was an issue with the app binary file you uploaded. {0}"
+  },
+  {
+    "codeId": "E0000102",
+    "httpStatus": 403,
+    "description": "YubiKey cannot be deleted while assigned to an user. Please deactivate YubiKey using reset MFA and try again"
+  },
+  {
+    "codeId": "E0000103",
+    "httpStatus": 403,
+    "description": "Action on device already in queue or in progress"
+  },
+  {
+    "codeId": "E0000104",
+    "httpStatus": 403,
+    "description": "Device is already locked and cannot be locked again"
+  },
+  {
+    "codeId": "E0000105",
+    "httpStatus": 403,
+    "description": "You have accessed an account recovery link that has expired or been previously used."
+  },
+  {
+    "codeId": "E0000107",
+    "httpStatus": 403,
+    "description": "The entity is not in the expected state for the requested transition."
+  },
+  {
+    "codeId": "E0000108",
+    "httpStatus": 409,
+    "description": "OEM generic duplicate resource."
+  },
+  {
+    "codeId": "E0000109",
+    "httpStatus": 429,
+    "description": "An SMS message was recently sent. Please wait 30 seconds before trying again."
+  },
+  {
+    "codeId": "E0000110",
+    "httpStatus": 403,
+    "description": "You have accessed a link that has expired or has been previously used."
+  },
+  {
+    "codeId": "E0000111",
+    "httpStatus": 403,
+    "description": "Cannot modify the {0} object because it is read-only."
+  },
+  {
+    "codeId": "E0000112",
+    "httpStatus": 409,
+    "description": "Cannot update this user because they are still being activated. Please try again in a few minutes."
+  },
+  {
+    "codeId": "E0000113",
+    "httpStatus": 409,
+    "description": "{0}."
+  },
+  {
+    "codeId": "E0000115",
+    "httpStatus": 503,
+    "description": "There was an issue while uploading the app binary file. {0}"
+  },
+  {
+    "codeId": "E0000116",
+    "httpStatus": 400,
+    "description": "{0}"
+  },
+  {
+    "codeId": "E0000117",
+    "httpStatus": 403,
+    "description": "Cannot assign apps or update app profiles for an inactive user."
+  },
+  {
+    "codeId": "E0000118",
+    "httpStatus": 429,
+    "description": "An email was recently sent. Please wait 5 seconds before trying again."
+  },
+  {
+    "codeId": "E0000119",
+    "httpStatus": 403,
+    "description": "Your account is locked. Please contact your administrator."
+  },
+  {
+    "codeId": "E0000120",
+    "httpStatus": 400,
+    "description": "The custom domain requested is already in use by another organization."
+  },
+  {
+    "codeId": "E0000121",
+    "httpStatus": 400,
+    "description": "Invalid phone extension. Please enter a valid phone extension."
+  },
+  {
+    "codeId": "E0000122",
+    "httpStatus": 406,
+    "description": "Accept Header did not contain supported media type \u0027application/json\u0027"
+  },
+  {
+    "codeId": "E0000123",
+    "httpStatus": 400,
+    "description": "Array specified in enum field must match const values specified in oneOf field."
+  },
+  {
+    "codeId": "E0000124",
+    "httpStatus": 400,
+    "description": "Could not create user. To create a user and expire their password immediately, a password must be specified"
+  },
+  {
+    "codeId": "E0000125",
+    "httpStatus": 400,
+    "description": "Could not create user. To create a user and expire their password immediately, \"activate\" must be true"
+  },
+  {
+    "codeId": "E0000126",
+    "httpStatus": 400,
+    "description": "Self service is not supported with the current settings."
+  },
+  {
+    "codeId": "E0000127",
+    "httpStatus": 409,
+    "description": "Invalid linked objection definition. {0}"
+  },
+  {
+    "codeId": "E0000131",
+    "httpStatus": 400,
+    "description": "{0}"
+  },
+  {
+    "codeId": "E0000132",
+    "httpStatus": 400,
+    "description": "The registration is already active for the given user, client and device combination"
+  },
+  {
+    "codeId": "E0000133",
+    "httpStatus": 429,
+    "description": "A phone call was recently made. Please wait 30 seconds before trying again."
+  },
+  {
+    "codeId": "E0000134",
+    "httpStatus": 502,
+    "description": "Okta could not communicate correctly with an inline hook."
+  },
+  {
+    "codeId": "E0000135",
+    "httpStatus": 400,
+    "description": "An inline hook responded with an error."
+  },
+  {
+    "codeId": "E0000136",
+    "httpStatus": 409,
+    "description": "Mobile phone conflict exception."
+  },
+  {
+    "codeId": "E0000137",
+    "httpStatus": 504,
+    "description": "Okta did not receive a response from an inline hook."
+  },
+  {
+    "codeId": "E0000138",
+    "httpStatus": 500,
+    "description": "There was an internal error with call provider(s)."
+  },
+  {
+    "codeId": "E0000139",
+    "httpStatus": 503,
+    "description": "Telephony provider error."
+  },
+  {
+    "codeId": "E0000140",
+    "httpStatus": 400,
+    "description": "Telephony opt out error."
+  },
+  {
+    "codeId": "E0000141",
+    "httpStatus": 400,
+    "description": "Feature cannot be enabled or disabled due to dependencies/dependents conflicts."
+  },
+  {
+    "codeId": "E0000142",
+    "httpStatus": 403,
+    "description": "This User Type cannot be deleted."
+  },
+  {
+    "codeId": "E0000143",
+    "httpStatus": 403,
+    "description": "App instance operation not allowed."
+  },
+  {
+    "codeId": "E0000145",
+    "httpStatus": 409,
+    "description": "Some users returned by the search cannot be parsed because the user schema has been changed to be inconsistent with their stale profile data."
+  },
+  {
+    "codeId": "E0000146",
+    "httpStatus": 429,
+    "description": "Your organization has reached the limit of sms requests that can be sent within a 24 hour period."
+  },
+  {
+    "codeId": "E0000147",
+    "httpStatus": 429,
+    "description": "Your organization has reached the limit of call requests that can be sent within a 24 hour period."
+  },
+  {
+    "codeId": "E0000148",
+    "httpStatus": 403,
+    "description": "Cannot modify/disable this authenticator because it is enabled in one or more policies. {0}"
+  },
+  {
+    "codeId": "E0000149",
+    "httpStatus": 406,
+    "description": "The HTTP request is not acceptable."
+  },
+  {
+    "codeId": "E0000150",
+    "httpStatus": 403,
+    "description": "You have reached the limit of sms requests, please try again later."
+  },
+  {
+    "codeId": "E0000151",
+    "httpStatus": 403,
+    "description": "You have reached the limit of call requests, please try again later."
+  },
+  {
+    "codeId": "E0000152",
+    "httpStatus": 403,
+    "description": "Illegal device status, cannot perform action."
+  },
+  {
+    "codeId": "E0000153",
+    "httpStatus": 410,
+    "description": "Invalid device id, it no longer exists."
+  },
+  {
+    "codeId": "E0000154",
+    "httpStatus": 410,
+    "description": "Invalid factor id, it is not currently active."
+  },
+  {
+    "codeId": "E0000155",
+    "httpStatus": 423,
+    "description": "User is not currently active."
+  },
+  {
+    "codeId": "E0000156",
+    "httpStatus": 410,
+    "description": "Invalid user id; the user either does not exist or has been deleted."
+  },
+  {
+    "codeId": "E0000157",
+    "httpStatus": 409,
+    "description": "Another authenticator with key: {0} is already active."
+  },
+  {
+    "codeId": "E0000158",
+    "httpStatus": 400,
+    "description": "Invalid Enrollment. User verification required."
+  },
+  {
+    "codeId": "E0000159",
+    "httpStatus": 400,
+    "description": "Invalid Enrollment. FIPS compliance required."
+  },
+  {
+    "codeId": "E0000161",
+    "httpStatus": 403,
+    "description": "Unique domain name required."
+  },
+  {
+    "codeId": "E0000162",
+    "httpStatus": 403,
+    "description": "Domain count limit reached."
+  },
+  {
+    "codeId": "E0000163",
+    "httpStatus": 404,
+    "description": "Domain ID not found."
+  },
+  {
+    "codeId": "E0000165",
+    "httpStatus": 403,
+    "description": "Domain not verified."
+  },
+  {
+    "codeId": "E0000166",
+    "httpStatus": 403,
+    "description": "CAPTCHA count limit reached. At most one CAPTCHA instance is allowed per Org. Please remove existing CAPTCHA to create a new one."
+  },
+  {
+    "codeId": "E0000167",
+    "httpStatus": 403,
+    "description": "{0}"
+  },
+  {
+    "codeId": "E0000168",
+    "httpStatus": 403,
+    "description": "CAPTCHA cannot be removed. This CAPTCHA is associated with org-wide CAPTCHA settings, please unassociate it before removing it."
+  },
+  {
+    "codeId": "E0000170",
+    "httpStatus": 400,
+    "description": "Org Creator API subdomain validation exception: Using a reserved value. Try again with a different value."
+  },
+  {
+    "codeId": "E0000171",
+    "httpStatus": 400,
+    "description": "Org Creator API subdomain validation exception: The value is already in use by a different request."
+  },
+  {
+    "codeId": "E0000172",
+    "httpStatus": 400,
+    "description": "Org Creator API subdomain validation exception: The value exceeds the max length."
+  },
+  {
+    "codeId": "E0000174",
+    "httpStatus": 403,
+    "description": "You canât disable Okta FastPass because it is being used by one or more application sign-on policies. First, go to each policy and remove any device conditions. Then, come back and try again."
+  },
+  {
+    "codeId": "E0000176",
+    "httpStatus": 400,
+    "description": "Failed to create LogStreaming event source. {0}"
+  },
+  {
+    "codeId": "E0000177",
+    "httpStatus": 400,
+    "description": "Failed to delete LogStreaming event source. {0}"
+  },
+  {
+    "codeId": "E0000178",
+    "httpStatus": 400,
+    "description": "This realm cannot be deleted. {0}"
+  },
+  {
+    "codeId": "E0000179",
+    "httpStatus": 400,
+    "description": "There is a required attribute that is externally sourced."
+  },
+  {
+    "codeId": "E0000180",
+    "httpStatus": 423,
+    "description": "Factor id is currently not active."
+  },
+  {
+    "codeId": "E0000181",
+    "httpStatus": 503,
+    "description": "Service temporarily unavailable."
+  },
+  {
+    "codeId": "E0000182",
+    "httpStatus": 409,
+    "description": "A default email template customization already exists."
+  },
+  {
+    "codeId": "E0000183",
+    "httpStatus": 409,
+    "description": "An email template customization for that language already exists."
+  },
+  {
+    "codeId": "E0000184",
+    "httpStatus": 409,
+    "description": "A default email template customization can\u0027t be deleted."
+  },
+  {
+    "codeId": "E0000185",
+    "httpStatus": 409,
+    "description": "The isDefault parameter of the default email template customization can\u0027t be set to false."
+  },
+  {
+    "codeId": "E0000186",
+    "httpStatus": 429,
+    "description": "Your free tier organization has reached the limit of sms requests that can be sent within a 30 day period."
+  },
+  {
+    "codeId": "E0000187",
+    "httpStatus": 409,
+    "description": "Cannot delete push provider because it is being used by a custom app authenticator."
+  },
+  {
+    "codeId": "E0000188",
+    "httpStatus": 409,
+    "description": "Domain update conflict exception."
+  },
+  {
+    "codeId": "E0000189",
+    "httpStatus": 422,
+    "description": "This template does not support the recipients value."
+  },
+  {
+    "codeId": "E0000190",
+    "httpStatus": 403,
+    "description": "Delete LDAP interface instance forbidden."
+  },
+  {
+    "codeId": "E0000191",
+    "httpStatus": 404,
+    "description": "Verification timed out. Please try again."
+  },
+  {
+    "codeId": "E0000192",
+    "httpStatus": 400,
+    "description": "Roles cannot be granted to groups with group membership rules. {0}"
+  },
+  {
+    "codeId": "E0000193",
+    "httpStatus": 400,
+    "description": "Roles can only be granted to groups with 5000 or less users. {0}"
+  },
+  {
+    "codeId": "E0000194",
+    "httpStatus": 400,
+    "description": "Roles can only be granted to Okta groups, AD groups and LDAP groups. {0}"
+  },
+  {
+    "codeId": "E0000195",
+    "httpStatus": 409,
+    "description": "Api validation failed due to conflict: {0}"
+  },
+  {
+    "codeId": "E0000197",
+    "httpStatus": 409,
+    "description": "Unique email domain name required."
+  },
+  {
+    "codeId": "E0000198",
+    "httpStatus": 404,
+    "description": "Email domain not found."
+  },
+  {
+    "codeId": "E0000200",
+    "httpStatus": 409,
+    "description": "A default brand cannot be deleted."
+  },
+  {
+    "codeId": "E0000201",
+    "httpStatus": 409,
+    "description": "A brand associated with a domain cannot be deleted."
+  },
+  {
+    "codeId": "E0000202",
+    "httpStatus": 409,
+    "description": "Brand name already exists."
+  },
+  {
+    "codeId": "E0000203",
+    "httpStatus": 409,
+    "description": "Failed to associate this domain with the given brandId."
+  },
+  {
+    "codeId": "E0000204",
+    "httpStatus": 429,
+    "description": "You have reached the limit of sms requests, please try again later."
+  },
+  {
+    "codeId": "E0000205",
+    "httpStatus": 429,
+    "description": "You have reached the limit of call requests, please try again later."
+  },
+  {
+    "codeId": "E0000206",
+    "httpStatus": 409,
+    "description": "Failed to delete the mapping for the provided brandId and domainId."
+  },
+  {
+    "codeId": "E0000207",
+    "httpStatus": 401,
+    "description": "The username and/or the password you entered is incorrect. Please try again."
+  },
+  {
+    "codeId": "E0000208",
+    "httpStatus": 400,
+    "description": "Failed to get access token. The request was invalid, reason: {0}."
+  },
+  {
+    "codeId": "E0000209",
+    "httpStatus": 400,
+    "description": "{0} cannot be modified/deleted because it is currently being used in an Enroll Policy. Please make changes to the Enroll Policy before modifying/deleting the group."
+  },
+  {
+    "codeId": "E0000211",
+    "httpStatus": 400,
+    "description": "Roles cannot be granted to built-in groups: {0}"
+  },
+  {
+    "codeId": "E0000212",
+    "httpStatus": 403,
+    "description": "Origin validation failed."
+  },
+  {
+    "codeId": "E0000213",
+    "httpStatus": 403,
+    "description": "Cannot update page settings for the default brand."
+  },
+  {
+    "codeId": "E0000214",
+    "httpStatus": 400,
+    "description": "User has no custom authenticator enrollments that have CIBA as a transactionType"
+  }
+]

@@ -9,7 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>okta</artifactId>
+
+    <artifactId>xlogistx-okta</artifactId>
+    <name>xlogistx-okta</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

@@ -11,59 +11,9 @@ import java.util.logging.Logger;
 
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 
-public class ReadyState extends State {
-//    private static final transient Logger log = Logger.getLogger(ReadyState.class.getName());
-//    public static boolean debug = false;
-
-//    private static void info(String str)
-//    {
-//        if(log.isEnabled())
-//            log.info(str);
-//    }
-//    class NeedWrap extends TriggerConsumer<CallbackTask<ByteBuffer>>
-//    {
-//
-//
-//        NeedWrap() {
-//            super(NEED_WRAP);
-//        }
-//
-//        @Override
-//        public void accept(CallbackTask<ByteBuffer> callback)
-//        {
-//
-//            SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-//            if (config.getHandshakeStatus() == NOT_HANDSHAKING)
-//            {
-//
-//
-//                try {
-//                    int bytesRead = config.remoteChannel.read(config.inRemoteData);
-//                    if (bytesRead == -1) {
-//
-//                          info(
-//                              "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
-//                                  + config.getHandshakeStatus()
-//                                  + " bytesread: "
-//                                  + bytesRead);
-//
-//                        config.close();
-//
-//                        return;
-//                    }
-//                     config.sslos.write(config.inRemoteData);
-//
-//                } catch (Exception e) {
-//
-//                  if(callback != null)callback.exception(e);
-//                  config.close();
-//
-//                }
-//            }
-//
-//        }
-//    }
-
+public class ReadyState
+        extends State
+{
     class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         NeedUnwrap() {
@@ -71,10 +21,12 @@ public class ReadyState extends State {
         }
 
     @Override
-    public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
+    public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
+    {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
       if(log.isEnabled()) log.info("" + config.getHandshakeStatus());
-      if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen()) {
+      if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen())
+      {
         try {
 
               int bytesRead = config.sslChannel.read(config.inSSLNetData);
@@ -95,8 +47,10 @@ public class ReadyState extends State {
                 SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, config.inAppData);
 
 
-                if (log.isEnabled()) log.info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
-                switch (result.getStatus()) {
+                if (log.isEnabled())
+                    log.info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
+                switch (result.getStatus())
+                {
                   case BUFFER_UNDERFLOW:
                     // no incoming data available we need to wait for more socket data
                     // return and let the NIOSocket or the data handler call back
@@ -122,8 +76,9 @@ public class ReadyState extends State {
                 }
               }
             } catch (Exception e) {
-              //e.printStackTrace();
-                if(callback != null)callback.exception(e);
+
+                if(callback != null)
+                    callback.exception(e);
 
                 config.close();
             }

@@ -399,10 +399,8 @@ public class OktaApp {
             }
 
 
-            while (TaskUtil.isBusy()) {
-                TaskUtil.sleep(100);
-            }
-            ts = System.currentTimeMillis() - ts;
+
+            ts = TaskUtil.waitIfBusy(50) - ts;
 
             RateCounter total = new RateCounter("total");
             total.register(ts, count);

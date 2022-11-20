@@ -18,7 +18,6 @@ import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 
 public class HandshakingState extends State {
 
-    //public static boolean debug = false;
 
     private final static AtomicLong counter = new AtomicLong(0);
 
@@ -37,7 +36,8 @@ public class HandshakingState extends State {
             {
               try
               {
-                  SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outSSLNetData); // at handshake stage, data in appOut won't be
+                  SSLEngineResult result = config.smartWrap(ByteBufferUtil.EMPTY, config.outSSLNetData);
+                  // at handshake stage, data in appOut won't be
                   // processed hence dummy buffer
                   if (log.isEnabled())
                       log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
@@ -82,8 +82,8 @@ public class HandshakingState extends State {
         SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
         if(log.isEnabled()) log.info("" + config.getHandshakeStatus());
 
-          if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN"))
-          {
+        if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN"))
+        {
             try {
 
                   int bytesRead = config.sslChannel.read(config.inSSLNetData);

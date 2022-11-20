@@ -65,7 +65,7 @@ public class ErrorPageParser
             System.out.println(elements.size());
 
             if(filename != null)
-                IOUtil.writeToFile(new File(filename), GSONUtil.toJSONDefault(list));
+                IOUtil.writeToFile(new File(filename), GSONUtil.toJSONDefault(list, true));
         }
         catch(Exception e)
         {
