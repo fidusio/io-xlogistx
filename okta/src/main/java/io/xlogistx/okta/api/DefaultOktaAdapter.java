@@ -2,6 +2,7 @@ package io.xlogistx.okta.api;
 
 
 import org.zoxweb.server.http.HTTPCall;
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.GetNameValue;
@@ -17,9 +18,6 @@ public class DefaultOktaAdapter
     implements OktaAdapter
 
 {
-
-
-
 
     private String url;
     private HTTPAuthentication httpAuthentication;
@@ -285,28 +283,34 @@ public class DefaultOktaAdapter
             }
             catch (HTTPCallException callException)
             {
+
                 HTTPResponseData errHRD = callException.getResponseData();
 
-                try {
+                try
+                {
                     oktaAPIRate.setParameters(errHRD);
                 }
                 catch (Exception e){e.printStackTrace();}
-                log.info("Err response ", errHRD);
+
                 if (errHRD != null && errHRD.getData() != null)
                 {
                     OktaException toThrow = null;
                     try
                     {
-                        toThrow = GSONUtil.fromJSONDefault(errHRD.getData(), OktaException.class);
-                        toThrow.setStatus(errHRD.getStatus());
+                        NVGenericMap nvgm = GSONUtil.fromJSONDefault(errHRD.getDataAsString(), NVGenericMap.class);
+
+                        toThrow = new OktaException(errHRD.getStatus(), nvgm);
+
                     }
                     catch(Exception e){
+                        e.printStackTrace();
+
                     }
                     if(toThrow != null)
                         throw toThrow;
                 }
 
-                throw  callException;
+                throw callException;
             }
         }
 

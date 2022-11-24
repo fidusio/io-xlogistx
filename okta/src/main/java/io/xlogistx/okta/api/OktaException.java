@@ -1,72 +1,76 @@
 package io.xlogistx.okta.api;
 
-import org.zoxweb.shared.util.NVGenericMap;
+
+
+import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
-import java.util.Arrays;
+
 
 
 public class OktaException
-extends IOException {
+extends IOException
+implements GetNVProperties
+{
 
 
-    private int status;
-    private String errorCode;
-    private String errorSummary;
-    private String errorLink;
-    private String errorId;
-    private  NVGenericMap[] errorCauses;
-    public OktaException()
+    private transient NVGenericMap nvgm;
+    public OktaException(int status, NVGenericMap nvgm)
     {
+        SharedUtil.checkIfNulls("NVGenericMap null", nvgm);
+        this.nvgm = nvgm;
+        nvgm.setName(OktaException.class.getSimpleName());
+        setStatus(status);
     }
 
     public int getStatus()
     {
-        return status;
+        return nvgm.getValue("status");
     }
 
     OktaException setStatus(int status)
     {
-        this.status = status;
+        nvgm.add(new NVInt("status", status));
         return this;
     }
 
 
     public String getErrorCode()
     {
-        return errorCode;
+        return nvgm.getValue("errorCode");
     }
 
     public String getErrorSummary()
     {
-        return errorSummary;
+        return nvgm.getValue("errorSummary");
     }
 
     public String getErrorLink()
     {
-        return errorLink;
+        return nvgm.getValue("errorLink");
     }
 
     public String getErrorId()
     {
-        return errorId;
+        return nvgm.getValue("errorId");
     }
 
-    public NVGenericMap[] getErrorCauses()
+    public NVPairList getErrorCauses()
     {
-        return errorCauses;
+        return (NVPairList) nvgm.get("errorCauses");
     }
 
 
     @Override
+    public NVGenericMap getProperties() {
+        return nvgm;
+    }
+
+    @Override
     public String toString() {
         return "OktaException{" +
-                "status=" + status +
-                ", errorCode='" + errorCode + '\'' +
-                ", errorSummary='" + errorSummary + '\'' +
-                ", errorLink='" + errorLink + '\'' +
-                ", errorId='" + errorId + '\'' +
-                ", errorCauses=" + Arrays.toString(errorCauses) +
+
+                 nvgm +
                 '}';
     }
 }

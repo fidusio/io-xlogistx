@@ -24,14 +24,15 @@ public class OktaApp {
     {
 
         System.err.println("Error: " + message);
-        System.err.println("Usage: COMMAND url=https://domain.okta.com token=SDFDSFDSFDFDFDFDAS enableHttp=true:");
-        System.err.println("\tCREATE username=email@domain.com password=UserPassword!23 firstname=John lastname=SMITH {brypt=true}");
-        System.err.println("\tLOGIN username=email@domain.com password=UserPassword!23");
-        System.err.println("\tLOOKUP username=email@domain.com");
-        System.err.println("\tDELETE username=email@domain.com");
-        System.err.println("\tUPDATEPASSWORD username=email@domain.com password=CurrentPassword newpassword=NewPassword");
-        System.err.println("\tLISTGROUPUSERS group=groupName {deleteGroupUsers=true}");
-        System.err.println("\tGENUSERS count=100 username={countIndex}-email@Domain.com password=UserPassword!23 firstname={countIndex}-John lastname={countIndex}-SMITH {brypt=true} groups=groupName rate=250/min");
+        System.err.println("Usage: COMMAND url=https://domain.okta.com token=003XQTwiBMPlmGes7uQAE31YogTj_kYWNNfkSpBh enableHttp=true [threadCount=64]:");
+        System.err.println("\tCreate username=email@domain.com password=UserPassword!23 firstname=John lastname=SMITH {brypt=true}");
+        System.err.println("\tLogin username=email@domain.com password=UserPassword!23");
+        System.err.println("\tLookup username=email@domain.com");
+        System.err.println("\tDelete username=email@domain.com");
+        System.err.println("\tUpdatePassword username=email@domain.com password=CurrentPassword newpassword=NewPassword");
+        System.err.println("\tListGroupUsers group=groupName {deleteGroupUsers=true}");
+        System.err.println("\tGenUsers count=100 username={countIndex}-email@Domain.com password=UserPassword!23 firstname={countIndex}-John lastname={countIndex}-SMITH {brypt=true} groups=groupName rate=250/min");
+        System.err.println("\tGenLogins username=joe@nodomain.com password=Password  count=2000 rate=2200/min range=[60,10000]");
 
         if(e != null)
         {
@@ -95,7 +96,7 @@ public class OktaApp {
             httpAuthentication.setTokenTypeOverride("SSWS");
             oktaAdapter.setURL(url).setHTTPAuthentication(httpAuthentication).enableHttpCalling(enabledHttp);
 
-            DefaultOktaAdapter.log.setEnabled(false);
+            DefaultOktaAdapter.log.setEnabled(true);
 
             long ts = System.currentTimeMillis();
             switch (command) {
@@ -126,11 +127,11 @@ public class OktaApp {
                 }
                 break;
 
-                case "GENLOGIN": {
+                case "GENLOGINS": {
 
                     if(rangeParam != null)
                     {
-                        SharedUtil.checkIfNulls("GENLOGIN Missing parameters userName postfix or password", userName, password);
+                        SharedUtil.checkIfNulls("GenLogins Missing parameters userName postfix or password", userName, password);
                         Range<Integer> usersRange = Range.toRange(rangeParam);
                         for(int i = 0; i < count;)
                         {
@@ -160,7 +161,7 @@ public class OktaApp {
                     }
                     else
                     {
-                        SharedUtil.checkIfNulls("GENLOGIN Missing parameters users=user1:password1,user2:password2...", users);
+                        SharedUtil.checkIfNulls("GenLogins Missing parameters users=user1:password1,user2:password2...", users);
                         // parser user set as user=user1:password1,user2:password2...
 
                         String[] userNames = users.split(",");

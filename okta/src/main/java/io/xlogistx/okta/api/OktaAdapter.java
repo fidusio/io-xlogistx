@@ -11,7 +11,9 @@ import java.io.IOException;
 
 public interface OktaAdapter
 {
-    public static final LogWrapper log = new LogWrapper(OktaAdapter.class).setEnabled(false);
+
+
+    public static final LogWrapper log = new LogWrapper(OktaAdapter.class).setEnabled(true);
     public static final String URI_PREFIX = "/api/v1/";
 
 
