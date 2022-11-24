@@ -30,11 +30,11 @@ public class HTTPSSLTestServer
         // data handling
         String msg = "" + inBuffer;
         UByteArrayOutputStream resp = null;
-        if (inBuffer != null) {
+        //if (inBuffer != null)
+        {
             try {
 
-
-                if(hph.parseRequest(inBuffer) != null)
+                if(hph.parseRequest(inBuffer))
                 {
                     CurrentTimestamp ct = new CurrentTimestamp();
                     resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hph.getRawResponse());

@@ -11,31 +11,35 @@ import java.nio.ByteBuffer;
 public class HTTPProtocolHandler {
 
 
-    private final UByteArrayOutputStream responseUBAOS = new UByteArrayOutputStream(256);
-    private final HTTPRawMessage hrm = new HTTPRawMessage();
+    private volatile UByteArrayOutputStream responseUBAOS = new UByteArrayOutputStream(256);
+    private volatile HTTPRawMessage rawRequest = new HTTPRawMessage(new UByteArrayOutputStream(256));
 
-    public HTTPMessageConfigInterface parseRequest(ByteBuffer inBuffer) throws IOException
+    public boolean parseRequest(ByteBuffer inBuffer) throws IOException
     {
-        ByteBufferUtil.write(inBuffer, hrm.getUBAOS(), true);
+        ByteBufferUtil.write(inBuffer, rawRequest.getUBAOS(), true);
 
-        hrm.parse(true);
-        return getHTTPMessage();
+        rawRequest.parse(true);
+        return rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
     }
 
+    public boolean isRequestComplete()
+    {
+        return rawRequest.isMessageComplete();
+    }
 
     public HTTPMessageConfigInterface getHTTPMessage()
     {
-        return hrm.isMessageComplete() ? hrm.getHTTPMessageConfig() : null;
+        return rawRequest.isMessageComplete() ? rawRequest.getHTTPMessageConfig() : null;
     }
 
     public UByteArrayOutputStream getRawRequest()
     {
-        return hrm.isMessageComplete() ? hrm.getUBAOS() : null;
+        return rawRequest.isMessageComplete() ? rawRequest.getUBAOS() : null;
     }
 
     public UByteArrayOutputStream getRawResponse()
     {
-        return hrm.isMessageComplete() ? responseUBAOS : null;
+        return rawRequest.isMessageComplete() ? responseUBAOS : null;
     }
 
 }

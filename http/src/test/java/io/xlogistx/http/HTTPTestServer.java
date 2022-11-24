@@ -43,7 +43,7 @@ extends PlainSessionCallback
             try
             {
 
-                if(hph.parseRequest(inBuffer) != null)
+                if(hph.parseRequest(inBuffer))
                 {
                     String match = uriMap.lookup(hph.getHTTPMessage().getURI());
 
