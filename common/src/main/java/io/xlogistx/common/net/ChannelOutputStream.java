@@ -9,11 +9,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 
 
-public class ChannelOutputStream extends BaseChannelOutputStream {
+public class ChannelOutputStream
+        extends BaseChannelOutputStream
+{
 
-    public ChannelOutputStream(ByteChannel config, int outAppBufferSize)
+    public ChannelOutputStream(ByteChannel byteChannel, int outAppBufferSize)
     {
-        super(config, outAppBufferSize);
+        super(byteChannel, outAppBufferSize);
     }
 
 

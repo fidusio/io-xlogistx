@@ -3,10 +3,9 @@ package io.xlogistx.http;
 import io.xlogistx.common.fsm.StateMachine;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import io.xlogistx.common.net.BaseSessionCallback;
+import io.xlogistx.http.handler.HTTPProtocolHandler;
 import io.xlogistx.ssl.*;
-import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.http.HTTPUtil;
-import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LoggerUtil;
@@ -14,7 +13,6 @@ import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.data.CurrentTimestamp;
-import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPStatusCode;
 
 import org.zoxweb.shared.util.*;
@@ -27,8 +25,7 @@ public class HTTPSSLTestServer
     extends SSLSessionCallback
 {
     public static boolean debug = false;
-    UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
-    HTTPRawMessage hrm = new HTTPRawMessage(ubaos);
+    private final HTTPProtocolHandler hph = new HTTPProtocolHandler();
     public void accept(ByteBuffer inBuffer) {
         // data handling
         String msg = "" + inBuffer;
@@ -36,14 +33,11 @@ public class HTTPSSLTestServer
         if (inBuffer != null) {
             try {
 
-                ByteBufferUtil.write(inBuffer, ubaos, true);
-//                if (debug)
-//                    log.info("incoming data\n" + SharedStringUtil.toString(ubaos.getInternalBuffer(), 0, ubaos.size()));
-                HTTPMessageConfigInterface hmci = hrm.parse(true);
-                if(hrm.isMessageComplete())
+
+                if(hph.parseRequest(inBuffer) != null)
                 {
                     CurrentTimestamp ct = new CurrentTimestamp();
-                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hrm.getUBAOS());
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hph.getRawResponse());
                 }
                 else
                 {
