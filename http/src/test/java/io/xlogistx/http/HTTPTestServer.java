@@ -3,7 +3,7 @@ package io.xlogistx.http;
 import io.xlogistx.common.http.URIMap;
 import io.xlogistx.common.net.NIOPlainSocketFactory;
 import io.xlogistx.common.net.PlainSessionCallback;
-import io.xlogistx.http.handler.HTTPProtocolHandler;
+import io.xlogistx.common.http.HTTPProtocolHandler;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
@@ -48,7 +48,7 @@ extends PlainSessionCallback
                     String match = uriMap.lookup(hph.getHTTPMessage().getURI());
 
                     if (debug) {
-                        log.info("incoming data\n" + SharedStringUtil.toString(hph.getRawRequest().getInternalBuffer(), 0, hph.getRawRequest().size()));
+                        log.info("incoming data\n" + IOUtil.inputStreamToString(hph.getRawRequest(), true));//.toString(hph.getRawRequest().getInternalBuffer(), 0, hph.getRawRequest().size()));
                         log.info("" + hph.getHTTPMessage());
                         log.info("uriMatch : "+ match);
                     }

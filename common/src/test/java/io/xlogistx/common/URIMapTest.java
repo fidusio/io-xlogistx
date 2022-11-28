@@ -2,17 +2,18 @@ package io.xlogistx.common;
 
 
 import io.xlogistx.common.http.URIMap;
+import org.junit.jupiter.api.Test;
 import org.zoxweb.shared.filters.MatchPatternFilter;
 import org.zoxweb.shared.util.Const;
 
 import java.util.Arrays;
 
 
-public class SearchTest {
+public class URIMapTest {
 
 
-
-    public static void main(String ...args)
+    @Test
+    public void uriPatterTest()
     {
 
 
@@ -37,7 +38,7 @@ public class SearchTest {
                     String m = uriMap.lookup(token);
                     ts = System.nanoTime() - ts;
 
-                    if(i== loops-1)
+                    if(i == loops-1)
                         System.out.println(filter.match(URIMap.normalize(token)) + " Token: " + token + ", match: " + m + " it took: " + Const.TimeInMillis.nanosToString(ts))  ;
                 }
 

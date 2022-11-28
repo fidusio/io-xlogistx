@@ -7,7 +7,7 @@ public class NIOPlainSocketFactory
         extends ProtocolSessionFactoryBase<NIOPlainSocket>
 {
 
-    private Class<? extends PlainSessionCallback> cbClass;
+    private Class<? extends BaseSessionCallback> cbClass;
 
     public NIOPlainSocketFactory()
     {
@@ -15,7 +15,7 @@ public class NIOPlainSocketFactory
     }
 
 
-    public NIOPlainSocketFactory(Class<? extends PlainSessionCallback> cbClass)
+    public NIOPlainSocketFactory(Class<? extends BaseSessionCallback> cbClass)
     {
         this.cbClass = cbClass;
     }
@@ -29,7 +29,7 @@ public class NIOPlainSocketFactory
         try
         {
             if(cbClass != null)
-                sc = cbClass.getDeclaredConstructor().newInstance();
+                sc = (PlainSessionCallback) cbClass.getDeclaredConstructor().newInstance();
         }
         catch(Exception e)
         {

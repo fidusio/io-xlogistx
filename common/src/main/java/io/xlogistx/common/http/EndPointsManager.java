@@ -36,7 +36,9 @@ public class EndPointsManager {
         }
     }
 
-    private Map<String, EndPointMeta> uriEndPointMeta = new LinkedHashMap<String, EndPointMeta>();
+    //private Map<String, EndPointMeta> uriEndPointMeta = new LinkedHashMap<String, EndPointMeta>();
+
+    private URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
 
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh)
     {
@@ -50,12 +52,12 @@ public class EndPointsManager {
 
     public EndPointMeta unmap(String uri)
     {
-        return uriEndPointMeta.remove(SharedStringUtil.toTrimmedLowerCase(uri));
+        return uriEndPointMeta.remove(uri);
     }
 
     public EndPointMeta lookup(String uri)
     {
-        return uriEndPointMeta.get(SharedStringUtil.toTrimmedLowerCase(uri));
+        return uriEndPointMeta.lookup(uri);
     }
 
     public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep)

@@ -3,7 +3,7 @@ package io.xlogistx.http;
 import io.xlogistx.common.fsm.StateMachine;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import io.xlogistx.common.net.BaseSessionCallback;
-import io.xlogistx.http.handler.HTTPProtocolHandler;
+import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.ssl.*;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
@@ -38,6 +38,7 @@ public class HTTPSSLTestServer
                 {
                     CurrentTimestamp ct = new CurrentTimestamp();
                     resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hph.getRawResponse());
+                    log.info(""+hph.getHTTPMessage().getURI() + " " + hph.getHTTPMessage().getParameters());
                 }
                 else
                 {

@@ -113,7 +113,7 @@ public class HTTPHandlerUtil {
 
   public static Map<String, Object> buildParameters(HttpExchange he) throws IOException {
 
-    String hePath = he.getHttpContext().getPath();
+//    String hePath = he.getHttpContext().getPath();
 //    log.info("hePath: " + hePath);
 //    log.info("" + he.getHttpContext().getHandler().getClass());
     EndPointHandler eph = (EndPointHandler) he.getHttpContext().getHandler();

@@ -22,7 +22,7 @@ import java.util.logging.Logger;
 public class EndPointScanner
 {
 
-    private static transient Logger log = Logger.getLogger(EndPointScanner.class.getName());
+    private static final Logger log = Logger.getLogger(EndPointScanner.class.getName());
     private final HTTPServerConfig serverConfig;
     private final EndPointsManager endPointsManager = new EndPointsManager();
 

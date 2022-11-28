@@ -1,5 +1,6 @@
 package io.xlogistx.ssl;
 
+import io.xlogistx.common.net.BaseSessionCallback;
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.ProtocolSessionFactoryBase;
 import org.zoxweb.shared.data.ConfigDAO;
@@ -13,13 +14,13 @@ public class SSLNIOSocketFactory
 
     private InetSocketAddressDAO remoteAddress;
     private SSLContext sslContext;
-    private Class<? extends SSLSessionCallback> scClass;
+    private Class<? extends BaseSessionCallback> scClass;
 
     public SSLNIOSocketFactory()
     {
 
     }
-    public SSLNIOSocketFactory(SSLContext sslContext,  Class<? extends SSLSessionCallback> scClass)
+    public SSLNIOSocketFactory(SSLContext sslContext,  Class<? extends BaseSessionCallback> scClass)
     {
         this.sslContext = sslContext;
         this.scClass = scClass;
@@ -44,7 +45,7 @@ public class SSLNIOSocketFactory
         try
         {
             if(scClass != null)
-                sc = scClass.getDeclaredConstructor().newInstance();
+                sc = (SSLSessionCallback) scClass.getDeclaredConstructor().newInstance();
         }
         catch(Exception e)
         {
