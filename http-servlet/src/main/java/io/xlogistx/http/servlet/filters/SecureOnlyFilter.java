@@ -2,7 +2,7 @@ package io.xlogistx.http.servlet.filters;
 
 import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO.ApplicationDefaultParam;
-import org.zoxweb.shared.http.HTTPHeaderName;
+import org.zoxweb.shared.http.HTTPHeader;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.util.SharedStringUtil;
 
@@ -75,7 +75,7 @@ implements Filter
 					httpsPath = ApplicationConfigManager.SINGLETON.loadDefault().lookupValue(ApplicationDefaultParam.SECURE_URL);
 				}
 				res.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
-				res.setHeader(HTTPHeaderName.LOCATION.getName(), httpsPath);
+				res.setHeader(HTTPHeader.LOCATION.getName(), httpsPath);
 				log.info("from:" + req.getRemoteHost() + " redirect:" + originalURL + "->" + httpsPath);
 				return;
 			

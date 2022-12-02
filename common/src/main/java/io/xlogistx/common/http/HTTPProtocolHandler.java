@@ -1,6 +1,6 @@
 package io.xlogistx.common.http;
 
-import javassist.bytecode.ByteArray;
+
 import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
@@ -18,7 +18,7 @@ public class HTTPProtocolHandler {
 
     public boolean parseRequest(ByteBuffer inBuffer) throws IOException
     {
-        ByteBufferUtil.write(inBuffer, rawRequest.getUBAOS(), true);
+        ByteBufferUtil.write(inBuffer, rawRequest.getInternalBAOS(), true);
 
         rawRequest.parse(true);
         return rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
@@ -34,9 +34,9 @@ public class HTTPProtocolHandler {
         return rawRequest.isMessageComplete() ? rawRequest.getHTTPMessageConfig() : null;
     }
 
-    public ByteArrayInputStream getRawRequest()
+    public UByteArrayOutputStream getRawRequest()
     {
-        return rawRequest.isMessageComplete() ? rawRequest.getUBAOS().toByteArrayInputStream() : null;
+        return rawRequest.isMessageComplete() ? rawRequest.getInternalBAOS() : null;
     }
 
     public UByteArrayOutputStream getRawResponse()

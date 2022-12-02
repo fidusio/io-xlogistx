@@ -15,20 +15,20 @@
  */
 package io.xlogistx.http.servlet;
 
-import io.xlogistx.common.data.MethodHolder;
+
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.zoxweb.server.http.HTTPRequestAttributes;
-import org.zoxweb.server.http.HTTPUtil;
+
 import org.zoxweb.server.io.FileInfoStreamSource;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.GSONWrapper;
 import org.zoxweb.server.util.ZIPUtil;
-import org.zoxweb.shared.annotation.ParamProp;
+
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.data.FileInfoDAO;
 import org.zoxweb.shared.http.*;
@@ -45,9 +45,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Parameter;
-import java.net.URI;
-import java.net.URISyntaxException;
+
 import java.net.URL;
 import java.util.*;
 import java.util.logging.Logger;
@@ -225,7 +223,7 @@ public class HTTPServletUtil
 	public static void setZIPEncodingHeader(HttpServletResponse response, HTTPHeaderValue hv)
 	{
 		if (hv != null)
-			response.setHeader(HTTPHeaderName.CONTENT_ENCODING.getName(), hv.getValue());
+			response.setHeader(HTTPHeader.CONTENT_ENCODING.getName(), hv.getValue());
 	}
 	
 	public static boolean exceedsUncompressedContentLengthLimit(String content)
@@ -238,10 +236,10 @@ public class HTTPServletUtil
 		HTTPHeaderValue zip = null;
 		if (req != null)
 		{
-			String encoding = req.getHeader(HTTPHeaderName.X_ACCEPT_ENCODING.getName());
+			String encoding = req.getHeader(HTTPHeader.X_ACCEPT_ENCODING.getName());
 			if (encoding == null)
 			{
-				encoding = req.getHeader(HTTPHeaderName.ACCEPT_ENCODING.getName());
+				encoding = req.getHeader(HTTPHeader.ACCEPT_ENCODING.getName());
 			}
 			
 			if (SharedStringUtil.contains(encoding, HTTPHeaderValue.CONTENT_ENCODING_LZ, true))
@@ -365,7 +363,10 @@ public class HTTPServletUtil
 		resp.setDateHeader("Expires", 0); // Proxies.
 		// allow cross site access
 		if (ACAO)
-		  resp.addHeader("Access-Control-Allow-Origin", "*");
+		{
+			GetNameValue<String> gnv = HTTPHeader.toHTTPHeader(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+			resp.addHeader(gnv.getName(), gnv.getValue());
+		}
 		
 		if (json != null)
 		{
@@ -389,7 +390,7 @@ public class HTTPServletUtil
     				}
     				else if (zip == HTTPHeaderValue.CONTENT_ENCODING_GZIP)
     				{
-    					resp.setHeader(HTTPHeaderName.CONTENT_DISPOSITION.getName(), "attachment");
+    					resp.setHeader(HTTPHeader.CONTENT_DISPOSITION.getName(), "attachment");
     				}
     				resp.getOutputStream().write(responseBytes);
     				return responseBytes.length;	

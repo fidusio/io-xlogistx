@@ -4,7 +4,7 @@ import org.zoxweb.server.http.HTTPCall;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.api.APITokenDAO;
 import org.zoxweb.shared.http.HTTPAuthenticationBearer;
-import org.zoxweb.shared.http.HTTPHeaderName;
+import org.zoxweb.shared.http.HTTPHeader;
 import org.zoxweb.shared.http.HTTPMessageConfig;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPMethod;
@@ -31,8 +31,8 @@ public class PayPalRestAPI {
             throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, NullPointerException, IllegalArgumentException {
 
         HTTPMessageConfigInterface hcc = HTTPMessageConfig.createAndInit(url, "/v1/oauth2/token", HTTPMethod.POST);
-        hcc.getHeaders().add(new NVPair(HTTPHeaderName.ACCEPT, HTTPMimeType.APPLICATION_JSON));
-        hcc.getHeaders().add(new NVPair(HTTPHeaderName.ACCEPT_LANGUAGE, "en_US"));
+        hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMimeType.APPLICATION_JSON));
+        hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         hcc.setUser(clientID);
         hcc.setPassword(clientSecret);
         hcc.getParameters().add(new NVPair("grant_type", "client_credentials"));
@@ -52,8 +52,8 @@ public class PayPalRestAPI {
             throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, NullPointerException, IllegalArgumentException {
         HTTPMessageConfigInterface hcc = HTTPMessageConfig.createAndInit(url, "/v1/payments/payment", HTTPMethod.POST);
         hcc.setContentType(HTTPMimeType.APPLICATION_JSON);
-        hcc.getHeaders().add(new NVPair(HTTPHeaderName.ACCEPT, HTTPMimeType.APPLICATION_JSON));
-        hcc.getHeaders().add(new NVPair(HTTPHeaderName.ACCEPT_LANGUAGE, "en_US"));
+        hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMimeType.APPLICATION_JSON));
+        hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         //hcc.getHeaderParameters().add(HTTPAuthorizationType.BEARER.toHTTPHeader(token.getTokenType(), token.getAccessToken()));
         hcc.setAuthentication(new HTTPAuthenticationBearer(token.getAccessToken()));
         String json = GSONUtil.toJSON(payment, true, false, false);
@@ -71,8 +71,8 @@ public class PayPalRestAPI {
             throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, NullPointerException, IllegalArgumentException {
         HTTPMessageConfigInterface hcc = HTTPMessageConfig.createAndInit(url, "/v1/payments/sale/" + refundID + "/refund", HTTPMethod.POST);
         hcc.setContentType(HTTPMimeType.APPLICATION_JSON);
-        hcc.getHeaders().add(new NVPair(HTTPHeaderName.ACCEPT, HTTPMimeType.APPLICATION_JSON));
-        hcc.getHeaders().add(new NVPair(HTTPHeaderName.ACCEPT_LANGUAGE, "en_US"));
+        hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMimeType.APPLICATION_JSON));
+        hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         //hcc.getHeaderParameters().add(HTTPAuthorizationType.BEARER.toHTTPHeader(token.getTokenType(), token.getAccessToken()));
         hcc.setAuthentication(new HTTPAuthenticationBearer(token.getAccessToken()));
         PPAmountDAO amount = new PPAmountDAO();

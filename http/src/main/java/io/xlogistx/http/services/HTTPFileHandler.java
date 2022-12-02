@@ -22,7 +22,7 @@ import io.xlogistx.http.handler.HTTPHandlerUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 
-import org.zoxweb.shared.http.HTTPHeaderName;
+import org.zoxweb.shared.http.HTTPHeader;
 import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.*;
@@ -99,7 +99,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
 
             if(mime != null)
                 he.getResponseHeaders()
-                        .add(HTTPHeaderName.CONTENT_TYPE.getName(), mime.getValue());
+                        .add(HTTPHeader.CONTENT_TYPE.getName(), mime.getValue());
 //            File file = new File(baseFolder, filename);
 //            if (!file.exists() || !file.isFile() || !file.canRead()) {
 //                log.info("File Not Found:" + file.getName());

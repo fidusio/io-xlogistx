@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class HTTPTestServer
 extends PlainSessionCallback
 {
-    public static boolean debug = false;
+    public static boolean debug = true;
     private static RateCounter messages = new RateCounter("UnsecureMessages");
     final  AtomicLong ts =  new AtomicLong(0);
     final static URIMap<String> uriMap = new URIMap<>();
@@ -48,8 +48,8 @@ extends PlainSessionCallback
                     String match = uriMap.lookup(hph.getHTTPMessage().getURI());
 
                     if (debug) {
-                        log.info("incoming data\n" + IOUtil.inputStreamToString(hph.getRawRequest(), true));//.toString(hph.getRawRequest().getInternalBuffer(), 0, hph.getRawRequest().size()));
-                        log.info("" + hph.getHTTPMessage());
+                        log.info("incoming data\n" + SharedStringUtil.toString(hph.getRawRequest().getInternalBuffer(), 0, hph.getRawRequest().size()));
+                        log.info("MESSAGE INFO : " + hph.getHTTPMessage().getParameters());
                         log.info("uriMatch : "+ match);
                     }
 
@@ -100,6 +100,7 @@ extends PlainSessionCallback
         {
             int index = 0;
             int port = Integer.parseInt(args[index++]);
+
 
             //TaskUtil.setThreadMultiplier(8);
 

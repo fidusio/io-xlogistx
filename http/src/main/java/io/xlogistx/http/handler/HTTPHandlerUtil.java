@@ -56,8 +56,8 @@ public class HTTPHandlerUtil {
   {
     String message = GSONUtil.toJSON(simpleMessage, false, false, false);
     byte buffer[] = SharedStringUtil.getBytes(message);
-    he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
-    he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
+    he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
+    he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), "charset=utf-8");
     he.sendResponseHeaders(hsc.CODE, buffer.length);
     log.info("buffer:" + buffer + " " + message);
     he.getResponseBody().write(buffer);
@@ -77,8 +77,8 @@ public class HTTPHandlerUtil {
   {
     String message = GSONUtil.toJSONDefault(o);
     byte buffer[] = SharedStringUtil.getBytes(message);
-    he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
-    he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
+    he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), HTTPMimeType.APPLICATION_JSON.getValue());
+    he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), "charset=utf-8");
     he.sendResponseHeaders(hsc.CODE, buffer.length);
     he.getResponseBody().write(buffer);
     if(close)
@@ -95,14 +95,14 @@ public class HTTPHandlerUtil {
       {
         mimeType = HTTPMimeType.TEXT_PLAIN;
       }
-      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), mimeType.getValue());
+      he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), mimeType.getValue());
       buffer = SharedStringUtil.getBytes("" + o);
     }
     else
     {
       mimeType = HTTPMimeType.APPLICATION_JSON;
-      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), mimeType.getValue());
-      he.getResponseHeaders().add(HTTPHeaderName.CONTENT_TYPE.getName(), "charset=utf-8");
+      he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), mimeType.getValue());
+      he.getResponseHeaders().add(HTTPHeader.CONTENT_TYPE.getName(), "charset=utf-8");
       buffer = SharedStringUtil.getBytes(GSONUtil.toJSONDefault(o));
     }
     he.sendResponseHeaders(hsc.CODE, buffer.length);
@@ -147,7 +147,7 @@ public class HTTPHandlerUtil {
       }
     }
 
-    List<String> contentTypeData = he.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName());
+    List<String> contentTypeData = he.getRequestHeaders().get(HTTPHeader.CONTENT_TYPE.getName());
     HTTPMimeType contentType = contentTypeData != null && contentTypeData.size() > 0 ? HTTPMimeType.lookup(contentTypeData.get(0)) : null;
 
     String  payload = null;

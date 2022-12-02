@@ -265,7 +265,7 @@ public abstract class ShiroBaseServlet
                 	{
                 		realm = acd.lookupValue(ApplicationDefaultParam.APPLICATION_HOST) != null ? acd.lookupValue(ApplicationDefaultParam.APPLICATION_HOST) : realm;
                 	}
-                	res.addHeader(HTTPHeaderName.WWW_AUTHENTICATE.getName(), "Basic realm=\"" + realm + "\", charset=\"UTF-8\"" );
+                	res.addHeader(HTTPHeader.WWW_AUTHENTICATE.getName(), "Basic realm=\"" + realm + "\", charset=\"UTF-8\"" );
                 	res.setStatus(HTTPStatusCode.UNAUTHORIZED.CODE);
                 }
                 else
