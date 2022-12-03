@@ -210,7 +210,7 @@ public class HTTPServletUtil
 
 	
 	
-	public static HTTPHeaderValue shouldZIPResponseContent(HttpServletRequest request, String responseContent)
+	public static HTTPAttribute shouldZIPResponseContent(HttpServletRequest request, String responseContent)
 	{
 		if (exceedsUncompressedContentLengthLimit(responseContent))
 		{
@@ -220,7 +220,7 @@ public class HTTPServletUtil
 		return null;
 	}
 
-	public static void setZIPEncodingHeader(HttpServletResponse response, HTTPHeaderValue hv)
+	public static void setZIPEncodingHeader(HttpServletResponse response, HTTPAttribute hv)
 	{
 		if (hv != null)
 			response.setHeader(HTTPHeader.CONTENT_ENCODING.getName(), hv.getValue());
@@ -231,9 +231,9 @@ public class HTTPServletUtil
 		return content.length() > ZIP_LIMIT;
 	}
 	
-	public static HTTPHeaderValue acceptsZIPEncoding(HttpServletRequest req)
+	public static HTTPAttribute acceptsZIPEncoding(HttpServletRequest req)
 	{
-		HTTPHeaderValue zip = null;
+		HTTPAttribute zip = null;
 		if (req != null)
 		{
 			String encoding = req.getHeader(HTTPHeader.X_ACCEPT_ENCODING.getName());
@@ -242,13 +242,13 @@ public class HTTPServletUtil
 				encoding = req.getHeader(HTTPHeader.ACCEPT_ENCODING.getName());
 			}
 			
-			if (SharedStringUtil.contains(encoding, HTTPHeaderValue.CONTENT_ENCODING_LZ, true))
+			if (SharedStringUtil.contains(encoding, HTTPAttribute.CONTENT_ENCODING_LZ, true))
 			{
-				zip = HTTPHeaderValue.CONTENT_ENCODING_LZ;
+				zip = HTTPAttribute.CONTENT_ENCODING_LZ;
 			}
-			else if (SharedStringUtil.contains(encoding, HTTPHeaderValue.CONTENT_ENCODING_GZIP, true))
+			else if (SharedStringUtil.contains(encoding, HTTPAttribute.CONTENT_ENCODING_GZIP, true))
 			{
-				zip = HTTPHeaderValue.CONTENT_ENCODING_GZIP;
+				zip = HTTPAttribute.CONTENT_ENCODING_GZIP;
 				//zip = HTTPHeaderValue.CONTENT_ENCODING_LZ;
 			}
 		}
@@ -374,7 +374,7 @@ public class HTTPServletUtil
 		  
 		    if (zipMaybe)
 		    {
-    			HTTPHeaderValue zip = shouldZIPResponseContent(req, json);
+				HTTPAttribute zip = shouldZIPResponseContent(req, json);
     			
     			if (zip != null)
     			{
@@ -384,11 +384,11 @@ public class HTTPServletUtil
     				// compress
     				byte[] responseBytes = compress(zip.getValue(), toZip);
     				// encode base64
-    				if (zip == HTTPHeaderValue.CONTENT_ENCODING_LZ)
+    				if (zip == HTTPAttribute.CONTENT_ENCODING_LZ)
     				{
     					responseBytes = SharedBase64.encode(responseBytes);
     				}
-    				else if (zip == HTTPHeaderValue.CONTENT_ENCODING_GZIP)
+    				else if (zip == HTTPAttribute.CONTENT_ENCODING_GZIP)
     				{
     					resp.setHeader(HTTPHeader.CONTENT_DISPOSITION.getName(), "attachment");
     				}
