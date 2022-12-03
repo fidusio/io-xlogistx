@@ -23,7 +23,7 @@ import org.zoxweb.server.util.ServerUtil;
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.data.AppIDDAO;
-import org.zoxweb.shared.http.HTTPAuthenticationBasic;
+import org.zoxweb.shared.http.HTTPAuthorizationBasic;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.ResourceManager;
@@ -64,7 +64,7 @@ public class ShiroAutoLoginServlet
 				ServerUtil.LOCK.lock();
 				if (apiSecurityManager.getDaemonSubject() == null)
 				{
-					HTTPAuthenticationBasic hab = (HTTPAuthenticationBasic) hra.getHTTPAuthentication();
+					HTTPAuthorizationBasic hab = (HTTPAuthorizationBasic) hra.getHTTPAuthentication();
 //					log.info("Authentication:" + hab);
 //					log.info("hra:" + hra.getContentType());
 //					log.info("Content:" + hra.getContent());

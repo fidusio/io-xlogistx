@@ -2,7 +2,7 @@ package io.xlogistx.okta.api;
 
 
 import org.zoxweb.server.http.HTTPCall;
-import org.zoxweb.server.task.TaskUtil;
+
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.GetNameValue;
@@ -20,7 +20,7 @@ public class DefaultOktaAdapter
 {
 
     private String url;
-    private HTTPAuthentication httpAuthentication;
+    private HTTPAuthorization httpAuthentication;
 
     //private boolean httpCallEnabled = true;
 
@@ -45,12 +45,12 @@ public class DefaultOktaAdapter
     }
 
     @Override
-    public HTTPAuthentication getHTTPAuthentication() {
+    public HTTPAuthorization getHTTPAuthorization() {
         return httpAuthentication;
     }
 
     @Override
-    public OktaAdapter setHTTPAuthentication(HTTPAuthentication httpAuthentication) {
+    public OktaAdapter setHTTPAuthorization(HTTPAuthorization httpAuthentication) {
         this.httpAuthentication = httpAuthentication;
         return this;
     }
@@ -58,7 +58,7 @@ public class DefaultOktaAdapter
     @Override
     public OktaUser registerUser(OktaUser user, boolean activate, String ...groups) throws IOException {
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, URIs.USERS.getValue() +"?activate=" + activate, HTTPMethod.POST);
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
 
@@ -117,7 +117,7 @@ public class DefaultOktaAdapter
                 HTTPMethod.GET);
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
         return send(hmci, DefaultOktaUser.class);
     }
 
@@ -135,7 +135,7 @@ public class DefaultOktaAdapter
                     SharedStringUtil.embedText(URIs.USER_DEACTIVATE.getValue(), Token.USERID.getValue(), oktaUser.getOktaId()), HTTPMethod.POST);
             hmciDeactivate.setContentType("application/json");
             hmciDeactivate.setAccept("application/json");
-            hmciDeactivate.setAuthentication(getHTTPAuthentication());
+            hmciDeactivate.setAuthorization(getHTTPAuthorization());
             send(hmciDeactivate);
 
         }
@@ -145,7 +145,7 @@ public class DefaultOktaAdapter
                 SharedStringUtil.embedText(URIs.USER_DELETE.getValue(), Token.USERID.getValue(), oktaUser.getOktaId()), HTTPMethod.DELETE);
         hmciDelete.setContentType("application/json");
         hmciDelete.setAccept("application/json");
-        hmciDelete.setAuthentication(getHTTPAuthentication());
+        hmciDelete.setAuthorization(getHTTPAuthorization());
 
         send(hmciDelete);
 
@@ -170,7 +170,7 @@ public class DefaultOktaAdapter
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, null, HTTPMethod.GET);
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
 
 
         return send(hmci, DefaultOktaUser[].class);
@@ -207,7 +207,7 @@ public class DefaultOktaAdapter
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.POST);
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
 
         NVGenericMap nvgm = new NVGenericMap();
         NVGenericMap oldPasswordNVM = new NVGenericMap();
@@ -231,7 +231,7 @@ public class DefaultOktaAdapter
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, URIs.USERS.getValue()+"/" +oktaId, HTTPMethod.POST);
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
 
 
         OktaUser oktaUser = new DefaultOktaUser().setCredentials(new OktaCredentials());
@@ -247,7 +247,7 @@ public class DefaultOktaAdapter
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, URIs.USERS.getValue()+"/" +oktaId, HTTPMethod.POST);
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
         hmci.setContent(GSONUtil.toJSONDefault(oktaUser));
         return send(hmci, DefaultOktaUser.class);
     }
@@ -345,7 +345,7 @@ public class DefaultOktaAdapter
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, URIs.USERS.getValue(), HTTPMethod.GET);
         //hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
         for(GetNameValue<String> gnv : queries)
             hmci.getParameters().add(gnv);
 
@@ -359,7 +359,7 @@ public class DefaultOktaAdapter
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, URIs.GROUPS.getValue(), HTTPMethod.GET);
         hmci.setContentType("application/json");
         hmci.setAccept("application/json");
-        hmci.setAuthentication(getHTTPAuthentication());
+        hmci.setAuthorization(getHTTPAuthorization());
 
 
         OktaGroup[] ret = send(hmci, DefaultOktaGroup[].class);

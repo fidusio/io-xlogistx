@@ -3,7 +3,7 @@ package io.xlogistx.payment.paypal;
 import org.zoxweb.server.http.HTTPCall;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.api.APITokenDAO;
-import org.zoxweb.shared.http.HTTPAuthenticationBearer;
+import org.zoxweb.shared.http.HTTPAuthorizationBearer;
 import org.zoxweb.shared.http.HTTPHeader;
 import org.zoxweb.shared.http.HTTPMessageConfig;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
@@ -55,7 +55,7 @@ public class PayPalRestAPI {
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMimeType.APPLICATION_JSON));
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         //hcc.getHeaderParameters().add(HTTPAuthorizationType.BEARER.toHTTPHeader(token.getTokenType(), token.getAccessToken()));
-        hcc.setAuthentication(new HTTPAuthenticationBearer(token.getAccessToken()));
+        hcc.setAuthorization(new HTTPAuthorizationBearer(token.getAccessToken()));
         String json = GSONUtil.toJSON(payment, true, false, false);
         hcc.setContent(SharedStringUtil.getBytes(json));
 
@@ -74,7 +74,7 @@ public class PayPalRestAPI {
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMimeType.APPLICATION_JSON));
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         //hcc.getHeaderParameters().add(HTTPAuthorizationType.BEARER.toHTTPHeader(token.getTokenType(), token.getAccessToken()));
-        hcc.setAuthentication(new HTTPAuthenticationBearer(token.getAccessToken()));
+        hcc.setAuthorization(new HTTPAuthorizationBearer(token.getAccessToken()));
         PPAmountDAO amount = new PPAmountDAO();
         amount.setTotal(total);
         amount.setCurrency(currency);

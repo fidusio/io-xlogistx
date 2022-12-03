@@ -2,7 +2,7 @@ package io.xlogistx.okta.api;
 
 
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.http.HTTPAuthentication;
+import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.util.GetNameValue;
 import org.zoxweb.shared.util.GetValue;
 import org.zoxweb.shared.util.NVGenericMap;
@@ -74,14 +74,14 @@ public interface OktaAdapter
      * Get the authentication token
      * @return app auth token
      */
-    HTTPAuthentication getHTTPAuthentication();
+    HTTPAuthorization getHTTPAuthorization();
 
     /**
      * Set the authentication token
-     * @param httpAuthentication to be set
+     * @param httpAuthorization to be set
      * @return self
      */
-    OktaAdapter setHTTPAuthentication(HTTPAuthentication httpAuthentication);
+    OktaAdapter setHTTPAuthorization(HTTPAuthorization httpAuthorization);
 
 
     /**

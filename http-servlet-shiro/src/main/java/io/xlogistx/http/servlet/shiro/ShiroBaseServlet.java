@@ -225,10 +225,10 @@ public abstract class ShiroBaseServlet
                 	// maybe base 64 authentication
                 	try
                 	{
-                		HTTPAuthentication httpAuth = hra.getHTTPAuthentication();
-                		if (httpAuth != null && httpAuth instanceof HTTPAuthenticationBasic)
+                		HTTPAuthorization httpAuth = hra.getHTTPAuthentication();
+                		if (httpAuth != null && httpAuth instanceof HTTPAuthorizationBasic)
                 		{
-                			HTTPAuthenticationBasic basic = (HTTPAuthenticationBasic) httpAuth;
+                			HTTPAuthorizationBasic basic = (HTTPAuthorizationBasic) httpAuth;
                 			
                 			
                 			AppIDURI appIDURI = hra.getAppIDURI();

@@ -17,10 +17,10 @@ public class HTTPOktaTest
             String url = args[index++];
             String token = args[index++];
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, "/api/v1/users", HTTPMethod.GET);
-            HTTPAuthenticationBearer authentication = new HTTPAuthenticationBearer();
-            authentication.setTokenTypeOverride("SSWS");
+            HTTPAuthorizationBearer authentication = new HTTPAuthorizationBearer();
+            authentication.setAuthSchemeOverride("SSWS");
             authentication.setToken(token );
-            hmci.setAuthentication(authentication);
+            hmci.setAuthorization(authentication);
             long start = System.currentTimeMillis();
             HTTPCall hc = new HTTPCall(hmci);
             long end = System.currentTimeMillis();

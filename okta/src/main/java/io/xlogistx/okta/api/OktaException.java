@@ -68,9 +68,7 @@ implements GetNVProperties
 
     @Override
     public String toString() {
-        return "OktaException{" +
+        return  ""+nvgm;
 
-                 nvgm +
-                '}';
     }
 }
