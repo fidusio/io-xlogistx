@@ -80,19 +80,19 @@
         <dependency>
             <groupId>org.apache.shiro</groupId>
             <artifactId>shiro-core</artifactId>
-            <version>${shiro.version}</version>
+            <version>${apache.shiro.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.shiro</groupId>
             <artifactId>shiro-web</artifactId>
-            <version>${shiro.version}</version>
+            <version>${apache.shiro.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.shiro</groupId>
             <artifactId>shiro-servlet-plugin</artifactId>
-            <version>${shiro.version}</version>
+            <version>${apache.shiro.version}</version>
         </dependency>
 
 
