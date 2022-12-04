@@ -1,23 +1,29 @@
 package io.xlogistx.common.net;
 
+
+
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.ProtocolSessionFactoryBase;
+import org.zoxweb.shared.util.InstanceCreator;
 
 public class NIOPlainSocketFactory
         extends ProtocolSessionFactoryBase<NIOPlainSocket>
 {
 
-    private Class<? extends BaseSessionCallback> cbClass;
+    private  Class<? extends BaseSessionCallback> cbClass;
+    private InstanceCreator<PlainSessionCallback> instanceCreator;
 
-    public NIOPlainSocketFactory()
-    {
-
-    }
+    public NIOPlainSocketFactory(){}
 
 
     public NIOPlainSocketFactory(Class<? extends BaseSessionCallback> cbClass)
     {
         this.cbClass = cbClass;
+
+    }
+    public NIOPlainSocketFactory(InstanceCreator<PlainSessionCallback> instanceCreator)
+    {
+        this.instanceCreator = instanceCreator;
     }
 
 
@@ -28,7 +34,9 @@ public class NIOPlainSocketFactory
         PlainSessionCallback sc = null;
         try
         {
-            if(cbClass != null)
+            if (instanceCreator != null)
+                sc = instanceCreator.newInstance();
+            else if(cbClass != null)
                 sc = (PlainSessionCallback) cbClass.getDeclaredConstructor().newInstance();
         }
         catch(Exception e)

@@ -86,12 +86,9 @@ public class HTTPSSLTestServer
 
                 StateMachine.log.setEnabled(true);
                 TriggerConsumer.log.setEnabled(true);
+                SSLSessionConfig.log.setEnabled(true);
+            }
 
-            }
-            else
-            {
-                SSLSessionConfig.debug = false;
-            }
 
 
 

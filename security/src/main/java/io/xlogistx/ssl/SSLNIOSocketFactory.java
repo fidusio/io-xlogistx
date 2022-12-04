@@ -5,6 +5,7 @@ import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.ProtocolSessionFactoryBase;
 import org.zoxweb.shared.data.ConfigDAO;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
+import org.zoxweb.shared.util.InstanceCreator;
 
 import javax.net.ssl.SSLContext;
 
@@ -15,16 +16,24 @@ public class SSLNIOSocketFactory
     private InetSocketAddressDAO remoteAddress;
     private SSLContext sslContext;
     private Class<? extends BaseSessionCallback> scClass;
+    private InstanceCreator<SSLSessionCallback> instanceCreator;
 
     public SSLNIOSocketFactory()
     {
 
     }
+    public SSLNIOSocketFactory(SSLContext sslContext, InstanceCreator<SSLSessionCallback> instanceCreator)
+    {
+        this.sslContext = sslContext;
+        this.instanceCreator = instanceCreator;
+    }
+
     public SSLNIOSocketFactory(SSLContext sslContext,  Class<? extends BaseSessionCallback> scClass)
     {
         this.sslContext = sslContext;
         this.scClass = scClass;
     }
+
 
     public SSLNIOSocketFactory(SSLContext sslContext, InetSocketAddressDAO ra)
     {
@@ -44,7 +53,11 @@ public class SSLNIOSocketFactory
         SSLSessionCallback sc = null;
         try
         {
-            if(scClass != null)
+            if(instanceCreator != null)
+            {
+                sc = instanceCreator.newInstance();;
+            }
+            else if(scClass != null)
                 sc = (SSLSessionCallback) scClass.getDeclaredConstructor().newInstance();
         }
         catch(Exception e)

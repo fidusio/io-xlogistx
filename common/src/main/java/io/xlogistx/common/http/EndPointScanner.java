@@ -33,12 +33,12 @@ public class EndPointScanner
     }
 
 
-    public EndPointsManager getEndPointsManager()
-    {
-        return endPointsManager;
-    }
+//    public EndPointsManager getEndPointsManager()
+//    {
+//        return endPointsManager;
+//    }
 
-    public void scan(HTTPServerMapper serverMapper)
+    public EndPointsManager scan(HTTPServerMapper serverMapper)
     {
         HTTPEndPoint[]allHEP = serverConfig.getEndPoints();
         for(HTTPEndPoint configHEP : allHEP)
@@ -140,6 +140,9 @@ public class EndPointScanner
                 e.printStackTrace();
             }
         }
+
+
+        return endPointsManager;
     }
 
 

@@ -24,8 +24,8 @@ import java.util.concurrent.locks.Lock;
 public class SSLSessionConfig
     implements AutoCloseable
 {
-    public final static LogWrapper log = new LogWrapper(SSLSessionConfig.class.getName());
-    public static boolean debug = true;
+    public final static LogWrapper log = new LogWrapper(SSLSessionConfig.class.getName()).setEnabled(false);
+    //public static boolean debug = true;
 
 
 
@@ -103,7 +103,7 @@ public class SSLSessionConfig
             ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
             IOUtil.close(sslOutputStream);
 
-            if(debug) log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
+            log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
         }
 
     }

@@ -427,6 +427,7 @@ public class OktaApp {
 
         log.info("Finished total GSONDefault calls " + GSONUtil.getJSONDefaultCount());
         log.info("OktaAPIRate: " + oktaAdapter.getCurrentAPIRate());
+        //log.info("Authorization:" + GSONUtil.toJSONDefault(oktaAdapter.getHTTPAuthorization(), true));
 
     }
 }

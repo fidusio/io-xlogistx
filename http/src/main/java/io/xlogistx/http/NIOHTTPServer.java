@@ -1,42 +1,153 @@
 package io.xlogistx.http;
 
 
-import io.xlogistx.common.data.MethodHolder;
-import io.xlogistx.common.http.EndPointScanner;
+
+import io.xlogistx.common.http.EndPointMeta;
 import io.xlogistx.common.http.EndPointsManager;
-import io.xlogistx.common.http.HTTPServerMapper;
+import io.xlogistx.common.http.HTTPProtocolHandler;
+
+import io.xlogistx.common.net.NIOPlainSocketFactory;
+import io.xlogistx.common.net.PlainSessionCallback;
+import io.xlogistx.ssl.SSLNIOSocketFactory;
+import io.xlogistx.ssl.SSLSessionCallback;
+import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.io.UByteArrayOutputStream;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
-import org.zoxweb.shared.http.HTTPEndPoint;
+
+import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPServerConfig;
+
+import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.DaemonController;
-import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.*;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class NIOHTTPServer
-        implements DaemonController,
-        HTTPServerMapper
+        implements DaemonController
 {
-    private final static Logger log = Logger.getLogger(NIOHTTPServer.class.getName());
+
+    private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
+
+    private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPSSession::new;
+
+
+    public class HTTPSession
+        extends PlainSessionCallback
+    {
+        final HTTPProtocolHandler hph = new HTTPProtocolHandler();
+
+        @Override
+        public void accept(ByteBuffer inBuffer)
+        {
+            if (inBuffer != null)
+            {
+                try
+                {
+                    incomingData(hph, inBuffer, get());
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                    logger.info("" + e + " "  + " " + get());
+                    IOUtil.close(get());
+                    // we should close
+
+                }
+
+            }
+        }
+    }
+
+
+    private void incomingData(HTTPProtocolHandler hph, ByteBuffer inBuffer, OutputStream os)
+            throws IOException, InvocationTargetException, IllegalAccessException {
+        UByteArrayOutputStream resp;
+
+        if (hph.parseRequest(inBuffer)) {
+
+            logger.info(hph.getHTTPMessage().getURI());
+            EndPointMeta epm = endPointsManager.lookup(hph.getHTTPMessage().getURI());
+            if (epm != null) {
+
+
+                logger.info("" + epm.methodHolder.getInstance() + " method: " + epm.methodHolder.getMethodAnnotations());
+                Map<String, Object> parameters = new HashMap<>();
+                //log.info("Parameters:" + parameters);
+
+                Object result = ReflectionUtil.invokeMethod(epm.methodHolder.getInstance(),
+                        epm.methodHolder.getMethodAnnotations(),
+                        parameters);
+
+
+                resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK), hph.getRawResponse());
+            } else {
+                SimpleMessage sm = new SimpleMessage();
+                sm.setError(hph.getHTTPMessage().getURI() + " not found");
+                resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND), hph.getRawResponse());
+            }
+            os.write(resp.getInternalBuffer(), 0, resp.size());
+            IOUtil.close(os);
+
+        } else {
+            logger.info("Message not complete yet");
+        }
+
+
+
+    }
+
+    public class HTTPSSession
+            extends SSLSessionCallback
+    {
+        private final HTTPProtocolHandler hph = new HTTPProtocolHandler();
+        @Override
+        public void accept(ByteBuffer inBuffer)
+        {
+            if (inBuffer != null)
+            {
+                try
+                {
+                    incomingData(hph, inBuffer, get());
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                    logger.info("" + e + " "  + " " + get());
+                    IOUtil.close(get());
+                    // we should close
+                }
+            }
+        }
+
+    }
+
+
+
+    private final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
     private final HTTPServerConfig config;
     private final NIOSocket nioSocket;
     private boolean isClosed = true;
+    private EndPointsManager endPointsManager = null;
 
     public NIOHTTPServer(HTTPServerConfig config, NIOSocket nioSocket)
     {
@@ -55,15 +166,6 @@ public class NIOHTTPServer
         return config;
     }
 
-    @Override
-    public boolean isInstanceNative(Object beanInstance) {
-        return false;
-    }
-
-    @Override
-    public void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder mh, Object beanInstance) {
-
-    }
 
     @Override
     public boolean isClosed() {
@@ -80,12 +182,12 @@ public class NIOHTTPServer
                 isClosed = false;
             }
 
+            endPointsManager = EndPointsManager.scan(getConfig());
+            logger.info("mapping completed***********************");
             ConnectionConfig[] ccs = config.getConnectionConfigs();
 
-            //TaskUtil.setMinTaskProcessorThreadCount(config.getThreadPoolSize());
-            //Executor executor = config.isThreadPoolJavaType() ? Executors.newCachedThreadPool() : TaskUtil.getDefaultTaskProcessor();
 
-            log.info("Connection Configs: " + ccs);
+            logger.info("Connection Configs: " + Arrays.toString(ccs));
             for(ConnectionConfig cc : ccs)
             {
                 String[] schemes = cc.getSchemes();
@@ -93,17 +195,13 @@ public class NIOHTTPServer
                     URIScheme uriScheme = SharedUtil.lookupEnum(scheme, URIScheme.values());
                     if (uriScheme != null)
                     {
-                        String serverId = null;
                         InetSocketAddressDAO serverAddress = null;
-                        InetSocketAddress isa = null;
                         switch (uriScheme)
                         {
                             case HTTPS:
-                                // we need to create an https server
-                                log.info("we need to create an https server");
+                                // we need to create a https server
+                                logger.info("we need to create an https server");
                                 serverAddress = cc.getSocketConfig();
-                                serverId = uriScheme.getName() + ":" + serverAddress.getPort();
-                                isa = new InetSocketAddress(serverAddress.getPort());
 
                                 NVGenericMap sslConfig = cc.getSSLConfig();
                                 String ksPassword = sslConfig.getValue("keystore_password");
@@ -117,13 +215,12 @@ public class NIOHTTPServer
                                         aliasPassword != null ?  aliasPassword.toCharArray() : null,
                                         trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
                                         trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
+                                getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new SSLNIOSocketFactory(sslContext, httpsIC));
                                 break;
                             case HTTP:
-                                // we need to create an http server
+                                // we need to create a http server
                                 serverAddress = cc.getSocketConfig();
-                                serverId = uriScheme.getName() + ":" + serverAddress.getPort();
-                                isa = new InetSocketAddress(serverAddress.getPort());
-
+                                getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOPlainSocketFactory(httpIC));
                                 break;
                             case FTP:
                             case FILE:
@@ -139,11 +236,10 @@ public class NIOHTTPServer
 
 
             // create end point scanner
-            EndPointScanner endPointScanner = new EndPointScanner(config);
-            endPointScanner.scan(this);
-            log.info("Start completed***********************");
+
 
         }
+
 
     }
 
@@ -157,7 +253,7 @@ public class NIOHTTPServer
 
 
             String filename = args[index++];
-            log.info("config file:" + filename);
+            logger.info("config file:" + filename);
             File file = IOUtil.locateFile(filename);
             HTTPServerConfig hsc = null;
 
@@ -165,13 +261,13 @@ public class NIOHTTPServer
             if(file != null)
                 hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
 
-            log.info("" + hsc);
-            log.info("" + Arrays.toString(hsc.getConnectionConfigs()));
+            logger.info("" + hsc);
+            logger.info("" + Arrays.toString(hsc.getConnectionConfigs()));
             TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
             NIOSocket nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
-            log.info("After start");
+            logger.info("After start");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -180,7 +276,7 @@ public class NIOHTTPServer
         }
         startTS = System.currentTimeMillis() - startTS;
 
-        log.info("Start up time:" + Const.TimeInMillis.toString(startTS));
+        logger.info("Start up time:" + Const.TimeInMillis.toString(startTS));
 
     }
 

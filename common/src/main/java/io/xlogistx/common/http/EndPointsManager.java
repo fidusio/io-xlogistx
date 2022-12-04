@@ -24,17 +24,6 @@ public class EndPointsManager {
 
     private final static Logger log = Logger.getLogger(EndPointsManager.class.getName());
 
-    public static class EndPointMeta
-    {
-        public final HTTPEndPoint httpEndPoint;
-        public final MethodHolder methodHolder;
-        private EndPointMeta(HTTPEndPoint hep, MethodHolder mh)
-        {
-
-            this.httpEndPoint = hep;
-            this.methodHolder = mh;
-        }
-    }
 
     //private Map<String, EndPointMeta> uriEndPointMeta = new LinkedHashMap<String, EndPointMeta>();
 
