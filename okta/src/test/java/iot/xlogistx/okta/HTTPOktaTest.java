@@ -17,10 +17,7 @@ public class HTTPOktaTest
             String url = args[index++];
             String token = args[index++];
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, "/api/v1/users", HTTPMethod.GET);
-            HTTPAuthorizationBearer authentication = new HTTPAuthorizationBearer();
-            authentication.setAuthSchemeOverride("SSWS");
-            authentication.setToken(token );
-            hmci.setAuthorization(authentication);
+            hmci.setAuthorization(new HTTPAuthorizationToken(HTTPAuthScheme.SSWS, token));
             long start = System.currentTimeMillis();
             HTTPCall hc = new HTTPCall(hmci);
             long end = System.currentTimeMillis();
