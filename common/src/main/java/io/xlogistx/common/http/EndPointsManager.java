@@ -1,11 +1,11 @@
 package io.xlogistx.common.http;
 
 
-import com.sun.net.httpserver.HttpExchange;
+
 import io.xlogistx.common.data.MethodHolder;
 
 import org.zoxweb.server.http.HTTPUtil;
-import org.zoxweb.server.io.IOUtil;
+
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 

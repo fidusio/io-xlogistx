@@ -39,7 +39,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -68,6 +67,12 @@ public class NIOHTTPServer
                 }
                 catch (Exception e)
                 {
+                    HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
+                    try {
+                        get().write(hph.getRawResponse().getInternalBuffer(), 0, hph.getRawResponse().size());
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                     e.printStackTrace();
                     logger.info("" + e + " "  + " " + get());
                     IOUtil.close(get());
@@ -103,8 +108,10 @@ public class NIOHTTPServer
                         epm.result.methodHolder.getMethodAnnotations(),
                         parameters);
 
-
-                resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK), hph.getRawResponse());
+                if (result != null)
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK), hph.getRawResponse());
+                else
+                    resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(HTTPStatusCode.OK), hph.getRawResponse());
             } else {
                 SimpleMessage sm = new SimpleMessage();
                 sm.setError(hph.getHTTPMessage().getURI() + " not found");
@@ -136,8 +143,12 @@ public class NIOHTTPServer
                 }
                 catch (Exception e)
                 {
-                    e.printStackTrace();
-                    logger.info("" + e + " "  + " " + get());
+                    HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
+                    try {
+                        get().write(hph.getRawResponse().getInternalBuffer(), 0, hph.getRawResponse().size());
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                     IOUtil.close(get());
                     // we should close
                 }
