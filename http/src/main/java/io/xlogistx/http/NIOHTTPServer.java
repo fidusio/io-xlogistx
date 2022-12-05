@@ -6,6 +6,7 @@ import io.xlogistx.common.http.EndPointMeta;
 import io.xlogistx.common.http.EndPointsManager;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 
+import io.xlogistx.common.http.URIMap;
 import io.xlogistx.common.net.NIOPlainSocketFactory;
 import io.xlogistx.common.net.PlainSessionCallback;
 import io.xlogistx.ssl.SSLNIOSocketFactory;
@@ -86,16 +87,20 @@ public class NIOHTTPServer
         if (hph.parseRequest(inBuffer)) {
 
             logger.info(hph.getHTTPMessage().getURI());
-            EndPointMeta epm = endPointsManager.lookup(hph.getHTTPMessage().getURI());
+            URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getHTTPMessage().getURI());
             if (epm != null) {
 
+                if(logger.isEnabled())
+                    logger.getLogger().info("" + epm.result.methodHolder.getInstance() + " method: " + epm.result.methodHolder.getMethodAnnotations());
+                Map<String, Object> parameters =EndPointsManager.buildParameters(epm, hph.getHTTPMessage());
 
-                logger.info("" + epm.methodHolder.getInstance() + " method: " + epm.methodHolder.getMethodAnnotations());
-                Map<String, Object> parameters = new HashMap<>();
-                //log.info("Parameters:" + parameters);
+                if(logger.isEnabled()) {
+                    logger.getLogger().info("" + hph.getHTTPMessage());
+                    logger.getLogger().info("" + epm.path);
+                }
 
-                Object result = ReflectionUtil.invokeMethod(epm.methodHolder.getInstance(),
-                        epm.methodHolder.getMethodAnnotations(),
+                Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
+                        epm.result.methodHolder.getMethodAnnotations(),
                         parameters);
 
 

@@ -10,6 +10,19 @@ import java.util.Map;
 
 
 public class URIMap<V> {
+
+    public static class URIMapResult<V>
+    {
+        public final String path;
+        public final V result;
+
+        URIMapResult(String path, V result)
+        {
+            this.path = path;
+            this.result = result;
+        }
+
+    }
     private final Map<String, V> uriMap = new LinkedHashMap<>();
 
     public URIMap()
@@ -62,10 +75,31 @@ public class URIMap<V> {
                 if(ret != null)
                     break;
             }
-
-
         }
         return ret;
+    }
+
+    public URIMapResult<V> lookupWithPath(String uri)
+    {
+
+        uri = normalize(uri);
+        // try to match
+        V ret = uriMap.get(uri);
+        String path = uri;
+
+        if (ret == null)
+        {
+            String[] tokens = SharedStringUtil.parseString(uri, "/", true);
+
+            for(int i = tokens.length - 1 ; i > 0; i--)
+            {
+                path = SharedStringUtil.concat("/", i, tokens);
+                ret =  uriMap.get(SharedStringUtil.concat("/", i, tokens));
+                if(ret != null)
+                    break;
+            }
+        }
+        return new URIMapResult<>(path, ret);
     }
 
     /**

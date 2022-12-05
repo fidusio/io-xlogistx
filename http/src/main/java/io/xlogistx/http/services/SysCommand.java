@@ -103,7 +103,7 @@ extends PropertyHolder
         return new SimpleMessage("App will shutdown in " + Const.TimeInMillis.toString(delay), HTTPStatusCode.OK.CODE);
     }
 
-    protected void propertiesUpdated()
+    protected void refreshProperties()
     {
     }
 }

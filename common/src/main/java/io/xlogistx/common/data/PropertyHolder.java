@@ -18,7 +18,7 @@ implements SetNVProperties
     @Override
     public void setProperties(NVGenericMap nvgm) {
         this.nvgm = nvgm;
-        propertiesUpdated();
+        refreshProperties();
 
     }
 
@@ -33,5 +33,5 @@ implements SetNVProperties
         return id;
     }
 
-    protected abstract void propertiesUpdated();
+    protected abstract void refreshProperties();
 }

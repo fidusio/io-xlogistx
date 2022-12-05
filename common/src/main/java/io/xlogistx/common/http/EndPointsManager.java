@@ -1,22 +1,25 @@
 package io.xlogistx.common.http;
 
 
+import com.sun.net.httpserver.HttpExchange;
 import io.xlogistx.common.data.MethodHolder;
 
 import org.zoxweb.server.http.HTTPUtil;
+import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.http.HTTPEndPoint;
-import org.zoxweb.shared.http.HTTPServerConfig;
+import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.SecurityConsts;
-import org.zoxweb.shared.util.SetNVProperties;
-import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.*;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -47,6 +50,11 @@ public class EndPointsManager {
     public EndPointMeta lookup(String uri)
     {
         return uriEndPointMeta.lookup(uri);
+    }
+
+    public  URIMap.URIMapResult<EndPointMeta> lookupWithPath(String uri)
+    {
+        return uriEndPointMeta.lookupWithPath(uri);
     }
 
     public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep)
@@ -255,5 +263,139 @@ public class EndPointsManager {
             endPointsManager.map(pathToBeAdded, hep, methodHolder);
             log.info(pathToBeAdded  + ":"+ hep);
         }
+    }
+
+
+    public static Map<String, Object> buildParameters(URIMap.URIMapResult<EndPointMeta>uriMapResult, HTTPMessageConfigInterface hmci) throws IOException {
+
+        HTTPEndPoint hep = uriMapResult.result.httpEndPoint;
+
+
+//        if (!hep.isPathSupported(hmci.getURI()))
+//        {
+//            throw new IOException("Invalid uri " + hmci.getURI());
+//        }
+        // parse the path parameters
+        Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], hmci.getURI(), false);
+
+        if(hmci.getParameters().size() > 0)
+        {
+            GetNameValue<?>[] gnValues = hmci.getParameters().values();
+            for (GetNameValue<?> gnv :  hmci.getParameters().values())
+            {
+                parameters.put(gnv.getName(), gnv.getValue());
+            }
+        }
+
+
+
+        HTTPMimeType contentType = HTTPMimeType.lookup(hmci.getContentType());
+
+//        String  payload = null;
+        // parse if not post for n=v&n2=v2 body
+//        if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMimeType.APPLICATION_WWW_URL_ENC)
+//        {
+//            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
+//            List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload, false);
+//
+//            if(payloadParameters != null && payloadParameters.size() > 0)
+//            {
+//                for(GetNameValue<String> gnv : payloadParameters)
+//                    parameters.put(gnv.getName(), gnv.getValue());
+//            }
+//        }
+//        else if (contentType == HTTPMimeType.APPLICATION_JSON)
+//        {
+//            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
+//        }
+        //log.info("payload:" + payload);
+
+
+        // need to parse the payload parameters
+        for(Parameter p : uriMapResult.result.methodHolder.getMethodAnnotations().method.getParameters())
+        {
+            Annotation pAnnotation  = uriMapResult.result.methodHolder.getMethodAnnotations().parametersAnnotations.get(p);
+            if(pAnnotation != null  && pAnnotation instanceof ParamProp)
+            {
+                ParamProp pp = (ParamProp) pAnnotation;
+                if (pp.source() == Const.ParamSource.PAYLOAD)
+                {
+                    Class<?> pClassType = p.getType();
+                    if (contentType != null)
+                    {
+
+                        switch (contentType)
+                        {
+
+                            case APPLICATION_WWW_URL_ENC:
+                                // this case is impossible to happen
+                                break;
+                            case APPLICATION_JSON:
+
+                                Object v = GSONUtil.fromJSONDefault(hmci.getContent(), pClassType);
+                                parameters.put(pp.name(), v);
+
+
+                                break;
+                            case APPLICATION_OCTET_STREAM:
+                                break;
+                            case MULTIPART_FORM_DATA:
+                                break;
+                            case TEXT_CSV:
+                                break;
+                            case TEXT_CSS:
+                                break;
+                            case TEXT_HTML:
+                                break;
+                            case TEXT_JAVASCRIPT:
+                                break;
+                            case TEXT_PLAIN:
+                                break;
+                            case TEXT_YAML:
+                                break;
+                            case IMAGE_BMP:
+                                break;
+                            case IMAGE_GIF:
+                                break;
+                            case IMAGE_JPEG:
+                                break;
+                            case IMAGE_PNG:
+                                break;
+                            case IMAGE_SVG:
+                                break;
+                            case IMAGE_ICON:
+                                break;
+                            case IMAGE_TIF:
+                                break;
+                        }
+
+                    }
+
+                    // read the payload and convert string to class
+                }
+
+                // check if null and optional
+                Object currentValue = parameters.get(pp.name());
+
+                if (currentValue == null) {
+                    if (pp.optional()) {
+                        if (SharedUtil.isPrimitive(p.getType())) {
+                            NVBase<?> paramValue = SharedUtil.classToNVBase(p.getType(), pp.name(), null);
+                            parameters.put(pp.name(), paramValue != null ? paramValue.getValue() : null);
+                        }
+                        continue;
+                    }
+                    else
+                        throw new IllegalArgumentException("Missing parameter " + pp.name());
+                }
+
+                if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType()))
+                {
+                    parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String)currentValue).getValue());
+                }
+            }
+        }
+
+        return parameters;
     }
 }

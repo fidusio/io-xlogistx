@@ -44,13 +44,13 @@ public class Ping
     }
 
     @Override
-    protected void propertiesUpdated() {
+    protected void refreshProperties() {
         if(getProperties() != null)
         {
             String sizeInBytes = getProperties().getValue("size_in_bytes");
             if (sizeInBytes != null)
             {
-                Const.SizeInBytes sibValue = (Const.SizeInBytes) SharedUtil.enumValue(Const.SizeInBytes.class, sizeInBytes);
+                Const.SizeInBytes sibValue = SharedUtil.enumValue(Const.SizeInBytes.class, sizeInBytes);
                 if(sibValue != null)
                     sib = sibValue;
             }
