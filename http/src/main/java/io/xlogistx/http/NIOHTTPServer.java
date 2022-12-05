@@ -69,7 +69,7 @@ public class NIOHTTPServer
                 {
                     HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
                     try {
-                        get().write(hph.getRawResponse().getInternalBuffer(), 0, hph.getRawResponse().size());
+                        hph.getRawResponse().writeTo(get());
                     } catch (IOException ex) {
                         ex.printStackTrace();
                     }
@@ -117,7 +117,7 @@ public class NIOHTTPServer
                 sm.setError(hph.getHTTPMessage().getURI() + " not found");
                 resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND), hph.getRawResponse());
             }
-            os.write(resp.getInternalBuffer(), 0, resp.size());
+            resp.writeTo(os);
             IOUtil.close(os);
 
         } else {
@@ -145,7 +145,7 @@ public class NIOHTTPServer
                 {
                     HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
                     try {
-                        get().write(hph.getRawResponse().getInternalBuffer(), 0, hph.getRawResponse().size());
+                        hph.getRawResponse().writeTo(get());
                     } catch (IOException ex) {
                         ex.printStackTrace();
                     }
