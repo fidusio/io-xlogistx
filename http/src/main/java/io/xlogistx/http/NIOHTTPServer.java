@@ -117,6 +117,7 @@ public class NIOHTTPServer
                 sm.setError(hph.getHTTPMessage().getURI() + " not found");
                 resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND), hph.getRawResponse());
             }
+//            os.write(resp.getInternalBuffer(), 0 , resp.size());
             resp.writeTo(os);
             IOUtil.close(os);
 
@@ -276,6 +277,9 @@ public class NIOHTTPServer
 
             if(file != null)
                 hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
+
+            if(hsc == null)
+                throw new IllegalArgumentException("No configuration file was defined");
 
             logger.info("" + hsc);
             logger.info("" + Arrays.toString(hsc.getConnectionConfigs()));
