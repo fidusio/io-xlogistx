@@ -10,10 +10,7 @@ import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.NVPair;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.*;
 
 
 public class Ping
@@ -23,22 +20,23 @@ public class Ping
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
     @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL})
-    public SimpleMessage ping(@ParamProp(name="detailed", optional = true) boolean detailed)
+    public NVGenericMap ping(@ParamProp(name="detailed", optional = true) boolean detailed)
     {
-        SimpleMessage response = new SimpleMessage("App server is up and running.", HTTPStatusCode.OK.CODE);
-        response.setCreationTime(System.currentTimeMillis());
+        NVGenericMap response = new NVGenericMap();
+        response.add("message", "App server is up and running.");
+        response.add("timestamp", ""+System.currentTimeMillis());
         if(detailed)
         {
 
-            response.getProperties().add("jdk_version", System.getProperty("java.version"));
-            response.getProperties().add("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS));
-            response.getProperties().add("current_thread", Thread.currentThread().getName());
-            response.getProperties().add("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
+            response.add("jdk_version", System.getProperty("java.version"));
+            response.add("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS));
+            response.add("current_thread", Thread.currentThread().getName());
+            response.add("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
             + "," + System.getProperty("os.arch"));
             //response.getProperties().add("version", )
-            response.getProperties().add(TaskUtil.getDefaultTaskScheduler().getProperties());
-            response.getProperties().add(TaskUtil.getDefaultTaskProcessor().getProperties());
-            response.getProperties().add(RuntimeUtil.vmSnapshot(sib));
+            response.add(TaskUtil.getDefaultTaskScheduler().getProperties());
+            response.add(TaskUtil.getDefaultTaskProcessor().getProperties());
+            response.add(RuntimeUtil.vmSnapshot(sib));
         }
         return response;
     }
