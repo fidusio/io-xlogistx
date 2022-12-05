@@ -167,7 +167,7 @@ public class NIOHTTPServer
 
     public NIOHTTPServer(HTTPServerConfig config, NIOSocket nioSocket)
     {
-        SharedUtil.checkIfNulls("HTTPServerConfig null", config);
+        SharedUtil.checkIfNulls("HTTPServerConfig null", config, nioSocket);
         this.config = config;
         this.nioSocket = nioSocket;
     }
@@ -200,7 +200,7 @@ public class NIOHTTPServer
 
             endPointsManager = EndPointsManager.scan(getConfig());
             logger.info("mapping completed***********************");
-            ConnectionConfig[] ccs = config.getConnectionConfigs();
+            ConnectionConfig[] ccs = getConfig().getConnectionConfigs();
 
 
             logger.info("Connection Configs: " + Arrays.toString(ccs));
@@ -279,7 +279,8 @@ public class NIOHTTPServer
 
             logger.info("" + hsc);
             logger.info("" + Arrays.toString(hsc.getConnectionConfigs()));
-            TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
+            if(hsc.getThreadPoolSize() > 0)
+                TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
             NIOSocket nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
