@@ -1,8 +1,9 @@
 package io.xlogistx.http.ws;
 
 
-import io.xlogistx.http.HTTPBasicServer;
 import io.xlogistx.http.HTTPServerCreator;
+import io.xlogistx.http.NIOHTTPServer;
+import io.xlogistx.http.NIOHTTPServerCreator;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
@@ -63,7 +64,7 @@ public class Main {
         {
             LoggerUtil.enableDefaultLogger("io.xlogistx");
             List<GetNameValue<String>> parameters = SharedStringUtil.parseStrings('=', args);
-            HTTPBasicServer ws = null;
+            NIOHTTPServer ws = null;
             NIOSocket nioSocket = null;
             IPBlockerListener ipBlocker = null;
 
@@ -82,7 +83,7 @@ public class Main {
                             hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
                             log.info("" + hsc);
                             log.info("" + hsc.getConnectionConfigs());
-                            HTTPServerCreator httpServerCreator = new HTTPServerCreator();
+                            NIOHTTPServerCreator httpServerCreator = new NIOHTTPServerCreator();
                             httpServerCreator.setAppConfig(hsc);
                             ws = httpServerCreator.createApp();
                             p.setValue(ws);

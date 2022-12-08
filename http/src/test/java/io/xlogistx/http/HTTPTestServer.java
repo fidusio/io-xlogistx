@@ -45,11 +45,11 @@ extends PlainSessionCallback
 
                 if(hph.parseRequest(inBuffer))
                 {
-                    String match = uriMap.lookup(hph.getHTTPMessage().getURI());
+                    String match = uriMap.lookup(hph.getRequest().getURI());
 
                     if (debug) {
                         log.info("incoming data\n" + SharedStringUtil.toString(hph.getRawRequest().getInternalBuffer(), 0, hph.getRawRequest().size()));
-                        log.info("MESSAGE INFO : " + hph.getHTTPMessage().getParameters());
+                        log.info("MESSAGE INFO : " + hph.getRequest().getParameters());
                         log.info("uriMatch : "+ match);
                     }
 

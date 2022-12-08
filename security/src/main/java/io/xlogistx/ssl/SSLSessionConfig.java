@@ -13,6 +13,7 @@ import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.*;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import java.nio.channels.SocketChannel;
@@ -115,7 +116,7 @@ public class SSLSessionConfig
 
 
     public synchronized SSLEngineResult smartWrap(ByteBuffer source, ByteBuffer destination) throws SSLException {
-        source.flip();
+        ((Buffer)source).flip();
         SSLEngineResult ret = sslEngine.wrap(source, destination);
         //if(ret.getStatus() == SSLEngineResult.Status.OK)
         source.compact();
@@ -124,7 +125,7 @@ public class SSLSessionConfig
 
     public synchronized SSLEngineResult smartUnwrap(ByteBuffer source, ByteBuffer destination) throws SSLException
     {
-        source.flip();
+        ((Buffer)source).flip();
         SSLEngineResult ret = sslEngine.unwrap(source, destination);
         //if(ret.getStatus() == SSLEngineResult.Status.OK)
         source.compact();

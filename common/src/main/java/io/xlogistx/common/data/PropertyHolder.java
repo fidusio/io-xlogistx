@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class PropertyHolder
 implements SetNVProperties
 {
-    public final static LogWrapper log = new LogWrapper(PropertyHolder.class);
+    public final static LogWrapper log = new LogWrapper(PropertyHolder.class).setEnabled(false);
     private final static AtomicLong idCounter = new AtomicLong(0);
     private final long id = idCounter.incrementAndGet();
 

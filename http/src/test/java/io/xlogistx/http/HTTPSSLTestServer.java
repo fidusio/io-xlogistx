@@ -38,7 +38,7 @@ public class HTTPSSLTestServer
                 {
                     CurrentTimestamp ct = new CurrentTimestamp();
                     resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(ct, HTTPStatusCode.OK), hph.getRawResponse());
-                    log.info(""+hph.getHTTPMessage().getURI() + " " + hph.getHTTPMessage().getParameters());
+                    log.info(""+hph.getRequest().getURI() + " " + hph.getRequest().getParameters());
                 }
                 else
                 {

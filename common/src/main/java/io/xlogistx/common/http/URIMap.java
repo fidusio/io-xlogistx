@@ -81,25 +81,36 @@ public class URIMap<V> {
 
     public URIMapResult<V> lookupWithPath(String uri)
     {
-
-        uri = normalize(uri);
-        // try to match
-        V ret = uriMap.get(uri);
         String path = uri;
-
-        if (ret == null)
+//        uri = normalize(uri);
+//        // try to match
+//        V ret = uriMap.get(uri);
+//
+//
+//        if (ret == null)
+//        {
+//            String[] tokens = SharedStringUtil.parseString(uri, "/", true);
+//
+//            for(int i = tokens.length - 1 ; i > 0; i--)
+//            {
+//                path = SharedStringUtil.concat("/", i, tokens);
+//                ret =  uriMap.get(SharedStringUtil.concat("/", i, tokens));
+//                if(ret != null)
+//                    break;
+//            }
+//        }
+        V match = lookup(uri);
+        if (match != null)
+            return new URIMapResult<V>(normalize(path), match);
+        else
         {
-            String[] tokens = SharedStringUtil.parseString(uri, "/", true);
-
-            for(int i = tokens.length - 1 ; i > 0; i--)
-            {
-                path = SharedStringUtil.concat("/", i, tokens);
-                ret =  uriMap.get(SharedStringUtil.concat("/", i, tokens));
-                if(ret != null)
-                    break;
-            }
+            // wildcard detection
+            match = uriMap.get("/");
+            if (match != null)
+                return new URIMapResult<V>(path, match);
         }
-        return new URIMapResult<>(path, ret);
+
+        return null;
     }
 
     /**
