@@ -11,7 +11,7 @@ import java.security.GeneralSecurityException;
 public class NIOHTTPServerCreator
 extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig>
 {
-    public static final String RESOURCE_NAME = "NIOWebServer";
+    public static final String RESOURCE_NAME = "WebServer";
 
 
     private NIOHTTPServer server = null;

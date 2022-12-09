@@ -11,6 +11,7 @@ import org.zoxweb.shared.http.HTTPCallException;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -33,7 +34,7 @@ public class HTTPFileServiceHandler
 
     @Override
     @EndPointProp(methods = {HTTPMethod.GET}, name="files", uris="/")
-    public void handle(@ParamProp(name="file", optional = true)HTTPSessionData sessionData)
+    public void handle(@ParamProp(name="filename", source=Const.ParamSource.RESOURCE, optional=true)HTTPSessionData sessionData)
             throws IOException
     {
         String filename = sessionData.protocolHandler.getRequest().getURI();

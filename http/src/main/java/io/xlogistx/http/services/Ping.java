@@ -18,6 +18,7 @@ public class Ping
     extends PropertyHolder
 {
 
+
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
     @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL})
@@ -26,6 +27,8 @@ public class Ping
         NVGenericMap response = new NVGenericMap();
         response.add("message", "App server is up and running.");
         response.add("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date()));
+        response.add(getProperties().get("server_name"));
+        response.add(getProperties().get("version"));
         if(detailed)
         {
 

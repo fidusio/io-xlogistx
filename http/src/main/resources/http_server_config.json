@@ -29,13 +29,13 @@
       "ssl_config":
       {
         "name": "SSLCONFIG",
-        "keystore_file": "web.xlogistx.io.jks",
+        "keystore_file": "web.ec.xlogistx.io.jks",
         "keystore_type": "pkcs12",
         "keystore_password": "password",
-        "protocols": [
-          "TLSv1.2",
-          "TLSv1.3"
-        ],
+//        "protocols": [
+//          "TLSv1.2",
+//          "TLSv1.3"
+//        ],
         "ciphers": [
         ]
       }
@@ -50,7 +50,12 @@
 //    },
 
     {
-      "bean":  "io.xlogistx.http.services.Ping"
+      "bean":  "io.xlogistx.http.services.Ping",
+      "properties":
+      {
+        "server_name": "NIOHTTPServer",
+        "version": "NIO-HS-1.0"
+      }
     },
     {
       "methods": ["POST", "get"],

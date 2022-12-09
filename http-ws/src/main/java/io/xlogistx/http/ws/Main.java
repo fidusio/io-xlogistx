@@ -1,7 +1,6 @@
 package io.xlogistx.http.ws;
 
 
-import io.xlogistx.http.HTTPServerCreator;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.http.NIOHTTPServerCreator;
 import org.zoxweb.server.io.IOUtil;
@@ -26,7 +25,7 @@ public class Main {
     public enum Param
         implements SetNameValue<Object>
     {
-        WS(HTTPServerCreator.RESOURCE_NAME),
+        WS(NIOHTTPServerCreator.RESOURCE_NAME),
         NI_CONFIG(NIOConfig.RESOURCE_NAME),
         IP_BLOCKER(IPBlockerListener.RESOURCE_NAME),
         ;
