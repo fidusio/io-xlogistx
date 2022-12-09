@@ -1,6 +1,7 @@
 package io.xlogistx.http;
 
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.app.AppCreatorDefault;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.security.AccessSecurityException;
@@ -41,5 +42,11 @@ extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig>
     @Override
     public void close() {
         IOUtil.close(server);
+    }
+
+    public NIOSocket getNIOSocket()
+    {
+
+        return server != null ? server.getNIOSocket() : null;
     }
 }

@@ -29,7 +29,7 @@ public class Main {
         NI_CONFIG(NIOConfig.RESOURCE_NAME),
         IP_BLOCKER(IPBlockerListener.RESOURCE_NAME),
         ;
-        private String name;
+        private final String name;
         private Object val;
 
         Param(String name)
@@ -63,10 +63,11 @@ public class Main {
         {
             LoggerUtil.enableDefaultLogger("io.xlogistx");
             List<GetNameValue<String>> parameters = SharedStringUtil.parseStrings('=', args);
-            NIOHTTPServer ws = null;
+            NIOHTTPServer ws;
             NIOSocket nioSocket = null;
-            IPBlockerListener ipBlocker = null;
-
+            IPBlockerListener ipBlocker;
+            NIOHTTPServerCreator httpServerCreator = new NIOHTTPServerCreator();
+            NIOConfig nioConfig = new NIOConfig();
 
             for(GetNameValue<String> gnvs : parameters)
             {
@@ -78,20 +79,19 @@ public class Main {
 
                         case WS:
                             File file = IOUtil.locateFile(gnvs.getValue());
-                            HTTPServerConfig hsc = null;
-                            hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
+                            HTTPServerConfig hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
                             log.info("" + hsc);
                             log.info("" + hsc.getConnectionConfigs());
-                            NIOHTTPServerCreator httpServerCreator = new NIOHTTPServerCreator();
                             httpServerCreator.setAppConfig(hsc);
                             ws = httpServerCreator.createApp();
+                            nioSocket = httpServerCreator.getNIOSocket();
                             p.setValue(ws);
                             break;
                         case NI_CONFIG:
                             file = IOUtil.locateFile(gnvs.getValue());
                             ConfigDAO configDAO = GSONUtil.fromJSON(IOUtil.inputStreamToString(file));
                             System.out.println(GSONUtil.toJSON(configDAO, true, false, false));
-                            NIOConfig nioConfig = new NIOConfig(configDAO);
+                            nioConfig.setAppConfig(configDAO).setNIOSocket(nioSocket);
                             nioSocket = nioConfig.createApp();
                             nioSocket.setEventManager(TaskUtil.getDefaultEventManager());
                             p.setValue(nioSocket);
@@ -125,7 +125,8 @@ public class Main {
                 throw new IllegalArgumentException(parameters + " Invalid configuration");
             }
 
-            log.info("App Started:" + message.toString());
+            log.info("App Started:" + message);
+            log.info("We have one NIOSocket " + (nioConfig.getNIOSocket() == httpServerCreator.getNIOSocket()));
 
         }
         catch(Exception e)
