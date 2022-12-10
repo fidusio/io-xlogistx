@@ -2,19 +2,18 @@ package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
-
 import org.zoxweb.server.task.TaskCallback;
 
 import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
-import java.util.logging.Logger;
 
-import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NEED_UNWRAP;
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
 
 public class ReadyState
         extends State
 {
-    class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
+    static class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
         NeedUnwrap() {
             super(NEED_UNWRAP);
@@ -54,7 +53,7 @@ public class ReadyState
                   case BUFFER_UNDERFLOW:
                     // no incoming data available we need to wait for more socket data
                     // return and let the NIOSocket or the data handler call back
-                    // config.sslChannelSelectableStatus.set(true);
+                    //config.sslChannelSelectableStatus.set(true);
                     //config.sslRead.set(true);
                     return;
 

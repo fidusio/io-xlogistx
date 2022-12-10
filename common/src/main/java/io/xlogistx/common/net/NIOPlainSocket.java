@@ -17,28 +17,23 @@ package io.xlogistx.common.net;
 
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.server.net.*;
+import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.server.net.ProtocolProcessor;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.shared.net.InetSocketAddressDAO;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.logging.Logger;
 
 
 public class NIOPlainSocket
     extends ProtocolProcessor
 {
-    private static final transient Logger log = Logger.getLogger(NIOPlainSocket.class.getName());
-
-	private static boolean debug = false;
-
-
-
-
+    private static final LogWrapper log = new LogWrapper(NIOPlainSocket.class).setEnabled(false);
 
 
 	private volatile SocketChannel sourceChannel = null;
@@ -100,7 +95,7 @@ public class NIOPlainSocket
 			int read = 0 ;
     		do
             {
-				sourceBB.clear();
+				((Buffer)sourceBB).clear();
 				read = sourceChannel.read(sourceBB);
 
     			if (read > 0)
@@ -112,18 +107,18 @@ public class NIOPlainSocket
     		
     		if (read == -1)
     		{
-    			if (debug) log.info("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+Read:" + read);
+    			if (log.isEnabled()) log.getLogger().info("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+Read:" + read);
 
     			close();
-    				
-    			if (debug) log.info(key + ":" + key.isValid()+ " " + Thread.currentThread() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());		
+
+				if (log.isEnabled()) log.getLogger().info(key + ":" + key.isValid()+ " " + Thread.currentThread() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
     		}
     	}
     	catch(Exception e)
     	{
-    		if (debug) e.printStackTrace();
+    		if (log.isEnabled()) e.printStackTrace();
     		IOUtil.close(this);
-    		if (debug) log.info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid()+ " " + Thread.currentThread() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
+			if (log.isEnabled()) log.getLogger().info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid()+ " " + Thread.currentThread() + " " + TaskUtil.getDefaultTaskProcessor().availableExecutorThreads());
     		
     	}
 	}

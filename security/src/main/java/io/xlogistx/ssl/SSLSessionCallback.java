@@ -9,7 +9,7 @@ import java.io.OutputStream;
 public abstract class SSLSessionCallback extends BaseSessionCallback<SSLSessionConfig>
 {
 
-    final public OutputStream get()
+    public final OutputStream get()
     {
         return getConfig().sslOutputStream;
     }

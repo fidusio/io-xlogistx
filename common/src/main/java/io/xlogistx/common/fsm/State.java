@@ -16,8 +16,7 @@ public class State<P>
 {
 
 
-    public final static LogWrapper log = new LogWrapper(State.class);
-    //protected static final Logger log = Logger.getLogger(State.class.getName());
+    public final static LogWrapper log = new LogWrapper(State.class).setEnabled(false);
     private final String name;
     private final NVGenericMap data = new NVGenericMap();
     private volatile StateMachineInt stateMachine;

@@ -6,14 +6,12 @@ import org.zoxweb.shared.util.SharedUtil;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.logging.Logger;
 
 public abstract class TriggerConsumer<T>
 implements TriggerConsumerInt<T>
 {
     public final static LogWrapper log = new LogWrapper(TriggerConsumer.class).setEnabled(false);
-    //final static Logger log = Logger.getLogger(TriggerConsumer.class.getName());
-   // public static boolean debug = false;
+
     private final String[] canonicalIDs;
     private StateInt<?> state;
     protected AtomicLong execCounter = new AtomicLong();

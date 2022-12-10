@@ -1,17 +1,17 @@
 package io.xlogistx.common.net;
 
 import org.zoxweb.server.io.ByteBufferUtil;
+import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
 
 public abstract class BaseChannelOutputStream extends OutputStream {
-    protected static final Logger log = Logger.getLogger(BaseChannelOutputStream.class.getName());
-    public static boolean debug = false;
+    public static final LogWrapper log = new LogWrapper(BaseChannelOutputStream.class).setEnabled(false);
+
 
     protected final ByteChannel outChannel;
     protected final ByteBuffer outAppData;

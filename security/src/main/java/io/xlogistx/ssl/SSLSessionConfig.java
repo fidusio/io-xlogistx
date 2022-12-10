@@ -26,7 +26,7 @@ public class SSLSessionConfig
     implements AutoCloseable
 {
     public final static LogWrapper log = new LogWrapper(SSLSessionConfig.class.getName()).setEnabled(false);
-    //public static boolean debug = true;
+
 
 
 

@@ -22,7 +22,7 @@ public class TriggerConsumerHolder<T>
 
         }
         if(TriggerConsumer.log.isEnabled())
-            TriggerConsumer.log.info("" + inner);
+            TriggerConsumer.log.getLogger().info("" + inner);
 
         inner.accept(t);
     }

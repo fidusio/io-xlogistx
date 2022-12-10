@@ -34,8 +34,8 @@ public class SSLChannelOutputStream extends BaseChannelOutputStream {
         if (config.getHandshakeStatus() == NOT_HANDSHAKING)
         {
             SSLEngineResult result = config.smartWrap(bb, config.outSSLNetData); // at handshake stage, data in appOut won't be
-            if(debug)
-                log.info("AFTER-NEED_WRAP-PROCESSING: " + result);
+            if(log.isEnabled())
+                log.getLogger().info("AFTER-NEED_WRAP-PROCESSING: " + result);
 
             switch (result.getStatus())
             {

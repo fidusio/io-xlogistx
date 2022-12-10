@@ -16,19 +16,15 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
-
-
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
-
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.*;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.server.task.TaskUtil;
-
 import org.zoxweb.shared.net.InetSocketAddressDAO;
-
 import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -40,8 +36,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
-
-import java.util.logging.Logger;
 
 import static io.xlogistx.ssl.SSLStateMachine.SessionState.POST_HANDSHAKE;
 
@@ -77,8 +71,8 @@ public class SSLNIOSocket
 						}
 						catch(Exception e)
 						{
-							log.info("" + e);
-							log.info("connect to " + config.remoteAddress + " FAILED");
+							if (log.isEnabled()) log.getLogger().info("" + e);
+							if (log.isEnabled()) log.getLogger().info("connect to " + config.remoteAddress + " FAILED");
 							config.close();
 						}
 					}
@@ -94,7 +88,7 @@ public class SSLNIOSocket
 		public void exception(Exception e) {
 			// exception handling
 			//e.printStackTrace();
-			log.info(e + "");
+			if (log.isEnabled()) log.getLogger().info(e + "");
 		}
 
 		@Override
@@ -108,7 +102,7 @@ public class SSLNIOSocket
 				}
 				catch(IOException e)
 				{
-					log.info(e+"");
+					if (log.isEnabled()) log.getLogger().info(e+"");
 					// we should close
 					IOUtil.close(get());
 				}
@@ -120,8 +114,8 @@ public class SSLNIOSocket
 
 
 
-    private static final Logger log = Logger.getLogger(SSLNIOSocket.class.getName());
-	public static boolean debug = false;
+    public static final LogWrapper log = new LogWrapper(SSLNIOSocket.class).setEnabled(false);
+
 	private SSLStateMachine sslStateMachine = null;
 	private SSLSessionConfig config = null;
 	final public InetSocketAddressDAO remoteAddress;
@@ -172,7 +166,7 @@ public class SSLNIOSocket
 	@Override
 	public  void accept(SelectionKey key)
 	{
-		if(debug) log.info("Start of Accept SSLNIOSocket");
+		if (log.isEnabled()) log.getLogger().info("Start of Accept SSLNIOSocket");
 		try
     	{
 			// first call
@@ -182,12 +176,12 @@ public class SSLNIOSocket
 				config.setUseClientMode(false);
 				config.beginHandshake();
 				sessionCallback.setConfig(config);
-				//log.info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+				//if (log.isEnabled()) log.getLogger().info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			}
 
 
 
-			if(debug) log.info("AcceptNewData: " + key);
+			if (log.isEnabled()) log.getLogger().info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
 				sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, sessionCallback));
@@ -197,7 +191,7 @@ public class SSLNIOSocket
 				int bytesRead = config.remoteChannel.read(config.inRemoteData);
 				if (bytesRead == -1)
 				{
-					if (debug) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: "+ config.getHandshakeStatus()	+ " bytesread: "+ bytesRead);
+					if (log.isEnabled()) log.getLogger().info("SSLCHANNEL-CLOSED-NEED_UNWRAP: "+ config.getHandshakeStatus()	+ " bytesread: "+ bytesRead);
 					config.close();
 					return;
 				}
@@ -208,9 +202,9 @@ public class SSLNIOSocket
     	{
     		e.printStackTrace();
     		close();
-    		log.info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.availableThreads(getExecutor()));
+			if (log.isEnabled()) log.getLogger().info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.availableThreads(getExecutor()));
     	}
-		if(debug) log.info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" + TaskUtil.availableThreads(getExecutor()));
+		if (log.isEnabled()) log.getLogger().info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" + TaskUtil.availableThreads(getExecutor()));
 	}
 
 
