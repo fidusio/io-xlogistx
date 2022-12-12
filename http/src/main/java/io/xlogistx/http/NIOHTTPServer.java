@@ -64,7 +64,7 @@ public class NIOHTTPServer
                 catch (Exception e)
                 {
                     processException(hph, get(), e);
-                    IOUtil.close(get());
+                    IOUtil.close(get(), hph);
                     // we should close
 
                 }
@@ -90,7 +90,7 @@ public class NIOHTTPServer
                 {
 
                     processException(hph, get(), e);
-                    IOUtil.close(get());
+                    IOUtil.close(get(), hph);
                     // we should close
                 }
             }
@@ -120,7 +120,8 @@ public class NIOHTTPServer
 
 
     private void incomingData(HTTPProtocolHandler hph, ByteBuffer inBuffer, OutputStream os)
-            throws IOException, InvocationTargetException, IllegalAccessException {
+            throws IOException, InvocationTargetException, IllegalAccessException
+    {
         UByteArrayOutputStream resp = null;
 
         if (hph.parseRequest(inBuffer)) {
@@ -186,13 +187,12 @@ public class NIOHTTPServer
                 sm.setError(hph.getRequest().getURI() + " not found");
                 resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND), hph.getRawResponse());
             }
-//            os.write(resp.getInternalBuffer(), 0 , resp.size());
             if(resp != null)
                 resp.writeTo(os);
-            IOUtil.close(os);
-            hph.close();
-
-        } else {
+            IOUtil.close(os, hph);
+        }
+        else
+        {
             if(logger.isEnabled())
                 logger.getLogger().info("Message not complete yet");
         }
