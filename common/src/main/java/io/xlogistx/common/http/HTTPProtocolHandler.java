@@ -9,17 +9,16 @@ import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HTTPProtocolHandler
-implements AutoCloseable
+
 {
 
 
-    private final UByteArrayOutputStream rawResponse = ByteBufferUtil.allocateUBAOS(256);
+    private final UByteArrayOutputStream rawResponse = new UByteArrayOutputStream(256);
     private final HTTPMessageConfigInterface response = new HTTPMessageConfig();
-    private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
-    private final AtomicBoolean closed = new AtomicBoolean();
+    private final HTTPRawMessage rawRequest = new HTTPRawMessage(new UByteArrayOutputStream(256));
+    //private final AtomicBoolean closed = new AtomicBoolean();
 
     public boolean parseRequest(ByteBuffer inBuffer) throws IOException
     {
@@ -52,10 +51,4 @@ implements AutoCloseable
 
     public HTTPMessageConfigInterface getResponse(){return response;}
 
-    @Override
-    public void close()
-    {
-        if(!closed.getAndSet(true))
-            ByteBufferUtil.cache(rawResponse, rawRequest.getInternalBAOS());
-    }
 }
