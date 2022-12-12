@@ -63,14 +63,6 @@ public class NIOHTTPServer
                 }
                 catch (Exception e)
                 {
-//                    HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
-//                    try {
-//                        hph.getRawResponse().writeTo(get());
-//                    } catch (IOException ex) {
-//                        ex.printStackTrace();
-//                    }
-//                    e.printStackTrace();
-//                    logger.info("" + e + " "  + " " + get());
                     processException(hph, get(), e);
                     IOUtil.close(get());
                     // we should close
@@ -198,6 +190,7 @@ public class NIOHTTPServer
             if(resp != null)
                 resp.writeTo(os);
             IOUtil.close(os);
+            hph.close();
 
         } else {
             if(logger.isEnabled())

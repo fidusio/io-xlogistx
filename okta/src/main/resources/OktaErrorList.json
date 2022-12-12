@@ -937,7 +937,7 @@
   {
     "codeId": "E0000201",
     "httpStatus": 409,
-    "description": "A brand associated with a domain cannot be deleted."
+    "description": "A brand associated with a custom domain or email doamin cannot be deleted."
   },
   {
     "codeId": "E0000202",
@@ -958,11 +958,6 @@
     "codeId": "E0000205",
     "httpStatus": 429,
     "description": "You have reached the limit of call requests, please try again later."
-  },
-  {
-    "codeId": "E0000206",
-    "httpStatus": 409,
-    "description": "Failed to delete the mapping for the provided brandId and domainId."
   },
   {
     "codeId": "E0000207",
@@ -998,5 +993,10 @@
     "codeId": "E0000214",
     "httpStatus": 400,
     "description": "User has no custom authenticator enrollments that have CIBA as a transactionType"
+  },
+  {
+    "codeId": "E0000215",
+    "httpStatus": 410,
+    "description": "This endpoint has been deprecated."
   }
 ]

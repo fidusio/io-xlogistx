@@ -80,8 +80,8 @@ public class Main {
                         case WS:
                             File file = IOUtil.locateFile(gnvs.getValue());
                             HTTPServerConfig hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
-                            log.info("" + hsc);
-                            log.info("" + hsc.getConnectionConfigs());
+                            log.getLogger().info("" + hsc);
+                            log.getLogger().info("" + hsc.getConnectionConfigs());
                             httpServerCreator.setAppConfig(hsc);
                             ws = httpServerCreator.createApp();
                             nioSocket = httpServerCreator.getNIOSocket();
@@ -125,8 +125,8 @@ public class Main {
                 throw new IllegalArgumentException(parameters + " Invalid configuration");
             }
 
-            log.info("App Started:" + message);
-            log.info("We have one NIOSocket " + (nioConfig.getNIOSocket() == httpServerCreator.getNIOSocket()));
+            log.getLogger().info("App Started:" + message);
+            log.getLogger().info("We have one NIOSocket " + (nioConfig.getNIOSocket() == httpServerCreator.getNIOSocket()));
 
         }
         catch(Exception e)

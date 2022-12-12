@@ -4,7 +4,6 @@
   "application_env_var": "entry directory for application config files",
   "thread_pool_size" : 64,
   "thread_pool_java_type" : false,
-  "base_uri": "",
   "connections":
   [
     {
@@ -12,7 +11,7 @@
       "schemes": ["http"],
       "socket_config":
       {
-        "port": 8080,
+        "port": 80,
         "backlog": 250
       }
     }
@@ -22,7 +21,7 @@
       "schemes": ["https"],
       "socket_config":
       {
-        "port": 8443,
+        "port": 443,
         "backlog": 250
       },
       "ssl_config":
@@ -30,13 +29,7 @@
         "name": "SSLCONFIG",
         "keystore_file": "test.xlogistx.io.jks",
         "keystore_type": "pkcs12",
-        "keystore_password": "password",
-        "protocols": [
-          "TLSv1.2",
-          "TLSv1.3"
-        ],
-        "ciphers": [
-        ]
+        "keystore_password": "password"
       }
     }
   ],
@@ -56,9 +49,9 @@
     {
       "bean":  "io.xlogistx.http.services.SysCommand",
       "properties":{
-        "reboot-command" : "reboot-command",
+        "reboot-command" : "reboot",
         "reboot-delay" : "00:00:05",
-        "shutdown-command" : "shutdown command",
+        "shutdown-command" : "poweroff",
         "shutdown-delay" : "00:00:05"
       }
     },
