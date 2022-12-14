@@ -103,7 +103,7 @@ public class HTTPSSLTestServer
             e.printStackTrace();
             TaskUtil.getDefaultTaskScheduler().close();
             TaskUtil.getDefaultTaskProcessor().close();
-            System.err.println("-port 8443 -keystore web.xlogistx.io.jks -kstype pkcs12 -kspassword password -ra 10.0.0.1:80");
+            System.err.println("-port 8443 -keystore web.rsa.2k.xlogistx.io.jks -kstype pkcs12 -kspassword password -ra 10.0.0.1:80");
         }
     }
 
