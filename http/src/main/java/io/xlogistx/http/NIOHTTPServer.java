@@ -1,27 +1,22 @@
 package io.xlogistx.http;
 
 
-
 import io.xlogistx.common.http.*;
-
 import io.xlogistx.common.net.NIOPlainSocketFactory;
 import io.xlogistx.common.net.PlainSessionCallback;
 import io.xlogistx.ssl.SSLNIOSocketFactory;
 import io.xlogistx.ssl.SSLSessionCallback;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
-
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
-
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.*;
@@ -30,7 +25,6 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
@@ -42,6 +36,8 @@ public class NIOHTTPServer
         implements DaemonController
 {
 
+    public final String NAME = ResourceManager.SINGLETON.map(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
+            .lookup(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPSSession::new;
@@ -63,6 +59,7 @@ public class NIOHTTPServer
                 }
                 catch (Exception e)
                 {
+                    e.printStackTrace();
                     processException(hph, get(), e);
                     IOUtil.close(get(), hph);
                     // we should close
@@ -88,7 +85,7 @@ public class NIOHTTPServer
                 }
                 catch (Exception e)
                 {
-
+                    e.printStackTrace();
                     processException(hph, get(), e);
                     IOUtil.close(get(), hph);
                     // we should close
@@ -111,7 +108,8 @@ public class NIOHTTPServer
         {
             HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
         }
-        try {
+        try
+        {
             hph.getRawResponse().writeTo(os);
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -122,8 +120,8 @@ public class NIOHTTPServer
     private void incomingData(HTTPProtocolHandler hph, ByteBuffer inBuffer, OutputStream os)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
-        UByteArrayOutputStream resp = null;
-
+        //UByteArrayOutputStream resp = null;
+        HTTPMessageConfigInterface hmciResponse = null;
         if (hph.parseRequest(inBuffer)) {
 
             if(logger.isEnabled())
@@ -169,13 +167,19 @@ public class NIOHTTPServer
 
                         if (result instanceof File) {
 
-                        } else if (result instanceof HTTPResult) {
-
-                        } else {
-                            resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK), hph.getRawResponse());
                         }
-                    } else {
-                        resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(HTTPStatusCode.OK), hph.getRawResponse());
+                        else if (result instanceof HTTPResult)
+                        {
+
+                        }
+                        else
+                        {
+                            hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
+                        }
+                    }
+                    else
+                    {
+                        hmciResponse = HTTPUtil.formatResponse(HTTPStatusCode.OK);
                     }
                 }
 
@@ -185,10 +189,16 @@ public class NIOHTTPServer
             {
                 SimpleMessage sm = new SimpleMessage();
                 sm.setError(hph.getRequest().getURI() + " not found");
-                resp = HTTPUtil.formatResponse(HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND), hph.getRawResponse());
+                hmciResponse = HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND);
             }
-            if(resp != null)
-                resp.writeTo(os);
+
+            // we have a response
+            if (hmciResponse != null)
+            {
+                hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
+                HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(os);
+            }
+
             IOUtil.close(os, hph);
         }
         else

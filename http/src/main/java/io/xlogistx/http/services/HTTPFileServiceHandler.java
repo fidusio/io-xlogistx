@@ -7,11 +7,9 @@ import org.zoxweb.server.io.IOUtil;
 
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
-import org.zoxweb.shared.http.HTTPCallException;
-import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.http.HTTPMimeType;
-import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.ResourceManager;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -66,6 +64,8 @@ public class HTTPFileServiceHandler
             sessionData.protocolHandler.getResponse().setContentType(mime.getValue());
         sessionData.protocolHandler.getResponse().setContentLength((int)file.length());
         sessionData.protocolHandler.getResponse().setHTTPStatusCode(HTTPStatusCode.OK);
+        sessionData.protocolHandler.getResponse().getHeaders().add(HTTPHeader.SERVER.getName(),
+                (String)ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER));
 
         FileInputStream fileIS = new FileInputStream(file);
         sessionData.writeResponse();
