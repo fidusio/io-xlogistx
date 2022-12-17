@@ -215,7 +215,7 @@ public class SSLNIOSocket
 		//((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
 		config = sslStateMachine.getConfig();
-		if(config.remoteAddress != null)
+		if(remoteAddress != null)
 			sslStateMachine.register(new State("connect-remote").register(new PostHandshake(this)));
     	config.selectorController = getSelectorController();
 		config.sslChannel = (SocketChannel) asc;
