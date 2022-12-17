@@ -67,7 +67,7 @@ public class SSLNIOSocket
 						{
 							config.inRemoteData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, ByteBufferUtil.DEFAULT_BUFFER_SIZE);
 							config.remoteChannel = SocketChannel.open((new InetSocketAddress(config.remoteAddress.getInetAddress(), config.remoteAddress.getPort())));
-							sslns.getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, sslns, new DefaultSKController(), false);
+							sslns.getSelectorController().register(null, config.remoteChannel, SelectionKey.OP_READ, sslns, false);
 						}
 						catch(Exception e)
 						{
@@ -221,7 +221,7 @@ public class SSLNIOSocket
 		config.sslChannel = (SocketChannel) asc;
 		config.remoteAddress = remoteAddress;
 		sslStateMachine.start(true);
-		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, new DefaultSKController(), isBlocking);
+		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
 
 
 	}
