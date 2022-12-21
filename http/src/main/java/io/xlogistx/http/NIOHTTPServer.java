@@ -150,13 +150,15 @@ public class NIOHTTPServer
                 else
                 {
 
-                    Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
-
                     if (logger.isEnabled()) {
                         logger.getLogger().info("" + epm.result.methodHolder.getInstance());
                         logger.getLogger().info("" + hph.getRequest());
                         logger.getLogger().info("" + epm.path);
                     }
+
+                    Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
+
+
 
 
                     Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
@@ -218,7 +220,7 @@ public class NIOHTTPServer
 
 
 
-    private final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
+    public final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
     private boolean isClosed = true;

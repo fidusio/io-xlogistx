@@ -20,7 +20,10 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
-import org.zoxweb.server.net.*;
+import org.zoxweb.server.net.NIOChannelCleaner;
+import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.server.net.ProtocolProcessor;
+import org.zoxweb.server.net.SessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.server.task.TaskUtil;
@@ -146,7 +149,7 @@ public class SSLNIOSocket
 	@Override
 	public String getName()
 	{
-		return "SSLNIOServerSocket";
+		return "SSLNIOSocket";
 	}
 
 	@Override
@@ -184,7 +187,11 @@ public class SSLNIOSocket
 			if (log.isEnabled()) log.getLogger().info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
-				sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, SSLEngineResult.HandshakeStatus.NEED_UNWRAP, null, sessionCallback));
+				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+					sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, config.getHandshakeStatus(), null, sessionCallback));
+				else {
+					sslStateMachine.lookupState(SSLStateMachine.SessionState.READY.getName()).lookupTriggerConsumer(ReadyState.APP_DATA).accept(sessionCallback);
+				}
 			}
 			else if (key.channel() == config.remoteChannel && key.channel().isOpen())
 			{
@@ -204,7 +211,7 @@ public class SSLNIOSocket
     		close();
 			if (log.isEnabled()) log.getLogger().info(System.currentTimeMillis() + ":Connection end " + key + ":" + key.isValid() + " " + TaskUtil.availableThreads(getExecutor()));
     	}
-		if (log.isEnabled()) log.getLogger().info( "End of SSLNIOTUNNEL-ACCEPT  available thread:" + TaskUtil.availableThreads(getExecutor()));
+		if (log.isEnabled()) log.getLogger().info( "End of SSLNIOSocket-ACCEPT  available thread:" + TaskUtil.availableThreads(getExecutor()));
 	}
 
 

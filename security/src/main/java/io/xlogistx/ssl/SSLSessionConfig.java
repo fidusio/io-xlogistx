@@ -2,10 +2,8 @@ package io.xlogistx.ssl;
 
 
 import io.xlogistx.common.fsm.Trigger;
-
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
-
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.SelectorController;
 import org.zoxweb.server.task.TaskCallback;
@@ -15,10 +13,8 @@ import org.zoxweb.shared.util.SharedUtil;
 import javax.net.ssl.*;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import java.util.concurrent.locks.Lock;
 
 
@@ -54,14 +50,17 @@ public class SSLSessionConfig
     {
         SharedUtil.checkIfNulls("sslContext null", sslContext);
         this.sslEngine = sslContext.createSSLEngine();
+//        System.out.println(Arrays.toString(sslEngine.getEnabledCipherSuites()));
+//        System.out.println(Arrays.toString(sslEngine.getEnabledProtocols()));
     }
 
     @Override
     public void close() {
-        boolean stat = isClosed.getAndSet(true);
+//        boolean stat = isClosed.getAndSet(true);
         String msg = "";
-        if (!stat) {
-            //log.info("SSLSessionConfig-NOT-CLOSED-YET " +Thread.currentThread() + " " + sslChannel);
+        if (!isClosed.getAndSet(true))
+        {
+            //log.getLogger().info("SSLSessionConfig-NOT-CLOSED-YET " +Thread.currentThread() + " " + sslChannel);
             try
             {
                 msg += sslChannel.getRemoteAddress();
@@ -104,7 +103,7 @@ public class SSLSessionConfig
             ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
             IOUtil.close(sslOutputStream);
 
-            log.info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
+            if (log.isEnabled()) log.getLogger().info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
         }
 
     }

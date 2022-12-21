@@ -95,13 +95,6 @@ extends PropertyHolder
         }
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name="app-shutdown", uris="/app/shutdown")
-    public SimpleMessage appShutdown()
-    {
-        long delay = Const.TimeInMillis.SECOND.MILLIS*5;
-            TaskUtil.getDefaultTaskScheduler().queue(delay, ()-> System.exit(0));
-        return new SimpleMessage("App will shutdown in " + Const.TimeInMillis.toString(delay), HTTPStatusCode.OK.CODE);
-    }
 
     protected void refreshProperties()
     {

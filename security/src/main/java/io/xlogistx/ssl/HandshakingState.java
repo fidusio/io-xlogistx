@@ -1,8 +1,6 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.State;
-
-
 import io.xlogistx.common.fsm.TriggerConsumer;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.task.TaskCallback;
@@ -12,12 +10,10 @@ import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 import static io.xlogistx.ssl.SSLStateMachine.SessionState.POST_HANDSHAKE;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.*;
 
 public class HandshakingState extends State {
-
 
     private final static AtomicLong counter = new AtomicLong(0);
 
@@ -40,7 +36,7 @@ public class HandshakingState extends State {
                   // at handshake stage, data in appOut won't be
                   // processed hence dummy buffer
                   if (log.isEnabled())
-                      log.info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
+                      log.getLogger().info("AFTER-NEED_WRAP-HANDSHAKING: " + result);
 
                   switch (result.getStatus())
                   {
@@ -50,7 +46,7 @@ public class HandshakingState extends State {
                           throw new IllegalStateException(result + " invalid state context " + config.outSSLNetData + " " + config.sslChannel.getRemoteAddress());
                       case OK:
                           int written = ByteBufferUtil.smartWrite(config.ioLock, config.sslChannel, config.outSSLNetData);
-                          if (log.isEnabled()) log.info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
+                          if (log.isEnabled()) log.getLogger().info("After writing data HANDSHAKING-NEED_WRAP: " + config.outSSLNetData + " written:" + written);
                           publishSync(result.getHandshakeStatus(), callback);
                           break;
                       case CLOSED:
@@ -80,7 +76,7 @@ public class HandshakingState extends State {
     public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
     {
         SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-        if(log.isEnabled()) log.info("" + config.getHandshakeStatus());
+        if(log.isEnabled()) log.getLogger().info("Entry: " + config.getHandshakeStatus());
 
         if (config.getHandshakeStatus() == NEED_UNWRAP || SharedUtil.enumName(config.getHandshakeStatus()).equals("NEED_UNWRAP_AGAIN"))
         {
@@ -89,7 +85,7 @@ public class HandshakingState extends State {
                   int bytesRead = config.sslChannel.read(config.inSSLNetData);
                   if (bytesRead == -1)
                   {
-                      if (log.isEnabled()) log.info("SSLCHANNEL-CLOSED-NEED_UNWRAP: " + config.getHandshakeStatus() + " bytes read: " + bytesRead);
+                      if (log.isEnabled()) log.getLogger().info("SSLCHANNEL-CLOSED-NEED_UNWRAP: " + config.getHandshakeStatus() + " bytes read: " + bytesRead);
                       config.close();
                   }
                   else //if (bytesRead > 0)
@@ -97,12 +93,12 @@ public class HandshakingState extends State {
 
                     // even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming
                     // data
-                    if (log.isEnabled()) log.info("BEFORE-UNWRAP: " + config.inSSLNetData);
+                    if (log.isEnabled()) log.getLogger().info("BEFORE-UNWRAP: " + config.inSSLNetData + " bytes read " + bytesRead);
                     SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, ByteBufferUtil.EMPTY);
 
 
-                  if (log.isEnabled()) log.info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytes read: " + bytesRead);
-                  if (log.isEnabled()) log.info("AFTER-NEED_UNWRAP-HANDSHAKING inNetData: " + config.inSSLNetData + " inAppData: " +  config.inAppData);
+                  if (log.isEnabled()) log.getLogger().info("AFTER-NEED_UNWRAP-HANDSHAKING: " + result + " bytes read: " + bytesRead);
+                  if (log.isEnabled()) log.getLogger().info("AFTER-NEED_UNWRAP-HANDSHAKING inNetData: " + config.inSSLNetData + " inAppData: " +  config.inAppData);
 
                     switch (result.getStatus()) {
                       case BUFFER_UNDERFLOW:
@@ -119,7 +115,7 @@ public class HandshakingState extends State {
                         break;
                       case CLOSED:
                         // check result here
-                       if (log.isEnabled()) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytes read: " + bytesRead);
+                       if (log.isEnabled()) log.getLogger().info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytes read: " + bytesRead);
                           config.close();
                         break;
                     }
@@ -132,7 +128,15 @@ public class HandshakingState extends State {
                 config.close();
             }
           }
-        }
+//        else
+//        {
+//            if (log.isEnabled()) log.getLogger().info("we are in unwrap and status: " + config.getHandshakeStatus());
+//
+//            publishSync(config.getHandshakeStatus(), callback);
+//
+//        }
+
+    }
     }
 
 
@@ -155,7 +159,7 @@ public class HandshakingState extends State {
 
             }
             SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();
-            if (log.isEnabled()) log.info("After run: " + status);
+            if (log.isEnabled()) log.getLogger().info("After run: " + status);
             publishSync(status, callback);
         }
     }
@@ -173,7 +177,7 @@ public class HandshakingState extends State {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             SSLEngineResult.HandshakeStatus status = config.getHandshakeStatus();
             if (status != NOT_HANDSHAKING)
-                log.info("Finished: " + status);
+                log.getLogger().info("Finished: " + status);
             publishSync(status, callback);
         }
     }
@@ -201,7 +205,8 @@ public class HandshakingState extends State {
                 // ||-----------------------||
                 // The buffer has app data that needs to be decrypted
                 //**************************************************
-                publishSync(NEED_UNWRAP, callback);
+                //publishSync(NEED_UNWRAP, callback);
+                publishSync(ReadyState.APP_DATA, callback);
             }
 
         }

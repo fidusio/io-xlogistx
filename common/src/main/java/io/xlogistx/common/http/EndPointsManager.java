@@ -1,17 +1,18 @@
 package io.xlogistx.common.http;
 
 
-
 import io.xlogistx.common.data.MethodHolder;
-
 import org.zoxweb.server.http.HTTPUtil;
-
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.http.HTTPEndPoint;
+import org.zoxweb.shared.http.HTTPMessageConfigInterface;
+import org.zoxweb.shared.http.HTTPMimeType;
+import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.*;
 
@@ -19,12 +20,14 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.*;
-import java.util.logging.Logger;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class EndPointsManager {
 
-    private final static Logger log = Logger.getLogger(EndPointsManager.class.getName());
+    public final static LogWrapper log = new LogWrapper(EndPointsManager.class).setEnabled(false);
 
 
     //private Map<String, EndPointMeta> uriEndPointMeta = new LinkedHashMap<String, EndPointMeta>();
@@ -176,20 +179,20 @@ public class EndPointsManager {
                 String beanName = configHEP.getBean();
                 Class<?> beanClass = Class.forName(beanName);
                 Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
-                log.info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
+                if(log.isEnabled()) log.getLogger().info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
 
                 if(beanInstance instanceof SetNVProperties)
                 {
                     ((SetNVProperties) beanInstance).setProperties(configHEP.getProperties());
                 }
 
-                log.info("bean:" + beanName);
+                if(log.isEnabled()) log.getLogger().info("bean:" + beanName);
 
                 {
-                    log.info("Scan the class");
+                    if(log.isEnabled()) log.getLogger().info("Scan the class");
                     ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
 
-                    //log.info("Class Annotation:" + classAM);
+                    //if(log.isEnabled()) log.getLogger().info("Class Annotation:" + classAM);
                     if (classAnnotationMap != null)
                     {
                         HTTPEndPoint classHEP = null;
@@ -205,7 +208,7 @@ public class EndPointsManager {
                         }
                         else
                         {
-                            log.info("" + classAnnotationMap.getAnnotatedClass() + "has no class annotations");
+                            if(log.isEnabled()) log.getLogger().info("" + classAnnotationMap.getAnnotatedClass() + "has no class annotations");
                         }
                         if (classAnnotationMap.getMethodsAnnotations().size() > 0)
                         {
@@ -228,13 +231,13 @@ public class EndPointsManager {
                                         mapHEP(ret, methodHEP, new MethodHolder(beanInstance, methodAnnotations));
 
                                     } else {
-                                        log.info(methodAnnotations.method + " NOT-AN-ENDPOINT");
+                                        if(log.isEnabled()) log.getLogger().info(methodAnnotations.method + " NOT-AN-ENDPOINT");
                                     }
                                 }
                                 catch(Exception e)
                                 {
                                     e.printStackTrace();
-                                    log.info("Method:" + method + " failed to configure");
+                                    if(log.isEnabled()) log.getLogger().info("Method:" + method + " failed to configure");
                                 }
                             }
                         }
@@ -260,7 +263,7 @@ public class EndPointsManager {
         {
             String pathToBeAdded = HTTPUtil.basePath(path, true);
             endPointsManager.map(pathToBeAdded, hep, methodHolder);
-            log.info(pathToBeAdded  + ":"+ hep);
+            if(log.isEnabled()) log.getLogger().info(pathToBeAdded  + ":"+ hep);
         }
     }
 
@@ -307,7 +310,7 @@ public class EndPointsManager {
 //        {
 //            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
 //        }
-        //log.info("payload:" + payload);
+        //if(log.isEnabled()) log.getLogger().info("payload:" + payload);
 
 
         // need to parse the payload parameters
@@ -330,7 +333,11 @@ public class EndPointsManager {
                                 // this case is impossible to happen
                                 break;
                             case APPLICATION_JSON:
-
+                                if(log.isEnabled())
+                                {
+                                    log.getLogger().info("" + hmci);
+                                    log.getLogger().info("" + pClassType);
+                                }
                                 Object v = GSONUtil.fromJSONDefault(hmci.getContent(), pClassType);
                                 parameters.put(pp.name(), v);
 

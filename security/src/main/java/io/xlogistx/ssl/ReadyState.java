@@ -7,23 +7,26 @@ import org.zoxweb.server.task.TaskCallback;
 import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
 
-import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NEED_UNWRAP;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
 
 public class ReadyState
         extends State
 {
-    static class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
+
+    public static final String APP_DATA = "APP_DATA";
+
+
+    static class AppData extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
-        NeedUnwrap() {
-            super(NEED_UNWRAP);
+        AppData() {
+            super(APP_DATA);
         }
 
     @Override
     public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
     {
       SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-      if(log.isEnabled()) log.info("" + config.getHandshakeStatus());
+      if(log.isEnabled()) log.getLogger().info("" + config.getHandshakeStatus());
       if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen())
       {
         try {
@@ -31,7 +34,7 @@ public class ReadyState
               int bytesRead = config.sslChannel.read(config.inSSLNetData);
               if (bytesRead == -1) {
 
-                  log.info(
+                  log.getLogger().info(
                       "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
                           + config.getHandshakeStatus()
                           + " bytesread: "
@@ -47,7 +50,7 @@ public class ReadyState
 
 
                 if (log.isEnabled())
-                    log.info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
+                    log.getLogger().info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
                 switch (result.getStatus())
                 {
                   case BUFFER_UNDERFLOW:
@@ -68,7 +71,7 @@ public class ReadyState
                   case CLOSED:
                     // check result here
 
-                      if(log.isEnabled()) log.info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
+                      if(log.isEnabled()) log.getLogger().info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
 
                     config.close();
                     break;
@@ -100,7 +103,7 @@ public class ReadyState
 
     public ReadyState() {
         super(SSLStateMachine.SessionState.READY);
-        register(new NeedUnwrap());
+        register(new AppData());
         //register(new NeedWrap())
     }
 
