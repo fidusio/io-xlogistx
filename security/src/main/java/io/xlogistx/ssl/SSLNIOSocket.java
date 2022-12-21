@@ -187,11 +187,20 @@ public class SSLNIOSocket
 			if (log.isEnabled()) log.getLogger().info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
-				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
-					sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, config.getHandshakeStatus(), null, sessionCallback));
-				else {
-					sslStateMachine.lookupState(SSLStateMachine.SessionState.READY.getName()).lookupTriggerConsumer(ReadyState.APP_DATA).accept(sessionCallback);
-				}
+
+				String triggerName = config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING ?
+						SharedUtil.enumName(config.getHandshakeStatus()) : ReadyState.APP_DATA;
+
+				//String triggerName = SharedUtil.enumName(config.getHandshakeStatus());
+
+				sslStateMachine.publishSync(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, triggerName, null, sessionCallback));
+
+//				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+//					sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, config.getHandshakeStatus(), null, sessionCallback));
+//				else
+//					//sslStateMachine.lookupState(SSLStateMachine.SessionState.READY.getName()).lookupTriggerConsumer(ReadyState.APP_DATA).accept(sessionCallback);
+//					sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, ReadyState.APP_DATA, null, sessionCallback));
+
 			}
 			else if (key.channel() == config.remoteChannel && key.channel().isOpen())
 			{
@@ -227,6 +236,7 @@ public class SSLNIOSocket
     	config.selectorController = getSelectorController();
 		config.sslChannel = (SocketChannel) asc;
 		config.remoteAddress = remoteAddress;
+		config.sslOutputStream = new SSLChannelOutputStream(config, 512 );
 		sslStateMachine.start(true);
 		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
 

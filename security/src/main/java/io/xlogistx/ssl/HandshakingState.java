@@ -185,6 +185,7 @@ public class HandshakingState extends State {
 
     static class NotHandshaking extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
+        private boolean callPostHandshake = true;
         NotHandshaking() {
             super(NOT_HANDSHAKING);
         }
@@ -194,8 +195,19 @@ public class HandshakingState extends State {
         {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             // VERY CRUCIAL STEP TO BE PERFORMED
-            config.sslOutputStream = new SSLChannelOutputStream(config, 512 );
-            publishSync(POST_HANDSHAKE, config);
+            //config.sslOutputStream = new SSLChannelOutputStream(config, 512 );
+            if(callPostHandshake)
+            {
+                synchronized (this)
+                {
+                    if(callPostHandshake)
+                    {
+                        callPostHandshake = false;
+                        publishSync(POST_HANDSHAKE, config);
+                    }
+                }
+            }
+
 
             if (config.inSSLNetData.position() > 0)
             {
@@ -205,10 +217,77 @@ public class HandshakingState extends State {
                 // ||-----------------------||
                 // The buffer has app data that needs to be decrypted
                 //**************************************************
-                //publishSync(NEED_UNWRAP, callback);
                 publishSync(ReadyState.APP_DATA, callback);
             }
 
+            //dataRead(callback, config);
+
+        }
+    }
+
+
+
+
+    public static void dataRead(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback, SSLSessionConfig config)
+    {
+        if(log.isEnabled()) log.getLogger().info("" + config.getHandshakeStatus());
+        if (config.getHandshakeStatus() == NOT_HANDSHAKING && config.sslChannel.isOpen())
+        {
+            try {
+
+                int bytesRead = config.sslChannel.read(config.inSSLNetData);
+                if (bytesRead == -1) {
+
+                    log.getLogger().info(
+                            "SSLCHANNEL-CLOSED-NEED_UNWRAP: "
+                                    + config.getHandshakeStatus()
+                                    + " bytesread: "
+                                    + bytesRead);
+                    config.close();
+                }
+                else
+                {
+
+                    // even if we have read zero it will trigger BUFFER_UNDERFLOW then we wait for incoming
+                    // data
+                    SSLEngineResult result = config.smartUnwrap(config.inSSLNetData, config.inAppData);
+
+
+                    if (log.isEnabled())
+                        log.getLogger().info("AFTER-NEED_UNWRAP-PROCESSING: " + result + " bytesread: " + bytesRead + " callback: " + callback);
+                    switch (result.getStatus())
+                    {
+                        case BUFFER_UNDERFLOW:
+                            // no incoming data available we need to wait for more socket data
+                            // return and let the NIOSocket or the data handler call back
+                            //config.sslChannelSelectableStatus.set(true);
+                            //config.sslRead.set(true);
+                            return;
+
+                        case BUFFER_OVERFLOW:
+                            throw new IllegalStateException("NEED_UNWRAP should never be " + result.getStatus());
+                            // this should never happen
+                        case OK:
+
+                            if(callback != null) callback.accept(config.inAppData);
+                            // config.sslRead.set(true);
+                            break;
+                        case CLOSED:
+                            // check result here
+
+                            if(log.isEnabled()) log.getLogger().info("CLOSED-DURING-NEED_UNWRAP: " + result + " bytesread: " + bytesRead);
+
+                            config.close();
+                            break;
+                    }
+                }
+            } catch (Exception e) {
+
+                if(callback != null)
+                    callback.exception(e);
+
+                config.close();
+            }
         }
     }
 

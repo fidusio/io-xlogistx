@@ -85,7 +85,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     TriggerConsumerInt<Void> init = new TriggerConsumer<Void>(StateInt.States.INIT) {
           @Override
           public void accept(Void o) {
-              if(log.isEnabled()) log.info(getState().getStateMachine().getName() + " CREATED");
+              if(log.isEnabled()) log.getLogger().info(getState().getStateMachine().getName() + " CREATED");
               //SSLSessionConfig config = (SSLSessionConfig) getStateMachine().getConfig();
               //publish(new Trigger<SelectableChannel>(getState(), null, SessionState.WAIT_FOR_HANDSHAKING));
           }
@@ -103,7 +103,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
               }
             }
 
-            if (log.isEnabled()) log.info(getStateMachine().getName() + " " + callback + " closed");
+            if (log.isEnabled()) log.getLogger().info(getStateMachine().getName() + " " + callback + " closed");
           }
         };
 

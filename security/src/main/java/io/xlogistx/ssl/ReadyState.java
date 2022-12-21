@@ -101,10 +101,10 @@ public class ReadyState
 
 
 
-    public ReadyState() {
+    public ReadyState()
+    {
         super(SSLStateMachine.SessionState.READY);
         register(new AppData());
-        //register(new NeedWrap())
     }
 
 }
