@@ -43,7 +43,7 @@ public class SSLChannelOutputStream extends BaseChannelOutputStream {
                 case BUFFER_OVERFLOW:
                     throw new IOException(result.getStatus() + " invalid state context");
                 case OK:
-                   written = ByteBufferUtil.smartWrite(config.ioLock, outChannel, config.outSSLNetData);
+                   written = ByteBufferUtil.smartWrite(null, outChannel, config.outSSLNetData);
                     break;
                 case CLOSED:
                    throw new IOException("Closed");

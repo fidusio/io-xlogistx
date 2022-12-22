@@ -32,7 +32,6 @@ import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngineResult;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -179,7 +178,6 @@ public class SSLNIOSocket
 				config.setUseClientMode(false);
 				config.beginHandshake();
 				sessionCallback.setConfig(config);
-				//if (log.isEnabled()) log.getLogger().info("We have a connections <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 			}
 
 
@@ -187,20 +185,8 @@ public class SSLNIOSocket
 			if (log.isEnabled()) log.getLogger().info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())
 			{
-
-				String triggerName = config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING ?
-						SharedUtil.enumName(config.getHandshakeStatus()) : ReadyState.APP_DATA;
-
-				//String triggerName = SharedUtil.enumName(config.getHandshakeStatus());
-
+				String triggerName = SharedUtil.enumName(config.getHandshakeStatus());
 				sslStateMachine.publishSync(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, triggerName, null, sessionCallback));
-
-//				if(config.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
-//					sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, config.getHandshakeStatus(), null, sessionCallback));
-//				else
-//					//sslStateMachine.lookupState(SSLStateMachine.SessionState.READY.getName()).lookupTriggerConsumer(ReadyState.APP_DATA).accept(sessionCallback);
-//					sslStateMachine.publish(new Trigger<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(this, ReadyState.APP_DATA, null, sessionCallback));
-
 			}
 			else if (key.channel() == config.remoteChannel && key.channel().isOpen())
 			{

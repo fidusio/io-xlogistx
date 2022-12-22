@@ -108,10 +108,10 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
         };
 
         sslSessionSM.setConfig(config)
-            .register(new State(StateInt.States.INIT).register(init))
-            .register(new ReadyState())
-            .register(new HandshakingState())
-            .register(new State(SessionState.CLOSE).register(closed))
+                .register(new State(StateInt.States.INIT).register(init))
+                .register(new SSLHandshakingState())
+                .register(new SSLReadState())
+                .register(new State(SessionState.CLOSE).register(closed))
         ;
 
 

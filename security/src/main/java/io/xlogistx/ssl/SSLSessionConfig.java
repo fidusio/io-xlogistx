@@ -15,7 +15,6 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
 
 
 public class SSLSessionConfig
@@ -39,8 +38,8 @@ public class SSLSessionConfig
     volatile boolean forcedClose = false;
     volatile InetSocketAddressDAO remoteAddress = null;
 
-    final Lock ioLock = null;//new ReentrantLock();
-    private final SSLEngine sslEngine; // the crypto engine
+    //final Lock ioLock = null;//new ReentrantLock();
+     private final SSLEngine sslEngine; // the crypto engine
 
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
