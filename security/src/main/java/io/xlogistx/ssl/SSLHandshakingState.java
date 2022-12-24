@@ -19,7 +19,6 @@ public class SSLHandshakingState extends State {
 
     static class NeedWrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
-        //private UByteArrayOutputStream baos = new UByteArrayOutputStream(512);
         NeedWrap()
         {
             super(NEED_WRAP);
@@ -129,15 +128,7 @@ public class SSLHandshakingState extends State {
                 config.close();
             }
           }
-//        else
-//        {
-//            if (log.isEnabled()) log.getLogger().info("we are in unwrap and status: " + config.getHandshakeStatus());
-//
-//            publishSync(config.getHandshakeStatus(), callback);
-//
-//        }
-
-    }
+        }
     }
 
 

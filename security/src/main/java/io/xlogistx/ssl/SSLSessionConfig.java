@@ -7,10 +7,14 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.SelectorController;
 import org.zoxweb.server.task.TaskCallback;
+import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.SharedUtil;
 
-import javax.net.ssl.*;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -45,10 +49,10 @@ public class SSLSessionConfig
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final AtomicBoolean hasBegan = new AtomicBoolean(false);
 
-    public SSLSessionConfig(SSLContext sslContext)
+    public SSLSessionConfig(SSLContextInfo sslContext)
     {
         SharedUtil.checkIfNulls("sslContext null", sslContext);
-        this.sslEngine = sslContext.createSSLEngine();
+        this.sslEngine = sslContext.newInstance();
 //        System.out.println(Arrays.toString(sslEngine.getEnabledCipherSuites()));
 //        System.out.println(Arrays.toString(sslEngine.getEnabledProtocols()));
     }

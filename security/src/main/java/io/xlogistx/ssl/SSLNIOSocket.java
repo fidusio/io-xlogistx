@@ -27,6 +27,7 @@ import org.zoxweb.server.net.SessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SharedUtil;
@@ -121,16 +122,16 @@ public class SSLNIOSocket
 	private SSLStateMachine sslStateMachine = null;
 	private SSLSessionConfig config = null;
 	final public InetSocketAddressDAO remoteAddress;
-	final private SSLContext sslContext;
+	final private SSLContextInfo sslContext;
 	private final SessionCallback sessionCallback;
 
-	public SSLNIOSocket(SSLContext sslContext, InetSocketAddressDAO ra)
+	public SSLNIOSocket(SSLContextInfo sslContext, InetSocketAddressDAO ra)
 	{
 
 		this(sslContext, ra, new TunnelCallback());
 	}
 
-	public SSLNIOSocket(SSLContext sslContext, InetSocketAddressDAO ra, SSLSessionCallback sessionCallback)
+	public SSLNIOSocket(SSLContextInfo sslContext, InetSocketAddressDAO ra, SSLSessionCallback sessionCallback)
 	{
 		SharedUtil.checkIfNulls("context  can't be null", sslContext);
 		this.sslContext = sslContext;
@@ -267,7 +268,7 @@ public class SSLNIOSocket
 			//TaskUtil.setThreadMultiplier(4);
 			SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
-			new NIOSocket(new InetSocketAddress(port), 512, new SSLNIOSocketFactory(sslContext, remoteAddress), TaskUtil.getDefaultTaskProcessor());
+			new NIOSocket(new InetSocketAddress(port), 512, new SSLNIOSocketFactory(new SSLContextInfo(sslContext), remoteAddress), TaskUtil.getDefaultTaskProcessor());
 		}
 		catch(Exception e)
 		{

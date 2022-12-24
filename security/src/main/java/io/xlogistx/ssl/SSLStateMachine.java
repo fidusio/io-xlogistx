@@ -1,14 +1,11 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
-
-
 import org.zoxweb.server.task.TaskCallback;
+import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.util.GetName;
 
-import javax.net.ssl.SSLContext;
 import java.nio.ByteBuffer;
-
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -69,7 +66,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
 
 
 
-    public static SSLStateMachine create(SSLContext sslContext, Executor e)
+    public static SSLStateMachine create(SSLContextInfo sslContext, Executor e)
     {
         SSLSessionConfig sslSessionConfig = new SSLSessionConfig(sslContext);
         return create(sslSessionConfig, e);

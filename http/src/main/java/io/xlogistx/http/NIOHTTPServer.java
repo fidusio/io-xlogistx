@@ -15,6 +15,7 @@ import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
@@ -31,6 +32,9 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import static org.zoxweb.shared.crypto.SSLContextInfo.Param.CIPHERS;
+import static org.zoxweb.shared.crypto.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController
@@ -167,14 +171,14 @@ public class NIOHTTPServer
 
                     if (result != null) {
 
-                        if (result instanceof File) {
-
-                        }
-                        else if (result instanceof HTTPResult)
-                        {
-
-                        }
-                        else
+//                        if (result instanceof File) {
+//
+//                        }
+//                        else if (result instanceof HTTPResult)
+//                        {
+//
+//                        }
+//                        else
                         {
                             hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
                         }
@@ -208,9 +212,6 @@ public class NIOHTTPServer
             if(logger.isEnabled())
                 logger.getLogger().info("Message not complete yet");
         }
-
-
-
     }
 
 
@@ -265,7 +266,7 @@ public class NIOHTTPServer
             }
 
             endPointsManager = EndPointsManager.scan(getConfig());
-            logger.info("mapping completed***********************");
+            logger.getLogger().info("mapping completed***********************");
             if(getNIOSocket() == null)
             {
                 if(getConfig().getThreadPoolSize() > 0)
@@ -275,7 +276,7 @@ public class NIOHTTPServer
             ConnectionConfig[] ccs = getConfig().getConnectionConfigs();
 
 
-            logger.info("Connection Configs: " + Arrays.toString(ccs));
+            logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
             for(ConnectionConfig cc : ccs)
             {
                 String[] schemes = cc.getSchemes();
@@ -283,12 +284,12 @@ public class NIOHTTPServer
                     URIScheme uriScheme = SharedUtil.lookupEnum(scheme, URIScheme.values());
                     if (uriScheme != null)
                     {
-                        InetSocketAddressDAO serverAddress = null;
+                        InetSocketAddressDAO serverAddress;
                         switch (uriScheme)
                         {
                             case HTTPS:
                                 // we need to create a https server
-                                logger.info("we need to create an https server");
+                                logger.getLogger().info("we need to create an https server");
                                 serverAddress = cc.getSocketConfig();
 
                                 NVGenericMap sslConfig = cc.getSSLConfig();
@@ -303,7 +304,14 @@ public class NIOHTTPServer
                                         aliasPassword != null ?  aliasPassword.toCharArray() : null,
                                         trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
                                         trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
-                                getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new SSLNIOSocketFactory(sslContext, httpsIC));
+                                NVStringList protocols =((NVStringList)sslConfig.get(PROTOCOLS));
+                                NVStringList ciphers =((NVStringList)sslConfig.get(CIPHERS));
+                                getNIOSocket().addSeverSocket(serverAddress.getPort(),
+                                        serverAddress.getBacklog(),
+                                        new SSLNIOSocketFactory(new SSLContextInfo(sslContext,
+                                                protocols!=null ? protocols.getValues() :null,
+                                                ciphers != null ? ciphers.getValues() : null),
+                                                httpsIC));
                                 break;
                             case HTTP:
                                 // we need to create a http server
@@ -341,7 +349,7 @@ public class NIOHTTPServer
 
 //            logger.setEnabled(true);
             String filename = args[index++];
-            logger.info("config file:" + filename);
+            logger.getLogger().info("config file:" + filename);
             File file = IOUtil.locateFile(filename);
             HTTPServerConfig hsc = null;
 
@@ -352,14 +360,14 @@ public class NIOHTTPServer
             if(hsc == null)
                 throw new IllegalArgumentException("No configuration file was defined");
 
-            logger.info("" + hsc);
-            logger.info("" + Arrays.toString(hsc.getConnectionConfigs()));
+            logger.getLogger().info("" + hsc);
+            logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
             if(hsc.getThreadPoolSize() > 0)
                 TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
             NIOSocket nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
-            logger.info("After start");
+            logger.getLogger().info("After start");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -368,7 +376,7 @@ public class NIOHTTPServer
         }
         startTS = System.currentTimeMillis() - startTS;
 
-        logger.info("Start up time:" + Const.TimeInMillis.toString(startTS));
+        logger.getLogger().info("Start up time:" + Const.TimeInMillis.toString(startTS));
 
     }
 

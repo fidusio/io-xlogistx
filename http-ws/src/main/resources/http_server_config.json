@@ -32,8 +32,7 @@
         "keystore_type": "pkcs12",
         "keystore_password": "password",
         "protocols": [
-          "TLSv1.2",
-          "TLSv1.3"
+#          "TLSv1.2"
         ],
         "ciphers": [
         ]

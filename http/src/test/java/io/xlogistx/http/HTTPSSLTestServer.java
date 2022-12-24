@@ -12,6 +12,7 @@ import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.data.CurrentTimestamp;
 import org.zoxweb.shared.http.HTTPStatusCode;
 
@@ -95,7 +96,7 @@ public class HTTPSSLTestServer
             //TaskUtil.setThreadMultiplier(4);
             SSLContext sslContext = CryptoUtil.initSSLContext(null, null, IOUtil.locateFile(keystore), ksType, ksPassword.toCharArray(), null, null ,null);
 
-            new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(sslContext, HTTPSSLTestServer.class), TaskUtil.getDefaultTaskProcessor());
+            new NIOSocket(new InetSocketAddress(port), 256, new SSLNIOSocketFactory(new SSLContextInfo(sslContext), HTTPSSLTestServer.class), TaskUtil.getDefaultTaskProcessor());
         }
         catch(Exception e)
         {
