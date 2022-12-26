@@ -1,8 +1,8 @@
 package io.xlogistx.ssl;
 
 import io.xlogistx.common.fsm.*;
+import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.server.task.TaskCallback;
-import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.util.GetName;
 
 import java.nio.ByteBuffer;

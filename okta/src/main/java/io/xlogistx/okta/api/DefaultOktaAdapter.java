@@ -22,9 +22,6 @@ public class DefaultOktaAdapter
     private String url;
     private HTTPAuthorization httpAuthentication;
 
-    //private boolean httpCallEnabled = true;
-
-
     private final OktaAPIRate oktaAPIRate = new OktaAPIRate("Adapter");
 
 
@@ -343,7 +340,6 @@ public class DefaultOktaAdapter
 
 
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, URIs.USERS.getValue(), HTTPMethod.GET);
-        //hmci.setContentType("application/json");
         hmci.setAccept("application/json");
         hmci.setAuthorization(getHTTPAuthorization());
         for(GetNameValue<String> gnv : queries)

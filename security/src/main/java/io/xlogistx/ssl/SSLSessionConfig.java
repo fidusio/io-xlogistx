@@ -6,8 +6,8 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.SelectorController;
+import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.server.task.TaskCallback;
-import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.SharedUtil;
 

@@ -1,6 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyHolder;
+import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.DateUtil;
 import org.zoxweb.server.util.RuntimeUtil;
@@ -39,6 +40,10 @@ public class Ping
             response.add("current_thread", Thread.currentThread().getName());
             response.add("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
             + "," + System.getProperty("os.arch"));
+
+            response.add(new NVInt("byte_buffer_cache", ByteBufferUtil.cacheCount()));
+            response.add(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()));
+            response.add(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())));
             //response.getProperties().add("version", )
             response.add(TaskUtil.getDefaultTaskScheduler().getProperties());
             response.add(TaskUtil.getDefaultTaskProcessor().getProperties());

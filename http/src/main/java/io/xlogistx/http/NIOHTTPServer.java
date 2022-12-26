@@ -12,10 +12,10 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
@@ -33,8 +33,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.zoxweb.shared.crypto.SSLContextInfo.Param.CIPHERS;
-import static org.zoxweb.shared.crypto.SSLContextInfo.Param.PROTOCOLS;
+import static org.zoxweb.server.security.SSLContextInfo.Param.CIPHERS;
+import static org.zoxweb.server.security.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController
@@ -266,7 +266,7 @@ public class NIOHTTPServer
             }
 
             endPointsManager = EndPointsManager.scan(getConfig());
-            logger.getLogger().info("mapping completed***********************");
+            if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
             if(getNIOSocket() == null)
             {
                 if(getConfig().getThreadPoolSize() > 0)
@@ -276,7 +276,7 @@ public class NIOHTTPServer
             ConnectionConfig[] ccs = getConfig().getConnectionConfigs();
 
 
-            logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
+            if(logger.isEnabled()) logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
             for(ConnectionConfig cc : ccs)
             {
                 String[] schemes = cc.getSchemes();
@@ -315,6 +315,7 @@ public class NIOHTTPServer
                                 break;
                             case HTTP:
                                 // we need to create a http server
+                                logger.getLogger().info("we need to create an http server");
                                 serverAddress = cc.getSocketConfig();
                                 getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOPlainSocketFactory(httpIC));
                                 break;
@@ -349,7 +350,7 @@ public class NIOHTTPServer
 
 //            logger.setEnabled(true);
             String filename = args[index++];
-            logger.getLogger().info("config file:" + filename);
+            if (logger.isEnabled()) logger.getLogger().info("config file:" + filename);
             File file = IOUtil.locateFile(filename);
             HTTPServerConfig hsc = null;
 
@@ -360,8 +361,8 @@ public class NIOHTTPServer
             if(hsc == null)
                 throw new IllegalArgumentException("No configuration file was defined");
 
-            logger.getLogger().info("" + hsc);
-            logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
+            if (logger.isEnabled()) logger.getLogger().info("" + hsc);
+            if (logger.isEnabled()) logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
             if(hsc.getThreadPoolSize() > 0)
                 TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
             NIOSocket nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());

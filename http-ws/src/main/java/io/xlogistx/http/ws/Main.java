@@ -21,7 +21,7 @@ import java.util.List;
 
 
 public class Main {
-    public final static LogWrapper log = new LogWrapper(Main.class.getName());
+    public final static LogWrapper log = new LogWrapper(Main.class.getName()).setEnabled(false);
     public enum Param
         implements SetNameValue<Object>
     {
@@ -68,6 +68,11 @@ public class Main {
             IPBlockerListener ipBlocker;
             NIOHTTPServerCreator httpServerCreator = new NIOHTTPServerCreator();
             NIOConfig nioConfig = new NIOConfig();
+            if (args.length > 0 )
+            {
+                if (args[0].equalsIgnoreCase("-dbg"))
+                    log.setEnabled(true);
+            }
 
             for(GetNameValue<String> gnvs : parameters)
             {
@@ -80,8 +85,8 @@ public class Main {
                         case WS:
                             File file = IOUtil.locateFile(gnvs.getValue());
                             HTTPServerConfig hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
-                            log.getLogger().info("" + hsc);
-                            log.getLogger().info("" + hsc.getConnectionConfigs());
+                            if(log.isEnabled()) log.getLogger().info("" + hsc);
+                            if(log.isEnabled()) log.getLogger().info("" + hsc.getConnectionConfigs());
                             httpServerCreator.setAppConfig(hsc);
                             ws = httpServerCreator.createApp();
                             nioSocket = httpServerCreator.getNIOSocket();
@@ -90,7 +95,7 @@ public class Main {
                         case NI_CONFIG:
                             file = IOUtil.locateFile(gnvs.getValue());
                             ConfigDAO configDAO = GSONUtil.fromJSON(IOUtil.inputStreamToString(file));
-                            System.out.println(GSONUtil.toJSON(configDAO, true, false, false));
+                            if(log.isEnabled()) log.getLogger().info(GSONUtil.toJSON(configDAO, true, false, false));
                             nioConfig.setAppConfig(configDAO).setNIOSocket(nioSocket);
                             nioSocket = nioConfig.createApp();
                             nioSocket.setEventManager(TaskUtil.getDefaultEventManager());

@@ -2,21 +2,22 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.fsm.StateMachine;
 import io.xlogistx.common.fsm.TriggerConsumer;
-import io.xlogistx.common.net.BaseSessionCallback;
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.ssl.*;
+import io.xlogistx.common.net.BaseSessionCallback;
+import io.xlogistx.ssl.SSLNIOSocketFactory;
+import io.xlogistx.ssl.SSLSessionCallback;
+import io.xlogistx.ssl.SSLSessionConfig;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.shared.crypto.SSLContextInfo;
 import org.zoxweb.shared.data.CurrentTimestamp;
 import org.zoxweb.shared.http.HTTPStatusCode;
-
-import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.util.ParamUtil;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
