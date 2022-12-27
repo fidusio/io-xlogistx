@@ -19,7 +19,7 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
-import org.zoxweb.server.net.ProtocolProcessor;
+import org.zoxweb.server.net.ProtocolHandler;
 import org.zoxweb.server.task.TaskUtil;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ import java.nio.channels.SocketChannel;
 
 
 public class NIOPlainSocket
-    extends ProtocolProcessor
+    extends ProtocolHandler
 {
     private static final LogWrapper log = new LogWrapper(NIOPlainSocket.class).setEnabled(false);
 

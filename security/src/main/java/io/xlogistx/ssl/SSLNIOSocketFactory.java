@@ -2,14 +2,14 @@ package io.xlogistx.ssl;
 
 import io.xlogistx.common.net.BaseSessionCallback;
 import org.zoxweb.server.net.NIOChannelCleaner;
-import org.zoxweb.server.net.ProtocolSessionFactoryBase;
+import org.zoxweb.server.net.ProtocolFactoryBase;
 import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.shared.data.ConfigDAO;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
 import org.zoxweb.shared.util.InstanceCreator;
 
 public class SSLNIOSocketFactory
-        extends ProtocolSessionFactoryBase<SSLNIOSocket>
+        extends ProtocolFactoryBase<SSLNIOSocket>
 {
 
     private InetSocketAddressDAO remoteAddress;

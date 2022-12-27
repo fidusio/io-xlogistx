@@ -1,13 +1,12 @@
 package io.xlogistx.common.net;
 
 
-
 import org.zoxweb.server.net.NIOChannelCleaner;
-import org.zoxweb.server.net.ProtocolSessionFactoryBase;
+import org.zoxweb.server.net.ProtocolFactoryBase;
 import org.zoxweb.shared.util.InstanceCreator;
 
 public class NIOPlainSocketFactory
-        extends ProtocolSessionFactoryBase<NIOPlainSocket>
+        extends ProtocolFactoryBase<NIOPlainSocket>
 {
 
     private  Class<? extends BaseSessionCallback> cbClass;

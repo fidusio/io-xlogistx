@@ -22,7 +22,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
-import org.zoxweb.server.net.ProtocolProcessor;
+import org.zoxweb.server.net.ProtocolHandler;
 import org.zoxweb.server.net.SessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.SSLContextInfo;
@@ -44,7 +44,7 @@ import static io.xlogistx.ssl.SSLStateMachine.SessionState.POST_HANDSHAKE;
 
 
 public class SSLNIOSocket
-    extends ProtocolProcessor
+    extends ProtocolHandler
 {
 
 
