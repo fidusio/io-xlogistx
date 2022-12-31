@@ -54,7 +54,7 @@ public class ShiroAutoLoginServlet
 		// no filter
 		if(hra == null)
 			hra = HTTPServletUtil.extractRequestAttributes(req);
-		log.info("Request started");
+		if(log.isEnabled()) log.getLogger().info("Request started");
 		
 		APISecurityManager<Subject> apiSecurityManager = ResourceManager.SINGLETON.lookup(Resource.API_SECURITY_MANAGER);
 		if (apiSecurityManager != null && apiSecurityManager.getDaemonSubject() == null)
@@ -65,9 +65,9 @@ public class ShiroAutoLoginServlet
 				if (apiSecurityManager.getDaemonSubject() == null)
 				{
 					HTTPAuthorizationBasic hab = (HTTPAuthorizationBasic) hra.getHTTPAuthentication();
-//					log.info("Authentication:" + hab);
-//					log.info("hra:" + hra.getContentType());
-//					log.info("Content:" + hra.getContent());
+//					if(log.isEnabled()) log.getLogger().info("Authentication:" + hab);
+//					if(log.isEnabled()) log.getLogger().info("hra:" + hra.getContentType());
+//					if(log.isEnabled()) log.getLogger().info("Content:" + hra.getContent());
 					AppIDDAO appIDDAO = null;
 					
 					if (!SharedStringUtil.isEmpty(hra.getContent()))
@@ -85,7 +85,7 @@ public class ShiroAutoLoginServlet
 						}
 				
 					}
-					log.info(""+appIDDAO);
+					if(log.isEnabled()) log.getLogger().info(""+appIDDAO);
 					Subject daemon = apiSecurityManager.login(hab.getUser(), null, appIDDAO.getDomainID(), appIDDAO.getAppID(), true);
 					
 					apiSecurityManager.setDaemonSubject(daemon);
@@ -94,7 +94,7 @@ public class ShiroAutoLoginServlet
 				}
 				else
 				{
-					log.info("Daemon already SET --------:" + Thread.currentThread().getName());
+					if(log.isEnabled()) log.getLogger().info("Daemon already SET --------:" + Thread.currentThread().getName());
 				}
 			}
 			catch(Exception e)
@@ -110,7 +110,7 @@ public class ShiroAutoLoginServlet
 		else
 		{
 //			HTTPAuthenticationBasic hab = (HTTPAuthenticationBasic) hra.getHTTPAuthentication();
-//			log.info("NOT DAEMON ALREADY SET:" + hra);
+//			if(log.isEnabled()) log.getLogger().info("NOT DAEMON ALREADY SET:" + hra);
 //			try
 //			{
 //				SubjectLoginData ret = FidusStoreSecurityUtil.SINGLETON.autoLogin(FidusStoreAPIManager.SINGLETON.lookupAPIDataStore(FidusStoreAPIManager.FIDUS_STORE_NAME), hab.getUser());
@@ -126,10 +126,10 @@ public class ShiroAutoLoginServlet
 			{
 				HTTPServletUtil.sendJSON(null, resp, HTTPStatusCode.UNAUTHORIZED, new APIError("Authentication Error"));
 			}
-			log.info("Daemon already SET ++++++:" + Thread.currentThread().getName());
+			if(log.isEnabled()) log.getLogger().info("Daemon already SET ++++++:" + Thread.currentThread().getName());
 		}
 		
-		log.info("Ended:" + Thread.currentThread().getName());
+		if(log.isEnabled()) log.getLogger().info("Ended:" + Thread.currentThread().getName());
 		
 	}
 	

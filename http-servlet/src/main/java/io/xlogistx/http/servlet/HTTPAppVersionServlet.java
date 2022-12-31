@@ -42,14 +42,14 @@ public class HTTPAppVersionServlet
 	{
 		if (version.get() == null)
 		{
-			log.info("version is null");
+			log.getLogger().info("version is null");
 			String jsonResource = ApplicationConfigManager.SINGLETON.loadDefault().lookupValue(ApplicationDefaultParam.APPLICATION_VERSION_RESOURCE);
-			log.info(jsonResource);
+			log.getLogger().info(jsonResource);
 			String json = HTTPServletUtil.inputStreamToString(getServletContext(), jsonResource);
 			version.set(json);
 		}
 		
-		log.info(version.get());
+		log.getLogger().info(version.get());
 		
 		resp.setContentType(HTTPMimeType.APPLICATION_JSON.getValue());
 		resp.setCharacterEncoding(SharedStringUtil.UTF_8);

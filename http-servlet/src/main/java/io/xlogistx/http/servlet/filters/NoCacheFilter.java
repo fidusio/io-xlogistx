@@ -26,7 +26,7 @@ public class NoCacheFilter
 	implements Filter
 {
 
-	private static final transient Logger log = Logger.getLogger("");
+	private static final Logger log = Logger.getLogger("");
 
 	public void destroy()
 	{

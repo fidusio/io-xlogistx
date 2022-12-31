@@ -15,6 +15,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+import java.net.SocketAddress;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -29,7 +30,7 @@ public class SSLSessionConfig
 
 
 
-    volatile ByteBuffer inSSLNetData = null ; // encrypted data
+     volatile ByteBuffer inSSLNetData = null ; // encrypted data
     volatile ByteBuffer outSSLNetData = null; // encrypted data
     volatile ByteBuffer inAppData = null; // clear text application data
     volatile SocketChannel sslChannel = null; // the encrypted channel
@@ -39,34 +40,34 @@ public class SSLSessionConfig
     volatile SocketChannel remoteChannel = null;
     volatile ByteBuffer inRemoteData = null;
     volatile SSLStateMachine stateMachine = null;
-    volatile boolean forcedClose = false;
-    volatile InetSocketAddressDAO remoteAddress = null;
+     boolean forcedClose = false;
+     InetSocketAddressDAO remoteAddress = null;
 
     //final Lock ioLock = null;//new ReentrantLock();
-     private final SSLEngine sslEngine; // the crypto engine
+     private  SSLEngine sslEngine; // the crypto engine
 
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
-    private final AtomicBoolean hasBegan = new AtomicBoolean(false);
+    final AtomicBoolean hasBegan = new AtomicBoolean(false);
 
     public SSLSessionConfig(SSLContextInfo sslContext)
     {
         SharedUtil.checkIfNulls("sslContext null", sslContext);
         this.sslEngine = sslContext.newInstance();
-//        System.out.println(Arrays.toString(sslEngine.getEnabledCipherSuites()));
-//        System.out.println(Arrays.toString(sslEngine.getEnabledProtocols()));
     }
 
     @Override
-    public void close() {
-//        boolean stat = isClosed.getAndSet(true);
-        String msg = "";
+    public void close()
+    {
+
+        //String msg = "";
+        SocketAddress connectionRemoteAddress = null;
         if (!isClosed.getAndSet(true))
         {
             //log.getLogger().info("SSLSessionConfig-NOT-CLOSED-YET " +Thread.currentThread() + " " + sslChannel);
             try
             {
-                msg += sslChannel.getRemoteAddress();
+                connectionRemoteAddress = sslChannel.getRemoteAddress();
             }
             catch (Exception e){}
 
@@ -106,7 +107,8 @@ public class SSLSessionConfig
             ByteBufferUtil.cache(inSSLNetData, inAppData, outSSLNetData, inRemoteData);
             IOUtil.close(sslOutputStream);
 
-            if (log.isEnabled()) log.getLogger().info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " + sslChannel + " Address: " + msg);
+            if (log.isEnabled()) log.getLogger().info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " +
+                    sslChannel + " Address: " + connectionRemoteAddress);
         }
 
     }
@@ -145,23 +147,25 @@ public class SSLSessionConfig
     }
 
 
-    public synchronized void beginHandshake() throws SSLException {
-        if (!hasBegan.get())
+    public void beginHandshake(boolean clientMode) throws SSLException {
+        if (!hasBegan.getAndSet(true))
         {
+            sslEngine.setUseClientMode(clientMode);
             sslEngine.beginHandshake();
             inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
             outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
             inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
             // at the end for a reason to make at the execution transactional
-            hasBegan.getAndSet(true);
+            //return true;
         }
+       // return false;
     }
 
 
-    public void setUseClientMode(boolean clientMode)
-    {
-        sslEngine.setUseClientMode(clientMode);
-    }
+//    public void setUseClientMode(boolean clientMode)
+//    {
+//        sslEngine.setUseClientMode(clientMode);
+//    }
 
 
     public int getPacketBufferSize()

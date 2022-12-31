@@ -21,7 +21,6 @@ import org.zoxweb.shared.data.ApplicationConfigDAO;
 import org.zoxweb.shared.data.ApplicationConfigDAO.ApplicationDefaultParam;
 import org.zoxweb.shared.util.SharedStringUtil;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -36,8 +35,7 @@ public class HTTPIndexServlet
 	public final static LogWrapper log = new LogWrapper(HTTPIndexServlet.class);
 	
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)
-			throws ServletException,
-				   IOException
+			throws IOException
 	{
 		ApplicationConfigDAO acd = null;
 		String url = null;
@@ -51,13 +49,13 @@ public class HTTPIndexServlet
 		}
 		catch( Exception e)
 		{
-			log.info("error:" + e);
+			log.getLogger().info("error:" + e);
 		}
 		
 		
 		if ( url != null)
 		{
-			log.info("redirect:" + req.getRequestURL() + (req.getRequestURI() != null ? req.getRequestURI() :"")+ " from:"+ req.getHeader("User-Agent") + "-" + req.getRemoteAddr() + " Redirected URL:" + url);
+			log.getLogger().info("redirect:" + req.getRequestURL() + (req.getRequestURI() != null ? req.getRequestURI() :"")+ " from:"+ req.getHeader("User-Agent") + "-" + req.getRemoteAddr() + " Redirected URL:" + url);
 			resp.sendRedirect( url);
 		}
 		

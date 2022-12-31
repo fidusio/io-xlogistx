@@ -13,7 +13,7 @@
       "schemes": ["http"],
       "socket_config":
       {
-        "port": 8080,
+        "port": 6080,
         "backlog": 250
       }
     }
@@ -23,7 +23,7 @@
       "schemes": ["https"],
       "socket_config":
       {
-        "port": 8443,
+        "port": 6443,
         "backlog": 250
       },
       "ssl_config":

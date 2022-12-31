@@ -82,7 +82,7 @@ public class HTTPInitShutdownDefault
 		}
 		catch( Throwable t)
 		{
-			log.info("error loading default config " + t);
+			log.getLogger().info("error loading default config " + t);
 			
 			
 			try
@@ -95,7 +95,7 @@ public class HTTPInitShutdownDefault
 				//e.printStackTrace();
 			}
 		}
-    	log.info("INIT DONE java version:"
+    	log.getLogger().info("INIT DONE java version:"
             + System.getProperty("java.version")
             + ", "
             + System.getProperty(" java.vm.specification.vendor"));
@@ -115,6 +115,6 @@ public class HTTPInitShutdownDefault
 //		IOUtil.close(ipBlocker);
 		TaskUtil.getDefaultTaskScheduler().close();
 		TaskUtil.getDefaultTaskProcessor().close();
-		log.info("destroy done");
+		log.getLogger().info("destroy done");
 	}
 }

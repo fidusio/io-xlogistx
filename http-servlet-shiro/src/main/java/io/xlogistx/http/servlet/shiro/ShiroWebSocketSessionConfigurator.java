@@ -40,8 +40,8 @@ public class ShiroWebSocketSessionConfigurator
 //    public List<Extension> getNegotiatedExtensions(List<Extension> installed,
 //                                                   List<Extension> requested)
 //    {
-//        log.info("installed:" + toString(installed));
-//        log.info("requested:" + toString(requested));
+//        if(log.isEnabled()) log.getLogger().info("installed:" + toString(installed));
+//        if(log.isEnabled()) log.getLogger().info("requested:" + toString(requested));
 //        return installed;
 //    }
 

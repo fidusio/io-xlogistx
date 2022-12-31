@@ -50,27 +50,25 @@ public class NIOHTTPServer
     public class HTTPSession
         extends PlainSessionCallback
     {
-        final HTTPProtocolHandler hph = new HTTPProtocolHandler();
+        private final HTTPProtocolHandler hph = new HTTPProtocolHandler();
 
         @Override
         public void accept(ByteBuffer inBuffer)
         {
-            if (inBuffer != null)
+
+            try
             {
-                try
-                {
-                    incomingData(hph, inBuffer, get());
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                    processException(hph, get(), e);
-                    IOUtil.close(get(), hph);
-                    // we should close
-
-                }
-
+                incomingData(hph, inBuffer, get());
             }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+                processException(hph, get(), e);
+                IOUtil.close(get(), hph);
+                // we should close
+            }
+
+
         }
     }
 
@@ -81,19 +79,16 @@ public class NIOHTTPServer
         @Override
         public void accept(ByteBuffer inBuffer)
         {
-            if (inBuffer != null)
+            try
             {
-                try
-                {
-                    incomingData(hph, inBuffer, get());
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                    processException(hph, get(), e);
-                    IOUtil.close(get(), hph);
-                    // we should close
-                }
+                incomingData(hph, inBuffer, get());
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+                processException(hph, get(), e);
+                IOUtil.close(get(), hph);
+                // we should close
             }
         }
     }

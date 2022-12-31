@@ -38,7 +38,7 @@ extends HttpServlet {
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        log.info("" + hep);
+        log.getLogger().info("" + hep);
     }
 
 
@@ -70,7 +70,7 @@ extends HttpServlet {
                 super.service(req, res);
                 return;
             }
-            log.info("HTTPMethod:" + hm);
+            log.getLogger().info("HTTPMethod:" + hm);
             if (!hep.isMethodSupported(hm))
             {
                 size = HTTPServletUtil.sendJSON(req, res, HTTPStatusCode.SERVICE_UNAVAILABLE, (NVEntity) new APIError("Service not support"));
@@ -124,7 +124,7 @@ extends HttpServlet {
         {
             //postService(req, res);
             delta = System.nanoTime() - delta;
-            log.info(getServletName() + ":" + req.getMethod() + ":PT:" + Const.TimeInMillis.nanosToString(delta) +":TOTAL CALLS:" + counter + ":response size:" + size);
+            log.getLogger().info(getServletName() + ":" + req.getMethod() + ":PT:" + Const.TimeInMillis.nanosToString(delta) +":TOTAL CALLS:" + counter + ":response size:" + size);
         }
     }
 }

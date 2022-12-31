@@ -173,13 +173,17 @@ public class SSLNIOSocket
 		try
     	{
 			// first call
-			if(sslStateMachine.getCurrentState().getName().equals(StateInt.States.INIT.getName()) &&
-					key.channel() == config.sslChannel)
-			{
-				config.setUseClientMode(false);
-				config.beginHandshake();
-				sessionCallback.setConfig(config);
-			}
+//			if(sslStateMachine.getCurrentState().getName().equals(StateInt.States.INIT.getName()) &&
+//					key.channel() == config.sslChannel)
+//			{
+//				config.beginHandshake(false);
+//				sessionCallback.setConfig(config);
+//			}
+
+			if(!config.hasBegan.get())
+				config.beginHandshake(false);
+				//sessionCallback.setConfig(config);
+
 
 
 
@@ -226,6 +230,7 @@ public class SSLNIOSocket
 		config.sslChannel = (SocketChannel) asc;
 		config.remoteAddress = remoteAddress;
 		config.sslOutputStream = new SSLChannelOutputStream(config, 512 );
+		sessionCallback.setConfig(config);
 		sslStateMachine.start(true);
 		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
 

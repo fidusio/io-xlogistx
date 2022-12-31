@@ -44,7 +44,7 @@ public class ShiroSessionStatusServlet
 
 		if (subject == null || !subject.isAuthenticated())
 		{
-			log.info("security check required and user not authenticated");
+			if(log.isEnabled()) log.getLogger().info("security check required and user not authenticated");
 
 			if (subject != null && subject.getSession() != null)
 			{
@@ -54,7 +54,7 @@ public class ShiroSessionStatusServlet
 				}
 				catch(InvalidSessionException e)
                 {
-					log.info("Error " + e);
+					if(log.isEnabled()) log.getLogger().info("Error " + e);
 				}
 			}
 
@@ -63,7 +63,7 @@ public class ShiroSessionStatusServlet
 			return;
 		}
 
-		log.info("Subject check " + subject.getPrincipal() + ":" + subject.getSession().getId());
+		if(log.isEnabled()) log.getLogger().info("Subject check " + subject.getPrincipal() + ":" + subject.getSession().getId());
 		resp.setStatus(HTTPStatusCode.OK.CODE);
 	}
 

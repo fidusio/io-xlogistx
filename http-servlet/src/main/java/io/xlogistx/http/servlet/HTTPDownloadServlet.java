@@ -92,7 +92,7 @@ public class HTTPDownloadServlet
 		GetNameValue<String> gnv = hra.getParameters().get("filename");
 		if (gnv == null && SharedStringUtil.trimOrNull(hra.getPathInfo()) != null)
 		{
-			log.info("pathinfo:" +  hra.getPathInfo());
+			log.getLogger().info("pathinfo:" +  hra.getPathInfo());
 			gnv = new NVPair("filename", hra.getPathInfo());
 		}
 		
@@ -104,14 +104,14 @@ public class HTTPDownloadServlet
 			File publicDir = new File(acd.lookupValue("public_dir"));
 			if ( !publicDir.isDirectory())
 			{
-				log.info("Public Directory not found:" + publicDir);
+				log.getLogger().info("Public Directory not found:" + publicDir);
 				throw new FileNotFoundException("Public Dir NOT FOUND");
 			}
 			
 			File file = new File(publicDir, FilenameFilter.SINGLETON.validate(gnv.getValue()));
 			if ( !file.exists() || file.isDirectory())
 			{
-				log.info("File Not Found:" + gnv.getValue() + ":" + file);
+				log.getLogger().info("File Not Found:" + gnv.getValue() + ":" + file);
 				throw new FileNotFoundException("File not found " + gnv.getValue());
 			}
 			
@@ -124,7 +124,7 @@ public class HTTPDownloadServlet
 			if(mt!=null)
 			{
 				fid.setContentType(mt.getValue());
-				log.info(request.getRemoteAddr() + " content type:" + mt + " for file:" + file );
+				log.getLogger().info(request.getRemoteAddr() + " content type:" + mt + " for file:" + file );
 			}
 			return new FileInfoStreamSource(fid, is);
 		}

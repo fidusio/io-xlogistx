@@ -91,15 +91,10 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     TriggerConsumerInt<TaskCallback<ByteBuffer, SSLChannelOutputStream>> closed =
         new TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>(SessionState.CLOSE) {
           @Override
-          public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
-
+          public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
+          {
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
-            synchronized (config) {
-              if (!config.isClosed()) {
-                config.close();
-              }
-            }
-
+            config.close();
             if (log.isEnabled()) log.getLogger().info(getStateMachine().getName() + " " + callback + " closed");
           }
         };

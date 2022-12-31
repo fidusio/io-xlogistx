@@ -34,9 +34,9 @@ public abstract class ShiroBaseWebListener
 	@Override
 	public void contextInitialized(ServletContextEvent sce)
     {
-		log.info("SHIRO ENV Initializing ----------------------------------------------------");
+		if(log.isEnabled()) log.getLogger().info("SHIRO ENV Initializing ----------------------------------------------------");
 		init(initEnvironment(sce.getServletContext()).getWebSecurityManager());
-		log.info("SHIRO ENV Initialized ----------------------------------------------------");
+		if(log.isEnabled()) log.getLogger().info("SHIRO ENV Initialized ----------------------------------------------------");
 	}	
 	
 	@Override

@@ -111,7 +111,7 @@ public class HTTPCaptchaServlet
 
 
 
-		log.info("Result: " + challenge.getResult() + " ID:" + imageInfo.id);
+		log.getLogger().info("Result: " + challenge.getResult() + " ID:" + imageInfo.id);
 	}
 
 	

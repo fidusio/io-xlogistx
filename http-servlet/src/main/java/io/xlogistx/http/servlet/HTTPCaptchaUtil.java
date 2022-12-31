@@ -33,7 +33,7 @@ public final class HTTPCaptchaUtil {
         {
             // if the captcha data is missing return
             HTTPServletUtil.sendJSON(req, resp, HTTPStatusCode.BAD_REQUEST, new APIError("Missing CAPTCHA"));
-            log.info("Captcha parameters are missing.");
+            log.getLogger().info("Captcha parameters are missing.");
             return Challenge.Status.ERROR;
         }
 
@@ -43,7 +43,7 @@ public final class HTTPCaptchaUtil {
         {
             // no challenge found
             HTTPServletUtil.sendJSON(req, resp, HTTPStatusCode.BAD_REQUEST, new APIError("Missing CAPTCHA"));
-            log.info("Captcha challenge not found for " + captchaIDParam.getValue());
+            log.getLogger().info("Captcha challenge not found for " + captchaIDParam.getValue());
             return Challenge.Status.MISSING_CORRELATION;
         }
         // parse the captcha value
@@ -52,7 +52,7 @@ public final class HTTPCaptchaUtil {
         {
             // challenge failed
             HTTPServletUtil.sendJSON(req, resp, HTTPStatusCode.BAD_REQUEST, new APIError("Invalid CAPTCHA"));
-            log.info("Captcha challenge mismatch expected: " + challenge.getResult() + " user sent: " + captchaValue);
+            log.getLogger().info("Captcha challenge mismatch expected: " + challenge.getResult() + " user sent: " + captchaValue);
             return Challenge.Status.INVALID;
         }
 
