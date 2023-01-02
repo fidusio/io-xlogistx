@@ -255,6 +255,7 @@ public class NIOHTTPServer
         nioSocket.close();
     }
     public void start() throws IOException, GeneralSecurityException {
+        String msg = "";
         if (isClosed) {
             if (config != null) {
                 isClosed = false;
@@ -304,15 +305,17 @@ public class NIOHTTPServer
                                 getNIOSocket().addSeverSocket(serverAddress.getPort(),
                                         serverAddress.getBacklog(),
                                         new SSLNIOSocketFactory(new SSLContextInfo(sslContext,
-                                                protocols!=null ? protocols.getValues() :null,
-                                                ciphers != null ? ciphers.getValues() : null),
+                                                protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
+                                                ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null),
                                                 httpsIC));
+                                msg += " HTTPS @ port: " + serverAddress.getPort();
                                 break;
                             case HTTP:
                                 // we need to create a http server
                                 logger.getLogger().info("we need to create an http server");
                                 serverAddress = cc.getSocketConfig();
                                 getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOPlainSocketFactory(httpIC));
+                                msg += " HTTP @ port: " + serverAddress.getPort();
                                 break;
                             case FTP:
                             case FILE:
@@ -326,11 +329,10 @@ public class NIOHTTPServer
                 }
             }
 
-
             // create end point scanner
-
-
         }
+        if(!SharedStringUtil.isEmpty(msg))
+            logger.getLogger().info("Services started"+msg);
 
 
     }

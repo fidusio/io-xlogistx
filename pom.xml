@@ -91,7 +91,7 @@
         <websocket.version>1.1</websocket.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
 
-        <zoxweb-core.version>2.3.4</zoxweb-core.version>
+        <zoxweb-core.version>2.3.5</zoxweb-core.version>
 
         <xlogistx.version>1.0.0</xlogistx.version>
         <java-xt-core.version>1.12.0</java-xt-core.version>
