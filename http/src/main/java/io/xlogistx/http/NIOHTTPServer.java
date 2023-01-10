@@ -50,7 +50,7 @@ public class NIOHTTPServer
     public class HTTPSession
         extends PlainSessionCallback
     {
-        private final HTTPProtocolHandler hph = new HTTPProtocolHandler();
+        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(false);
 
         @Override
         public void accept(ByteBuffer inBuffer)
@@ -75,7 +75,7 @@ public class NIOHTTPServer
     public class HTTPSSession
             extends SSLSessionCallback
     {
-        private final HTTPProtocolHandler hph = new HTTPProtocolHandler();
+        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(true);
         @Override
         public void accept(ByteBuffer inBuffer)
         {

@@ -44,11 +44,11 @@ public class SSLSessionConfig
      InetSocketAddressDAO remoteAddress = null;
 
     //final Lock ioLock = null;//new ReentrantLock();
-     private  SSLEngine sslEngine; // the crypto engine
+     private final SSLEngine sslEngine; // the crypto engine
 
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
-    final AtomicBoolean hasBegan = new AtomicBoolean(false);
+    private  boolean hasBegan = false;
 
     public SSLSessionConfig(SSLContextInfo sslContext)
     {
@@ -77,7 +77,7 @@ public class SSLSessionConfig
                 try
                 {
                     sslEngine.closeOutbound();
-                    while (!forcedClose && hasBegan.get() && !sslEngine.isOutboundDone() && sslChannel.isOpen())
+                    while (!forcedClose && hasBegan && !sslEngine.isOutboundDone() && sslChannel.isOpen())
                     {
                       SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
                       switch (hs)
@@ -148,13 +148,20 @@ public class SSLSessionConfig
 
 
     public void beginHandshake(boolean clientMode) throws SSLException {
-        if (!hasBegan.getAndSet(true))
+        if (hasBegan == false)
         {
-            sslEngine.setUseClientMode(clientMode);
-            sslEngine.beginHandshake();
-            inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
-            outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
-            inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
+            synchronized (this)
+            {
+                if(hasBegan == false)
+                {
+                    hasBegan = true;
+                    sslEngine.setUseClientMode(clientMode);
+                    sslEngine.beginHandshake();
+                    inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+                    outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+                    inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
+                }
+            }
             // at the end for a reason to make at the execution transactional
             //return true;
         }

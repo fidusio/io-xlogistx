@@ -21,6 +21,15 @@ public class HTTPProtocolHandler
     private final HTTPMessageConfigInterface response = new HTTPMessageConfig();
     private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
+    public  final boolean https;
+
+    public HTTPProtocolHandler(boolean https)
+    {
+        this.https = https;
+    }
+
+
+
 
     public boolean parseRequest(ByteBuffer inBuffer) throws IOException
     {

@@ -172,20 +172,8 @@ public class SSLNIOSocket
 		if (log.isEnabled()) log.getLogger().info("Start of Accept SSLNIOSocket");
 		try
     	{
-			// first call
-//			if(sslStateMachine.getCurrentState().getName().equals(StateInt.States.INIT.getName()) &&
-//					key.channel() == config.sslChannel)
-//			{
-//				config.beginHandshake(false);
-//				sessionCallback.setConfig(config);
-//			}
-
-			if(!config.hasBegan.get())
-				config.beginHandshake(false);
-				//sessionCallback.setConfig(config);
-
-
-
+			// begin handshake will be called once subsequent calls are ignored
+			config.beginHandshake(false);
 
 			if (log.isEnabled()) log.getLogger().info("AcceptNewData: " + key);
 			if (key.channel() == config.sslChannel && key.channel().isOpen())

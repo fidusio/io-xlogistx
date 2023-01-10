@@ -20,6 +20,7 @@ public class Ping
 {
 
 
+
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
     @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL})
@@ -38,6 +39,7 @@ public class Ping
             response.add("jdk_version", System.getProperty("java.version"));
             response.add("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS));
             response.add("current_thread", Thread.currentThread().getName());
+            response.add("version", "1.1.1");
             response.add("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
             + "," + System.getProperty("os.arch"));
 
