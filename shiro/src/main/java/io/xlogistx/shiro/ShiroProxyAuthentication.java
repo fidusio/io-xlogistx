@@ -16,6 +16,7 @@
 package io.xlogistx.shiro;
 
 import org.zoxweb.server.http.HTTPCall;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SSLCheckDisabler;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.api.APIException;
@@ -23,17 +24,15 @@ import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.shiro.LoginStatusDAO;
 import org.zoxweb.shared.security.shiro.ShiroLoginTokenDAO;
-import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 public class ShiroProxyAuthentication
 {
 	public static final String AUTHENTICATION_URI = "shiro/loginProxy";
 	
 	
-	private static final transient Logger log = Logger.getLogger(Const.LOGGER_NAME);
+	public static final LogWrapper log = new LogWrapper(ShiroProxyAuthentication.class);
 	
 	public static LoginStatusDAO login(String httpUrl, boolean sslCheckOff, String domainID, String appID, String realm, String username, String password)
 		throws AccessException, IOException
@@ -61,7 +60,7 @@ public class ShiroProxyAuthentication
                 {
 					
 					String json = new String(rd.getData());
-					log.info("\n" +json);
+					if(log.isEnabled()) log.getLogger().info("\n" +json);
 					return GSONUtil.fromJSON( json, LoginStatusDAO.class);
 				}
 				catch (AccessException | APIException e)

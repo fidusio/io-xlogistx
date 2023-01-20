@@ -27,28 +27,29 @@ public class SSLSessionConfig
 {
     public final static LogWrapper log = new LogWrapper(SSLSessionConfig.class.getName()).setEnabled(false);
 
-
-
-
-     volatile ByteBuffer inSSLNetData = null ; // encrypted data
-    volatile ByteBuffer outSSLNetData = null; // encrypted data
-    volatile ByteBuffer inAppData = null; // clear text application data
-    volatile SocketChannel sslChannel = null; // the encrypted channel
+    // Incoming encrypted data
+    volatile ByteBuffer inSSLNetData = null;
+    // Outgoing encrypted data
+    volatile ByteBuffer outSSLNetData = null;
+    // clear text application data
+    volatile ByteBuffer inAppData = null;
+    // the encrypted channel
+    volatile SocketChannel sslChannel = null;
     volatile SSLChannelOutputStream sslOutputStream = null;
     volatile SelectorController selectorController = null;
 
     volatile SocketChannel remoteChannel = null;
     volatile ByteBuffer inRemoteData = null;
     volatile SSLStateMachine stateMachine = null;
-     boolean forcedClose = false;
-     InetSocketAddressDAO remoteAddress = null;
+    volatile boolean forcedClose = false;
+    volatile InetSocketAddressDAO remoteAddress = null;
 
     //final Lock ioLock = null;//new ReentrantLock();
-     private final SSLEngine sslEngine; // the crypto engine
+    private final SSLEngine sslEngine; // the crypto engine
 
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
-    private  boolean hasBegan = false;
+    private final AtomicBoolean hasBegan = new AtomicBoolean(false);
 
     public SSLSessionConfig(SSLContextInfo sslContext)
     {
@@ -77,7 +78,7 @@ public class SSLSessionConfig
                 try
                 {
                     sslEngine.closeOutbound();
-                    while (!forcedClose && hasBegan && !sslEngine.isOutboundDone() && sslChannel.isOpen())
+                    while (!forcedClose && hasBegan.get() && !sslEngine.isOutboundDone() && sslChannel.isOpen())
                     {
                       SSLEngineResult.HandshakeStatus hs = getHandshakeStatus();
                       switch (hs)
@@ -148,32 +149,21 @@ public class SSLSessionConfig
 
 
     public void beginHandshake(boolean clientMode) throws SSLException {
-        if (hasBegan == false)
+        if (hasBegan.get() == false)
         {
-            synchronized (this)
+            if(hasBegan.getAndSet(true) == false)
             {
-                if(hasBegan == false)
-                {
-                    hasBegan = true;
-                    sslEngine.setUseClientMode(clientMode);
-                    sslEngine.beginHandshake();
-                    inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
-                    outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
-                    inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
-                }
+                // set the ssl engine mode client or sever
+                sslEngine.setUseClientMode(clientMode);
+                // start the handshake
+                sslEngine.beginHandshake();
+                // create the necessary byte buffer with the proper length
+                inSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+                outSSLNetData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getPacketBufferSize());
+                inAppData = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, getApplicationBufferSize());
             }
-            // at the end for a reason to make at the execution transactional
-            //return true;
         }
-       // return false;
     }
-
-
-//    public void setUseClientMode(boolean clientMode)
-//    {
-//        sslEngine.setUseClientMode(clientMode);
-//    }
-
 
     public int getPacketBufferSize()
     {

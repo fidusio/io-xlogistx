@@ -67,9 +67,11 @@ public class NIOHTTPServer
                 IOUtil.close(get(), hph);
                 // we should close
             }
-
-
         }
+
+//        public void exception(Exception e) {
+//            log.getLogger().info("" + e);
+//        }
     }
 
     public class HTTPSSession
@@ -91,6 +93,11 @@ public class NIOHTTPServer
                 // we should close
             }
         }
+
+//        @Override
+//        public void exception(Exception e) {
+//            log.getLogger().info("" + e);
+//        }
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
@@ -126,6 +133,7 @@ public class NIOHTTPServer
             if(logger.isEnabled())
                 logger.getLogger().info(hph.getRequest().getURI());
             URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+            logger.getLogger().info(""+epm.result.httpEndPoint);
 
 
             if (epm != null) {
