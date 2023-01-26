@@ -1,9 +1,8 @@
 package io.xlogistx.ssl;
 
 
+import org.zoxweb.server.net.BaseSessionCallback;
 
-
-import io.xlogistx.common.net.BaseSessionCallback;
 import java.io.OutputStream;
 
 public abstract class SSLSessionCallback extends BaseSessionCallback<SSLSessionConfig>

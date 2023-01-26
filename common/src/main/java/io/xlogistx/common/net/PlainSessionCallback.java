@@ -1,5 +1,7 @@
 package io.xlogistx.common.net;
 
+import org.zoxweb.server.net.BaseSessionCallback;
+
 import java.io.OutputStream;
 import java.nio.channels.ByteChannel;
 

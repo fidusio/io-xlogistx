@@ -133,7 +133,7 @@ public class NIOHTTPServer
             if(logger.isEnabled())
                 logger.getLogger().info(hph.getRequest().getURI());
             URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
-            logger.getLogger().info(""+epm.result.httpEndPoint);
+            if(logger.isEnabled()) logger.getLogger().info(""+epm.result.httpEndPoint);
 
 
             if (epm != null) {

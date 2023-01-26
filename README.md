@@ -26,7 +26,7 @@ It is a functional work in progress project
 It is a work in progress pure Java Multi-Threaded Secure 
 NIO http1.1 webserver with annotation functional mapping
 
-<br><h2>Security module</h2>
+<br><h2>security module</h2>
 It is a pure Java Multi-Threaded NIO secure socket implementation
 <ol>Supported features
 <li>State machine ssl engine handshake</li>
