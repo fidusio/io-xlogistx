@@ -2,7 +2,6 @@ package io.xlogistx.ssl;
 
 
 import org.zoxweb.server.net.BaseSessionCallback;
-import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.ProtocolFactoryBase;
 import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.shared.data.ConfigDAO;
@@ -103,9 +102,9 @@ public class SSLNIOSocketFactory
     public InetSocketAddressDAO getRemoteAddress(){ return remoteAddress; }
 
 
-    @Override
-    public NIOChannelCleaner getNIOChannelCleaner() {
-        return NIOChannelCleaner.DEFAULT;
-    }
+//    @Override
+//    public NIOChannelCleaner getNIOChannelCleaner() {
+//        return NIOChannelCleaner.DEFAULT;
+//    }
 
 }

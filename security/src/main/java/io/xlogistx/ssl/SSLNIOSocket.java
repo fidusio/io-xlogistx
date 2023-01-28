@@ -23,6 +23,7 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolHandler;
 import org.zoxweb.server.net.SessionCallback;
@@ -209,9 +210,7 @@ public class SSLNIOSocket
 
 
 	@Override
-	protected void setupConnection(AbstractSelectableChannel asc) throws IOException {
-		// must be modified do the handshake
-		//((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
+	protected void setupConnection(AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
 		config = sslStateMachine.getConfig();
 		if(remoteAddress != null)
@@ -222,8 +221,11 @@ public class SSLNIOSocket
 		config.sslOutputStream = new SSLChannelOutputStream(config, 512 );
 		sessionCallback.setConfig(config);
 		sslStateMachine.start(true);
+		// not sure about
 		//config.beginHandshake(false);
-		//getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
+		getSelectorController().register(NIOChannelCleaner.DEFAULT,  asc, SelectionKey.OP_READ, this, isBlocking);
+
+
 
 
 	}
