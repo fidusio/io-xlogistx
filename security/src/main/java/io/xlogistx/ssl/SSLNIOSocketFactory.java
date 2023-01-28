@@ -20,16 +20,18 @@ public class SSLNIOSocketFactory
 
     public SSLNIOSocketFactory()
     {
-
+        complexSetup = true;
     }
     public SSLNIOSocketFactory(SSLContextInfo sslContext, InstanceCreator<SSLSessionCallback> instanceCreator)
     {
+        this();
         this.sslContext = sslContext;
         this.instanceCreator = instanceCreator;
     }
 
     public SSLNIOSocketFactory(SSLContextInfo sslContext,  Class<? extends BaseSessionCallback> scClass)
     {
+        this();
         this.sslContext = sslContext;
         this.scClass = scClass;
     }
@@ -37,6 +39,7 @@ public class SSLNIOSocketFactory
 
     public SSLNIOSocketFactory(SSLContextInfo sslContext, InetSocketAddressDAO ra)
     {
+        this();
         this.sslContext = sslContext;
         remoteAddress = ra;
     }

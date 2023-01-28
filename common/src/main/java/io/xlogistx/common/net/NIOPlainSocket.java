@@ -27,7 +27,6 @@ import java.net.InetSocketAddress;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 
 
 public class NIOPlainSocket
@@ -36,9 +35,9 @@ public class NIOPlainSocket
     private static final LogWrapper log = new LogWrapper(NIOPlainSocket.class).setEnabled(false);
 
 
-	private volatile SocketChannel sourceChannel = null;
-	private volatile SelectionKey  sourceSK = null;
-	private volatile ByteBuffer sourceBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, 1024);
+	//private volatile SocketChannel phSChannel = null;
+	//private volatile SelectionKey  sourceSK = null;
+	private volatile ByteBuffer phBB = ByteBufferUtil.allocateByteBuffer(ByteBufferUtil.BufferType.DIRECT, 1024);
 
 
 
@@ -66,9 +65,9 @@ public class NIOPlainSocket
     {
 		if(!isClosed.getAndSet(true))
 		{
-			IOUtil.close(sourceChannel);
+			IOUtil.close(phSChannel);
 			IOUtil.close(sessionCallback.get());
-			ByteBufferUtil.cache(sourceBB);
+			ByteBufferUtil.cache(phBB);
 		}
 	}
 
@@ -79,15 +78,15 @@ public class NIOPlainSocket
 		try
     	{
 
-			if(sourceChannel == null)
+			if(phSK == null)
 			{
 				synchronized (this)
 				{
-					if(sourceChannel == null)
+					if(phSK == null)
 					{
-						sourceChannel = (SocketChannel) key.channel();
-						sourceSK = key;
-						sessionCallback.setConfig(sourceChannel);
+						//phSChannel = (SocketChannel) key.channel();
+						phSK = key;
+						sessionCallback.setConfig(phSChannel);
 					}
 				}
 			}
@@ -95,12 +94,12 @@ public class NIOPlainSocket
 			int read = 0 ;
     		do
             {
-				((Buffer)sourceBB).clear();
-				read = sourceChannel.read(sourceBB);
+				((Buffer) phBB).clear();
+				read = phSChannel.read(phBB);
 
     			if (read > 0)
     			{
-					sessionCallback.accept(sourceBB);
+					sessionCallback.accept(phBB);
     			}
     		}
     		while(read > 0);

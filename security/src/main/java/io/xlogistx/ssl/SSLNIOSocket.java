@@ -15,12 +15,14 @@
  */
 package io.xlogistx.ssl;
 
-import io.xlogistx.common.fsm.*;
+import io.xlogistx.common.fsm.State;
+import io.xlogistx.common.fsm.StateMachine;
+import io.xlogistx.common.fsm.Trigger;
+import io.xlogistx.common.fsm.TriggerConsumer;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
-import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.ProtocolHandler;
 import org.zoxweb.server.net.SessionCallback;
@@ -206,8 +208,8 @@ public class SSLNIOSocket
 
 
 
-
-	protected void acceptConnection(NIOChannelCleaner ncc, AbstractSelectableChannel asc, boolean isBlocking) throws IOException {
+	@Override
+	protected void setupConnection(AbstractSelectableChannel asc) throws IOException {
 		// must be modified do the handshake
 		//((SocketChannel)asc).setOption(StandardSocketOptions.TCP_NODELAY, true);
     	sslStateMachine = SSLStateMachine.create(sslContext, null);
@@ -220,7 +222,8 @@ public class SSLNIOSocket
 		config.sslOutputStream = new SSLChannelOutputStream(config, 512 );
 		sessionCallback.setConfig(config);
 		sslStateMachine.start(true);
-		getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
+		//config.beginHandshake(false);
+		//getSelectorController().register(ncc,  asc, SelectionKey.OP_READ, this, isBlocking);
 
 
 	}
