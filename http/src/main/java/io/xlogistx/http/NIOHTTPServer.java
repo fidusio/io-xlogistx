@@ -209,6 +209,7 @@ public class NIOHTTPServer
             }
 
             IOUtil.close(os, hph);
+
         }
         else
         {

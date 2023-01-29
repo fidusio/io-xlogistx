@@ -3,6 +3,7 @@ package io.xlogistx.ssl;
 import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import org.zoxweb.server.task.TaskCallback;
+import org.zoxweb.shared.util.RateCounter;
 
 import javax.net.ssl.SSLEngineResult;
 import java.nio.ByteBuffer;
@@ -17,6 +18,7 @@ public class SSLReadState
 
     static class NotHandshaking extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
+        static RateCounter rcNotHandshaking = new RateCounter("NotHandshaking");
         NotHandshaking() {
             super(NOT_HANDSHAKING);
         }
@@ -24,6 +26,7 @@ public class SSLReadState
         @Override
         public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
         {
+            long ts = System.currentTimeMillis();
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             if(log.isEnabled()) log.getLogger().info("" + config.getHandshakeStatus());
 
@@ -70,9 +73,7 @@ public class SSLReadState
                                         break;
                                     case CLOSED:
                                         // check result here
-
                                         if(log.isEnabled()) log.getLogger().info("CLOSED-DURING-NOT_HANDSHAKING: " + result + " bytesread: " + bytesRead);
-
                                         config.close();
                                         break;
                                 }
@@ -90,7 +91,8 @@ public class SSLReadState
                         publishSync(config.getHandshakeStatus(), callback);
                 }
             }
-
+            ts = System.currentTimeMillis() - ts;
+            rcNotHandshaking.register(ts);
         }
     }
 

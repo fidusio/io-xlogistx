@@ -110,7 +110,10 @@ public class SSLSessionConfig
 
             if (log.isEnabled()) log.getLogger().info("SSLSessionConfig-CLOSED " +Thread.currentThread() + " " +
                     sslChannel + " Address: " + connectionRemoteAddress);
+//            TaskUtil.getDefaultTaskScheduler().queue(Const.TimeInMillis.SECOND.MILLIS, ()->
+//                log.getLogger().info(SSLStateMachine.rates()));
         }
+
 
     }
 

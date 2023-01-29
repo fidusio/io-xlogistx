@@ -4,6 +4,7 @@ import io.xlogistx.common.fsm.*;
 import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.SharedUtil;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.Executor;
@@ -48,7 +49,7 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     }
 
 
-    private static final AtomicLong counter = new AtomicLong();
+    static final AtomicLong counter = new AtomicLong();
 
 
 //    private SSLStateMachine(long id, TaskSchedulerProcessor tsp) {
@@ -110,4 +111,10 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
         return sslSessionSM;
     }
 
+
+
+    public static String rates()
+    {
+        return SharedUtil.toCanonicalID(',', SSLHandshakingState.NeedWrap.rcNeedWrap, SSLHandshakingState.NeedUnwrap.rcNeedUnwrap, SSLHandshakingState.NeedTask.rcNeedTask, SSLHandshakingState.Finished.rcFinished, SSLReadState.NotHandshaking.rcNotHandshaking);
+    }
 }

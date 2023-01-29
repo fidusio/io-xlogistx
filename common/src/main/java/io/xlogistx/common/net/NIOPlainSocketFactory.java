@@ -2,7 +2,6 @@ package io.xlogistx.common.net;
 
 
 import org.zoxweb.server.net.BaseSessionCallback;
-import org.zoxweb.server.net.NIOChannelCleaner;
 import org.zoxweb.server.net.ProtocolFactoryBase;
 import org.zoxweb.shared.util.InstanceCreator;
 
@@ -67,9 +66,9 @@ public class NIOPlainSocketFactory
 
     }
 
-    @Override
-    public NIOChannelCleaner getNIOChannelCleaner() {
-        return NIOChannelCleaner.DEFAULT;
-    }
+//    @Override
+//    public NIOChannelCleaner getNIOChannelCleaner() {
+//        return NIOChannelCleaner.DEFAULT;
+//    }
 
 }

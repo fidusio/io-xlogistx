@@ -4,6 +4,7 @@ import io.xlogistx.common.fsm.State;
 import io.xlogistx.common.fsm.TriggerConsumer;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.task.TaskCallback;
+import org.zoxweb.shared.util.RateCounter;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.net.ssl.SSLEngineResult;
@@ -19,6 +20,7 @@ public class SSLHandshakingState extends State {
 
     static class NeedWrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
+        static RateCounter rcNeedWrap = new RateCounter("NeedWrap");
         NeedWrap()
         {
             super(NEED_WRAP);
@@ -26,6 +28,7 @@ public class SSLHandshakingState extends State {
         @Override
         public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
         {
+            long ts = System.currentTimeMillis();
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             if (config.getHandshakeStatus() == NEED_WRAP)
             {
@@ -62,11 +65,16 @@ public class SSLHandshakingState extends State {
                   config.close();
               }
             }
+            ts = System.currentTimeMillis() - ts;
+            rcNeedWrap.register(ts);
         }
+
     }
 
     static class NeedUnwrap extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
+        static RateCounter rcNeedUnwrap = new RateCounter("NeedUnwrap");
+
         NeedUnwrap()
         {
             super("NEED_UNWRAP", "NEED_UNWRAP_AGAIN");
@@ -75,6 +83,7 @@ public class SSLHandshakingState extends State {
     @Override
     public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback)
     {
+        long ts = System.currentTimeMillis();
         SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
         if(log.isEnabled()) log.getLogger().info("Entry: " + config.getHandshakeStatus());
 
@@ -128,7 +137,10 @@ public class SSLHandshakingState extends State {
                 config.close();
             }
           }
+        ts = System.currentTimeMillis() - ts;
+        rcNeedUnwrap.register(ts);
         }
+
     }
 
 
@@ -137,12 +149,14 @@ public class SSLHandshakingState extends State {
 
     static class NeedTask extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
+        static RateCounter rcNeedTask = new RateCounter("NeedTask");
         NeedTask() {
             super(NEED_TASK);
         }
 
         @Override
         public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
+            long ts = System.currentTimeMillis();
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
             Runnable toRun;
             while((toRun = config.getDelegatedTask()) != null)
@@ -154,6 +168,8 @@ public class SSLHandshakingState extends State {
             if (log.isEnabled())
                 log.getLogger().info("After run: " + status);
             publishSync(status, callback);
+            ts = System.currentTimeMillis() - ts;
+            rcNeedTask.register(ts);
         }
     }
 
@@ -161,13 +177,14 @@ public class SSLHandshakingState extends State {
 
     static class Finished extends TriggerConsumer<TaskCallback<ByteBuffer, SSLChannelOutputStream>>
     {
-
+        static RateCounter rcFinished = new RateCounter("Finished");
         Finished() {
             super(FINISHED);
         }
 
         @Override
         public void accept(TaskCallback<ByteBuffer, SSLChannelOutputStream> callback) {
+            long ts = System.currentTimeMillis();
             SSLSessionConfig config = (SSLSessionConfig) getState().getStateMachine().getConfig();
 
 
@@ -190,6 +207,9 @@ public class SSLHandshakingState extends State {
                 //**************************************************
                 publishSync(config.getHandshakeStatus(), callback);
             }
+
+            ts = System.currentTimeMillis() - ts;
+            rcFinished.register(ts);
         }
     }
 
