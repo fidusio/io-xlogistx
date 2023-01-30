@@ -4,6 +4,7 @@ import io.xlogistx.common.fsm.*;
 import org.zoxweb.server.security.SSLContextInfo;
 import org.zoxweb.server.task.TaskCallback;
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.nio.ByteBuffer;
@@ -117,4 +118,26 @@ public class SSLStateMachine extends StateMachine<SSLSessionConfig>
     {
         return SharedUtil.toCanonicalID(',', SSLHandshakingState.NeedWrap.rcNeedWrap, SSLHandshakingState.NeedUnwrap.rcNeedUnwrap, SSLHandshakingState.NeedTask.rcNeedTask, SSLHandshakingState.Finished.rcFinished, SSLReadState.NotHandshaking.rcNotHandshaking);
     }
+
+    public static <T> T lookupType(String type)
+    {
+        type = SharedStringUtil.toUpperCase(type);
+        switch(type)
+        {
+            case "NEED_WRAP":
+                return (T) SSLHandshakingState.NeedWrap.rcNeedWrap;
+            case "NEED_UNWRAP":
+                return (T) SSLHandshakingState.NeedUnwrap.rcNeedUnwrap;
+            case "NEED_TASK":
+                return (T) SSLHandshakingState.NeedTask.rcNeedTask;
+            case "FINISHED":
+                return (T) SSLReadState.NotHandshaking.rcNotHandshaking;
+            case "SSL_CONNECTION_COUNT":
+                return (T) Long.valueOf(counter.get());
+
+
+        }
+        return null;
+    }
+
 }

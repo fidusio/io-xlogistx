@@ -1,4 +1,4 @@
-package iot.xlogistx.okta;
+package io.xlogistx.okta;
 
 import io.xlogistx.okta.api.DefaultOktaUser;
 import io.xlogistx.okta.api.DefaultOktaUserProfile;
