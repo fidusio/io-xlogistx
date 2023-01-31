@@ -17,7 +17,7 @@ package io.xlogistx.shiro;
 
 import org.zoxweb.server.http.HTTPCall;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.SSLCheckDisabler;
+import org.zoxweb.server.net.ssl.SSLCheckDisabler;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.http.*;

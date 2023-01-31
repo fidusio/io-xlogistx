@@ -12,7 +12,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.security.CryptoUtil;
-import org.zoxweb.server.security.SSLContextInfo;
+import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
@@ -33,8 +33,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.zoxweb.server.security.SSLContextInfo.Param.CIPHERS;
-import static org.zoxweb.server.security.SSLContextInfo.Param.PROTOCOLS;
+import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
+import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController
