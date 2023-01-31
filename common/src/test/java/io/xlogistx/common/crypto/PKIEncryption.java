@@ -1,4 +1,4 @@
-package io.xlogistx.crypto;
+package io.xlogistx.common.crypto;
 
 
 

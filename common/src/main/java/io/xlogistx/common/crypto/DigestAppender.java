@@ -1,4 +1,4 @@
-package io.xlogistx.crypto;
+package io.xlogistx.common.crypto;
 
 import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.SharedStringUtil;

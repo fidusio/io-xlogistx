@@ -2,10 +2,10 @@ package io.xlogistx.http;
 
 
 import io.xlogistx.common.http.*;
-import io.xlogistx.common.net.NIOPlainSocketFactory;
-import io.xlogistx.common.net.PlainSessionCallback;
-import io.xlogistx.ssl.SSLNIOSocketFactory;
-import io.xlogistx.ssl.SSLSessionCallback;
+import org.zoxweb.server.net.NIOPlainSocketFactory;
+import org.zoxweb.server.net.PlainSessionCallback;
+import org.zoxweb.server.net.ssl.SSLNIOSocketFactory;
+import org.zoxweb.server.net.ssl.SSLSessionCallback;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;

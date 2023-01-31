@@ -45,7 +45,6 @@
       <module>common</module>
       <module>http</module>
       <module>shiro</module>
-      <module>security</module>
       <module>http-ws</module>
       <module>core</module>
       <module>payment</module>

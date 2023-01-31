@@ -56,11 +56,7 @@
       <artifactId>xlogistx-core</artifactId>
       <version>${xlogistx.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.xlogistx</groupId>
-      <artifactId>xlogistx-security</artifactId>
-      <version>${xlogistx.version}</version>
-    </dependency>
+
 
 
 

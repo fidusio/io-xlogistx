@@ -127,12 +127,7 @@
             <version>${xlogistx.version}</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>io.xlogistx</groupId>
-            <artifactId>xlogistx-security</artifactId>
-            <version>${xlogistx.version}</version>
-            <scope>compile</scope>
-        </dependency>
+
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-core</artifactId>
