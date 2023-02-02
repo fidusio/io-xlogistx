@@ -2,6 +2,7 @@ package io.xlogistx.http;
 
 
 import io.xlogistx.common.http.*;
+import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.net.NIOPlainSocketFactory;
 import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLNIOSocketFactory;
@@ -356,6 +357,7 @@ public class NIOHTTPServer
 
 //            logger.setEnabled(true);
             String filename = args[index++];
+            int proxyPort = args.length > index ? Integer.parseInt(args[index++]) : -1;
             if (logger.isEnabled()) logger.getLogger().info("config file:" + filename);
             File file = IOUtil.locateFile(filename);
             HTTPServerConfig hsc = null;
@@ -374,6 +376,13 @@ public class NIOHTTPServer
             NIOSocket nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
+
+            if (proxyPort > 0)
+            {
+                // setup the proxy
+                nioSocket.addSeverSocket(proxyPort, 256, new NIOProxyProtocol.NIOProxyProtocolFactory());
+                logger.getLogger().info("HTTP proxy started @" + proxyPort);
+            }
             logger.getLogger().info("After start");
 
         } catch (Exception e) {
