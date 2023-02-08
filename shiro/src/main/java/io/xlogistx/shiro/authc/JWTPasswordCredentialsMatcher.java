@@ -4,19 +4,17 @@ import io.xlogistx.shiro.DomainPrincipalCollection;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.JWTProvider;
-
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.security.JWT;
 import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.util.Const.Status;
 import org.zoxweb.shared.util.SharedStringUtil;
 
-import java.util.logging.Logger;
-
 public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
-	protected static final transient Logger log = Logger.getLogger(JWTPasswordCredentialsMatcher.class.getName());
+	public static final LogWrapper log = new LogWrapper(JWTPasswordCredentialsMatcher.class).setEnabled(false);
 	@Override
 	public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)
 	{
@@ -38,7 +36,7 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 					return true;
 				}
 				
-				//log.info("SimpleAuthentication token:" + token.getClass().getName());
+				//if(log.isEnabled()) log.getLogger().info("SimpleAuthentication token:" + token.getClass().getName());
 			
 	
 				PasswordDAO passwordDAO = (PasswordDAO) info.getCredentials();
@@ -61,7 +59,7 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 			}
 			else if (info.getCredentials() instanceof SubjectAPIKey && token instanceof JWTAuthenticationToken)
 			{
-				//log.info("JWTAuthenticationToken");
+				//if(log.isEnabled()) log.getLogger().info("JWTAuthenticationToken");
 				SubjectAPIKey sak = (SubjectAPIKey) info.getCredentials();
 				if (sak.getStatus() != Status.ACTIVE)
 				{

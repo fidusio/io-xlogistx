@@ -70,9 +70,6 @@ public class NIOHTTPServer
             }
         }
 
-//        public void exception(Exception e) {
-//            log.getLogger().info("" + e);
-//        }
     }
 
     public class HTTPSSession
@@ -94,11 +91,6 @@ public class NIOHTTPServer
                 // we should close
             }
         }
-
-//        @Override
-//        public void exception(Exception e) {
-//            log.getLogger().info("" + e);
-//        }
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
@@ -379,7 +371,7 @@ public class NIOHTTPServer
 
             if (proxyPort > 0)
             {
-                // setup the proxy
+                // set up the proxy
                 nioSocket.addSeverSocket(proxyPort, 256, new NIOProxyProtocol.NIOProxyProtocolFactory());
                 logger.getLogger().info("HTTP proxy started @" + proxyPort);
             }
@@ -392,7 +384,7 @@ public class NIOHTTPServer
         }
         startTS = System.currentTimeMillis() - startTS;
 
-        logger.getLogger().info("Start up time:" + Const.TimeInMillis.toString(startTS));
+        logger.getLogger().info("Start up time " + Const.TimeInMillis.toString(startTS));
 
     }
 
