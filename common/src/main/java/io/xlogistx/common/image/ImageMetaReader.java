@@ -1,15 +1,17 @@
-package io.xlogistx.common.test;
+package io.xlogistx.common.image;
 
-import org.w3c.dom.*;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 import org.zoxweb.shared.util.SharedStringUtil;
 
-import java.io.*;
-
-import java.util.*;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
-import javax.imageio.stream.*;
-import javax.imageio.metadata.*;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.stream.ImageInputStream;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
 
 public class ImageMetaReader {
 
@@ -18,9 +20,12 @@ public class ImageMetaReader {
             ImageMetaReader meta = new ImageMetaReader();
             int length = args.length;
             for (int i = 0; i < length; i++) {
-                meta.readAndDisplayMetadata(args[i]);
-                javaxt.io.Image image = new javaxt.io.Image(args[i]);
-                String format = SharedStringUtil.valueAfterRightToken(args[i], ".").toLowerCase();
+                String imageFileName = args[i];
+                meta.readAndDisplayMetadata(imageFileName);
+
+                String format = SharedStringUtil.valueAfterRightToken(imageFileName, ".").toLowerCase();
+                javaxt.io.Image image = new javaxt.io.Image(imageFileName);
+
 
 
                 for (Map.Entry<Integer, Object> kv : image.getExifTags().entrySet()) {
@@ -34,7 +39,7 @@ public class ImageMetaReader {
                 System.out.println("GPS: " + image.getGPSDatum() + " " + Arrays.toString(image.getGPSCoordinate()));
                 System.out.println(format + " " + Arrays.toString(image.getInputFormats()));
 
-                ImageIO.write(image.getBufferedImage(), format, new File("d:\\temp\\toto."+format));
+                ImageIO.write(image.getBufferedImage(), format, new File(imageFileName + "_scrubbed."+format));
 
 
             }

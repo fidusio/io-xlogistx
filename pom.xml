@@ -73,7 +73,7 @@
         <commons-logging.version>1.2</commons-logging.version>
         <commons-beanutils.version>1.9.4</commons-beanutils.version>
         <commons-codec.version>1.15</commons-codec.version>
-        <commons-csv.version>1.9.0</commons-csv.version>
+        <commons-csv.version>1.10.0</commons-csv.version>
         <commons-fileupload.version>1.4</commons-fileupload.version>
         <apache.shiro.version>1.11.0</apache.shiro.version>
         <ehcache-org.version>3.9.10</ehcache-org.version>
@@ -93,7 +93,7 @@
         <zoxweb-core.version>2.3.5</zoxweb-core.version>
 
         <xlogistx.version>1.0.0</xlogistx.version>
-        <java-xt-core.version>1.12.0</java-xt-core.version>
+        <java-xt-core.version>1.12.2</java-xt-core.version>
         <squareup.version>6.0.0.20200625</squareup.version>
 
 
