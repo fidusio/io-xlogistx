@@ -19,14 +19,12 @@ import io.xlogistx.shiro.cache.ShiroJCacheManager;
 import org.apache.shiro.cache.CacheManager;
 import org.apache.shiro.util.Destroyable;
 import org.apache.shiro.util.Initializable;
-
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.ResourceManager;
 
 import java.io.Closeable;
 import java.util.HashSet;
-
 import java.util.Iterator;
-import java.util.logging.Logger;
 
 
 /**
@@ -39,7 +37,7 @@ public class XlogistxEhCacheManager
 {
 	public static final String RESOURCE_NAME = "XLOGISTX_EH_CACHE_MANAGER";
 	
-	private static final Logger log = Logger.getLogger(XlogistxEhCacheManager.class.getName());
+	public static final LogWrapper log = new LogWrapper(XlogistxEhCacheManager.class);
 	
 	//private static final HashSet<EhCacheManager> CACHE_SET = new HashSet<>();
 	
@@ -74,7 +72,7 @@ public class XlogistxEhCacheManager
 			
 			synchronized(cacheSet)
 	        {
-				log.info("Started destroy all " + cacheSet.size() + " to be destroyed.");
+				if(log.isEnabled()) log.getLogger().info("Started destroy all " + cacheSet.size() + " to be destroyed.");
 			
 				cacheSet.iterator();
 				
@@ -86,7 +84,7 @@ public class XlogistxEhCacheManager
 	                {
 						ShiroJCacheManager ecm = it.next();
 						ecm.destroy();
-						log.info("Destroyed:" + ecm);
+						if(log.isEnabled()) log.getLogger().info("Destroyed:" + ecm);
 					}
 					catch(Exception e)
 	                {
@@ -95,7 +93,7 @@ public class XlogistxEhCacheManager
 				}
 
 				cacheSet.clear();
-				log.info("Finished destroy all left size: " + cacheSet.size());
+				if(log.isEnabled()) log.getLogger().info("Finished destroy all left size: " + cacheSet.size());
 			}
 			
 		}
@@ -108,7 +106,7 @@ public class XlogistxEhCacheManager
     {
 		super();
 		CACHE_OBJECT.add(this);	
-		log.info("Created set size: " + CACHE_OBJECT.cacheSet.size());
+		if(log.isEnabled()) log.getLogger().info("Created set size: " + CACHE_OBJECT.cacheSet.size());
 	}
 	
 	public static void destroyAll()

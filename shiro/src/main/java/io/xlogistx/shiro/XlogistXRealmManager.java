@@ -1,5 +1,6 @@
 package io.xlogistx.shiro;
 
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
@@ -14,7 +15,6 @@ import org.zoxweb.shared.util.SubjectID;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.logging.Logger;
 
 public class XlogistXRealmManager
 implements ShiroRealmStore
@@ -29,7 +29,7 @@ implements ShiroRealmStore
 
     private final Map<String, Object> cacheMap = new LinkedHashMap<>();
 
-    private static final Logger log = Logger.getLogger(XlogistXRealmManager.class.getName());
+    public static final LogWrapper log = new LogWrapper(XlogistXRealmManager.class).setEnabled(false);
 
     /**
      * Add a subject

@@ -26,34 +26,28 @@ import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.apache.shiro.subject.Subject;
-
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.api.APIAppManager;
-
 import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.AppDeviceDAO;
-
 import org.zoxweb.shared.data.UserIDDAO;
-
 import org.zoxweb.shared.security.SubjectAPIKey;
-
 import org.zoxweb.shared.security.SubjectIDDAO;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
-import org.zoxweb.shared.util.*;
-
+import org.zoxweb.shared.util.ResourceManager;
 import org.zoxweb.shared.util.ResourceManager.Resource;
-
+import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.util.Set;
-import java.util.logging.Logger;
 
 public class XlogistXShiroRealm
     extends AuthorizingRealm
 
 {
 
-	private static final transient Logger log = Logger.getLogger(Const.LOGGER_NAME);
+	public static final LogWrapper log = new LogWrapper(XlogistXShiroRealm.class).setEnabled(false);
 
 	protected boolean permissionsLookupEnabled = false;
 	private boolean cachePersistenceEnabled = false;
@@ -84,7 +78,7 @@ public class XlogistXShiroRealm
            throw new AuthorizationException("PrincipalCollection method argument cannot be null.");
        }
        
-       log.info("PrincipalCollection class:" + principals.getClass());
+       if(log.isEnabled()) log.getLogger().info("PrincipalCollection class:" + principals.getClass());
 
        if (principals instanceof DomainPrincipalCollection)
        {
@@ -109,7 +103,7 @@ public class XlogistXShiroRealm
 	
 	
 	protected Object getAuthenticationCacheKey(AuthenticationToken token) {
-		//log.info("TAG1::key:" + token);
+		//if(log.isEnabled()) log.getLogger().info("TAG1::key:" + token);
 		if(token instanceof JWTAuthenticationToken)
 		{
 			return ((JWTAuthenticationToken)token).getJWTSubjectID();
@@ -119,7 +113,7 @@ public class XlogistXShiroRealm
 	
 	 protected Object getAuthenticationCacheKey(PrincipalCollection principals)
 	 {
-		 //log.info("TAG2::key:" + principals);
+		 //if(log.isEnabled()) log.getLogger().info("TAG2::key:" + principals);
 		 if (principals instanceof DomainPrincipalCollection)
 		 {
 				DomainPrincipalCollection dpc = (DomainPrincipalCollection)principals;
@@ -131,7 +125,7 @@ public class XlogistXShiroRealm
 	
 	protected Object getAuthorizationCacheKey(PrincipalCollection principals)
 	{
-		//log.info("TAG3:" + principals + " " + principals.getClass());
+		//if(log.isEnabled()) log.getLogger().info("TAG3:" + principals + " " + principals.getClass());
 		if (principals instanceof DomainPrincipalCollection)
 		{
 			DomainPrincipalCollection dpc = (DomainPrincipalCollection)principals;
@@ -147,11 +141,11 @@ public class XlogistXShiroRealm
 	protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token)
 			throws AuthenticationException
 	{
-		//log.info("AuthenticationToken:" + token);
+		//if(log.isEnabled()) log.getLogger().info("AuthenticationToken:" + token);
 		
 		if (token instanceof DomainUsernamePasswordToken)
 		{
-			//log.info("DomainUsernamePasswordToken based authentication");
+			//if(log.isEnabled()) log.getLogger().info("DomainUsernamePasswordToken based authentication");
 			DomainUsernamePasswordToken dupToken = (DomainUsernamePasswordToken) token;
 	        //String userName = upToken.getUsername();
 	        //String domainID = upToken.getDomainID();
@@ -166,7 +160,7 @@ public class XlogistXShiroRealm
 	        }
 	        dupToken.setUserID(userIDDAO.getSubjectID());
 	        // String userID = upToken.getUserID();
-	        //log.info( dupToken.getUsername() +":"+dupToken.getUserID());
+	        //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 	        // Null username is invalid
 	        
 	        PasswordDAO password = shiroStore.getSubjectPassword(null, dupToken.getUsername());
@@ -181,7 +175,7 @@ public class XlogistXShiroRealm
 	    }
 		else if (token instanceof JWTAuthenticationToken)
 		{
-			//log.info("JWTAuthenticationToken based authentication");
+			//if(log.isEnabled()) log.getLogger().info("JWTAuthenticationToken based authentication");
 			// lookup AppDeviceDAO or SubjectAPIKey
 			// in oder to do that we need to switch the user to SUPER_ADMIN or DAEMON user
 			JWTAuthenticationToken jwtAuthToken = (JWTAuthenticationToken) token;
@@ -284,7 +278,7 @@ public class XlogistXShiroRealm
 //			UserIDDAO userID = lookupUserID(userSubjectID);
 //			if (userID != null)
 //			{
-//				log.info("we must clear the autorizationinfo of " + userID.getPrimaryEmail());
+//				if(log.isEnabled()) log.getLogger().info("we must clear the autorizationinfo of " + userID.getPrimaryEmail());
 //				SimplePrincipalCollection principals = new SimplePrincipalCollection(userID.getPrimaryEmail(), getName());
 //				clearCachedAuthenticationInfo(principals);
 //				clearCachedAuthorizationInfo(principals);
@@ -296,35 +290,35 @@ public class XlogistXShiroRealm
 	 {	
 		 if (!isCachePersistenceEnabled())
 		 {
-			 log.info("principal to clear:" + principals);
+			 if(log.isEnabled()) log.getLogger().info("principal to clear:" + principals);
 			 super.doClearCache(principals);
 		 }
 		 
 		 
 //		 if(!isAuthenticationCachingEnabled())
 //		 { 
-//			 log.info("isAuthenticationCachingEnabled is no enabled for:" + principals);
+//			 if(log.isEnabled()) log.getLogger().info("isAuthenticationCachingEnabled is no enabled for:" + principals);
 //			 clearCachedAuthenticationInfo(principals);
 //		 }
 //		 else
 //		 {
-//			 log.info("isAuthenticationCaching not cleared");
+//			 if(log.isEnabled()) log.getLogger().info("isAuthenticationCaching not cleared");
 //		 }
 //		 if(!isAuthorizationCachingEnabled())
 //		 {
 //			 clearCachedAuthorizationInfo(principals);
-//			 log.info("isAuthorizationCachingEnabled is no enabled for:" + principals);
+//			 if(log.isEnabled()) log.getLogger().info("isAuthorizationCachingEnabled is no enabled for:" + principals);
 //		 }
 //		 else
 //		 {
-//			 log.info("isAuthorizationCaching not cleared");
+//			 if(log.isEnabled()) log.getLogger().info("isAuthorizationCaching not cleared");
 //		 }
 	 }
 	 
 	 
 	 public void invalidate(String resourceID)
 	 {
-		 //log.info("start for:" + resourceID);
+		 //if(log.isEnabled()) log.getLogger().info("start for:" + resourceID);
 		 if (!SharedStringUtil.isEmpty(resourceID))
 		 {
 			 // check it is a subject key id
@@ -333,7 +327,7 @@ public class XlogistXShiroRealm
 			SimplePrincipalCollection principalCollection = null;
 			try
 			{
-				//log.info("ResourceID:" + resourceID);
+				//if(log.isEnabled()) log.getLogger().info("ResourceID:" + resourceID);
 				APISecurityManager<Subject> sm = ResourceManager.SINGLETON.lookup(Resource.API_SECURITY_MANAGER);
 				APIAppManager appManager =  ResourceManager.SINGLETON.lookup(Resource.API_APP_MANAGER);
 				// try subject api key first
@@ -346,7 +340,7 @@ public class XlogistXShiroRealm
 						UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getUserID(), "_id", "_user_id", "primary_email");
 						if (userIDDAO != null)
 						{
-							//log.info("We have a subject api key:" + sak.getSubjectID());
+							//if(log.isEnabled()) log.getLogger().info("We have a subject api key:" + sak.getSubjectID());
 							principalCollection = new DomainPrincipalCollection(userIDDAO.getSubjectID(), null, getName(), null, null, sak.getSubjectID());
 						}
 					}
@@ -358,7 +352,7 @@ public class XlogistXShiroRealm
 					UserIDDAO userIDDAO = shiroStore.lookupUserID(resourceID, "_id", "_user_id", "primary_email");
 					if (userIDDAO != null)
 					{
-						//log.info("We have a user:" + userIDDAO.getSubjectID());
+						//if(log.isEnabled()) log.getLogger().info("We have a user:" + userIDDAO.getSubjectID());
 						principalCollection = new DomainPrincipalCollection(userIDDAO.getSubjectID(), null, getName(), null, null, null);
 					}
 				}
@@ -374,13 +368,13 @@ public class XlogistXShiroRealm
 			 
 			if (principalCollection != null)
 			{
-				log.info("clearing cached data for:" + principalCollection);
+				if(log.isEnabled()) log.getLogger().info("clearing cached data for:" + principalCollection);
 				clearCachedAuthenticationInfo(principalCollection);
 				clearCachedAuthorizationInfo(principalCollection);
 			}
 			else
 			{
-				log.info("NOT FOUND!!:" + resourceID);
+				if(log.isEnabled()) log.getLogger().info("NOT FOUND!!:" + resourceID);
 			}
 			 // or user id
 		 }

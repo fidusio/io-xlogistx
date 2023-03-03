@@ -16,7 +16,6 @@
 package io.xlogistx.shiro;
 
 
-
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
@@ -32,6 +31,7 @@ import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.shiro.ShiroNVEntityCRUDs;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
@@ -44,12 +44,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.logging.Logger;
 
 public class ShiroUtil
 {
 	
-	public static final Logger log = Logger.getLogger(Const.LOGGER_NAME);
+	public static final LogWrapper log = new LogWrapper(ShiroUtil.class);
 	
 	public static boolean login(String domain, String realm, String username, String password)
     {
@@ -310,7 +309,7 @@ public class ShiroUtil
     {
 		Environment env = new BasicIniEnvironment(shiroInitFile);
 		SecurityManager securityManager = env.getSecurityManager();
-		log.info("Class:"+ securityManager.getClass());
+		if(log.isEnabled()) log.getLogger().info("Class:"+ securityManager.getClass());
 		return securityManager;
 
 	}
@@ -321,7 +320,7 @@ public class ShiroUtil
 		ini.load(is);
 		Environment env = new BasicIniEnvironment(ini);
 		SecurityManager securityManager = env.getSecurityManager();
-		log.info("Class:"+ securityManager.getClass());
+		if(log.isEnabled()) log.getLogger().info("Class:"+ securityManager.getClass());
 		return securityManager;
 	}
 
