@@ -18,7 +18,7 @@ package io.xlogistx.shiro.authc;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
-import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.util.SharedStringUtil;
 
@@ -63,7 +63,7 @@ public class PasswordCredentialsMatcher
 					password = (String) token.getCredentials();
 				}
 	
-				return CryptoUtil.isPasswordValid(passwordDAO, password);
+				return HashUtil.isPasswordValid(passwordDAO, password);
 			}
 		}
 		catch (Exception e)

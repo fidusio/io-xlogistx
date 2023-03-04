@@ -5,7 +5,7 @@ import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.server.security.JWTProvider;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.security.JWT;
@@ -55,7 +55,7 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 					password = (String) token.getCredentials();
 				}
 				
-				return CryptoUtil.isPasswordValid(passwordDAO, password);
+				return HashUtil.isPasswordValid(passwordDAO, password);
 			}
 			else if (info.getCredentials() instanceof SubjectAPIKey && token instanceof JWTAuthenticationToken)
 			{

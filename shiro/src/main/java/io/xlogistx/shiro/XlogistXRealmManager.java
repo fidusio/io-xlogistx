@@ -1,7 +1,7 @@
 package io.xlogistx.shiro;
 
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.UserIDDAO;
@@ -375,7 +375,7 @@ implements ShiroRealmStore
         PasswordDAO passwordDAO = null;
         try
         {
-            passwordDAO = CryptoUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
+            passwordDAO = HashUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
             cachePut(KeyType.PASSWORD, subject.getSubjectID(), passwordDAO);
 
         } catch (NoSuchAlgorithmException e) {
@@ -389,7 +389,7 @@ implements ShiroRealmStore
         PasswordDAO passwordDAO = null;
         try
         {
-            passwordDAO = CryptoUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
+            passwordDAO = HashUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
             cachePut(KeyType.PASSWORD, subject, passwordDAO);
 
         } catch (NoSuchAlgorithmException e) {

@@ -5,9 +5,9 @@ import io.xlogistx.shiro.authc.JWTAuthenticationToken;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.UnavailableSecurityManagerException;
 import org.apache.shiro.subject.Subject;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.KeyMakerProvider;
-
 import org.zoxweb.shared.api.APICredentialsDAO;
 import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.api.APISecurityManager;
@@ -42,14 +42,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 
 public class APISecurityManagerProvider
 	implements  APISecurityManager<Subject>
 {
 	
-	protected static final transient Logger log = Logger.getLogger(APISecurityManagerProvider.class.getName());
+	public static final LogWrapper log = new LogWrapper(APISecurityManagerProvider.class);
 	
 	private final AtomicReference<Subject> daemon = new AtomicReference<Subject>();
 	
@@ -273,7 +272,7 @@ public class APISecurityManagerProvider
 		
 		if (value instanceof EncryptedDAO)
 		{
-			//log.info("userID:" + userID);
+			//if(log.isEnabled()) log.getLogger().info("userID:" + userID);
 			
 			byte dataKey[] = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, (userID != null ?  userID : checkNVEntityAccess(container, CRUD.READ)), container.getReferenceID());
 			try
@@ -487,7 +486,7 @@ public class APISecurityManagerProvider
 					return nve.getUserID();
 			}
 			
-			log.info("nveUserID:" + nve.getUserID() + " userID:" + userID);
+			if(log.isEnabled()) log.getLogger().info("nveUserID:" + nve.getUserID() + " userID:" + userID);
 			throw new AccessException("Access Denied. for resource:" + nve.getReferenceID());
 		}
 		
@@ -521,7 +520,7 @@ public class APISecurityManagerProvider
 					return true;
 				}
 				
-				//log.info("NVEntity UserID:" + nveUserID + " UserID:" + userID);		
+				//if(log.isEnabled()) log.getLogger().info("NVEntity UserID:" + nveUserID + " UserID:" + userID);
 			}
 			else
 			{
@@ -571,7 +570,7 @@ public class APISecurityManagerProvider
 				return nveUserID;
 			}
 			
-			log.info("NVEntity UserID:" + nveUserID + " UserID:" + userID);
+			if(log.isEnabled()) log.getLogger().info("NVEntity UserID:" + nveUserID + " UserID:" + userID);
 			
 			throw new AccessException("Unauthorized subject");
 		}
@@ -605,7 +604,7 @@ public class APISecurityManagerProvider
 				return userID;
 			}
 			
-			log.info("NVEntity refID:" + nveRefID + " UserID:" + userID);
+			if(log.isEnabled()) log.getLogger().info("NVEntity refID:" + nveRefID + " UserID:" + userID);
 			
 			throw new AccessException("Unauthorized subject");
 		}
@@ -632,7 +631,7 @@ public class APISecurityManagerProvider
 	        //We'll use the username/password example here since it is the most common.
 	    	
 	        currentUser.login(new JWTAuthenticationToken(jwtToken));
-	        //log.info(""+SecurityUtils.getSubject().getPrincipals().getClass());
+	        //if(log.isEnabled()) log.getLogger().info(""+SecurityUtils.getSubject().getPrincipals().getClass());
 	    }   
 		return currentUser;
 	}
