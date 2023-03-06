@@ -1,4 +1,4 @@
-package iot.xlogistx.shiro;
+package io.xlogistx.shiro;
 
 import io.xlogistx.shiro.ShiroUtil;
 import io.xlogistx.shiro.XlogistXShiroRealm;

@@ -1,7 +1,8 @@
 package io.xlogistx.okta.api;
 
 import com.google.gson.annotations.SerializedName;
-import org.zoxweb.server.security.BCrypt;
+import org.zoxweb.shared.crypto.BCryptHash;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NVInt;
 
@@ -39,9 +40,9 @@ public class OktaCredentials
 
     public synchronized OktaCredentials setBCrypt(String fullBCryptHash)
     {
-        BCrypt.BCryptHash bh = new BCrypt.BCryptHash(fullBCryptHash);
+        BCryptHash bh = new BCryptHash(fullBCryptHash);
         NVGenericMap hash = getHash();
-        hash.add("algorithm", "BCRYPT");
+        hash.add("algorithm", CryptoConst.AlgoType.BCRYPT.name());
         hash.add(new NVInt("workFactor", bh.logRound));
         hash.add("salt", bh.salt);
         hash.add("value", bh.hash);

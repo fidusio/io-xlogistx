@@ -1,4 +1,4 @@
-package iot.xlogistx.shiro;
+package io.xlogistx.shiro;
 
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.util.GSONUtil;

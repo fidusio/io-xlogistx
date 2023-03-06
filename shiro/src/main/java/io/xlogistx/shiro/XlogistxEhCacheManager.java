@@ -37,7 +37,7 @@ public class XlogistxEhCacheManager
 {
 	public static final String RESOURCE_NAME = "XLOGISTX_EH_CACHE_MANAGER";
 	
-	public static final LogWrapper log = new LogWrapper(XlogistxEhCacheManager.class);
+	public static final LogWrapper log = new LogWrapper(XlogistxEhCacheManager.class).setEnabled(true);
 	
 	//private static final HashSet<EhCacheManager> CACHE_SET = new HashSet<>();
 	
@@ -47,7 +47,6 @@ public class XlogistxEhCacheManager
 	public static class CacheObject
 		implements Closeable
 	{
-		
 		final HashSet<ShiroJCacheManager> cacheSet = new HashSet<>();
 		
 		CacheObject()
@@ -57,6 +56,7 @@ public class XlogistxEhCacheManager
 		
 		void add(ShiroJCacheManager eh)
 		{
+			if(log.isEnabled()) log.getLogger().info("Adding shiro cache " + eh);
 			synchronized(cacheSet)
 			{
 				cacheSet.add(eh);

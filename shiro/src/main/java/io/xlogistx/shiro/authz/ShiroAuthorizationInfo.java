@@ -3,6 +3,7 @@ package io.xlogistx.shiro.authz;
 import io.xlogistx.shiro.ShiroBaseRealm;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.Permission;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.data.AppIDDAO;
 import org.zoxweb.shared.security.model.PPEncoder;
 import org.zoxweb.shared.security.model.SecurityModel.PermissionToken;
@@ -15,7 +16,6 @@ import org.zoxweb.shared.util.NVPair;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 
 /**
@@ -46,40 +46,9 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	protected Set<Permission> objectPermissions = null;
 	private boolean dirty = true;
 	private ShiroBaseRealm realm;
-	private static final transient Logger log = Logger.getLogger(ShiroAuthorizationInfo.class.getName());
-	
-	
-	
-//	public static String getNVEReferenceIDFromForm(FidusStoreShiroRealm realm, String formReferenceID)
-//	{
-//		MongoDataStore mds = (MongoDataStore) realm.getDataStore();
-//		BasicDBObject projection = new BasicDBObject();
-//		projection = projection.append(FormInfoDAO.Params.FORM_REFERENCE.getNVConfig().getName(), true);
-//		BasicDBObject result = mds.lookupByReferenceID(FormInfoDAO.NVC_FORM_INFO_DAO.getName(), new ObjectId(formReferenceID), projection);
-//		if (result != null)
-//		{
-//			BasicDBObject form_reference = (BasicDBObject) result.get(FormInfoDAO.Params.FORM_REFERENCE.getNVConfig().getName());
-//			if (form_reference != null)
-//			{
-//				ObjectId nveReferenceID = (ObjectId) form_reference.get(FormInfoDAO.NVC_REFERENCE_ID.getName());
-//				if (nveReferenceID != null)
-//				{
-//					return nveReferenceID.toHexString();
-//				}
-//			}
-//		}
-//		
-//		return null;
-//	}
-	
+	public static final LogWrapper log = new LogWrapper(ShiroAuthorizationInfo.class);
 	
 
-	
-	
-	
-	
-	
-	
 	
 	public ShiroAuthorizationInfo(ShiroBaseRealm realm)
 	{
@@ -119,7 +88,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	
 	private synchronized void update()
 	{
-		log.info("START:" + rulesMap.size());
+		 if(log.isEnabled()) log.getLogger().info("START:" + rulesMap.size());
 		if (dirty)
 		{
 			if (stringPermissions == null)
@@ -205,7 +174,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 								String permissionPattern = permission.getPermissionPattern();
 								if (permissionPattern != null)
 								{
-									//log.info("Original permission pattern:" + permissionPattern);
+									// if(log.isEnabled()) log.getLogger().info("Original permission pattern:" + permissionPattern);
 									if (rh.tokens != null)
 									{
 										for (NVPair token: rh.tokens)
@@ -216,7 +185,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 									
 									if (permission.getDomainID() != null && permission.getDomainID() != null)
 										permissionPattern = PPEncoder.SINGLETON.encodePattern(permissionPattern, PermissionToken.APP_ID, AppIDDAO.appIDSubjectID(permission.getDomainID(), permission.getAppID()));
-									//log.info("Encoded permission pattern:" + permissionPattern);
+									// if(log.isEnabled()) log.getLogger().info("Encoded permission pattern:" + permissionPattern);
 									stringPermissions.add(permissionPattern);
 								}
 							}

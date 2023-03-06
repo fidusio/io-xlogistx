@@ -1,4 +1,4 @@
-package iot.xlogistx.shiro;
+package io.xlogistx.shiro;
 
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.UsernamePasswordToken;
@@ -6,6 +6,8 @@ import org.apache.shiro.env.BasicIniEnvironment;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.shared.util.RateCounter;
 
 
 public class ShiroSimpleTest
@@ -14,12 +16,15 @@ public class ShiroSimpleTest
     public static final LogWrapper log = new LogWrapper(ShiroSimpleTest.class);
     public static void main(String ...args)
     {
+        LoggerUtil.enableDefaultLogger("io.xlogistx");
         try
         {
 
+            RateCounter rateCounter = new RateCounter("shiro-tester");
             int index = 0 ;
             String user = args[index++];
             String password = args[index++];
+            int repeat = args.length > index ? Integer.parseInt(args[index++]) : 1;
 
             BasicIniEnvironment env = new BasicIniEnvironment("classpath:shiro-simple.ini");
 
@@ -32,17 +37,24 @@ public class ShiroSimpleTest
             }
             Subject subject = SecurityUtils.getSubject();
             UsernamePasswordToken authcToken  = new UsernamePasswordToken(user, password);
-            subject.login(authcToken);
-            log.getLogger().info("is authenticated " + subject.isAuthenticated() + " " + subject.getPrincipals().getPrimaryPrincipal());
-            subject.logout();
+            long timestamp = System.currentTimeMillis();
+            for(int i=0; i < repeat; i++) {
+                subject.login(authcToken);
+                //log.getLogger().info("is authenticated " + subject.isAuthenticated() + " " + subject.getPrincipals().getPrimaryPrincipal());
+                subject.logout();
+                timestamp = rateCounter.registerTimeStamp(timestamp);
+            }
 
-            log.getLogger().info("is authenticated " + subject.isAuthenticated() + " " + subject.getPrincipals());
+
+            log.getLogger().info("is authenticated " + subject.isAuthenticated() + " " + subject.getPrincipals() + " " + rateCounter);
 
         }
         catch(Exception e)
         {
             e.printStackTrace();
         }
+
+        System.exit(0);
     }
 
 }

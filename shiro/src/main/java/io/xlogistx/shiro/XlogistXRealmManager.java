@@ -375,7 +375,7 @@ implements ShiroRealmStore
         PasswordDAO passwordDAO = null;
         try
         {
-            passwordDAO = HashUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
+            passwordDAO = HashUtil.toPassword(CryptoConst.AlgoType.SHA_512, 0, 8196, passwd);
             cachePut(KeyType.PASSWORD, subject.getSubjectID(), passwordDAO);
 
         } catch (NoSuchAlgorithmException e) {
@@ -389,7 +389,7 @@ implements ShiroRealmStore
         PasswordDAO passwordDAO = null;
         try
         {
-            passwordDAO = HashUtil.hashedPassword(CryptoConst.MDType.SHA_512, 0, 8196, passwd);
+            passwordDAO = HashUtil.toPassword(CryptoConst.AlgoType.SHA_512, 0, 8196, passwd);
             cachePut(KeyType.PASSWORD, subject, passwordDAO);
 
         } catch (NoSuchAlgorithmException e) {
