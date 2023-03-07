@@ -42,7 +42,7 @@ public class OktaCredentials
     {
         BCryptHash bh = new BCryptHash(fullBCryptHash);
         NVGenericMap hash = getHash();
-        hash.add("algorithm", CryptoConst.AlgoType.BCRYPT.name());
+        hash.add("algorithm", CryptoConst.HASHType.BCRYPT.name());
         hash.add(new NVInt("workFactor", bh.logRound));
         hash.add("salt", bh.salt);
         hash.add("value", bh.hash);

@@ -47,7 +47,7 @@ implements SetNVProperties
         {
             try
             {
-                PasswordDAO passwordDAO = HashUtil.toPassword(CryptoConst.AlgoType.BCRYPT, 0, 5, "password!");
+                PasswordDAO passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.BCRYPT, 0, 5, "password!");
                 return new SimpleAuthenticationInfo(user, passwordDAO, "proxy");
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
