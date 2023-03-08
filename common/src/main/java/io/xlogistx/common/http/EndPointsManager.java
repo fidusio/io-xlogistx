@@ -9,11 +9,11 @@ import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPMimeType;
 import org.zoxweb.shared.http.HTTPServerConfig;
-import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
@@ -96,7 +96,7 @@ public class EndPointsManager {
 
                 String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
                 String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");;
-                SecurityConsts.AuthenticationType[] authTypes = sp.authentications();
+                CryptoConst.AuthenticationType[] authTypes = sp.authentications();
                 String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
                 hep.setPermissions(permissions);
                 hep.setRoles(roles);

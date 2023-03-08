@@ -3,15 +3,15 @@ package io.xlogistx.http.services;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.AddressDAO;
 import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.security.SecurityConsts;
 import org.zoxweb.shared.util.Const;
 
 import java.util.Arrays;
 import java.util.Date;
 
-@SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC})
+@SecurityProp(authentications = {CryptoConst.AuthenticationType.BASIC})
 public class TestEndPoint {
 
     public static class DataObject
@@ -89,6 +89,6 @@ public class TestEndPoint {
 
 
 
-    @SecurityProp(authentications = {SecurityConsts.AuthenticationType.NONE})
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.NONE})
     public void empty(){};
 }

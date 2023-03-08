@@ -9,7 +9,7 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.security.SecurityConsts.AuthenticationType;
+import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
 import org.zoxweb.shared.util.*;
 
 import java.util.Date;

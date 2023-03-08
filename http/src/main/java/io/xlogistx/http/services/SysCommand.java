@@ -5,23 +5,21 @@ import io.xlogistx.common.data.PropertyHolder;
 import org.zoxweb.server.task.SupplierTask;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.RuntimeUtil;
-
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
-
-import org.zoxweb.shared.security.SecurityConsts;
-import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
 
 
 
-@SecurityProp(authentications = {SecurityConsts.AuthenticationType.BASIC,
-                                 SecurityConsts.AuthenticationType.BEARER,
-                                 SecurityConsts.AuthenticationType.JWT},
+@SecurityProp(authentications = {CryptoConst.AuthenticationType.BASIC,
+        CryptoConst.AuthenticationType.BEARER,
+        CryptoConst.AuthenticationType.JWT},
 //              protocols = {URIScheme.HTTPS},
               roles = "local-admin,remote-admin")
 public class SysCommand

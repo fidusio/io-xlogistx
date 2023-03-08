@@ -8,23 +8,23 @@ import io.xlogistx.shared.data.XXDataConst.AppKey;
 import io.xlogistx.shared.util.XXURI;
 import org.zoxweb.server.http.HTTPCall;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.net.ssl.SSLCheckDisabler;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.JWTProvider;
-import org.zoxweb.server.net.ssl.SSLCheckDisabler;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.GSONWrapper;
 import org.zoxweb.shared.accounting.AmountDAO;
 import org.zoxweb.shared.accounting.Currency;
 import org.zoxweb.shared.api.APIException;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.EncryptedDAO;
 import org.zoxweb.shared.data.*;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.JWT;
-import org.zoxweb.shared.security.SecurityConsts;
+import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.Const.Bool;
 import org.zoxweb.shared.util.Const.TimeInMillis;
-import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.SharedBase64.Base64Type;
 
 import javax.crypto.BadPaddingException;
@@ -88,7 +88,7 @@ public class XXClientAPI {
           hmciToUse.getParameters().add(gnv);
         }
         JWT jwt = JWT
-            .createJWT(SecurityConsts.JWTAlgorithm.HS256, add.getSubjectID(), add.getDomainID(),
+            .createJWT(CryptoConst.JWTAlgorithm.HS256, add.getSubjectID(), add.getDomainID(),
                 add.getAppID());
 
         hmciToUse.setAuthorization(
@@ -327,7 +327,7 @@ public class XXClientAPI {
 
   public static void deleteAppDevice(String url, AppDeviceDAO apd) throws IOException {
     JWT jwt = JWT
-        .createJWT(SecurityConsts.JWTAlgorithm.HS256, apd.getSubjectID(), apd.getDomainID(),
+        .createJWT(CryptoConst.JWTAlgorithm.HS256, apd.getSubjectID(), apd.getDomainID(),
             apd.getAppID());
     String uri = XXURI.DEREGISTRATION;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
@@ -347,7 +347,7 @@ public class XXClientAPI {
 
     AppDeviceDAO apd = createAppDevice(url, subjectID, password, domainID, appID);
 
-    JWT jwt = JWT.createJWT(SecurityConsts.JWTAlgorithm.HS256, apd.getSubjectID(), domainID, appID);
+    JWT jwt = JWT.createJWT(CryptoConst.JWTAlgorithm.HS256, apd.getSubjectID(), domainID, appID);
     jwt.getPayload().setIssuedAt(Const.TimeInMillis.SECOND.convertTo(System.currentTimeMillis() - delay));
     String uri = XXURI.LOGIN;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
@@ -431,7 +431,7 @@ public class XXClientAPI {
           : SharedUtil.toCanonicalID('/', XXURI.API_KEY_BASE, XXURI.C_RENEW);
 
       JWT jwt = JWT
-          .createJWT(SecurityConsts.JWTAlgorithm.HS256, add.getSubjectID(), add.getDomainID(),
+          .createJWT(CryptoConst.JWTAlgorithm.HS256, add.getSubjectID(), add.getDomainID(),
               add.getAppID());
 
       HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.PATCH);
