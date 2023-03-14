@@ -33,8 +33,7 @@ implements SetNVProperties
         String user = (String) principals.getPrimaryPrincipal();
         if (!SharedStringUtil.isEmpty(user))
         {
-            SimpleAuthorizationInfo ret = new SimpleAuthorizationInfo();
-            return ret;
+            return new SimpleAuthorizationInfo();
         }
         return null;
     }
