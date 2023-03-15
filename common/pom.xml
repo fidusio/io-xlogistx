@@ -15,7 +15,6 @@
   
   
   <description>XlogistX.IO common</description>
-  <name>xlogistx-common</name>
   <artifactId>xlogistx-common</artifactId>
   <packaging>jar</packaging>
 
@@ -42,7 +41,6 @@
     <dependency>
       <groupId>io.xlogistx</groupId>
       <artifactId>xlogistx-core</artifactId>
-      <scope>provided</scope>
       <version>${xlogistx.version}</version>
     </dependency>
 
