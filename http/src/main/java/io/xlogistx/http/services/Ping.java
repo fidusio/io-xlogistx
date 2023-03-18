@@ -1,6 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.http.NIOHTTPServer;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.DateUtil;
@@ -50,6 +51,9 @@ public class Ping
             response.add(TaskUtil.getDefaultTaskScheduler().getProperties());
             response.add(TaskUtil.getDefaultTaskProcessor().getProperties());
             response.add(RuntimeUtil.vmSnapshot(sib));
+            NIOHTTPServer niohttpServer = ResourceManager.SINGLETON.lookup("nio-http-server");
+            if(niohttpServer != null)
+                response.add(niohttpServer.getNIOSocket().getStats());
         }
         return response;
     }
