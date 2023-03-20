@@ -41,36 +41,6 @@ public class NIOHTTPServer
         implements DaemonController
 {
 
-    public enum StaticHeaders
-        implements GetNameValue<String>
-    {
-        CONNECTION_CLOSE(HTTPHeader.CONNECTION, "close"),
-        CONNECTION_KEEP_ALIVE(HTTPHeader.CONNECTION, "keep-alive"),
-        ;
-        private final String name;
-        private final String value;
-
-        StaticHeaders(GetName name, String value)
-        {
-            this(name.getName(), value);
-        }
-        StaticHeaders(String name, String value)
-        {
-            this.name = name;
-            this.value = value;
-        }
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public String getValue() {
-            return value;
-        }
-    }
-
-
     public final String NAME = ResourceManager.SINGLETON.map(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
             .lookup(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
@@ -228,7 +198,7 @@ public class NIOHTTPServer
             if (hmciResponse != null)
             {
                 hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
-                hmciResponse.getHeaders().add(StaticHeaders.CONNECTION_CLOSE);
+                hmciResponse.getHeaders().add(HTTPConst.Headers.CONNECTION_CLOSE);
 
                 HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(os);
             }
