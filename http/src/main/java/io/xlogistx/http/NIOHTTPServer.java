@@ -2,18 +2,18 @@ package io.xlogistx.http;
 
 
 import io.xlogistx.common.http.*;
-import org.zoxweb.server.http.proxy.NIOProxyProtocol;
-import org.zoxweb.server.net.NIOPlainSocketFactory;
-import org.zoxweb.server.net.PlainSessionCallback;
-import org.zoxweb.server.net.ssl.SSLNIOSocketFactory;
-import org.zoxweb.server.net.ssl.SSLSessionCallback;
 import org.zoxweb.server.http.HTTPUtil;
+import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.server.net.NIOPlainSocketFactory;
 import org.zoxweb.server.net.NIOSocket;
-import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
+import org.zoxweb.server.net.ssl.SSLNIOSocketFactory;
+import org.zoxweb.server.net.ssl.SSLSessionCallback;
+import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
@@ -346,14 +346,17 @@ public class NIOHTTPServer
     public static void main(String... args) {
 
         long startTS = System.currentTimeMillis();
+        boolean noExec = false;
         try {
 
             LoggerUtil.enableDefaultLogger("io.xlogistx");
-            int index = 0;
 
+            ParamUtil.ParamMap parsedParam = ParamUtil.parse("=", args);
+            System.out.println(parsedParam);
 //            logger.setEnabled(true);
-            String filename = args[index++];
-            int proxyPort = args.length > index ? Integer.parseInt(args[index++]) : -1;
+            String filename = parsedParam.stringValue("0");
+            noExec = "noExec".equalsIgnoreCase(parsedParam.stringValue("1", null));
+            int proxyPort = parsedParam.intValue("proxy", -1);
             if (logger.isEnabled()) logger.getLogger().info("config file:" + filename);
             File file = IOUtil.locateFile(filename);
             HTTPServerConfig hsc = null;
@@ -369,7 +372,7 @@ public class NIOHTTPServer
             if (logger.isEnabled()) logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
             if(hsc.getThreadPoolSize() > 0)
                 TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
-            NIOSocket nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());
+            NIOSocket nioSocket = new NIOSocket(!noExec ? TaskUtil.getDefaultTaskProcessor() : null);
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
 
@@ -383,12 +386,12 @@ public class NIOHTTPServer
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Usage: NIOHTTPServer server-config.json");
+            System.err.println("Usage: NIOHTTPServer server-config.json [noExec] [proxy=portValue]");
             System.exit(-1);
         }
         startTS = System.currentTimeMillis() - startTS;
 
-        logger.getLogger().info("Start up time " + Const.TimeInMillis.toString(startTS));
+        logger.getLogger().info("Start up time " + Const.TimeInMillis.toString(startTS) + " Use executor : " +!noExec);
 
 
 
