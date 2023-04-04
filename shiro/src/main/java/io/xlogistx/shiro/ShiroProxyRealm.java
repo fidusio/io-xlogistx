@@ -26,22 +26,7 @@ implements SetNVProperties
 
     private NVGenericMap configProperties;
 
-    @Override
-    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
 
-
-
-
-
-
-        if(log.isEnabled()) log.getLogger().info(""+principals);
-        String user = (String) principals.getPrimaryPrincipal();
-        if (!SharedStringUtil.isEmpty(user))
-        {
-            return new SimpleAuthorizationInfo();
-        }
-        return null;
-    }
 
 
     /**
@@ -56,13 +41,13 @@ implements SetNVProperties
      * second validate the subject token, if the 2 validations passes return a json object that contains both
      * AuthenticationInfo and AuthorizationInfo
      * @param token the authentication token containing the user's principal and credentials.
-     * @return
+     * @return the token AuthenticationInfo
      * @throws AuthenticationException
      */
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
 
-        // This is a proxy realm meaning it depends on a remote server that actually
+        // This is a proxy realm it depends on a remote server that
         // has the Subject info such as username or userid and the user credentials
         // The proxy realm will make a http call to the remote authentication server
         // The current system must be registered with remote server and authenticate the
@@ -89,6 +74,23 @@ implements SetNVProperties
         return null;
     }
 
+
+    @Override
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
+
+
+
+
+
+
+        if(log.isEnabled()) log.getLogger().info(""+principals);
+        String user = (String) principals.getPrimaryPrincipal();
+        if (!SharedStringUtil.isEmpty(user))
+        {
+            return new SimpleAuthorizationInfo();
+        }
+        return null;
+    }
     @Override
     public void setProperties(NVGenericMap properties) {
         this.configProperties = properties;

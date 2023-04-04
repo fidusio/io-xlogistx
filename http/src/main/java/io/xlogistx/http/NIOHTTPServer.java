@@ -32,6 +32,8 @@ import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
@@ -346,7 +348,7 @@ public class NIOHTTPServer
     public static void main(String... args) {
 
         long startTS = System.currentTimeMillis();
-        boolean noExec = false;
+        Const.ExecPool execPool = Const.ExecPool.DEFAULT;
         try {
 
             LoggerUtil.enableDefaultLogger("io.xlogistx");
@@ -355,7 +357,7 @@ public class NIOHTTPServer
             System.out.println(parsedParam);
 //            logger.setEnabled(true);
             String filename = parsedParam.stringValue("0");
-            noExec = "noExec".equalsIgnoreCase(parsedParam.stringValue("1", null));
+            execPool = parsedParam.parameterExists("exec") ? parsedParam.enumValue("exec", Const.ExecPool.values()) : Const.ExecPool.DEFAULT;//"noExec".equalsIgnoreCase(parsedParam.stringValue("1", null));
             int proxyPort = parsedParam.intValue("proxy", -1);
             if (logger.isEnabled()) logger.getLogger().info("config file:" + filename);
             File file = IOUtil.locateFile(filename);
@@ -372,7 +374,23 @@ public class NIOHTTPServer
             if (logger.isEnabled()) logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
             if(hsc.getThreadPoolSize() > 0)
                 TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
-            NIOSocket nioSocket = new NIOSocket(!noExec ? TaskUtil.getDefaultTaskProcessor() : null);
+
+            Executor exec = null;
+            if(execPool != null)
+            {
+                switch (execPool)
+                {
+
+                    case DEFAULT:
+                         exec = TaskUtil.getDefaultTaskProcessor();
+                         break;
+                    case JAVA:
+                        exec = Executors.newFixedThreadPool(64);
+                        break;
+                }
+            }
+
+            NIOSocket nioSocket = new NIOSocket(exec);
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
 
@@ -386,12 +404,12 @@ public class NIOHTTPServer
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Usage: NIOHTTPServer server-config.json [noExec] [proxy=portValue]");
+            System.err.println("Usage: NIOHTTPServer server-config.json [exec=[no_exec, default, java]] [proxy=portValue]");
             System.exit(-1);
         }
         startTS = System.currentTimeMillis() - startTS;
 
-        logger.getLogger().info("Start up time " + Const.TimeInMillis.toString(startTS) + " Use executor : " +!noExec);
+        logger.getLogger().info("Start up time " + Const.TimeInMillis.toString(startTS) + " Use executor : " + execPool);
 
 
 
