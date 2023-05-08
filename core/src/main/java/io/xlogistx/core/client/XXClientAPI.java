@@ -132,7 +132,7 @@ public class XXClientAPI {
     hmci.setUser(subjectID);
     hmci.setPassword(password);
     //hmci.setContent(GSONUtil.toJSON(appDeviceDAO, false));
-    hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
+    hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     return GWRAPPER.fromJSON(hc.sendRequest().getData());
   }
@@ -216,7 +216,7 @@ public class XXClientAPI {
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
     hmci.setUser(subjectID);
     hmci.setPassword(password);
-    hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
+    hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     return GWRAPPER.fromJSON(hc.sendRequest().getData());
   }
@@ -260,7 +260,7 @@ public class XXClientAPI {
         .createAndInit(urlIn, commandURI, HTTPMethod.PATCH);
     hmci.setUser(subjectID);
     hmci.setPassword(password);
-    hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
+    hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     hmci.setContent(GWRAPPER.toJSON(nve, false));
 
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
@@ -277,7 +277,7 @@ public class XXClientAPI {
     hmci.setUser(subjectID);
     hmci.setPassword(password);
     //hmci.setContent(GSONUtil.toJSON(appDeviceDAO, false));
-    hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
+    hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     return GWRAPPER.fromJSON(hc.sendRequest().getData());
   }
@@ -293,7 +293,7 @@ public class XXClientAPI {
     hmci.setUser(subjectID);
     hmci.setPassword(password);
     //hmci.setContent(GSONUtil.toJSON(appDeviceDAO, false));
-    hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
+    hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     return GWRAPPER.fromJSON(hc.sendRequest().getData());
   }
@@ -541,7 +541,7 @@ public class XXClientAPI {
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, method);
     hmci.setUser(subjectID);
     hmci.setPassword(password);
-    hmci.setContentType(HTTPMimeType.APPLICATION_JSON);
+    hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     hmci.setSecureCheckEnabled(false);
     return hmci;
   }
@@ -556,7 +556,7 @@ public class XXClientAPI {
     hmci.getParameters().add(new NVPair(AppKey.CURRENT_PASSWORD, password));
     hmci.getParameters().add(new NVPair(AppKey.NEW_PASSWORD, newPassword));
 
-    hmci.setContentType(HTTPMimeType.APPLICATION_WWW_URL_ENC);
+    hmci.setContentType(HTTPMediaType.APPLICATION_WWW_URL_ENC);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     hc.sendRequest();
   }

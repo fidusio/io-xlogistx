@@ -45,7 +45,7 @@ public class HTTPFileServiceHandler
                 filename = override;
             }
         }
-        HTTPMimeType mime = HTTPMimeType.lookupByExtension(filename);
+        HTTPMediaType mime = HTTPMediaType.lookupByExtension(filename);
         if(log.isEnabled()) {
 
             log.getLogger().info("file to load: " + filename);

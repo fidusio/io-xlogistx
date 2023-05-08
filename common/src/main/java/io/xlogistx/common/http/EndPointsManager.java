@@ -12,7 +12,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
-import org.zoxweb.shared.http.HTTPMimeType;
+import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.util.*;
 
@@ -291,11 +291,11 @@ public class EndPointsManager {
 
 
 
-        HTTPMimeType contentType = HTTPMimeType.lookup(hmci.getContentType());
+        HTTPMediaType contentType = HTTPMediaType.lookup(hmci.getContentType());
 
 //        String  payload = null;
         // parse if not post for n=v&n2=v2 body
-//        if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMimeType.APPLICATION_WWW_URL_ENC)
+//        if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMediaType.APPLICATION_WWW_URL_ENC)
 //        {
 //            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
 //            List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload, false);
@@ -306,7 +306,7 @@ public class EndPointsManager {
 //                    parameters.put(gnv.getName(), gnv.getValue());
 //            }
 //        }
-//        else if (contentType == HTTPMimeType.APPLICATION_JSON)
+//        else if (contentType == HTTPMediaType.APPLICATION_JSON)
 //        {
 //            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
 //        }

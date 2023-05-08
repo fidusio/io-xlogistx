@@ -38,7 +38,7 @@ import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO;
 import org.zoxweb.shared.data.FileInfoDAO;
 import org.zoxweb.shared.filters.FilenameFilter;
-import org.zoxweb.shared.http.HTTPMimeType;
+import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.util.GetNameValue;
@@ -115,7 +115,7 @@ public class HTTPDownloadServlet
 				throw new FileNotFoundException("File not found " + gnv.getValue());
 			}
 			
-			HTTPMimeType mt = HTTPMimeType.lookupByExtension(file.getName());
+			HTTPMediaType mt = HTTPMediaType.lookupByExtension(file.getName());
 			
 			
 			InputStream is = file.toURI().toURL().openStream();

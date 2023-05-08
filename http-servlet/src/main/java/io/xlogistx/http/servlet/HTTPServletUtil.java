@@ -355,7 +355,7 @@ public class HTTPServletUtil
 			throws IOException
 	{
 		resp.setStatus(code.CODE);
-		resp.setContentType(HTTPMimeType.APPLICATION_JSON.getValue());
+		resp.setContentType(HTTPMediaType.APPLICATION_JSON.getValue());
 		resp.setCharacterEncoding(SharedStringUtil.UTF_8);
 		resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
 		resp.setHeader("Pragma", "no-cache"); // HTTP 1.0.
@@ -550,11 +550,11 @@ public class HTTPServletUtil
 //		}
 //
 //		List<String> contentTypeData = he.getRequestHeaders().get(HTTPHeaderName.CONTENT_TYPE.getName());
-//		HTTPMimeType contentType = contentTypeData != null && contentTypeData.size() > 0 ? HTTPMimeType.lookup(contentTypeData.get(0)) : null;
+//		HTTPMediaType contentType = contentTypeData != null && contentTypeData.size() > 0 ? HTTPMediaType.lookup(contentTypeData.get(0)) : null;
 //
 //		String  payload = null;
 //		// parse if not post for n=v&n2=v2 body
-//		if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMimeType.APPLICATION_WWW_URL_ENC)
+//		if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMediaType.APPLICATION_WWW_URL_ENC)
 //		{
 //			payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
 //			List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload);
@@ -565,7 +565,7 @@ public class HTTPServletUtil
 //					parameters.put(gnv.getName(), gnv.getValue());
 //			}
 //		}
-//		else if (contentType == HTTPMimeType.APPLICATION_JSON)
+//		else if (contentType == HTTPMediaType.APPLICATION_JSON)
 //		{
 //			payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
 //		}

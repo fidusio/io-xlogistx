@@ -28,7 +28,6 @@ implements SetNVProperties
 
 
 
-
     /**
      * This is a proxy realm meaning it depends on a remote server that actually
      * has the Subject info such as username or userid and the user credentials
@@ -37,7 +36,7 @@ implements SetNVProperties
      * request with a JWT token that Identifies the current system
      * the api call is a post call with a payload of the authentication token
      * the payload is a json object {"principal": token.getPrincipal(), "credentials": token.getCredentials()}
-     * The remote server must validate the proxyrealm identity fisrt
+     * The remote server must validate the proxyrealm identity first
      * second validate the subject token, if the 2 validations passes return a json object that contains both
      * AuthenticationInfo and AuthorizationInfo
      * @param token the authentication token containing the user's principal and credentials.

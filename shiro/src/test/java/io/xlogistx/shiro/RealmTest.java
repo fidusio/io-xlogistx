@@ -1,15 +1,14 @@
 package io.xlogistx.shiro;
 
-import io.xlogistx.shiro.ShiroUtil;
-import io.xlogistx.shiro.XlogistXShiroRealm;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import org.apache.shiro.SecurityUtils;
-
 import org.apache.shiro.authc.IncorrectCredentialsException;
 import org.apache.shiro.env.BasicIniEnvironment;
 import org.apache.shiro.env.Environment;
+import org.apache.shiro.mgt.DefaultSecurityManager;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.web.subject.support.WebDelegatingSubject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.shared.security.SubjectIDDAO;
@@ -37,7 +36,7 @@ public class RealmTest {
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
         ShiroRealmStore srs = realm.getShiroRealmStore();
         srs.addSubject(subjectIDDAO);
-        srs.setSubjectPassword("root", "secret");
+        srs.setSubjectPassword("root", "secret1");
     }
 
 
@@ -60,7 +59,12 @@ public class RealmTest {
         Subject subject = SecurityUtils.getSubject();
         DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret", false, null, null);
         subject.login(token);
-        System.out.println(subject.getPrincipal());
+        System.out.println("SessionID: " + subject.getSession().getId());
+        System.out.println("Principal: " +subject.getPrincipal());
+        DefaultSecurityManager dms;
+        System.out.println("SecurityManager: " + SecurityUtils.getSecurityManager().getClass());
+
+        WebDelegatingSubject f;
         subject.logout();
     }
 

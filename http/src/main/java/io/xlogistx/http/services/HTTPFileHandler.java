@@ -23,7 +23,7 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 
 import org.zoxweb.shared.http.HTTPHeader;
-import org.zoxweb.shared.http.HTTPMimeType;
+import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.*;
 
@@ -92,7 +92,7 @@ public class HTTPFileHandler extends BaseEndPointHandler {
                     filename = override;
                 }
             }
-            HTTPMimeType mime = HTTPMimeType.lookupByExtension(filename);
+            HTTPMediaType mime = HTTPMediaType.lookupByExtension(filename);
 //            log.info(Thread.currentThread() + " filename: '" + filename + "' mime type:" + mime);
 
             UByteArrayOutputStream content = lookupContent(filename);
