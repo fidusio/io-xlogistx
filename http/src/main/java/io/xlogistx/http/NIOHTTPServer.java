@@ -7,11 +7,11 @@ import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
-import org.zoxweb.server.net.NIOPlainSocketFactory;
+import org.zoxweb.server.net.NIOSocketHandlerFactory;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
-import org.zoxweb.server.net.ssl.SSLNIOSocketFactory;
+import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
@@ -62,6 +62,7 @@ public class NIOHTTPServer
             try
             {
                 incomingData(hph, inBuffer, get());
+                //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
             {
@@ -84,6 +85,7 @@ public class NIOHTTPServer
             try
             {
                 incomingData(hph, inBuffer, get());
+                //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
             {
@@ -125,8 +127,11 @@ public class NIOHTTPServer
         HTTPMessageConfigInterface hmciResponse = null;
         if (hph.parseRequest(inBuffer)) {
 
-            if(logger.isEnabled())
+            if(logger.isEnabled()) {
                 logger.getLogger().info(hph.getRequest().getURI());
+                logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
+                logger.getLogger().info("" + hph.getRequest().getHeaders());
+            }
             URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
             if(logger.isEnabled()) logger.getLogger().info(""+epm.result.httpEndPoint);
 
@@ -310,7 +315,7 @@ public class NIOHTTPServer
                                 NVStringList ciphers =((NVStringList)sslConfig.get(CIPHERS));
                                 getNIOSocket().addSeverSocket(serverAddress.getPort(),
                                         serverAddress.getBacklog(),
-                                        new SSLNIOSocketFactory(new SSLContextInfo(sslContext,
+                                        new SSLNIOSocketHandlerFactory(new SSLContextInfo(sslContext,
                                                 protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
                                                 ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null),
                                                 httpsIC));
@@ -320,7 +325,7 @@ public class NIOHTTPServer
                                 // we need to create a http server
                                 logger.getLogger().info("we need to create an http server");
                                 serverAddress = cc.getSocketConfig();
-                                getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOPlainSocketFactory(httpIC));
+                                getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOSocketHandlerFactory(httpIC));
                                 msg += " HTTP @ port: " + serverAddress.getPort();
                                 break;
                             case FTP:
