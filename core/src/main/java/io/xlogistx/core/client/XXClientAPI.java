@@ -88,7 +88,7 @@ public class XXClientAPI {
           hmciToUse.getParameters().add(gnv);
         }
         JWT jwt = JWT
-            .createJWT(CryptoConst.JWTAlgorithm.HS256, add.getSubjectID(), add.getDomainID(),
+            .createJWT(CryptoConst.JWTAlgo.HS256, add.getSubjectID(), add.getDomainID(),
                 add.getAppID());
 
         hmciToUse.setAuthorization(
@@ -327,7 +327,7 @@ public class XXClientAPI {
 
   public static void deleteAppDevice(String url, AppDeviceDAO apd) throws IOException {
     JWT jwt = JWT
-        .createJWT(CryptoConst.JWTAlgorithm.HS256, apd.getSubjectID(), apd.getDomainID(),
+        .createJWT(CryptoConst.JWTAlgo.HS256, apd.getSubjectID(), apd.getDomainID(),
             apd.getAppID());
     String uri = XXURI.DEREGISTRATION;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
@@ -347,7 +347,7 @@ public class XXClientAPI {
 
     AppDeviceDAO apd = createAppDevice(url, subjectID, password, domainID, appID);
 
-    JWT jwt = JWT.createJWT(CryptoConst.JWTAlgorithm.HS256, apd.getSubjectID(), domainID, appID);
+    JWT jwt = JWT.createJWT(CryptoConst.JWTAlgo.HS256, apd.getSubjectID(), domainID, appID);
     jwt.getPayload().setIssuedAt(Const.TimeInMillis.SECOND.convertTo(System.currentTimeMillis() - delay));
     String uri = XXURI.LOGIN;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
@@ -431,7 +431,7 @@ public class XXClientAPI {
           : SharedUtil.toCanonicalID('/', XXURI.API_KEY_BASE, XXURI.C_RENEW);
 
       JWT jwt = JWT
-          .createJWT(CryptoConst.JWTAlgorithm.HS256, add.getSubjectID(), add.getDomainID(),
+          .createJWT(CryptoConst.JWTAlgo.HS256, add.getSubjectID(), add.getDomainID(),
               add.getAppID());
 
       HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.PATCH);

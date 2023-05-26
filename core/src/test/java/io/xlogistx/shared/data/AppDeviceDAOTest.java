@@ -3,6 +3,7 @@ package io.xlogistx.shared.data;
 
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.AppDeviceDAO;
 import org.zoxweb.shared.data.AppIDDAO;
 import org.zoxweb.shared.data.DeviceDAO;
@@ -33,7 +34,7 @@ public class AppDeviceDAOTest {
     appDeviceDAO.setUserID(UUID.randomUUID().toString());
     appDeviceDAO.setSubjectID(UUID.randomUUID().toString());
 
-    appDeviceDAO.setAPIKey(CryptoUtil.generateKey(CryptoUtil.AES, 256).getEncoded());
+    appDeviceDAO.setAPIKey(CryptoUtil.generateKey(CryptoConst.AES, 256).getEncoded());
 
     appDeviceDAO.setStatus(Status.ACTIVE);
     appDeviceDAO.setDevice(deviceDAO);

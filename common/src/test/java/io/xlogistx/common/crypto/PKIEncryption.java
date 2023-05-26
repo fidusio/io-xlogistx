@@ -5,6 +5,7 @@ package io.xlogistx.common.crypto;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.util.GSONUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.EncryptedDAO;
 import org.zoxweb.shared.crypto.EncryptedKeyDAO;
 import org.zoxweb.shared.util.*;
@@ -67,7 +68,7 @@ public class PKIEncryption {
         byte[] encryptedData = CryptoUtil.encrypt(kp.getPublic(), data);
         NVGenericMap nvgm = new NVGenericMap();
         nvgm.add(new NVBlob("rsa", encryptedData));
-        SecretKey aes = CryptoUtil.generateKey(CryptoUtil.AES, 256);
+        SecretKey aes = CryptoUtil.generateKey(CryptoConst.AES, 256);
         EncryptedDAO edao = CryptoUtil.encryptDAO(new EncryptedDAO(), aes.getEncoded(), data);
         nvgm.add("aes", edao);
         String json = GSONUtil.toJSONGenericMap(nvgm, false, false, true);

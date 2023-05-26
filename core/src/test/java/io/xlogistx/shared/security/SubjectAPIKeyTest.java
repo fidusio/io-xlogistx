@@ -4,6 +4,7 @@ package io.xlogistx.shared.security;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.util.GSONUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.security.SubjectAPIKey;
 
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class SubjectAPIKeyTest {
       throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException, NoSuchAlgorithmException {
     SubjectAPIKey subjectAPIKey = new SubjectAPIKey();
     subjectAPIKey.setSubjectID(UUID.randomUUID().toString());
-    subjectAPIKey.setAPIKey(CryptoUtil.generateKey( CryptoUtil.AES, 256).getEncoded());
+    subjectAPIKey.setAPIKey(CryptoUtil.generateKey( CryptoConst.AES, 256).getEncoded());
 
     String json = GSONUtil.toJSON(subjectAPIKey, true);
 

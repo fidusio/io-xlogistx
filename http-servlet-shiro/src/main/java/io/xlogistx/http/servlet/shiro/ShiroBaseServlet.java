@@ -60,7 +60,7 @@ public abstract class ShiroBaseServlet
 {
 
     public static final APIError DEFAULT_API_ERROR = new APIError(new AccessException("Access denied.", null, true));
-	public final static LogWrapper log = new LogWrapper(ShiroBaseServlet.class).setEnabled(false);
+	public final static LogWrapper log = new LogWrapper(ShiroBaseServlet.class).setEnabled(true);
 
 	ServletContainerSessionManager sdl;
     //public static final String SECURITY_CHECK = "SECURITY_CHECK";
@@ -187,7 +187,7 @@ public abstract class ShiroBaseServlet
                 //if(log.isEnabled()) log.getLogger().info("security check required and user not authenticated");
                 // check authentication token first
                 // and try to login
-                // 2 modes are supported BasicAuthenticatio and JWT
+                // 2 modes are supported BasicAuthentication and JWT
                 
                 HTTPRequestAttributes hra = (HTTPRequestAttributes) req.getAttribute(HTTPRequestAttributes.HRA);
                 JWTToken jwtToken = hra.getJWTToken();
@@ -205,12 +205,16 @@ public abstract class ShiroBaseServlet
                 		}
                 		JWTAuthenticationToken authToken = new JWTAuthenticationToken(jwtToken);
                 		subject = SecurityUtils.getSubject();
+						if(log.isEnabled())
+						{
+							log.getLogger().info("subject: " + subject);
+						}
                 		subject.login(authToken);
                 		//if(log.isEnabled()) log.getLogger().info("Implicit login activated");
-                		//long ts = System.currentTimeMillis();
+                		long ts = System.currentTimeMillis();
                 		if (jwtToken.getJWT().getPayload().getIssuedAt() != 0)
                 		{
-                			//if(log.isEnabled()) log.getLogger().info("JWT IAT:" + jwtToken.getJWT().getPayload().getIssuedAt() + " time difference between s/c " + (ts - jwtToken.getJWT().getPayload().getIssuedAt() ));
+                			if(log.isEnabled()) log.getLogger().info("JWT IAT:" + jwtToken.getJWT().getPayload().getIssuedAt() + " time difference between s/c " + (ts - jwtToken.getJWT().getPayload().getIssuedAt() ));
                 		}
                 		return true;
                 	}

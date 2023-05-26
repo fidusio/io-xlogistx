@@ -22,7 +22,7 @@ public class ShiroProxyRealm extends AuthorizingRealm
 implements SetNVProperties
 {
 
-    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
 
     private NVGenericMap configProperties;
 

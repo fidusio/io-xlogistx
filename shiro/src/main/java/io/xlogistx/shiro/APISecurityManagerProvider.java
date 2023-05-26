@@ -1086,8 +1086,10 @@ public class APISecurityManagerProvider
 	}
 
 
-	
-
-	
-	
+	@Override
+	public String toString() {
+		return "APISecurityManagerProvider{" +
+				"daemon=" + daemon +
+				'}';
+	}
 }

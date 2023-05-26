@@ -7,13 +7,14 @@ import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.RateCounter;
 
 
 public class ShiroSimpleTest
 {
 
-    public static final LogWrapper log = new LogWrapper(ShiroSimpleTest.class);
+    public static final LogWrapper log = new LogWrapper(ShiroSimpleTest.class).setEnabled(true);
     public static void main(String ...args)
     {
         LoggerUtil.enableDefaultLogger("io.xlogistx");
@@ -44,9 +45,10 @@ public class ShiroSimpleTest
                 subject.logout();
                 timestamp = rateCounter.registerTimeStamp(timestamp);
             }
-
+            //subject.login(authcToken);
 
             log.getLogger().info("is authenticated " + subject.isAuthenticated() + " " + subject.getPrincipals() + " " + rateCounter);
+
 
         }
         catch(Exception e)
@@ -54,6 +56,16 @@ public class ShiroSimpleTest
             e.printStackTrace();
         }
 
+
+
+        TaskUtil.getDefaultTaskScheduler().queue(0, ()->{
+            Subject sub = SecurityUtils.getSubject();
+            SecurityManager sm =SecurityUtils.getSecurityManager();
+            log.getLogger().info("Subject : " + sub.getPrincipals() + " "  +sm);
+            org.apache.shiro.web.mgt.DefaultWebSecurityManager f;
+        });
+
+        TaskUtil.waitIfBusy(50);
         System.exit(0);
     }
 

@@ -57,7 +57,7 @@ public class RealmTest {
     public void testValidLogin()
     {
         Subject subject = SecurityUtils.getSubject();
-        DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret", false, null, null);
+        DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "password!", false, null, null);
         subject.login(token);
         System.out.println("SessionID: " + subject.getSession().getId());
         System.out.println("Principal: " +subject.getPrincipal());
