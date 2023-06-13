@@ -7,8 +7,9 @@ import org.apache.shiro.env.BasicIniEnvironment;
 import org.apache.shiro.env.Environment;
 import org.apache.shiro.mgt.DefaultSecurityManager;
 import org.apache.shiro.mgt.SecurityManager;
+import org.apache.shiro.session.mgt.eis.EnterpriseCacheSessionDAO;
 import org.apache.shiro.subject.Subject;
-import org.apache.shiro.web.subject.support.WebDelegatingSubject;
+import org.apache.shiro.subject.support.DelegatingSubject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.shared.security.SubjectIDDAO;
@@ -57,22 +58,27 @@ public class RealmTest {
     public void testValidLogin()
     {
         Subject subject = SecurityUtils.getSubject();
-        DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "password!", false, null, null);
+        DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret1", false, null, null);
         subject.login(token);
         System.out.println("SessionID: " + subject.getSession().getId());
         System.out.println("Principal: " +subject.getPrincipal());
         DefaultSecurityManager dms;
         System.out.println("SecurityManager: " + SecurityUtils.getSecurityManager().getClass());
 
-        WebDelegatingSubject f;
+        System.out.println("before logout: " + subject.getSession().getId());
+        System.out.println("Session class : " + subject.getSession().getClass());
         subject.logout();
+        System.out.println("after logout: " + subject.getSession().getId());
+        EnterpriseCacheSessionDAO df;
+        DelegatingSubject ds;
+        Subject.Builder
     }
 
     @Test
     public void testInvalidLogin()
     {
         Subject subject = SecurityUtils.getSubject();
-        DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret1", false, null, null);
+        DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret12", false, null, null);
         assertThrows(IncorrectCredentialsException.class, ()->{
             subject.login(token);
         });

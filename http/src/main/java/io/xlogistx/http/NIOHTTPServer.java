@@ -17,6 +17,7 @@ import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
@@ -146,6 +147,9 @@ public class NIOHTTPServer
                             Arrays.toString(epm.result.httpEndPoint.getMethods()),
                             HTTPStatusCode.METHOD_NOT_ALLOWED);
                 }
+
+                //CryptoConst.AuthenticationType[] authTypes = epm.result.httpEndPoint.getAuthenticationTypes();
+                //
 
                 // check if instance of HTTPSessionHandler
                 if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
