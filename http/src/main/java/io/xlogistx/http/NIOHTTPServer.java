@@ -62,14 +62,14 @@ public class NIOHTTPServer
 
             try
             {
-                incomingData(hph, inBuffer, get());
+                incomingData(hph.setDataBuffer(inBuffer).setOutputStream(get()));
                 //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
             {
                 e.printStackTrace();
                 processException(hph, get(), e);
-                IOUtil.close(get(), hph);
+                IOUtil.close(hph);
                 // we should close
             }
         }
@@ -85,14 +85,14 @@ public class NIOHTTPServer
         {
             try
             {
-                incomingData(hph, inBuffer, get());
+                incomingData(hph.setDataBuffer(inBuffer).setOutputStream(get()));
                 //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
             {
                 e.printStackTrace();
                 processException(hph, get(), e);
-                IOUtil.close(get(), hph);
+                IOUtil.close(hph);
                 // we should close
             }
         }
@@ -121,12 +121,12 @@ public class NIOHTTPServer
     }
 
 
-    private void incomingData(HTTPProtocolHandler hph, ByteBuffer inBuffer, OutputStream os)
+    private void incomingData(HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
         //UByteArrayOutputStream resp = null;
         HTTPMessageConfigInterface hmciResponse = null;
-        if (hph.parseRequest(inBuffer)) {
+        if (hph.parseRequest()) {
 
             if(logger.isEnabled()) {
                 logger.getLogger().info(hph.getRequest().getURI());
@@ -154,7 +154,7 @@ public class NIOHTTPServer
                 // check if instance of HTTPSessionHandler
                 if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
                 {
-                    HTTPSessionData sessionData = new HTTPSessionData(hph, os);
+                    HTTPSessionData sessionData = new HTTPSessionData(hph, hph.getOutputStream());
 
                     ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(sessionData);
                 }
@@ -211,10 +211,10 @@ public class NIOHTTPServer
                 hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
                 hmciResponse.getHeaders().add(HTTPConst.Headers.CONNECTION_CLOSE);
 
-                HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(os);
+                HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
             }
 
-            IOUtil.close(os, hph);
+            IOUtil.close(hph);
 
         }
         else

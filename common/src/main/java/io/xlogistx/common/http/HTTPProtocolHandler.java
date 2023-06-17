@@ -10,6 +10,7 @@ import org.zoxweb.shared.util.IsClosed;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -23,6 +24,12 @@ public class HTTPProtocolHandler
     private HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
     public  final boolean https;
+
+    private volatile OutputStream outputStream;
+    private volatile ByteBuffer dataBuffer;
+
+
+
 
     public HTTPProtocolHandler(boolean https)
     {
@@ -39,6 +46,11 @@ public class HTTPProtocolHandler
         rawRequest.parse(true);
         return rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
     }
+    public boolean parseRequest() throws IOException
+    {
+        return parseRequest(getDataBuffer());
+    }
+
 
     public boolean isRequestComplete()
     {
@@ -67,7 +79,10 @@ public class HTTPProtocolHandler
     public void close() throws IOException
     {
         if(!closed.getAndSet(true))
+        {
             ByteBufferUtil.cache(rawResponse, rawRequest.getDataStream());
+            getOutputStream().close();
+        }
     }
 
     public void reset()
@@ -81,4 +96,32 @@ public class HTTPProtocolHandler
     {
         return closed.get();
     }
+
+    public OutputStream getOutputStream()
+    {
+        return outputStream;
+    }
+
+    public HTTPProtocolHandler setOutputStream(OutputStream os)
+    {
+        this.outputStream = os;
+        return this;
+    }
+
+    public ByteBuffer getDataBuffer()
+    {
+        return dataBuffer;
+    }
+
+    public HTTPProtocolHandler setDataBuffer(ByteBuffer byteBuffer)
+    {
+        this.dataBuffer = byteBuffer;
+        return this;
+    }
+
+
+
+
+
+
 }

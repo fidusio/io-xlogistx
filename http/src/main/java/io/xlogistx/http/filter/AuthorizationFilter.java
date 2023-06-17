@@ -10,7 +10,7 @@ public class AuthorizationFilter
 {
     @Override
     public void doFilter(HttpExchange exchange, Chain chain) throws IOException {
-
+        chain.doFilter(exchange);
     }
 
     @Override
