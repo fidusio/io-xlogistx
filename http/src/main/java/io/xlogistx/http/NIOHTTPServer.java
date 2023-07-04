@@ -15,6 +15,7 @@ import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.server.util.FilterChain;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
@@ -31,10 +32,13 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
@@ -43,7 +47,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController
 {
-
+    private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     public final String NAME = ResourceManager.SINGLETON.map(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
             .lookup(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;

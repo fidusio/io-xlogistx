@@ -68,7 +68,7 @@ public class PKIEncryption {
         byte[] encryptedData = CryptoUtil.encrypt(kp.getPublic(), data);
         NVGenericMap nvgm = new NVGenericMap();
         nvgm.add(new NVBlob("rsa", encryptedData));
-        SecretKey aes = CryptoUtil.generateKey(CryptoConst.AES, 256);
+        SecretKey aes = CryptoUtil.generateKey(CryptoConst.CryptoAlgo.AES, 256);
         EncryptedDAO edao = CryptoUtil.encryptDAO(new EncryptedDAO(), aes.getEncoded(), data);
         nvgm.add("aes", edao);
         String json = GSONUtil.toJSONGenericMap(nvgm, false, false, true);

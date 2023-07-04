@@ -23,6 +23,8 @@ public class RealmTest {
 
 
 
+
+
     @BeforeAll
     public static void loadRealm()
     {
@@ -57,7 +59,9 @@ public class RealmTest {
     @Test
     public void testValidLogin()
     {
+        org.apache.shiro.web.servlet.ShiroFilter sf;
         Subject subject = SecurityUtils.getSubject();
+        subject.getSession(true);
         DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret1", false, null, null);
         subject.login(token);
         System.out.println("SessionID: " + subject.getSession().getId());
@@ -71,7 +75,6 @@ public class RealmTest {
         System.out.println("after logout: " + subject.getSession().getId());
         EnterpriseCacheSessionDAO df;
         DelegatingSubject ds;
-        Subject.Builder
     }
 
     @Test

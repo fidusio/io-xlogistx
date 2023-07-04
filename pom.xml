@@ -86,6 +86,7 @@
         <websocket.version>1.1</websocket.version>
         <junit.version>5.9.0</junit.version>
         <java-websocket.version>1.4.1</java-websocket.version>
+        <jsch.version>0.1.55</jsch.version>
 
         <websocket.version>1.1</websocket.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
@@ -260,6 +261,13 @@
       <artifactId>snakeyaml</artifactId>
       <version>${snakeyaml.version}</version>
 	</dependency>
+
+      <dependency>
+          <groupId>com.jcraft</groupId>
+          <artifactId>jsch</artifactId>
+          <version>${jsch.version}</version>
+      </dependency>
+
 
 
   </dependencies>
