@@ -51,7 +51,8 @@ public class Ping
             response.add(TaskUtil.getDefaultTaskScheduler().getProperties());
             response.add(TaskUtil.getDefaultTaskProcessor().getProperties());
             response.add(RuntimeUtil.vmSnapshot(sib));
-            NIOHTTPServer niohttpServer = ResourceManager.SINGLETON.lookup("nio-http-server");
+            response.add((NVGenericMap)ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO));
+            NIOHTTPServer niohttpServer = ResourceManager.lookupResource("nio-http-server");
             if(niohttpServer != null)
                 response.add(niohttpServer.getNIOSocket().getStats());
         }

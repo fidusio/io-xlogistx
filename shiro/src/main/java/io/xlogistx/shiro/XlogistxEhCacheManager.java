@@ -51,7 +51,7 @@ public class XlogistxEhCacheManager
 		
 		CacheObject()
 		{
-			ResourceManager.SINGLETON.map(RESOURCE_NAME, this);
+			ResourceManager.SINGLETON.register(RESOURCE_NAME, this);
 		}
 		
 		void add(ShiroJCacheManager eh)

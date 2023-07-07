@@ -31,6 +31,8 @@
         "name": "SSLCONFIG",
         "keystore_file": "web.rsa.2k.xlogistx.io.jks",
 
+        "simple_state_machine": false,
+
         "keystore_type": "pkcs12",
         "keystore_password": "password",
 //        "protocols": [

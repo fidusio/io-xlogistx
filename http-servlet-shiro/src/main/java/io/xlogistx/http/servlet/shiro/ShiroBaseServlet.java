@@ -197,7 +197,7 @@ public abstract class ShiroBaseServlet
                 	try
                 	{
                 		
-                		JWTTokenCache jwtCache = ResourceManager.SINGLETON.lookup(ResourceManager.Resource.JWT_CACHE);
+                		JWTTokenCache jwtCache = ResourceManager.lookupResource(ResourceManager.Resource.JWT_CACHE);
                 		if(jwtCache != null)
                 		{
                 			// if the cache is available check the cache
@@ -263,7 +263,7 @@ public abstract class ShiroBaseServlet
                 if (reqAuth == AuthenticationType.NONE)
                 {
               
-                	ApplicationConfigDAO acd = ResourceManager.SINGLETON.lookup(ApplicationConfigDAO.RESOURCE_NAME);
+                	ApplicationConfigDAO acd = ResourceManager.lookupResource(ApplicationConfigDAO.RESOURCE_NAME);
                 	String realm = "domain_access";
                 	if (acd != null)
                 	{

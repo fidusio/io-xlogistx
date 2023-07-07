@@ -56,7 +56,7 @@ public class ShiroAutoLoginServlet
 			hra = HTTPServletUtil.extractRequestAttributes(req);
 		if(log.isEnabled()) log.getLogger().info("Request started");
 		
-		APISecurityManager<Subject> apiSecurityManager = ResourceManager.SINGLETON.lookup(Resource.API_SECURITY_MANAGER);
+		APISecurityManager<Subject> apiSecurityManager = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 		if (apiSecurityManager != null && apiSecurityManager.getDaemonSubject() == null)
 		{
 			try

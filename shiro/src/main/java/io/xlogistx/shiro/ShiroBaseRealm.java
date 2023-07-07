@@ -64,7 +64,7 @@ public abstract class ShiroBaseRealm
 	
 	
 	public APISecurityManager<Subject> getAPISecurityManager() {
-		return apiSecurityManager != null ? apiSecurityManager :  ResourceManager.SINGLETON.lookup(Resource.API_SECURITY_MANAGER);
+		return apiSecurityManager != null ? apiSecurityManager :  ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 	}
 
 	public void setAPISecurityManager(APISecurityManager<Subject> apiSecurityManager) {
@@ -150,8 +150,8 @@ public abstract class ShiroBaseRealm
 			SubjectSwap ss = null;
 			try
 			{
-				APISecurityManager<Subject> sm = ResourceManager.SINGLETON.lookup(Resource.API_SECURITY_MANAGER);
-				APIAppManager appManager =  ResourceManager.SINGLETON.lookup(Resource.API_APP_MANAGER);
+				APISecurityManager<Subject> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 
 				ss = new SubjectSwap(sm.getDaemonSubject());
 				SubjectAPIKey sak = appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
@@ -563,8 +563,8 @@ public abstract class ShiroBaseRealm
 			try
 			{
 				//if(log.isEnabled()) log.getLogger().info("ResourceID:" + resourceID);
-				APISecurityManager<Subject> sm = ResourceManager.SINGLETON.lookup(Resource.API_SECURITY_MANAGER);
-				APIAppManager appManager =  ResourceManager.SINGLETON.lookup(Resource.API_APP_MANAGER);
+				APISecurityManager<Subject> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 				// try subject api key first
 				if (sm != null && appManager != null)
 				{

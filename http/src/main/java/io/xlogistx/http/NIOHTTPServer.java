@@ -48,8 +48,8 @@ public class NIOHTTPServer
         implements DaemonController
 {
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
-    public final String NAME = ResourceManager.SINGLETON.map(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
-            .lookup(ResourceManager.Resource.HTTP_SERVER);
+    public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
+            .lookupResource(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPSSession::new;
@@ -321,12 +321,28 @@ public class NIOHTTPServer
                                         trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
                                 NVStringList protocols =((NVStringList)sslConfig.get(PROTOCOLS));
                                 NVStringList ciphers =((NVStringList)sslConfig.get(CIPHERS));
+                                SSLNIOSocketHandlerFactory sslnioSocketHandlerFactory = new SSLNIOSocketHandlerFactory(new SSLContextInfo(sslContext,
+                                        protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
+                                        ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null),
+                                        httpsIC);
+                                if (sslConfig.get("simple_state_machine") != null)
+                                {
+                                    NVBoolean ssm = (NVBoolean) sslConfig.get("simple_state_machine");
+                                    sslnioSocketHandlerFactory.getProperties().add(ssm);
+                                    logger.getLogger().info("" + ssm);
+                                    NVGenericMap sysInfo = ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO);
+                                    if(ssm.getValue())
+                                    {
+                                        sysInfo.add("ssl_state_machine_type", "CUSTOM");
+                                    }
+                                    else
+                                    {
+                                        sysInfo.add("ssl_state_machine_type", "SSLStateMachine");
+                                    }
+                                }
                                 getNIOSocket().addSeverSocket(serverAddress.getPort(),
                                         serverAddress.getBacklog(),
-                                        new SSLNIOSocketHandlerFactory(new SSLContextInfo(sslContext,
-                                                protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
-                                                ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null),
-                                                httpsIC));
+                                        sslnioSocketHandlerFactory);
                                 msg += " HTTPS @ port: " + serverAddress.getPort();
                                 break;
                             case HTTP:
@@ -353,7 +369,7 @@ public class NIOHTTPServer
         if(!SharedStringUtil.isEmpty(msg))
             logger.getLogger().info("Services started"+msg);
 
-        ResourceManager.SINGLETON.map("nio-http-server", this);
+        ResourceManager.SINGLETON.register("nio-http-server", this);
 
 
     }
