@@ -7,18 +7,16 @@ import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.logging.LoggerUtil;
-import org.zoxweb.server.net.NIOSocketHandlerFactory;
 import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.server.net.NIOSocketHandlerFactory;
 import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.server.util.FilterChain;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
@@ -333,7 +331,7 @@ public class NIOHTTPServer
                                     NVGenericMap sysInfo = ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO);
                                     if(ssm.getValue())
                                     {
-                                        sysInfo.add("ssl_state_machine_type", "CUSTOM");
+                                        sysInfo.add("ssl_state_machine_type", "CustomSSLStateMachine");
                                     }
                                     else
                                     {
