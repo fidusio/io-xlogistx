@@ -13,17 +13,17 @@ public class ShiroSessionListener implements SessionListener {
 
     @Override
     public void onStart(Session session) {
-        log.getLogger().info("started: " + session + " " + Thread.currentThread());
+        log.getLogger().info("started: " + session );
         session.setAttribute("toto", "toto");
     }
 
     @Override
     public void onStop(Session session) {
-        log.getLogger().info("stopped: " + session + " " + Thread.currentThread());
+        log.getLogger().info("stopped: " + session) ;
     }
 
     @Override
     public void onExpiration(Session session) {
-        log.getLogger().info("expired: " + session + " " + Thread.currentThread());
+        log.getLogger().info("expired: " + session);
     }
 }

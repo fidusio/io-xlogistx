@@ -13,7 +13,7 @@ public class SubjectSwap
         implements AutoCloseable
 {
 
-    private final SubjectThreadState subjectThreadState;
+    private SubjectThreadState subjectThreadState;
 
     public SubjectSwap(Subject toSwapWith)
     {
@@ -36,7 +36,14 @@ public class SubjectSwap
     {
         if (subjectThreadState != null)
         {
-            subjectThreadState.restore();
+            synchronized (this)
+            {
+                if (subjectThreadState != null)
+                {
+                    subjectThreadState.restore();
+                    subjectThreadState = null;
+                }
+            }
         }
     }
 

@@ -6,6 +6,19 @@
   "thread_pool_java_type" : false,
   "base_uri": "",
 
+
+  "properties":
+  {
+    "shiro": {
+      "config": "classpath:shiro-xlog.ini",
+      "subjects":
+      {
+        "LocalAdmin" : ""
+
+      }
+    }
+  },
+
   "connections":
   [
     {

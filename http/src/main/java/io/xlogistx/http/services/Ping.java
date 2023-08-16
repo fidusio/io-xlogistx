@@ -24,7 +24,7 @@ public class Ping
 
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
     @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
-    @SecurityProp(authentications = {AuthenticationType.ALL})
+    @SecurityProp(authentications = {AuthenticationType.ALL}, permissions = "admin, local-admin", roles ="admin")
     public NVGenericMap ping(@ParamProp(name="detailed", optional = true) boolean detailed)
     {
         NVGenericMap response = new NVGenericMap();

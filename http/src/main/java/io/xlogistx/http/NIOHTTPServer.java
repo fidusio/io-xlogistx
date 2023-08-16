@@ -2,6 +2,8 @@ package io.xlogistx.http;
 
 
 import io.xlogistx.common.http.*;
+import io.xlogistx.shiro.ShiroUtil;
+import org.apache.shiro.SecurityUtils;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -17,6 +19,7 @@ import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
@@ -45,12 +48,18 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController
 {
+    public final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
+    private final HTTPServerConfig config;
+    private NIOSocket nioSocket;
+    private boolean isClosed = true;
+    private EndPointsManager endPointsManager = null;
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
             .lookupResource(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPSSession::new;
+
 
 
     public class HTTPSession
@@ -122,10 +131,23 @@ public class NIOHTTPServer
         }
     }
 
+   private  Const.FunctionStatus securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler<?> hph) throws IOException
+    {
+        CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.getAuthenticationTypes();
+        String[] resourcePermissions = epm.result.httpEndPoint.getPermissions();
+        String[] resourceRoles = epm.result.httpEndPoint.getRoles();
+        if (logger.isEnabled())
+            logger.getLogger().info("AuthTypes: " + Arrays.toString(resourceAuthTypes) +
+                " Permissions: " + Arrays.toString(resourcePermissions) +
+                " Roles: " + Arrays.toString(resourceRoles));
+
+        return  Const.FunctionStatus.CONTINUE;
+    }
 
     private void incomingData(HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
+
         //UByteArrayOutputStream resp = null;
         HTTPMessageConfigInterface hmciResponse = null;
         if (hph.parseRequest()) {
@@ -169,8 +191,9 @@ public class NIOHTTPServer
                         logger.getLogger().info("" + epm.path);
                     }
 
-                    Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
 
+                    Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
+                    securityCheck(epm, hph);
 
 
 
@@ -178,7 +201,8 @@ public class NIOHTTPServer
                             epm.result.methodHolder.getMethodAnnotations(),
                             parameters);
 
-                    if (result != null) {
+                    if (result != null)
+                    {
 
 //                        if (result instanceof File) {
 //
@@ -233,11 +257,9 @@ public class NIOHTTPServer
 
 
 
-    public final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
-    private final HTTPServerConfig config;
-    private NIOSocket nioSocket;
-    private boolean isClosed = true;
-    private EndPointsManager endPointsManager = null;
+
+
+
 
 
     public NIOHTTPServer(HTTPServerConfig config)
@@ -272,6 +294,8 @@ public class NIOHTTPServer
         nioSocket.close();
     }
     public void start() throws IOException, GeneralSecurityException {
+        // very crucial step must be executed first
+        TaskUtil.registerMainThread();
         String msg = "";
         if (isClosed) {
             if (config != null) {
@@ -364,8 +388,27 @@ public class NIOHTTPServer
 
             // create end point scanner
         }
+
+
+        String shiroConfig = config.getProperties().getValue("shiro_config");
+        logger.getLogger().info("shiro_config: " + shiroConfig);
+        // shiro registration
+        if(shiroConfig != null)
+        {
+            try
+            {
+                SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
         if(!SharedStringUtil.isEmpty(msg))
             logger.getLogger().info("Services started"+msg);
+
+
+
 
         ResourceManager.SINGLETON.register("nio-http-server", this);
 

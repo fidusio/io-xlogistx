@@ -14,7 +14,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class HTTPProtocolHandler
+public class HTTPProtocolHandler<S>
     implements Closeable, IsClosed
 {
 
@@ -27,6 +27,11 @@ public class HTTPProtocolHandler
 
     private volatile OutputStream outputStream;
     private volatile ByteBuffer dataBuffer;
+
+
+
+
+    private volatile S subjectInfo;
 
 
 
@@ -120,7 +125,14 @@ public class HTTPProtocolHandler
     }
 
 
+    public S getSubjectInfo() {
+        return subjectInfo;
+    }
 
+    public void setSubjectInfo(S subjectInfo)
+    {
+        this.subjectInfo = subjectInfo;
+    }
 
 
 

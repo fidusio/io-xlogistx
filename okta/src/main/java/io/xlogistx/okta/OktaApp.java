@@ -140,7 +140,7 @@ public class OktaApp {
                             {
                                 int val = j;
                                 int countIndex = i;
-                                TaskUtil.getDefaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextDelay(), ()->{
+                                TaskUtil.getDefaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app"), ()->{
                                     String userToAuthN = val + "-" + userName;
 
                                     try {

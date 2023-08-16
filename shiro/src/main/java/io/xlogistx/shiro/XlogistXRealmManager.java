@@ -367,7 +367,7 @@ implements ShiroRealmStore
 
     @Override
     public PasswordDAO setSubjectPassword(String subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
-        return null;
+        return cachePut(KeyType.PASSWORD, subject, passwd);
     }
 
     @Override
@@ -375,8 +375,9 @@ implements ShiroRealmStore
         PasswordDAO passwordDAO = null;
         try
         {
-            passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.SHA_512, 0, 8196, passwd);
-            cachePut(KeyType.PASSWORD, subject.getSubjectID(), passwordDAO);
+            //passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.SHA_512, 0, 8196, passwd);
+            passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.BCRYPT, 0, 10, passwd);
+            setSubjectPassword(subject.getSubjectID(), passwordDAO);
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -389,8 +390,9 @@ implements ShiroRealmStore
         PasswordDAO passwordDAO = null;
         try
         {
-            passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.SHA_512, 0, 8196, passwd);
-            cachePut(KeyType.PASSWORD, subject, passwordDAO);
+            //passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.SHA_512, 0, 8196, passwd);
+            passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.BCRYPT, 0, 10, passwd);
+            setSubjectPassword(subject, passwordDAO);
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
