@@ -6,9 +6,7 @@ import org.zoxweb.server.security.BCrypt;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.data.Range;
-
-import org.zoxweb.shared.http.HTTPAuthScheme;
-import org.zoxweb.shared.http.HTTPAuthorizationToken;
+import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.util.*;
 
 import java.util.Arrays;
@@ -94,7 +92,7 @@ public class OktaApp {
 
             // create a adapter
             oktaAdapter.setURL(url)
-                    .setHTTPAuthorization(new HTTPAuthorizationToken(HTTPAuthScheme.SSWS, token))
+                    .setHTTPAuthorization(new HTTPAuthorization("SSWS", token))
                     .enableHttpCalling(enabledHttp);
 
             DefaultOktaAdapter.log.setEnabled(true);

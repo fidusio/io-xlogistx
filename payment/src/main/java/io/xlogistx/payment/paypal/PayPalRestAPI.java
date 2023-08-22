@@ -3,13 +3,7 @@ package io.xlogistx.payment.paypal;
 import org.zoxweb.server.http.HTTPCall;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.api.APITokenDAO;
-import org.zoxweb.shared.http.HTTPAuthorizationBearer;
-import org.zoxweb.shared.http.HTTPHeader;
-import org.zoxweb.shared.http.HTTPMessageConfig;
-import org.zoxweb.shared.http.HTTPMessageConfigInterface;
-import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.http.HTTPMediaType;
-import org.zoxweb.shared.http.HTTPResponseData;
+import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVEntity;
 import org.zoxweb.shared.util.NVPair;
@@ -33,8 +27,8 @@ public class PayPalRestAPI {
         HTTPMessageConfigInterface hcc = HTTPMessageConfig.createAndInit(url, "/v1/oauth2/token", HTTPMethod.POST);
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMediaType.APPLICATION_JSON));
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
-        hcc.setUser(clientID);
-        hcc.setPassword(clientSecret);
+
+        hcc.setBasicAuthorization(clientID, clientSecret);
         hcc.getParameters().add(new NVPair("grant_type", "client_credentials"));
         HTTPCall hc = new HTTPCall(hcc, null);
         HTTPResponseData rd = hc.sendRequest();
@@ -55,7 +49,7 @@ public class PayPalRestAPI {
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMediaType.APPLICATION_JSON));
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         //hcc.getHeaderParameters().add(HTTPAuthorizationType.BEARER.toHTTPHeader(token.getTokenType(), token.getAccessToken()));
-        hcc.setAuthorization(new HTTPAuthorizationBearer(token.getAccessToken()));
+        hcc.setAuthorization(new HTTPAuthorization(HTTPAuthScheme.BEARER, token.getAccessToken()));
         String json = GSONUtil.toJSON(payment, true, false, false);
         hcc.setContent(SharedStringUtil.getBytes(json));
 
@@ -74,7 +68,7 @@ public class PayPalRestAPI {
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT, HTTPMediaType.APPLICATION_JSON));
         hcc.getHeaders().add(new NVPair(HTTPHeader.ACCEPT_LANGUAGE, "en_US"));
         //hcc.getHeaderParameters().add(HTTPAuthorizationType.BEARER.toHTTPHeader(token.getTokenType(), token.getAccessToken()));
-        hcc.setAuthorization(new HTTPAuthorizationBearer(token.getAccessToken()));
+        hcc.setAuthorization(new HTTPAuthorization(HTTPAuthScheme.BEARER,token.getAccessToken()));
         PPAmountDAO amount = new PPAmountDAO();
         amount.setTotal(total);
         amount.setCurrency(currency);

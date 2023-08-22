@@ -129,8 +129,7 @@ public class XXClientAPI {
 
     String uri = XXURI.APP + "/" + domainID + "/" + appID;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.POST);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);
     //hmci.setContent(GSONUtil.toJSON(appDeviceDAO, false));
     hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
@@ -214,8 +213,7 @@ public class XXClientAPI {
     String uri = "" + XXURI.APP_CONFIG + "/" + domainID + "/" + appID;
     System.out.println(uri);
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);
     hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
     return GWRAPPER.fromJSON(hc.sendRequest().getData());
@@ -258,8 +256,7 @@ public class XXClientAPI {
     String commandURI = "" + XXURI.APP_CONFIG + "/" + domainID + "/" + appID;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig
         .createAndInit(urlIn, commandURI, HTTPMethod.PATCH);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);
     hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     hmci.setContent(GWRAPPER.toJSON(nve, false));
 
@@ -274,8 +271,7 @@ public class XXClientAPI {
 
     String uri = XXURI.APP + "/" + domainID + "/" + appID;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.POST);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);
     //hmci.setContent(GSONUtil.toJSON(appDeviceDAO, false));
     hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
@@ -290,8 +286,7 @@ public class XXClientAPI {
 
     String uri = "" + XXURI.APP + "/" + domainID + "/" + appID;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);
     //hmci.setContent(GSONUtil.toJSON(appDeviceDAO, false));
     hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     HTTPCall hc = new HTTPCall(hmci, SSLCheckDisabler.SINGLETON);
@@ -539,8 +534,7 @@ public class XXClientAPI {
   static HTTPMessageConfigInterface createHMCI(String url, String uri, HTTPMethod method,
       String subjectID, String password) {
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, method);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);
     hmci.setContentType(HTTPMediaType.APPLICATION_JSON);
     hmci.setSecureCheckEnabled(false);
     return hmci;
@@ -551,8 +545,7 @@ public class XXClientAPI {
       String newPassword) throws IOException {
     String uri = "" + XXURI.PASSWORD_CHANGE;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.POST);
-    hmci.setUser(subjectID);
-    hmci.setPassword(password);
+    hmci.setBasicAuthorization(subjectID, password);;
     hmci.getParameters().add(new NVPair(AppKey.CURRENT_PASSWORD, password));
     hmci.getParameters().add(new NVPair(AppKey.NEW_PASSWORD, newPassword));
 

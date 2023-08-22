@@ -21,8 +21,7 @@ public class HTTPCallTest {
             String user = args.length > index ? args[index++] : null;
             String password = args.length > index ? args[index++] : null;
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, null, HTTPMethod.GET, false);
-            hmci.setUser(user);
-            hmci.setPassword(password);
+            hmci.setBasicAuthorization(user, password);
 
             System.out.println("URL:" + url);
             new HTTPCall(hmci).sendRequest();
