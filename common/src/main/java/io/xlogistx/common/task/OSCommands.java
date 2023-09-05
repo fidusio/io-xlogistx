@@ -11,7 +11,7 @@ public class OSCommands
 extends RunnableProperties
 {
 
-    private static final transient Logger log = Logger.getLogger(OSCommands.class.getName());
+    private static final Logger log = Logger.getLogger(OSCommands.class.getName());
 
     @Override
     public void run()

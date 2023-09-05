@@ -2,7 +2,7 @@ package io.xlogistx.http.services;
 
 
 import io.xlogistx.common.data.PropertyHolder;
-import org.zoxweb.server.task.SupplierTask;
+import org.zoxweb.shared.task.SupplierTask;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.RuntimeUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
