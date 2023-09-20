@@ -80,6 +80,19 @@ public class APIIntegration
 
             HTTPCallBack<NVPairList, NVGenericMap> callback = new HTTPCallBack<NVPairList, NVGenericMap>(parameters) {
                 @Override
+                public void exception(Exception e)
+                {
+                    if (e instanceof HTTPCallException)
+                    {
+                        HTTPCallException exception = (HTTPCallException) e;
+                        if (exception.getStatusCode().CODE == 409)
+                        {
+                            System.out.println("Duplicate user " + get());
+                            System.out.println(e);
+                        }
+                    }
+                }
+                @Override
                 public void accept(HTTPAPIResult<NVGenericMap> apiResult)
                 {
                     System.out.println(apiResult.getData());
@@ -88,8 +101,8 @@ public class APIIntegration
 
 
 
-            //userAPI.asyncCall(callback);
-            System.out.println(userAPI.syncCall(parameters));
+            userAPI.syncCall(callback, null);
+            //System.out.println(userAPI.syncCall(parameters));
 
 
 
