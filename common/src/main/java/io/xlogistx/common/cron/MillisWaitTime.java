@@ -5,7 +5,7 @@ import org.zoxweb.shared.util.WaitTime;
 public class MillisWaitTime
 implements WaitTime<MillisWaitTime>
 {
-    private long waitTime;
+    private final long waitTime;
     public MillisWaitTime(long waitTime)
     {
         this.waitTime = waitTime;
