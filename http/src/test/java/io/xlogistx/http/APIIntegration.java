@@ -16,12 +16,43 @@ public class APIIntegration
     {
         try {
 
-
+            HTTPNVGMBiEncoder encoder = null;
+            DataDecoder<HTTPResponseData, NVGenericMap> decoder = null;
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
             HTTPMessageConfigInterface config = null;
+            String domain = null;
+            HTTPAPIEndPoint<NVGenericMap, NVGenericMap> userAPI = null;
+
             if (params.nameExists("config"))
             {
-                config = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(params.stringValue("config")), HTTPMessageConfig.class, true);
+
+
+
+
+                NVGenericMap nvgm = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(params.stringValue("config")), NVGenericMap.class, true);
+                userAPI = HTTPAPIManager.SINGLETON.buildEndPoint(nvgm);
+//                System.out.println(nvgm);
+//                config = nvgm.getValue("hmci_config");
+//                System.out.println(config);
+//                domain = nvgm.getValue("domain");
+//                NVGenericMap encoderMeta = nvgm.lookup("data_encoder");
+//                String metaType = encoderMeta.getValue("meta_type");
+//                String json = encoderMeta.getValue("content");
+//                encoder = HTTPAPIManager.SINGLETON.buildCodec(encoderMeta);//(HTTPNVGMBiEncoder) GSONUtil.fromJSONDefault(json, Class.forName(metaType));
+//                decoder = HTTPAPIManager.SINGLETON.buildCodec(nvgm.lookup("data_decoder"));
+//                NVGenericMap nvgmRateController = nvgm.lookup("rate_controller");
+//                RateController rateController = null;
+//                if (nvgmRateController != null)
+//                {
+//                    rateController = new RateController(nvgmRateController.getValue("name"), nvgmRateController.getValue("rate"));
+//                }
+//
+//                System.out.println(""+nvgm.lookup("data_encoder.content").getClass());
+//                HTTPAPIManager.SINGLETON.buildEndPoint(config, encoder, decoder)
+//                        .setRateController(rateController)
+//                        .setScheduler(TaskUtil.getDefaultTaskScheduler())
+//                        .setDomain(domain);
+
             }
             else
             {
@@ -51,35 +82,11 @@ public class APIIntegration
             NVGenericMap attributes = new NVGenericMap("attributes");
             data.add("type", "profile");
             data.add(attributes);
+            System.out.println(GSONUtil.toJSONDefault(contentConfig));
 
 
 
 
-//            BiDataEncoder<HTTPMessageConfigInterface, NVGenericMap, HTTPMessageConfigInterface> encoder = new BiDataEncoder<HTTPMessageConfigInterface, NVGenericMap, HTTPMessageConfigInterface>() {
-//                @Override
-//                public HTTPMessageConfigInterface encode(HTTPMessageConfigInterface hmci, NVGenericMap nvgmParams) {
-//                    NVGenericMap content = new NVGenericMap();
-//                    NVGenericMap data = new NVGenericMap("data");
-//                    content.add(data);
-//                    NVGenericMap attributes = new NVGenericMap("attributes");
-//                    data.add("type", "profile");
-//                    data.add(attributes);
-//
-//                    for (GetNameValue<?> nvp : nvgmParams.values()) {
-//                        attributes.add(nvp);
-//                    }
-//
-//                    String json = GSONUtil.toJSONDefault(content, true);
-//                    System.out.println(json);
-//
-//                    System.out.println(content.lookup("data"));
-//                    hmci.setContent(json);
-//
-//
-//                    return hmci;
-//                }
-//
-//            };
 
             NVGenericMap parameters = new NVGenericMap("Parameters");
 
@@ -90,11 +97,19 @@ public class APIIntegration
                 parameters.add(params.asNVPair("last_name"));
 
 
+            if ( encoder == null) {
+                encoder = new HTTPNVGMBiEncoder(contentConfig, "data.attributes");
+                String json = GSONUtil.toJSONDefault(encoder);
+                System.out.println(json);
+                encoder = GSONUtil.fromJSONDefault(json, HTTPNVGMBiEncoder.class);
+            }
 
-            HTTPAPIEndPoint<NVGenericMap, NVGenericMap> userAPI = HTTPAPIManager.SINGLETON.buildEndPoint(config, new HTTPNVGMBiEncoder(contentConfig, "data.attributes"), HTTPAPIManager.NVGM_DECODER)
+            if (userAPI == null)
+                userAPI = HTTPAPIManager.SINGLETON.buildEndPoint(config, encoder, decoder)
                     .setRateController(new RateController("klaviyo", "75/min"))
-                    .setScheduler(TaskUtil.getDefaultTaskScheduler());
-
+                    .setScheduler(TaskUtil.getDefaultTaskScheduler())
+                    .setDomain(domain);
+            System.out.println(GSONUtil.toJSONDefault(new RateController("klavio", "75/min")));
             HTTPCallBack<NVGenericMap, NVGenericMap> callback = new HTTPCallBack<NVGenericMap, NVGenericMap>(parameters) {
                 @Override
                 public void exception(Exception e)
