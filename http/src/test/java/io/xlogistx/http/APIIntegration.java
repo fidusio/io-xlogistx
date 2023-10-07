@@ -97,12 +97,12 @@ public class APIIntegration
                 parameters.add(params.asNVPair("last_name"));
 
 
-            if ( encoder == null) {
-                encoder = new HTTPNVGMBiEncoder(contentConfig, "data.attributes");
-                String json = GSONUtil.toJSONDefault(encoder);
-                System.out.println(json);
-                encoder = GSONUtil.fromJSONDefault(json, HTTPNVGMBiEncoder.class);
-            }
+//            if ( encoder == null) {
+//                encoder = new HTTPNVGMBiEncoder(contentConfig, "data.attributes");
+//                String json = GSONUtil.toJSONDefault(encoder);
+//                System.out.println(json);
+//                encoder = GSONUtil.fromJSONDefault(json, HTTPNVGMBiEncoder.class);
+//            }
 
             if (userAPI == null)
                 userAPI = HTTPAPIManager.SINGLETON.buildEndPoint(config, encoder, decoder)
