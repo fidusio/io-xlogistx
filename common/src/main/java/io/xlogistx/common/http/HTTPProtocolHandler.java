@@ -118,7 +118,7 @@ public class HTTPProtocolHandler<S>
         return dataBuffer;
     }
 
-    public HTTPProtocolHandler setDataBuffer(ByteBuffer byteBuffer)
+    public HTTPProtocolHandler incomingDataBuffer(ByteBuffer byteBuffer)
     {
         this.dataBuffer = byteBuffer;
         return this;

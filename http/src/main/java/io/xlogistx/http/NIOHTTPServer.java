@@ -73,7 +73,7 @@ public class NIOHTTPServer
 
             try
             {
-                incomingData(hph.setDataBuffer(inBuffer).setOutputStream(get()));
+                incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get()));
                 //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
@@ -96,7 +96,7 @@ public class NIOHTTPServer
         {
             try
             {
-                incomingData(hph.setDataBuffer(inBuffer).setOutputStream(get()));
+                incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get()));
                 //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
@@ -235,7 +235,7 @@ public class NIOHTTPServer
             if (hmciResponse != null)
             {
                 hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
-                hmciResponse.getHeaders().add(HTTPConst.Headers.CONNECTION_CLOSE);
+                hmciResponse.getHeaders().add(HTTPConst.CommonHeader.CONNECTION_CLOSE);
 
                 HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
             }
