@@ -364,7 +364,7 @@ public class HTTPServletUtil
 		// allow cross site access
 		if (ACAO)
 		{
-			GetNameValue<String> gnv = HTTPHeader.toHTTPHeader(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+			GetNameValue<String> gnv = HTTPConst.toHTTPHeader(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
 			resp.addHeader(gnv.getName(), gnv.getValue());
 		}
 		
