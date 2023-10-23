@@ -2,6 +2,8 @@ package io.xlogistx.common.image;
 
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.zoxweb.server.io.UByteArrayOutputStream;
+import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 import javax.imageio.ImageIO;
@@ -17,10 +19,19 @@ public class ImageMetaReader {
 
     public static void main(String[] args) {
         try {
-            ImageMetaReader meta = new ImageMetaReader();
-            int length = args.length;
-            for (int i = 0; i < length; i++) {
-                String imageFileName = args[i];
+            boolean scrub = false;
+            String overrideFormat = null;
+            ParamUtil.ParamMap params = ParamUtil.parse("=", args);
+            if (params.booleanValue("scrub"))
+                scrub = true;
+
+            overrideFormat = params.stringValue("format", true);
+
+
+
+            for (String imageFileName : params.namelessValues()) {
+
+                ImageMetaReader meta = new ImageMetaReader();
                 meta.readAndDisplayMetadata(imageFileName);
 
                 String format = SharedStringUtil.valueAfterRightToken(imageFileName, ".").toLowerCase();
@@ -36,10 +47,29 @@ public class ImageMetaReader {
                     System.out.println("k: " + kv.getKey() + ", " + kv.getValue());
                 }
 
+
+                String nameWithoutFormat = SharedStringUtil.valueBeforeRightToken(imageFileName, ".");
                 System.out.println("GPS: " + image.getGPSDatum() + " " + Arrays.toString(image.getGPSCoordinate()));
                 System.out.println(format + " " + Arrays.toString(image.getInputFormats()));
+                System.out.println(imageFileName + "  Just name " + nameWithoutFormat);
+                System.out.println("Orig format: " + format + " override format: " + overrideFormat  + " " + scrub);
 
-                ImageIO.write(image.getBufferedImage(), format, new File(imageFileName + "_scrubbed."+format));
+
+                if (overrideFormat != null)
+                {
+                    format = overrideFormat;
+                }
+
+
+                if (scrub && !nameWithoutFormat.endsWith("_scrubbed"))
+                {
+                    File outputFile = new File(nameWithoutFormat + "_scrubbed." + format);
+                    UByteArrayOutputStream baos = new UByteArrayOutputStream();
+                    //image.saveAs(outputFile);
+                    ImageIO.write(image.getBufferedImage(), format.toUpperCase(), outputFile);
+                    System.out.println("will override " + outputFile + " " + baos.size());
+
+                }
 
 
             }
