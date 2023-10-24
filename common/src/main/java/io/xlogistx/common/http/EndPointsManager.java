@@ -32,7 +32,7 @@ public class EndPointsManager {
 
     //private Map<String, EndPointMeta> uriEndPointMeta = new LinkedHashMap<String, EndPointMeta>();
 
-    private URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
+    private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
 
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh)
     {
@@ -95,7 +95,7 @@ public class EndPointsManager {
                 SecurityProp sp = (SecurityProp) a;
 
                 String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-                String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");;
+                String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
                 CryptoConst.AuthenticationType[] authTypes = sp.authentications();
                 String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
                 hep.setPermissions(permissions);
@@ -172,7 +172,7 @@ public class EndPointsManager {
             // annotation override
             // If there is a conflict with annotation
             // the json config file will override the code defined one
-            // this technique will allow configuration to updated on the fly without the
+            // this technique will allow configuration to be updated on the fly without the
             // need to recompile the code
             try
             {

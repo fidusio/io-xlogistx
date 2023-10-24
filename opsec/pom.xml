@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.xlogistx</groupId>
+        <artifactId>xlogistx</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <description>XlogistX.IO OpSec</description>
+    <artifactId>xlogistx-opsec</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <jdk.version>8</jdk.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <bc.version>2.73.3</bc.version>
+    </properties>
+
+    <build>
+        <directory>target</directory>
+        <resources>
+            <resource>
+                <directory>src/main/java/</directory>
+                <includes>
+                    <include>**/*.java</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources/</directory>
+            </resource>
+        </resources>
+        <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>${maven-compiler-plugin.version}</version>
+            <configuration>
+                <source>${jdk.version}</source>
+                <target>${jdk.version}</target>
+            </configuration>
+
+        </plugin>
+        </plugins>
+    </build>
+
+
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.zoxweb</groupId>
+            <artifactId>zoxweb-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-core</artifactId>
+            <version>${xlogistx.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jcraft</groupId>
+            <artifactId>jsch</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-lts8on</artifactId>
+            <version>${bc.version}</version>
+        </dependency>
+        <!-- <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bctls-lts8on</artifactId>
+            <version>${bc.version}</version>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-lts8on</artifactId>
+            <version>${bc.version}</version>
+        </dependency>
+
+
+    </dependencies>
+
+</project>

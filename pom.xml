@@ -51,6 +51,7 @@
       <module>http-servlet</module>
       <module>http-servlet-shiro</module>
       <module>okta</module>
+      <module>opsec</module>
   </modules>
   
   
@@ -122,8 +123,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
           <configuration>
-              <source>8</source>
-              <target>8</target>
+              <source>${jdk.version}</source>
+              <target>${jdk.version}</target>
           </configuration>
 
       </plugin>
