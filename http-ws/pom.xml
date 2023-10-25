@@ -112,27 +112,16 @@
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-http</artifactId>
             <version>${xlogistx.version}</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-common</artifactId>
             <version>${xlogistx.version}</version>
-            <scope>compile</scope>
         </dependency>
-
-        <dependency>
-            <groupId>io.xlogistx</groupId>
-            <artifactId>xlogistx-http-servlet</artifactId>
-            <version>${xlogistx.version}</version>
-            <scope>compile</scope>
-        </dependency>
-
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-core</artifactId>
             <version>${xlogistx.version}</version>
-            <scope>compile</scope>
         </dependency>
 
     </dependencies>

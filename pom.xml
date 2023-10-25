@@ -82,10 +82,10 @@
         <javax-cache.version>1.1.1</javax-cache.version>
         <jakarta-mail.version>2.0.1</jakarta-mail.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
-        <jsoup.version>1.15.3</jsoup.version>
+        <jsoup.version>1.15.4</jsoup.version>
         <snakeyaml.version>2.0</snakeyaml.version>
         <websocket.version>1.1</websocket.version>
-        <junit.version>5.9.0</junit.version>
+        <junit.version>5.9.2</junit.version>
         <java-websocket.version>1.4.1</java-websocket.version>
         <jsch.version>0.1.55</jsch.version>
 

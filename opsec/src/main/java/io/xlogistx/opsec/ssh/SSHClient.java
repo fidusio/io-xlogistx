@@ -1,4 +1,4 @@
-package io.xlogistx.common.ssh;
+package io.xlogistx.opsec.ssh;
 
 
 import com.jcraft.jsch.JSch;
