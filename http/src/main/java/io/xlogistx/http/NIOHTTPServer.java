@@ -1,3 +1,4 @@
+
 package io.xlogistx.http;
 
 
@@ -73,7 +74,8 @@ public class NIOHTTPServer
 
             try
             {
-                incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get()));
+                if (incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get())))
+                    if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 //getProtocolHandler().setSessionCallback(this);
             }
             catch (Exception e)
@@ -96,8 +98,8 @@ public class NIOHTTPServer
         {
             try
             {
-                incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get()));
-                //getProtocolHandler().setSessionCallback(this);
+                if (incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get())))
+                    if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "https", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
             }
             catch (Exception e)
             {
@@ -144,7 +146,7 @@ public class NIOHTTPServer
         return  Const.FunctionStatus.CONTINUE;
     }
 
-    private void incomingData(HTTPProtocolHandler hph)
+    private boolean incomingData(HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
 
@@ -241,6 +243,7 @@ public class NIOHTTPServer
             }
 
             IOUtil.close(hph);
+            return true;
 
         }
         else
@@ -248,6 +251,8 @@ public class NIOHTTPServer
             if(logger.isEnabled())
                 logger.getLogger().info("Message not complete yet");
         }
+
+        return false;
     }
 
 

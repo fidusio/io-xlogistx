@@ -18,12 +18,17 @@
   <artifactId>xlogistx-common</artifactId>
   <packaging>jar</packaging>
 
+  <!--
   <repositories>
     <repository>
       <id>javaxt.com</id>
       <url>https://www.javaxt.com/maven</url>
     </repository>
   </repositories>
+  -->
+  <properties>
+    <metadata-exctractor.verion>2.18.0</metadata-exctractor.verion>
+  </properties>
 
 
   <dependencies>
@@ -65,17 +70,26 @@
       <version>${commons-csv.version}</version>
     </dependency>
 
-
+      <!--
       <dependency>
         <groupId>javaxt</groupId>
         <artifactId>javaxt-core</artifactId>
         <version>${java-xt-core.version}</version>
       </dependency>
-
+      -->
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
     </dependency>
+
+
+
+    <dependency>
+      <groupId>com.drewnoakes</groupId>
+      <artifactId>metadata-extractor</artifactId>
+      <version>${metadata-exctractor.verion}</version>
+    </dependency>
+
 
 
   </dependencies>

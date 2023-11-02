@@ -22,7 +22,8 @@ extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig>
         if (server == null)
         {
             server = new NIOHTTPServer(getAppConfig());
-            try {
+            try
+            {
                 server.start();
             } catch (GeneralSecurityException e) {
 
