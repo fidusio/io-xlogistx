@@ -28,7 +28,7 @@ public class ChallengeManager {
             if(timeout > 0)
             {
                 String challengeID = challenge.getId();
-                challenge.setAppointment(TaskUtil.getDefaultTaskScheduler().queue(timeout, ()->{
+                challenge.setAppointment(TaskUtil.defaultTaskScheduler().queue(timeout, ()->{
                    log.info("Challenge removed: " + removeChallenge(challengeID));
                 }));
             }

@@ -5,7 +5,6 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.http.HTTPMessageConfig;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.http.HTTPResponseData;
 import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
@@ -30,18 +29,17 @@ public class HTTPCallTest {
             for(int i = 0; i < count; i++)
             {
 
-                TaskUtil.getDefaultTaskProcessor().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        HTTPCall hc = new HTTPCall(hmci);
+                TaskUtil.defaultTaskProcessor().execute(()->
+                    {
+
                         try {
-                            HTTPResponseData hrd = hc.sendRequest();
+                            HTTPCall.send(hmci);
                             //System.out.println(hrd);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
-                });
+                );
 
             }
 

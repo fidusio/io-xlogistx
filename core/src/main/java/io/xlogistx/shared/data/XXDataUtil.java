@@ -12,7 +12,7 @@ public final class XXDataUtil {
 
   public static boolean isWithinPriceRange(PriceDAO priceDAO, int quantity) {
     if (priceDAO != null && priceDAO.getRange() != null) {
-      return priceDAO.getRange().contains(quantity);
+      return priceDAO.getRange().within(quantity);
     }
 //    if (priceDAO != null && priceDAO.getRange() != null
 //        && priceDAO.getRange().getStart() != null && priceDAO.getRange().getEnd() != null) {

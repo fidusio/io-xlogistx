@@ -59,7 +59,7 @@ public class CronTest {
     {
         try {
             LoggerUtil.enableDefaultLogger("io.xlogistx");
-            CronTool ct = new CronTool(TaskUtil.getDefaultTaskScheduler());
+            CronTool ct = new CronTool(TaskUtil.defaultTaskScheduler());
             int index = 0;
             String cron = args[index++];
             long minDelay = Const.TimeInMillis.toMillis(args[index++]);

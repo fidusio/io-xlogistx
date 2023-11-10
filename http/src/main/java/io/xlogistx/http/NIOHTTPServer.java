@@ -17,6 +17,7 @@ import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
@@ -313,7 +314,7 @@ public class NIOHTTPServer
             {
                 if(getConfig().getThreadPoolSize() > 0)
                     TaskUtil.setTaskProcessorThreadCount(getConfig().getThreadPoolSize());
-                nioSocket = new NIOSocket(TaskUtil.getDefaultTaskProcessor());
+                nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
             }
             ConnectionConfig[] ccs = getConfig().getConnectionConfigs();
 
@@ -367,7 +368,7 @@ public class NIOHTTPServer
                                         sysInfo.add("ssl_state_machine_type", "SSLStateMachine");
                                     }
                                 }
-                                getNIOSocket().addSeverSocket(serverAddress.getPort(),
+                                getNIOSocket().addServerSocket(serverAddress.getPort(),
                                         serverAddress.getBacklog(),
                                         sslnioSocketHandlerFactory);
                                 msg += " HTTPS @ port: " + serverAddress.getPort();
@@ -376,7 +377,7 @@ public class NIOHTTPServer
                                 // we need to create a http server
                                 logger.getLogger().info("we need to create an http server");
                                 serverAddress = cc.getSocketConfig();
-                                getNIOSocket().addSeverSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOSocketHandlerFactory(httpIC));
+                                getNIOSocket().addServerSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOSocketHandlerFactory(httpIC));
                                 msg += " HTTP @ port: " + serverAddress.getPort();
                                 break;
                             case FTP:
@@ -424,6 +425,7 @@ public class NIOHTTPServer
 
         long startTS = System.currentTimeMillis();
         Const.ExecPool execPool = Const.ExecPool.DEFAULT;
+        TaskSchedulerProcessor tsp = null;
         try {
 
             LoggerUtil.enableDefaultLogger("io.xlogistx");
@@ -457,22 +459,24 @@ public class NIOHTTPServer
                 {
 
                     case DEFAULT:
-                         exec = TaskUtil.getDefaultTaskProcessor();
+                         exec = TaskUtil.defaultTaskProcessor();
+
                          break;
                     case JAVA:
                         exec = Executors.newFixedThreadPool(64);
+
                         break;
                 }
             }
 
-            NIOSocket nioSocket = new NIOSocket(exec);
+            NIOSocket nioSocket = new NIOSocket(exec, TaskUtil.defaultTaskScheduler());
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
 
             if (proxyPort > 0)
             {
                 // set up the proxy
-                nioSocket.addSeverSocket(proxyPort, 256, new NIOProxyProtocol.NIOProxyProtocolFactory());
+                nioSocket.addServerSocket(proxyPort, 256, new NIOProxyProtocol.NIOProxyProtocolFactory());
                 logger.getLogger().info("HTTP proxy started @" + proxyPort);
             }
             logger.getLogger().info("After start");

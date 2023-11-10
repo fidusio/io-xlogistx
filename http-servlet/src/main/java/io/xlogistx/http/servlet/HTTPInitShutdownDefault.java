@@ -113,8 +113,8 @@ public class HTTPInitShutdownDefault
 		
 //		IOUtil.close(nioConfig);
 //		IOUtil.close(ipBlocker);
-		TaskUtil.getDefaultTaskScheduler().close();
-		TaskUtil.getDefaultTaskProcessor().close();
+		TaskUtil.defaultTaskScheduler().close();
+		TaskUtil.defaultTaskProcessor().close();
 		log.getLogger().info("destroy done");
 	}
 }

@@ -36,7 +36,7 @@ extends PropertyHolder
     public SimpleMessage appShutdown()
     {
         long delay = Const.TimeInMillis.SECOND.MILLIS*5;
-        TaskUtil.getDefaultTaskScheduler().queue(delay, ()-> System.exit(0));
+        TaskUtil.defaultTaskScheduler().queue(delay, ()-> System.exit(0));
         return new SimpleMessage("App will shutdown in " + Const.TimeInMillis.toString(delay), HTTPStatusCode.OK.CODE);
     }
 

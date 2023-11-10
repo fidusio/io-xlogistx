@@ -380,8 +380,8 @@ public class XXClientAPI {
     StressTest st = new StressTest(add, hmci, repeat);
 
     for (int i = 0; i < repeat; i++) {
-      //TaskUtil.getDefaultTaskScheduler().queue(new AppointmentDefault((i/1000)*delay), st);
-      TaskUtil.getDefaultTaskProcessor().execute(st);
+      //TaskUtil.defaultTaskScheduler().queue(new AppointmentDefault((i/1000)*delay), st);
+      TaskUtil.defaultTaskProcessor().execute(st);
     }
 
   }

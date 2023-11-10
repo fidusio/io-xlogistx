@@ -119,7 +119,7 @@ public class TestSubjectSwap {
 
 
             final ThreadLocal<Integer> tli = ThreadLocal.withInitial(Integer.valueOf(0)::intValue);
-            TaskUtil.getDefaultTaskScheduler().queue(0, () -> {
+            TaskUtil.defaultTaskScheduler().queue(0, () -> {
                 testSubjectLogin(counter.incrementAndGet(), "root", "secret1");
 
 
@@ -127,7 +127,7 @@ public class TestSubjectSwap {
             TaskUtil.waitIfBusy(50);
 
 
-            TaskUtil.getDefaultTaskScheduler().queue(0, () -> {
+            TaskUtil.defaultTaskScheduler().queue(0, () -> {
                 testSubjectLogin(counter.incrementAndGet(), "marwan", "password1");
                 SubjectSwap ss = new SubjectSwap(mainSubject);
                 log.getLogger().info("++++++++++++++++++++++++++++++++++++++++++");
@@ -140,8 +140,8 @@ public class TestSubjectSwap {
 
             TaskUtil.waitIfBusy(50);
 
-            for (int i = 0; i < TaskUtil.getDefaultTaskProcessor().workersThreadCapacity() * 2; i++) {
-                TaskUtil.getDefaultTaskProcessor().execute(() -> {
+            for (int i = 0; i < TaskUtil.defaultTaskProcessor().workersThreadCapacity() * 2; i++) {
+                TaskUtil.defaultTaskProcessor().execute(() -> {
                     System.out.println(Thread.currentThread() + " Should be null: " + (0 == tli.get()) + " " + tli.get());
 
                     tli.set(counter.incrementAndGet());
@@ -158,7 +158,7 @@ public class TestSubjectSwap {
 
             System.out.println("Wait if busy return: " + TaskUtil.waitIfBusy(10));
 
-            System.out.println("Thread count: " + TaskUtil.getDefaultTaskProcessor().workersThreadCapacity());
+            System.out.println("Thread count: " + TaskUtil.defaultTaskProcessor().workersThreadCapacity());
             TaskUtil.close();
             System.out.println("After TaskUtil.close()");
             rc.registerTimeStamp(startTime);

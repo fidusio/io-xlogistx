@@ -66,7 +66,7 @@ public class HTTPBasicServer
       ConnectionConfig[] ccs = config.getConnectionConfigs();
 
       TaskUtil.setMinTaskProcessorThreadCount(config.getThreadPoolSize());
-      Executor executor = config.isThreadPoolJavaType() ? Executors.newCachedThreadPool() : TaskUtil.getDefaultTaskProcessor();
+      Executor executor = config.isThreadPoolJavaType() ? Executors.newCachedThreadPool() : TaskUtil.defaultTaskProcessor();
 
 
       for(ConnectionConfig cc : ccs)

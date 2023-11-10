@@ -58,7 +58,7 @@ public class ShiroSimpleTest
 
 
 
-        TaskUtil.getDefaultTaskScheduler().queue(0, ()->{
+        TaskUtil.defaultTaskScheduler().queue(0, ()->{
             Subject sub = SecurityUtils.getSubject();
             SecurityManager sm =SecurityUtils.getSecurityManager();
             log.getLogger().info("Subject : " + sub.getPrincipals() + " "  +sm);

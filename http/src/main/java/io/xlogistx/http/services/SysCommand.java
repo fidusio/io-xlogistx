@@ -39,7 +39,7 @@ extends PropertyHolder
             {
                 return new SimpleMessage("Reboot: command or delay missing from config",  HTTPStatusCode.BAD_REQUEST.CODE);
             }
-            TaskUtil.getDefaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
+            TaskUtil.defaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
                 @Override
                 public void run() {
                     try {
@@ -71,7 +71,7 @@ extends PropertyHolder
             {
                 return new SimpleMessage("Shutdown: command or delay missing from config",  HTTPStatusCode.BAD_REQUEST.CODE);
             }
-            TaskUtil.getDefaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
+            TaskUtil.defaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
                 @Override
                 public void run() {
                     try {

@@ -48,8 +48,8 @@ public class Ping
             response.add(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()));
             response.add(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())));
             //response.getProperties().add("version", )
-            response.add(TaskUtil.getDefaultTaskScheduler().getProperties());
-            response.add(TaskUtil.getDefaultTaskProcessor().getProperties());
+            response.add(TaskUtil.defaultTaskScheduler().getProperties());
+            response.add(TaskUtil.defaultTaskProcessor().getProperties());
             response.add(RuntimeUtil.vmSnapshot(sib));
             response.add((NVGenericMap)ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO));
             NIOHTTPServer niohttpServer = ResourceManager.lookupResource("nio-http-server");

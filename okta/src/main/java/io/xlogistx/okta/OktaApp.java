@@ -85,7 +85,7 @@ public class OktaApp {
 //            TaskUtil.setMaxTasksQueue(2000);
             if(threadCount > 0)
                 TaskUtil.setTaskProcessorThreadCount(threadCount);
-//            TaskUtil.getDefaultTaskScheduler();
+//            TaskUtil.defaultTaskScheduler();
             OktaCache.SINGLETON.getCache().addObject(RATE_CONTROLLER, new RateController("app",ratePerUnit));
 
 
@@ -138,7 +138,7 @@ public class OktaApp {
                             {
                                 int val = j;
                                 int countIndex = i;
-                                TaskUtil.getDefaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app"), ()->{
+                                TaskUtil.defaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app"), ()->{
                                     String userToAuthN = val + "-" + userName;
 
                                     try {
@@ -180,7 +180,7 @@ public class OktaApp {
                             for (int j = 0; j < size && i < count; j++, i++) {
                                 int userIndex = j;
                                 int countIndex = i;
-                                TaskUtil.getDefaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextWait(), () -> {
+                                TaskUtil.defaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextWait(), () -> {
                                     try {
                                         oktaAdapter.userLogin(userNames[userIndex], passwords[userIndex]);
         //                                    if(countIndex %1000 == 0)
@@ -292,7 +292,7 @@ public class OktaApp {
 
 
                                 if (delete)
-                                    TaskUtil.getDefaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextWait(), () -> {
+                                    TaskUtil.defaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextWait(), () -> {
                                         try {
                                             oktaAdapter.deleteUser(user);
                                             log.info("User " + user.getOktaProfile().getUserName() + " deleted\navailable threads " +
@@ -346,7 +346,7 @@ public class OktaApp {
                                 .setUUID(UUID.randomUUID().toString());
                         oktaUser.setCredentials(credentials);
                         if (OktaCache.SINGLETON.rateController("app").getTPSAsLong() != 0) {
-                            TaskUtil.getDefaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextWait(), () -> {
+                            TaskUtil.defaultTaskScheduler().queue(OktaCache.SINGLETON.rateController("app").nextWait(), () -> {
 
                                 try {
                                     OktaUser oktafied = oktaAdapter.registerUser(oktaUser, active, groups);
@@ -362,7 +362,7 @@ public class OktaApp {
                                 }
                             });
                         } else {
-                            TaskUtil.getDefaultTaskProcessor().execute(() -> {
+                            TaskUtil.defaultTaskProcessor().execute(() -> {
                                 try {
                                     OktaUser oktafied = oktaAdapter.registerUser(oktaUser, active, groups);
                                     if (oktafied != null)
