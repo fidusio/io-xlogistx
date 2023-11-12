@@ -98,7 +98,7 @@ public class Main {
                             if(log.isEnabled()) log.getLogger().info(GSONUtil.toJSON(configDAO, true, false, false));
                             nioConfig.setAppConfig(configDAO).setNIOSocket(nioSocket);
                             nioSocket = nioConfig.createApp();
-                            nioSocket.setEventManager(TaskUtil.getDefaultEventManager());
+                            nioSocket.setEventManager(TaskUtil.defaultEventManager());
                             p.setValue(nioSocket);
                             break;
                         case IP_BLOCKER:
