@@ -144,6 +144,16 @@ public class NIOHTTPServer
                 " Permissions: " + Arrays.toString(resourcePermissions) +
                 " Roles: " + Arrays.toString(resourceRoles));
 
+       GetNameValue<String> httpAuthorization = hph.getRequest().getHeaders().getValue(HTTPHeader.AUTHORIZATION);
+        if (logger.isEnabled())
+            logger.getLogger().info("" + httpAuthorization);
+
+        // extract the login credential from the authorization header if the method requires auth
+        // try to login
+        SecurityUtils.getSubject();
+
+        //logger.getLogger().info("Subject: " + SecurityUtils.getSubject());
+
         return  Const.FunctionStatus.CONTINUE;
     }
 
@@ -151,61 +161,57 @@ public class NIOHTTPServer
             throws IOException, InvocationTargetException, IllegalAccessException
     {
 
-        //UByteArrayOutputStream resp = null;
-        HTTPMessageConfigInterface hmciResponse = null;
-        if (hph.parseRequest()) {
 
-            if(logger.isEnabled()) {
-                logger.getLogger().info(hph.getRequest().getURI());
-                logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
-                logger.getLogger().info("" + hph.getRequest().getHeaders());
-            }
-            URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
-            if(logger.isEnabled()) logger.getLogger().info(""+epm.result.httpEndPoint);
+        try {
+            //UByteArrayOutputStream resp = null;
+            HTTPMessageConfigInterface hmciResponse = null;
+            if (hph.parseRequest()) {
 
-
-            if (epm != null) {
-                if(logger.isEnabled())
-                    logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
-                // validate if method supported
-                if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod()))
-                {
-                    throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
-                            Arrays.toString(epm.result.httpEndPoint.getMethods()),
-                            HTTPStatusCode.METHOD_NOT_ALLOWED);
+                if (logger.isEnabled()) {
+                    logger.getLogger().info(hph.getRequest().getURI());
+                    logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
+                    logger.getLogger().info("" + hph.getRequest().getHeaders());
                 }
+                URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+                if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
-                //CryptoConst.AuthenticationType[] authTypes = epm.result.httpEndPoint.getAuthenticationTypes();
-                //
 
-                // check if instance of HTTPSessionHandler
-                if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
-                {
-                    HTTPSessionData sessionData = new HTTPSessionData(hph, hph.getOutputStream());
-
-                    ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(sessionData);
-                }
-                else
-                {
-
-                    if (logger.isEnabled()) {
-                        logger.getLogger().info("" + epm.result.methodHolder.getInstance());
-                        logger.getLogger().info("" + hph.getRequest());
-                        logger.getLogger().info("" + epm.path);
+                if (epm != null) {
+                    if (logger.isEnabled())
+                        logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
+                    // validate if method supported
+                    if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod())) {
+                        throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
+                                Arrays.toString(epm.result.httpEndPoint.getMethods()),
+                                HTTPStatusCode.METHOD_NOT_ALLOWED);
                     }
 
+                    //CryptoConst.AuthenticationType[] authTypes = epm.result.httpEndPoint.getAuthenticationTypes();
+                    //
 
-                    Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
-                    securityCheck(epm, hph);
+                    // check if instance of HTTPSessionHandler
+                    if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler) {
+                        HTTPSessionData sessionData = new HTTPSessionData(hph, hph.getOutputStream());
+
+                        ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(sessionData);
+                    } else {
+
+                        if (logger.isEnabled()) {
+                            logger.getLogger().info("" + epm.result.methodHolder.getInstance());
+                            logger.getLogger().info("" + hph.getRequest());
+                            logger.getLogger().info(epm.path);
+                        }
 
 
+                        Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
+                        securityCheck(epm, hph);
 
-                    Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
-                            epm.result.methodHolder.getMethodAnnotations(),
-                            parameters);
 
-                    if (result != null)
-                    {
+                        Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
+                                epm.result.methodHolder.getMethodAnnotations(),
+                                parameters);
+
+                        if (result != null) {
 
 //                        if (result instanceof File) {
 //
@@ -215,45 +221,43 @@ public class NIOHTTPServer
 //
 //                        }
 //                        else
-                        {
-                            hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
+                            {
+                                hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
+                            }
+                        } else {
+                            hmciResponse = HTTPUtil.formatResponse(HTTPStatusCode.OK);
                         }
                     }
-                    else
-                    {
-                        hmciResponse = HTTPUtil.formatResponse(HTTPStatusCode.OK);
-                    }
+
+
+                } else {
+                    SimpleMessage sm = new SimpleMessage();
+                    sm.setError(hph.getRequest().getURI() + " not found");
+                    hmciResponse = HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND);
                 }
 
+                // we have a response
+                if (hmciResponse != null) {
+                    hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
+                    hmciResponse.getHeaders().add(HTTPConst.CommonHeader.CONNECTION_CLOSE);
 
-            }
-            else
-            {
-                SimpleMessage sm = new SimpleMessage();
-                sm.setError(hph.getRequest().getURI() + " not found");
-                hmciResponse = HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND);
-            }
+                    HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
+                }
 
-            // we have a response
-            if (hmciResponse != null)
-            {
-                hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
-                hmciResponse.getHeaders().add(HTTPConst.CommonHeader.CONNECTION_CLOSE);
+                IOUtil.close(hph);
+                return true;
 
-                HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
+            } else {
+                if (logger.isEnabled())
+                    logger.getLogger().info("Message not complete yet");
             }
 
-            IOUtil.close(hph);
-            return true;
-
+            return false;
         }
-        else
+        finally
         {
-            if(logger.isEnabled())
-                logger.getLogger().info("Message not complete yet");
+            SecurityUtils.getSubject().logout();
         }
-
-        return false;
     }
 
 
@@ -306,6 +310,22 @@ public class NIOHTTPServer
         if (isClosed) {
             if (config != null) {
                 isClosed = false;
+            }
+
+
+            String shiroConfig = config.getProperties().lookupValue("shiro.config");
+            // shiro registration
+            if(shiroConfig != null)
+            {
+                try
+                {
+                    SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
+                    logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
 
             endPointsManager = EndPointsManager.scan(getConfig());
@@ -396,20 +416,7 @@ public class NIOHTTPServer
         }
 
 
-        String shiroConfig = config.getProperties().getValue("shiro_config");
-        logger.getLogger().info("shiro_config: " + shiroConfig);
-        // shiro registration
-        if(shiroConfig != null)
-        {
-            try
-            {
-                SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
-            }
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
-        }
+
         if(!SharedStringUtil.isEmpty(msg))
             logger.getLogger().info("Services started"+msg);
 

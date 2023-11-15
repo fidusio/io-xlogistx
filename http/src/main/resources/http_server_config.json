@@ -9,7 +9,8 @@
 
   "properties":
   {
-    "shiro": {
+    "shiro":
+    {
       "config": "classpath:shiro-xlog.ini",
       "subjects":
       {

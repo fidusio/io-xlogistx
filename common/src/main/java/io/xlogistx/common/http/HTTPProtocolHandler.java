@@ -21,9 +21,9 @@ public class HTTPProtocolHandler<S>
 
     private final UByteArrayOutputStream rawResponse = ByteBufferUtil.allocateUBAOS(256);//new UByteArrayOutputStream(256);
     private HTTPMessageConfigInterface response = new HTTPMessageConfig();
-    private HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
+    private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
-    public  final boolean https;
+    private   final boolean https;
 
     private volatile OutputStream outputStream;
     private volatile ByteBuffer dataBuffer;
@@ -41,6 +41,11 @@ public class HTTPProtocolHandler<S>
         this.https = https;
     }
 
+
+    public boolean isHTTPs()
+    {
+        return https;
+    }
 
 
 
@@ -64,17 +69,17 @@ public class HTTPProtocolHandler<S>
 
     public HTTPMessageConfigInterface getRequest()
     {
-        return rawRequest.isMessageComplete() ? rawRequest.getHTTPMessageConfig() : null;
+        return isRequestComplete() ? rawRequest.getHTTPMessageConfig() : null;
     }
 
     public UByteArrayOutputStream getRawRequest()
     {
-        return rawRequest.isMessageComplete() ? rawRequest.getDataStream() : null;
+        return isRequestComplete() ? rawRequest.getDataStream() : null;
     }
 
     public UByteArrayOutputStream getRawResponse()
     {
-        return rawRequest.isMessageComplete() ? rawResponse : null;
+        return isRequestComplete() ? rawResponse : null;
     }
 
 
@@ -90,7 +95,7 @@ public class HTTPProtocolHandler<S>
         }
     }
 
-    public void reset()
+    public synchronized void reset()
     {
         response = new HTTPMessageConfig();
         rawRequest.reset();
