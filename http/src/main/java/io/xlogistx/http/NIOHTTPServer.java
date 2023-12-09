@@ -85,7 +85,7 @@ public class NIOHTTPServer
             }
             catch (Exception e)
             {
-                e.printStackTrace();
+                if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(hph);
                 // we should close
@@ -108,7 +108,7 @@ public class NIOHTTPServer
             }
             catch (Exception e)
             {
-                e.printStackTrace();
+                if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(hph);
                 // we should close
