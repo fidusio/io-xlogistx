@@ -18,11 +18,7 @@ import org.zoxweb.shared.util.NVBoolean;
 import org.zoxweb.shared.util.NVGenericMap;
 
 
-@SecurityProp(authentications = {CryptoConst.AuthenticationType.BASIC,
-        CryptoConst.AuthenticationType.BEARER,
-        CryptoConst.AuthenticationType.JWT},
-//              protocols = {URIScheme.HTTPS},
-              roles = "local-admin,remote-admin")
+
 public class AppCommand
 extends PropertyHolder
 {
@@ -33,6 +29,7 @@ extends PropertyHolder
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="app-shutdown", uris="/app/shutdown")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:shutdown")
     public SimpleMessage appShutdown()
     {
         long delay = Const.TimeInMillis.SECOND.MILLIS*5;
@@ -42,8 +39,9 @@ extends PropertyHolder
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="class-logger", uris="/app/logger/{className}/{status}")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:logger:read, app:logger:write")
     public NVGenericMap loggerAccess(@ParamProp(name="className") String className, @ParamProp(name="status") boolean status) throws ClassNotFoundException, IllegalAccessException {
-        Class clazz = Class.forName(className);
+        Class<?> clazz = Class.forName(className);
         LogWrapper lp = ReflectionUtil.getValueFromField(clazz, LogWrapper.class, JMod.FINAL, JMod.PUBLIC, JMod.STATIC);
         if(lp != null) {
             lp.setEnabled(status);

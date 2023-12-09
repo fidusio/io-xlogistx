@@ -32,7 +32,10 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.AccessSecurityException;
+import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.shiro.ShiroNVEntityCRUDs;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
 import org.zoxweb.shared.util.*;
@@ -249,6 +252,37 @@ public class ShiroUtil
 		}
 	}
 
+	public static boolean isAuthenticationRequired(CryptoConst.AuthenticationType ...authTypes)
+	{
+		if(SharedUtil.contains(CryptoConst.AuthenticationType.NONE, authTypes))
+			return false;
+
+		if(authTypes != null && authTypes.length > 0)
+		{
+
+			for(CryptoConst.AuthenticationType authType : authTypes)
+			{
+				switch (authType)
+				{
+                    case ALL:
+                    case API_KEY:
+                    case BASIC:
+                    case BEARER:
+                    case DIGEST:
+                    case DOMAIN:
+                    case JWT:
+                    case LDAP:
+                    case HOBA:
+                    case OAUTH:
+						return true;
+                }
+			}
+		}
+
+		return false;
+	}
+
+
 	public static String subjectSessionID()
         throws AccessException
     {
@@ -274,7 +308,6 @@ public class ShiroUtil
 		try
         {
 			return SecurityUtils.getSubject();
-			
 		}
 		catch (ShiroException e)
         {
@@ -328,6 +361,37 @@ public class ShiroUtil
         throws NullPointerException, AccessException
     {
 		checkPermission(SecurityUtils.getSubject(), permission, str);
+	}
+
+
+	public static void authorizationCheckPoint(ResourceSecurity rs)
+	{
+		if(rs != null &&
+				rs.authenticationTypes() != null &&
+				!SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))
+		{
+			// check if at
+			// check permission and roles
+			// with the current subject
+			Subject subject = subject();
+			for(String perm : rs.permissions())
+			{
+				// try to match any permission
+				if(subject.isPermitted(perm))
+					return;
+			}
+			for(String role : rs.roles())
+			{
+				// try to match any role
+				if(subject.hasRole(role))
+					return;
+			}
+
+			throw new AccessSecurityException("Subject not Authorized");
+
+		}
+
+
 	}
 	
 	public static void checkPermission(Subject subject, String permission, ShiroTokenReplacement str)

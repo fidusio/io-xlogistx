@@ -17,11 +17,6 @@ import java.io.IOException;
 
 
 
-@SecurityProp(authentications = {CryptoConst.AuthenticationType.BASIC,
-        CryptoConst.AuthenticationType.BEARER,
-        CryptoConst.AuthenticationType.JWT},
-//              protocols = {URIScheme.HTTPS},
-              roles = "local-admin,remote-admin")
 public class SysCommand
 extends PropertyHolder
 {
@@ -30,6 +25,7 @@ extends PropertyHolder
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="system-reboot", uris="/system/reboot")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:reboot")
     public SimpleMessage systemReboot()
     {
         if (getProperties() != null) {
@@ -62,6 +58,7 @@ extends PropertyHolder
 
     }
     @EndPointProp(methods = {HTTPMethod.GET}, name="system-shutdown", uris="/system/shutdown")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:shutdown")
     public SimpleMessage systemShutdown()
     {
         if (getProperties() != null) {

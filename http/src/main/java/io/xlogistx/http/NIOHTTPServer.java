@@ -5,6 +5,8 @@ package io.xlogistx.http;
 import io.xlogistx.common.http.*;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.UsernamePasswordToken;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -50,6 +52,8 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController
 {
+
+
     public final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
@@ -116,11 +120,15 @@ public class NIOHTTPServer
     {
         if (e instanceof HTTPCallException)
         {
-            HTTPStatusCode statusCode = ((HTTPCallException) e).getStatusCode();
-            if(statusCode == null)
-                statusCode = HTTPStatusCode.BAD_REQUEST;
-            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage(), statusCode), hph.getRawResponse());
-
+//            HTTPStatusCode statusCode = ((HTTPCallException) e).getStatusCode();
+//            if(statusCode == null)
+//                statusCode = HTTPStatusCode.BAD_REQUEST;
+//            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage(), statusCode), hph.getRawResponse());
+            HTTPUtil.formatResponse((HTTPCallException) e, hph.getRawResponse());
+        }
+        else if (e instanceof AuthenticationException)
+        {
+            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getRawResponse());
         }
         else
         {
@@ -136,21 +144,64 @@ public class NIOHTTPServer
 
    private  Const.FunctionStatus securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler<?> hph) throws IOException
     {
-        CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.getAuthenticationTypes();
-        String[] resourcePermissions = epm.result.httpEndPoint.getPermissions();
-        String[] resourceRoles = epm.result.httpEndPoint.getRoles();
-        if (logger.isEnabled())
-            logger.getLogger().info("AuthTypes: " + Arrays.toString(resourceAuthTypes) +
-                " Permissions: " + Arrays.toString(resourcePermissions) +
-                " Roles: " + Arrays.toString(resourceRoles));
+        CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
+//        String[] resourcePermissions = epm.result.httpEndPoint.permissions();
+//        String[] resourceRoles = epm.result.httpEndPoint.roles();
+//        if (logger.isEnabled())
+//            logger.getLogger().info("AuthTypes: " + Arrays.toString(resourceAuthTypes) +
+//                " Permissions: " + Arrays.toString(resourcePermissions) +
+//                " Roles: " + Arrays.toString(resourceRoles));
 
-       GetNameValue<String> httpAuthorization = hph.getRequest().getHeaders().getValue(HTTPHeader.AUTHORIZATION);
-        if (logger.isEnabled())
-            logger.getLogger().info("" + httpAuthorization);
+//        HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
+//        if (logger.isEnabled())
+//            logger.getLogger().info("Authorization header: " + httpAuthorization);
 
         // extract the login credential from the authorization header if the method requires auth
         // try to login
-        SecurityUtils.getSubject();
+        if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes))
+        {
+            HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
+            if (logger.isEnabled())
+                logger.getLogger().info("Authorization header: " + httpAuthorization);
+
+            if (httpAuthorization == null)
+            {
+                HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
+                hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+                hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
+
+                // if basic authentication is supported
+                if (SharedUtil.contains(CryptoConst.AuthenticationType.BASIC, resourceAuthTypes) ||
+                        SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
+                    hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
+
+                throw new HTTPCallException("authentication missing", hmci);
+
+            }
+            else
+            {
+                if (httpAuthorization instanceof HTTPAuthorizationBasic &&
+                        (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
+                                SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
+
+                    UsernamePasswordToken loginToken = new UsernamePasswordToken(((HTTPAuthorizationBasic) httpAuthorization).getUser(),
+                            ((HTTPAuthorizationBasic) httpAuthorization).getPassword());
+                    SecurityUtils.getSubject().login(loginToken);
+
+                    try
+                    {
+                        // run authorization check
+                        ShiroUtil.authorizationCheckPoint(epm.result.httpEndPoint);
+                    }
+                    catch(Exception e)
+                    {
+                        throw new HTTPCallException(e.getMessage(), HTTPStatusCode.UNAUTHORIZED);
+                    }
+                }
+            }
+        }
+
+
 
         //logger.getLogger().info("Subject: " + SecurityUtils.getSubject());
 
@@ -238,8 +289,9 @@ public class NIOHTTPServer
 
                 // we have a response
                 if (hmciResponse != null) {
-                    hmciResponse.getHeaders().add(HTTPHeader.SERVER.getName(), NAME);
-                    hmciResponse.getHeaders().add(HTTPConst.CommonHeader.CONNECTION_CLOSE);
+                    hmciResponse.getHeaders().build(HTTPHeader.SERVER.getName(), NAME).
+                    build(HTTPConst.CommonHeader.CONNECTION_CLOSE).
+                    build(HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF);
 
                     HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
                 }

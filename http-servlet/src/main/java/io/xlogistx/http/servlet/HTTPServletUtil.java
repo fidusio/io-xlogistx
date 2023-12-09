@@ -21,14 +21,12 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.zoxweb.server.http.HTTPRequestAttributes;
-
 import org.zoxweb.server.io.FileInfoStreamSource;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.GSONWrapper;
-import org.zoxweb.server.util.ZIPUtil;
-
+import org.zoxweb.server.util.JarTool;
 import org.zoxweb.shared.api.APIError;
 import org.zoxweb.shared.data.FileInfoDAO;
 import org.zoxweb.shared.http.*;
@@ -45,9 +43,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
-
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.logging.Logger;
 
 
@@ -268,7 +267,7 @@ public class HTTPServletUtil
 		case "gzip":
 			
 			
-			return ZIPUtil.gzip(content);
+			return JarTool.gzip(content);
 			
 //			ByteArrayOutputStream output = null;
 //			GZIPOutputStream gzipOutputStream = null;

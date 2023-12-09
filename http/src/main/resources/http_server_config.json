@@ -11,7 +11,7 @@
   {
     "shiro":
     {
-      "config": "classpath:shiro-xlog.ini",
+      "config": "classpath:simple-shiro.ini",
       "subjects":
       {
         "LocalAdmin" : ""

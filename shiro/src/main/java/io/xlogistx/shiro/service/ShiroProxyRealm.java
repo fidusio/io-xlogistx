@@ -1,5 +1,7 @@
-package io.xlogistx.shiro;
+package io.xlogistx.shiro.service;
 
+import io.xlogistx.shiro.DomainPrincipalCollection;
+import io.xlogistx.shiro.authc.JWTAuthenticationToken;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -8,10 +10,12 @@ import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.zoxweb.server.http.HTTPAPIEndPoint;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.security.shiro.ShiroSubjectData;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SetNVProperties;
 import org.zoxweb.shared.util.SharedStringUtil;
@@ -25,7 +29,7 @@ implements SetNVProperties
     public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
 
     private NVGenericMap configProperties;
-
+    private HTTPAPIEndPoint<AuthenticationToken, ShiroSubjectData> remoteRealm;
 
 
     /**
@@ -79,9 +83,6 @@ implements SetNVProperties
 
 
 
-
-
-
         if(log.isEnabled()) log.getLogger().info(""+principals);
         String user = (String) principals.getPrimaryPrincipal();
         if (!SharedStringUtil.isEmpty(user))
@@ -98,5 +99,33 @@ implements SetNVProperties
     @Override
     public NVGenericMap getProperties() {
         return configProperties;
+    }
+
+    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, ShiroSubjectData> remoteRealm)
+    {
+        this.remoteRealm = remoteRealm;
+    }
+
+
+
+    protected Object getAuthenticationCacheKey(AuthenticationToken token)
+    {
+        if(log.isEnabled()) log.getLogger().info("TAG1::key:" + token);
+        if(token instanceof JWTAuthenticationToken)
+        {
+            return ((JWTAuthenticationToken)token).getJWTSubjectID();
+        }
+        return super.getAuthenticationCacheKey(token);
+    }
+
+    protected Object getAuthenticationCacheKey(PrincipalCollection principals)
+    {
+        if(log.isEnabled()) log.getLogger().info("TAG2::key:" + principals);
+        if (principals instanceof DomainPrincipalCollection)
+        {
+            DomainPrincipalCollection dpc = (DomainPrincipalCollection)principals;
+            return dpc.getJWSubjectID() != null ? dpc.getJWSubjectID() : dpc.getPrimaryPrincipal();
+        }
+        return super.getAuthenticationCacheKey(principals);
     }
 }

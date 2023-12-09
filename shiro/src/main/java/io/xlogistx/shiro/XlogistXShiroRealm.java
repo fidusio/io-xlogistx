@@ -92,6 +92,8 @@ public class XlogistXShiroRealm
 	        	permissions = shiroStore.getSubjectPermissions(domainID, userID, roleNames);
 	        }
 
+
+
 	        SimpleAuthorizationInfo info = new SimpleAuthorizationInfo(roleNames);
 	        info.setStringPermissions(permissions);
 
