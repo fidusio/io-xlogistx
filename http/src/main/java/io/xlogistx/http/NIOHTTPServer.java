@@ -4,9 +4,11 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.shiro.ShiroUtil;
+import io.xlogistx.shiro.authc.PasswordCredentialsMatcher;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.realm.text.IniRealm;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -372,6 +374,13 @@ public class NIOHTTPServer
                 try
                 {
                     SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
+
+                    IniRealm iniRealm = ShiroUtil.getRealm(IniRealm.class);
+                    if (iniRealm != null) {
+                        // TODO must be replaced
+                        iniRealm.setCredentialsMatcher(new PasswordCredentialsMatcher());
+                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
+                    }
                     logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
                 }
                 catch(Exception e)

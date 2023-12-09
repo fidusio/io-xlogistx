@@ -18,6 +18,7 @@ package io.xlogistx.shiro.authc;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
+import org.apache.shiro.authc.credential.SimpleCredentialsMatcher;
 import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.util.SharedStringUtil;
@@ -25,6 +26,8 @@ import org.zoxweb.shared.util.SharedStringUtil;
 public class PasswordCredentialsMatcher
 	implements CredentialsMatcher
 {
+
+	private static final SimpleCredentialsMatcher SIMPLE_C_M = new SimpleCredentialsMatcher();
 
 	/**
 	 * @see CredentialsMatcher#doCredentialsMatch(AuthenticationToken, AuthenticationInfo)
@@ -44,10 +47,25 @@ public class PasswordCredentialsMatcher
 			{
 				return true;
 			}
-			
+
+			PasswordDAO passwordDAO = null;
 			if (info.getCredentials() instanceof PasswordDAO)
 			{
-				PasswordDAO passwordDAO = (PasswordDAO) info.getCredentials();
+				passwordDAO = (PasswordDAO) info.getCredentials();
+			}
+			else if (info.getCredentials() instanceof String)
+			{
+				try
+				{
+					passwordDAO = PasswordDAO.fromCanonicalID((String) info.getCredentials());
+				}
+				catch (Exception e)
+				{
+				}
+			}
+
+			if (passwordDAO != null)
+			{
 				String password = null;
 				
 				if (token.getCredentials() instanceof char[])
@@ -65,13 +83,13 @@ public class PasswordCredentialsMatcher
 	
 				return HashUtil.isPasswordValid(passwordDAO, password);
 			}
+
 		}
 		catch (Exception e)
         {
 			e.printStackTrace();
 		}
-		
-		return false;
+		return SIMPLE_C_M.doCredentialsMatch(token, info);
 	}
 
 }
