@@ -190,15 +190,15 @@ public class NIOHTTPServer
                             ((HTTPAuthorizationBasic) httpAuthorization).getPassword());
                     SecurityUtils.getSubject().login(loginToken);
 
-                    try
+
+                    if(!ShiroUtil.isAuthorizationCheckPoint(epm.result.httpEndPoint))
                     {
-                        // run authorization check
-                        ShiroUtil.authorizationCheckPoint(epm.result.httpEndPoint);
+                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
+                        hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
+                        throw new HTTPCallException("authentication missing", hmci);
                     }
-                    catch(Exception e)
-                    {
-                        throw new HTTPCallException(e.getMessage(), HTTPStatusCode.UNAUTHORIZED);
-                    }
+
                 }
             }
         }

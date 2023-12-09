@@ -366,6 +366,13 @@ public class ShiroUtil
 
 	public static void authorizationCheckPoint(ResourceSecurity rs)
 	{
+		if(!isAuthorizationCheckPoint(rs))
+			throw new AccessSecurityException("Subject not Authorized");
+
+	}
+
+	public static boolean isAuthorizationCheckPoint(ResourceSecurity rs)
+	{
 		if(rs != null &&
 				rs.authenticationTypes() != null &&
 				!SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))
@@ -378,20 +385,17 @@ public class ShiroUtil
 			{
 				// try to match any permission
 				if(subject.isPermitted(perm))
-					return;
+					return true;
 			}
 			for(String role : rs.roles())
 			{
 				// try to match any role
 				if(subject.hasRole(role))
-					return;
+					return true;
 			}
-
-			throw new AccessSecurityException("Subject not Authorized");
-
 		}
 
-
+		return false;
 	}
 	
 	public static void checkPermission(Subject subject, String permission, ShiroTokenReplacement str)
