@@ -366,17 +366,21 @@ public class ShiroUtil
 
 	public static void authorizationCheckPoint(ResourceSecurity rs)
 	{
-		if(!isAuthorizationCheckPoint(rs))
+		if(!isAuthorizedCheckPoint(rs))
 			throw new AccessSecurityException("Subject not Authorized");
 
 	}
 
-	public static boolean isAuthorizationCheckPoint(ResourceSecurity rs)
+	public static boolean isAuthorizedCheckPoint(ResourceSecurity rs)
 	{
+
+
 		if(rs != null &&
-				rs.authenticationTypes() != null &&
-				!SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))
+				rs.authenticationTypes() != null)
 		{
+
+			if (SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))
+				return true;
 			// check if at
 			// check permission and roles
 			// with the current subject
@@ -384,7 +388,7 @@ public class ShiroUtil
 			for(String perm : rs.permissions())
 			{
 				// try to match any permission
-				if(subject.isPermitted(perm))
+				if(isPermitted(perm))
 					return true;
 			}
 			for(String role : rs.roles())
@@ -562,6 +566,8 @@ public class ShiroUtil
 		throws NullPointerException, AccessException
     {
 		SharedUtil.checkIfNulls("Null parameters not allowed", subject, permission);
+		if ("any".equalsIgnoreCase(permission) || "*".equals(permission))
+			return true;
 		return subject.isPermitted(SharedStringUtil.toLowerCase(permission));
 	}
 	

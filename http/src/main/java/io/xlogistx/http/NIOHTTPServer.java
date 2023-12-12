@@ -191,7 +191,7 @@ public class NIOHTTPServer
                     SecurityUtils.getSubject().login(loginToken);
 
 
-                    if(!ShiroUtil.isAuthorizationCheckPoint(epm.result.httpEndPoint))
+                    if(!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint))
                     {
                         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
                         hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);

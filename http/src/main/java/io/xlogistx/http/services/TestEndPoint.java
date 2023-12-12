@@ -11,7 +11,7 @@ import org.zoxweb.shared.util.Const;
 import java.util.Arrays;
 import java.util.Date;
 
-@SecurityProp(authentications = {CryptoConst.AuthenticationType.BASIC})
+@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL})
 public class TestEndPoint {
 
     public static class DataObject
@@ -45,6 +45,7 @@ public class TestEndPoint {
     }
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="dateTester", uris="/testdate")
+    @SecurityProp(permissions = "any")
     public Date testDataObject()
     {
         return new Date();
