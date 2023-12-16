@@ -4,11 +4,9 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.shiro.ShiroUtil;
-import io.xlogistx.shiro.authc.PasswordCredentialsMatcher;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UsernamePasswordToken;
-import org.apache.shiro.realm.text.IniRealm;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -30,6 +28,7 @@ import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.InetSocketAddressDAO;
+import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
 
 import javax.net.ssl.SSLContext;
@@ -81,9 +80,15 @@ public class NIOHTTPServer
 
             try
             {
-                if (incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get())))
+                if(hph.parseRequest(inBuffer))
+                {
+                    incomingData(hph.setOutputStream(get()));
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
-                //getProtocolHandler().setSessionCallback(this);
+                }
+                else
+                {
+                    if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
+                }
             }
             catch (Exception e)
             {
@@ -105,8 +110,15 @@ public class NIOHTTPServer
         {
             try
             {
-                if (incomingData(hph.incomingDataBuffer(inBuffer).setOutputStream(get())))
-                    if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "https", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
+                if(hph.parseRequest(inBuffer))
+                {
+                    incomingData(hph.setOutputStream(get()));
+                    if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
+                }
+                else
+                {
+                    if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
+                }
             }
             catch (Exception e)
             {
@@ -144,23 +156,16 @@ public class NIOHTTPServer
         }
     }
 
-   private  Const.FunctionStatus securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler<?> hph) throws IOException
+   private  void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
     {
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
-//        String[] resourcePermissions = epm.result.httpEndPoint.permissions();
-//        String[] resourceRoles = epm.result.httpEndPoint.roles();
-//        if (logger.isEnabled())
-//            logger.getLogger().info("AuthTypes: " + Arrays.toString(resourceAuthTypes) +
-//                " Permissions: " + Arrays.toString(resourcePermissions) +
-//                " Roles: " + Arrays.toString(resourceRoles));
 
-//        HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
-//        if (logger.isEnabled())
-//            logger.getLogger().info("Authorization header: " + httpAuthorization);
 
-        // extract the login credential from the authorization header if the method requires auth
-        // try to login
-        if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes))
+        // for performance check
+        // if the resource authentication is required
+        // if the resource permission  is PERM_RESOURCE_ANY
+        if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
+                !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions()))
         {
             HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
             if (logger.isEnabled())
@@ -202,15 +207,9 @@ public class NIOHTTPServer
                 }
             }
         }
-
-
-
-        //logger.getLogger().info("Subject: " + SecurityUtils.getSubject());
-
-        return  Const.FunctionStatus.CONTINUE;
     }
 
-    private boolean incomingData(HTTPProtocolHandler hph)
+    private void incomingData(HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
 
@@ -218,7 +217,7 @@ public class NIOHTTPServer
         try {
             //UByteArrayOutputStream resp = null;
             HTTPMessageConfigInterface hmciResponse = null;
-            if (hph.parseRequest()) {
+
 
                 if (logger.isEnabled()) {
                     logger.getLogger().info(hph.getRequest().getURI());
@@ -299,14 +298,6 @@ public class NIOHTTPServer
                 }
 
                 IOUtil.close(hph);
-                return true;
-
-            } else {
-                if (logger.isEnabled())
-                    logger.getLogger().info("Message not complete yet");
-            }
-
-            return false;
         }
         finally
         {
@@ -375,12 +366,12 @@ public class NIOHTTPServer
                 {
                     SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
 
-                    IniRealm iniRealm = ShiroUtil.getRealm(IniRealm.class);
-                    if (iniRealm != null) {
-                        // TODO must be replaced
-                        iniRealm.setCredentialsMatcher(new PasswordCredentialsMatcher());
-                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
-                    }
+//                    IniRealm iniRealm = ShiroUtil.getRealm(IniRealm.class);
+//                    if (iniRealm != null) {
+//                        // TODO must be replaced
+//                        iniRealm.setCredentialsMatcher(new PasswordCredentialsMatcher());
+//                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
+//                    }
                     logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
                 }
                 catch(Exception e)

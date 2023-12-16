@@ -6,6 +6,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.AddressDAO;
 import org.zoxweb.shared.http.HTTPMethod;
+import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.Const;
 
 import java.util.Arrays;
@@ -45,7 +46,7 @@ public class TestEndPoint {
     }
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="dateTester", uris="/testdate")
-    @SecurityProp(permissions = "any")
+    @SecurityProp(permissions = SecurityModel.PERM_RESOURCE_ANY)
     public Date testDataObject()
     {
         return new Date();

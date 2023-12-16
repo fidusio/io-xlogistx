@@ -11,7 +11,7 @@
   {
     "shiro":
     {
-      "config": "classpath:simple-shiro.ini",
+      "config": "classpath:shiro-proxy.ini",
       "subjects":
       {
         "LocalAdmin" : ""

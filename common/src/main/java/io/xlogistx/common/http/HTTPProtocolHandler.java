@@ -14,7 +14,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class HTTPProtocolHandler<S>
+public class HTTPProtocolHandler
     implements Closeable, IsClosed
 {
 
@@ -26,12 +26,12 @@ public class HTTPProtocolHandler<S>
     private   final boolean https;
 
     private volatile OutputStream outputStream;
-    private volatile ByteBuffer dataBuffer;
+    //private volatile ByteBuffer dataBuffer;
 
 
 
 
-    private volatile S subjectInfo;
+//    private volatile S subjectInfo;
 
 
 
@@ -56,10 +56,10 @@ public class HTTPProtocolHandler<S>
         rawRequest.parse(true);
         return rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
     }
-    public boolean parseRequest() throws IOException
-    {
-        return parseRequest(getDataBuffer());
-    }
+//    public boolean parseRequest() throws IOException
+//    {
+//        return parseRequest(getDataBuffer());
+//    }
 
 
     public boolean isRequestComplete()
@@ -118,26 +118,26 @@ public class HTTPProtocolHandler<S>
         return this;
     }
 
-    public ByteBuffer getDataBuffer()
-    {
-        return dataBuffer;
-    }
+//    public ByteBuffer getDataBuffer()
+//    {
+//        return dataBuffer;
+//    }
+//
+//    public HTTPProtocolHandler incomingDataBuffer(ByteBuffer byteBuffer)
+//    {
+//        this.dataBuffer = byteBuffer;
+//        return this;
+//    }
 
-    public HTTPProtocolHandler incomingDataBuffer(ByteBuffer byteBuffer)
-    {
-        this.dataBuffer = byteBuffer;
-        return this;
-    }
 
+//    public S getSubjectInfo() {
+//        return subjectInfo;
+//    }
 
-    public S getSubjectInfo() {
-        return subjectInfo;
-    }
-
-    public void setSubjectInfo(S subjectInfo)
-    {
-        this.subjectInfo = subjectInfo;
-    }
+//    public void setSubjectInfo(S subjectInfo)
+//    {
+//        this.subjectInfo = subjectInfo;
+//    }
 
 
 

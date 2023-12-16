@@ -19,6 +19,7 @@ package io.xlogistx.shiro;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
+import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.config.Ini;
@@ -33,9 +34,11 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.ResourceSecurity;
+import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.ShiroNVEntityCRUDs;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
 import org.zoxweb.shared.util.*;
@@ -282,6 +285,13 @@ public class ShiroUtil
 		return false;
 	}
 
+
+	public static AuthenticationToken httpAuthorizationToAuthToken(ResourceSecurity resourceSecurity,
+																   HTTPAuthorization httpAuthorization)
+	{
+
+		return null;
+	}
 
 	public static String subjectSessionID()
         throws AccessException
@@ -566,7 +576,7 @@ public class ShiroUtil
 		throws NullPointerException, AccessException
     {
 		SharedUtil.checkIfNulls("Null parameters not allowed", subject, permission);
-		if ("any".equalsIgnoreCase(permission) || "*".equals(permission))
+		if (SecurityModel.PERM_RESOURCE_ANY.equals(permission))
 			return true;
 		return subject.isPermitted(SharedStringUtil.toLowerCase(permission));
 	}
