@@ -11,26 +11,45 @@ import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.server.http.HTTPAPIEndPoint;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
+import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
-import org.zoxweb.shared.security.shiro.ShiroSubjectData;
+import org.zoxweb.shared.http.HTTPAPIResult;
+import org.zoxweb.shared.http.HTTPMessageConfigInterface;
+import org.zoxweb.shared.security.shiro.ShiroSessionData;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SetNVProperties;
-import org.zoxweb.shared.util.SharedStringUtil;
 
-import java.security.NoSuchAlgorithmException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ShiroProxyRealm extends AuthorizingRealm
 implements SetNVProperties
 {
 
-    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
+    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(true);
+    private Map<String, ShiroSessionData> shiroSessionDataMap = new HashMap<>();
 
     private NVGenericMap configProperties;
-    private HTTPAPIEndPoint<AuthenticationToken, ShiroSubjectData> remoteRealm;
 
+
+
+    private String resourcePath;
+    private HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm;
+
+    public ShiroProxyRealm()
+    {
+        super();
+//        setName("ProxyRealm");
+//        setAuthenticationCachingEnabled(true);
+//        setAuthorizationCachingEnabled(true);
+
+
+    }
 
     /**
      * This is a proxy realm meaning it depends on a remote server that actually
@@ -59,37 +78,47 @@ implements SetNVProperties
         // the payload is a json object {"principal": token.getPrincipal(), "credentials": token.getCredentials()}
         // The remote server must validate the re
 
+        if(log.isEnabled()) log.getLogger().info("token: " + token) ;
 
-
-        if(log.isEnabled()) log.getLogger().info(""+token.getPrincipal());
-        String user = (String) token.getPrincipal();
-        if (!SharedStringUtil.isEmpty(user))
+        try
         {
-            try
-            {
-                PasswordDAO passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.BCRYPT, 0, 5, "password!");
-                return new SimpleAuthenticationInfo(user, passwordDAO, "proxy");
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
 
+
+            if(remoteRealm != null)
+            {
+                HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall(token);
+                shiroSessionDataMap.put((String) token.getPrincipal(), result.getData());
+                if (log.isEnabled()) log.getLogger().info("remoteRealm " + result);
+                PasswordDAO passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.SHA_256, 0, 64, new String((char[]) token.getCredentials()));
+                return new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
             }
         }
-        return null;
+        catch (Exception e)
+        {
+            if(log.isEnabled())
+                e.printStackTrace();
+        }
+
+        throw new AuthenticationException("Invalid Authentication Token");
     }
 
 
     @Override
-    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
-
-
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals)
+    {
 
         if(log.isEnabled()) log.getLogger().info(""+principals);
         String user = (String) principals.getPrimaryPrincipal();
-        if (!SharedStringUtil.isEmpty(user))
-        {
-            return new SimpleAuthorizationInfo();
-        }
-        return null;
+
+
+        ShiroSessionData ssd = shiroSessionDataMap.get(user);
+        SimpleAuthorizationInfo ret = new SimpleAuthorizationInfo();
+        ret.addStringPermissions(ssd.permissions());
+        ret.addRoles(ssd.roles());
+
+        return ret;
+
+
     }
     @Override
     public void setProperties(NVGenericMap properties) {
@@ -101,7 +130,7 @@ implements SetNVProperties
         return configProperties;
     }
 
-    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, ShiroSubjectData> remoteRealm)
+    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm)
     {
         this.remoteRealm = remoteRealm;
     }
@@ -127,5 +156,27 @@ implements SetNVProperties
             return dpc.getJWSubjectID() != null ? dpc.getJWSubjectID() : dpc.getPrimaryPrincipal();
         }
         return super.getAuthenticationCacheKey(principals);
+    }
+
+
+
+    public String getResourcePath() {
+        return resourcePath;
+    }
+
+    public void setResourcePath(String resourcePath) throws IOException
+    {
+        if(log.isEnabled()) log.getLogger().info(resourcePath);
+        this.resourcePath = resourcePath;
+        // load configProperties
+        configProperties = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(resourcePath), NVGenericMap.class);
+        NVGenericMap httpAPIConfig = (NVGenericMap) configProperties.get("shiro-proxy-http-api");
+        String domain = httpAPIConfig.getValue("domain");
+        HTTPMessageConfigInterface hmciConfig = httpAPIConfig.getValue("hmci_config");
+        ShiroProxyHTTPAPI httpapi = new ShiroProxyHTTPAPI(hmciConfig);
+        httpapi.setDomain(domain).setName(hmciConfig.getName());
+        setRemoteRealm(httpapi);
+
+        if(log.isEnabled()) log.getLogger().info("remote real set");
     }
 }

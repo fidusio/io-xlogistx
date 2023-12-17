@@ -17,6 +17,7 @@ package io.xlogistx.shiro;
 
 
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
+import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -35,6 +36,7 @@ import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPAuthorization;
+import org.zoxweb.shared.http.HTTPAuthorizationBasic;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.ResourceSecurity;
@@ -286,9 +288,12 @@ public class ShiroUtil
 	}
 
 
-	public static AuthenticationToken httpAuthorizationToAuthToken(ResourceSecurity resourceSecurity,
-																   HTTPAuthorization httpAuthorization)
+	public static AuthenticationToken httpAuthorizationToAuthToken(HTTPAuthorization httpAuthorization)
 	{
+		if (httpAuthorization instanceof HTTPAuthorizationBasic)
+		{
+			return new UsernamePasswordToken(((HTTPAuthorizationBasic) httpAuthorization).getUser(), ((HTTPAuthorizationBasic) httpAuthorization).getPassword());
+		}
 
 		return null;
 	}
@@ -391,6 +396,11 @@ public class ShiroUtil
 
 			if (SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))
 				return true;
+
+			if(rs.permissions().length == 0 && rs.roles().length == 0)
+			{
+				return true;
+			}
 			// check if at
 			// check permission and roles
 			// with the current subject
@@ -595,11 +605,21 @@ public class ShiroUtil
 	
 	public static AuthorizationInfo lookupAuthorizationInfo(PrincipalCollection pc)
 	{
-		ShiroBaseRealm realm = ShiroUtil.getRealm(ShiroBaseRealm.class);
-		// set the permission manually
-		AuthorizationInfo ai =  realm.lookupAuthorizationInfo(pc);
+		AuthorizationInfo ai =  lookupAuthorizationInfo(ShiroBaseRealm.class, pc);
+		if (ai == null)
+			ai = lookupAuthorizationInfo(XlogistXIniRealm.class, pc);
 		return ai;
 	}
+
+	public static AuthorizationInfo lookupAuthorizationInfo(Class<? extends Realm> realmClass, PrincipalCollection pc)
+	{
+		Realm realm = getRealm(realmClass);
+		// set the permission manually
+		if (realm instanceof AuthorizationInfoLookup)
+			return ((AuthorizationInfoLookup) realm).lookupAuthorizationInfo(pc);
+		return null;
+	}
+
 	
 
 	public static Object lookupSessionAttribute(Object key)

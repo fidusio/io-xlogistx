@@ -18,6 +18,7 @@ package io.xlogistx.shiro;
 import io.xlogistx.shiro.authc.DomainAuthenticationInfo;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import io.xlogistx.shiro.authc.JWTAuthenticationToken;
+import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -52,10 +53,10 @@ import java.util.Set;
 
 public abstract class ShiroBaseRealm
     extends AuthorizingRealm
-    implements ShiroRealmStore
+    implements ShiroRealmStore, AuthorizationInfoLookup
 {
 
-	public static final LogWrapper log = new LogWrapper(ShiroBaseRealm.class).setEnabled(false );
+	public static final LogWrapper log = new LogWrapper(ShiroBaseRealm.class).setEnabled(false);
 
 	protected boolean permissionsLookupEnabled = false;
 	private boolean cachePersistenceEnabled = false;

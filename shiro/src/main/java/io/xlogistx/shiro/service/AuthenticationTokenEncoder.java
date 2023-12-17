@@ -19,10 +19,11 @@ public class AuthenticationTokenEncoder
         if (auth == null)
         {
             // convert AuthenticationToken to HTTPAuthorization
+
             if (authToken instanceof UsernamePasswordToken)
             {
                 // we have a basic authentication
-                auth = new HTTPAuthorizationBasic((String) authToken.getPrincipal(), (String) authToken.getCredentials());
+                auth = new HTTPAuthorizationBasic((String) authToken.getPrincipal(), new String((char[])authToken.getCredentials()));
             }
             else if (authToken instanceof APIAuthenticationToken)
             {

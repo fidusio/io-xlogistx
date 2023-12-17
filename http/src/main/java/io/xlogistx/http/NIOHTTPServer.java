@@ -6,7 +6,6 @@ import io.xlogistx.common.http.*;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
-import org.apache.shiro.authc.UsernamePasswordToken;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -189,21 +188,23 @@ public class NIOHTTPServer
             {
                 if (httpAuthorization instanceof HTTPAuthorizationBasic &&
                         (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
-                                SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
+                                SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null))
+                {
 
-                    UsernamePasswordToken loginToken = new UsernamePasswordToken(((HTTPAuthorizationBasic) httpAuthorization).getUser(),
-                            ((HTTPAuthorizationBasic) httpAuthorization).getPassword());
-                    SecurityUtils.getSubject().login(loginToken);
-
+                    SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+                    if(logger.isEnabled()) logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
 
                     if(!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint))
                     {
-                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
-                        hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
-                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
-                        throw new HTTPCallException("authentication missing", hmci);
+//                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
+//                        hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+//                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
+                        throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
                     }
-
+                }
+                else
+                {
+                    if(logger.isEnabled()) logger.getLogger().info("*********** NO LOGIN **********");
                 }
             }
         }
