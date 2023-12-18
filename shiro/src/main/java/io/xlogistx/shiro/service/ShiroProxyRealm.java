@@ -13,28 +13,33 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.server.http.HTTPAPIEndPoint;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.HashUtil;
+import org.zoxweb.server.security.PasswordDAOHasher;
 import org.zoxweb.server.util.GSONUtil;
+import org.zoxweb.shared.crypto.CredentialHasher;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.http.HTTPAPIResult;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.security.shiro.ShiroSessionData;
+import org.zoxweb.shared.util.KVMapStore;
+import org.zoxweb.shared.util.KVMapStoreDefault;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SetNVProperties;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 public class ShiroProxyRealm extends AuthorizingRealm
 implements SetNVProperties
 {
 
-    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(true);
-    private Map<String, ShiroSessionData> shiroSessionDataMap = new HashMap<>();
+    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
+
+    private final KVMapStore<String, ShiroSessionData> kvSessionData = new KVMapStoreDefault<String, ShiroSessionData>(new HashMap<String, ShiroSessionData>());
+    private final KVMapStore<String, AuthenticationInfo> kvAuthcInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
+    private CredentialHasher<PasswordDAO> credentialHasher = new PasswordDAOHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(64);
 
 
 
@@ -83,14 +88,21 @@ implements SetNVProperties
         try
         {
 
+            AuthenticationInfo authenticationInfo = kvAuthcInfo.get((String)token.getPrincipal());
+            if(authenticationInfo != null)
+                return authenticationInfo;
 
             if(remoteRealm != null)
             {
                 HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall(token);
-                shiroSessionDataMap.put((String) token.getPrincipal(), result.getData());
                 if (log.isEnabled()) log.getLogger().info("remoteRealm " + result);
-                PasswordDAO passwordDAO = HashUtil.toPassword(CryptoConst.HASHType.SHA_256, 0, 64, new String((char[]) token.getCredentials()));
-                return new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
+                PasswordDAO passwordDAO = credentialHasher.hash((char[]) token.getCredentials());
+                authenticationInfo = new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
+
+                kvSessionData.put((String) token.getPrincipal(), result.getData());
+                kvAuthcInfo.put((String)token.getPrincipal(), authenticationInfo);
+
+                return authenticationInfo;
             }
         }
         catch (Exception e)
@@ -103,16 +115,21 @@ implements SetNVProperties
     }
 
 
+
+
+
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals)
     {
-
         if(log.isEnabled()) log.getLogger().info(""+principals);
         String user = (String) principals.getPrimaryPrincipal();
 
 
-        ShiroSessionData ssd = shiroSessionDataMap.get(user);
+        ShiroSessionData ssd = kvSessionData.get(user);
         SimpleAuthorizationInfo ret = new SimpleAuthorizationInfo();
+
+        if(log.isEnabled()) log.getLogger().info(user +": " + ssd.permissions());
+        if(log.isEnabled()) log.getLogger().info(user +": " + ssd.roles());
         ret.addStringPermissions(ssd.permissions());
         ret.addRoles(ssd.roles());
 
@@ -176,6 +193,24 @@ implements SetNVProperties
         ShiroProxyHTTPAPI httpapi = new ShiroProxyHTTPAPI(hmciConfig);
         httpapi.setDomain(domain).setName(hmciConfig.getName());
         setRemoteRealm(httpapi);
+
+        NVGenericMap passwordHashConfig = (NVGenericMap) configProperties.get("credential-hasher");
+        if(passwordHashConfig != null)
+        {
+            try
+            {
+                PasswordDAOHasher passwordDAOHasher = new PasswordDAOHasher();
+                passwordDAOHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
+                        .setIteration(passwordHashConfig.getValue("iteration"));
+                credentialHasher = passwordDAOHasher;
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+        }
+
 
         if(log.isEnabled()) log.getLogger().info("remote real set");
     }
