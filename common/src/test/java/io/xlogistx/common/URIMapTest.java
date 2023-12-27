@@ -21,7 +21,7 @@ public class URIMapTest {
         try
         {
             String[] uris = {"/potato", "/potato/sweet", "/batikh", "/batikh/masmar", "/"};
-            String[] tokens= {"/potato", "/potato?a=b", "/potato/pototo", "/a/*","/potato/sweet/red", "/potato/boiled", "/not-found/at-all", "/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/", "/"};
+            String[] tokens= {"/potato", "/potato?a=b", "/batikh/red","/batikh/masmar", "/batikh/masmar/white", "/potato/pototo", "/a/*","/potato/sweet/red", "/potato/boiled", "/not-found/at-all", "/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/potato/", "/"};
             MatchPatternFilter filter = MatchPatternFilter.createMatchFilter("-i", "/*");
 
            URIMap<String> uriMap = new URIMap<>();

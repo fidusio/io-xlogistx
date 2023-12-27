@@ -283,9 +283,13 @@ public class NIOHTTPServer
                     }
 
 
-                } else {
+                }
+                else
+                {
+                    // error status uri map not found
                     SimpleMessage sm = new SimpleMessage();
                     sm.setError(hph.getRequest().getURI() + " not found");
+                    sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
                     hmciResponse = HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND);
                 }
 

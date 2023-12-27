@@ -4,10 +4,10 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.data.AddressDAO;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVGenericMap;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -31,10 +31,11 @@ public class TestEndPoint {
 
 
     @EndPointProp(methods = {HTTPMethod.POST}, name="testjson", uris="/testjson")
-    public void testJson(@ParamProp(name="address", source = Const.ParamSource.PAYLOAD) AddressDAO address)
+    public NVGenericMap testJson(@ParamProp(name="nvgm", source = Const.ParamSource.PAYLOAD) NVGenericMap nvgm)
     {
-       assert(address != null);
-       System.out.println(address);
+       assert(nvgm != null);
+       System.out.println(nvgm);
+       return nvgm;
     }
 
 
