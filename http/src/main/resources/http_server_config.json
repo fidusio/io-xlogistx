@@ -83,6 +83,9 @@
       "bean":  "io.xlogistx.http.services.TestEndPoint"
     },
     {
+      "bean":  "io.xlogistx.http.services.SysConfig"
+    },
+    {
       "bean":  "io.xlogistx.http.services.SysCommand",
       "properties":{
         "reboot-command" : "reboot-command",

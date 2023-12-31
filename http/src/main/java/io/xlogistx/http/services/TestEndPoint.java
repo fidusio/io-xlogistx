@@ -7,6 +7,7 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVEnum;
 import org.zoxweb.shared.util.NVGenericMap;
 
 import java.util.Arrays;
@@ -30,11 +31,14 @@ public class TestEndPoint {
 
 
 
-    @EndPointProp(methods = {HTTPMethod.POST}, name="testjson", uris="/testjson")
-    public NVGenericMap testJson(@ParamProp(name="nvgm", source = Const.ParamSource.PAYLOAD) NVGenericMap nvgm)
+    @EndPointProp(methods = {HTTPMethod.POST}, name="testjson", uris="/testjson/{api-id}")
+    public NVGenericMap testJson(@ParamProp(name="nvgm", source = Const.ParamSource.PAYLOAD) NVGenericMap nvgm,
+                                 @ParamProp(name="api-id") String apiID)
     {
        assert(nvgm != null);
-       System.out.println(nvgm);
+
+       nvgm.build("api-id", apiID).build(new NVEnum("time_in_millis", Const.TimeInMillis.DAY));
+
        return nvgm;
     }
 
