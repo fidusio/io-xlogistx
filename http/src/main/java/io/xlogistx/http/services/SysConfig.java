@@ -10,7 +10,8 @@ import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.model.SecurityModel;
-import org.zoxweb.shared.util.NVBoolean;
+import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVPair;
 
 public class SysConfig
         extends PropertyHolder
@@ -21,8 +22,8 @@ public class SysConfig
     public SimpleMessage gsonEnumFormat(@ParamProp(name = "format") boolean format)
     {
         GSONUtil.SIMPLE_FORMAT = format;
-        SimpleMessage ret = new SimpleMessage("SGON enum format", HTTPStatusCode.OK.CODE);
-        ret.getProperties().build(new NVBoolean("simple_format", GSONUtil.SIMPLE_FORMAT));
+        SimpleMessage ret = new SimpleMessage("GSON enum format", HTTPStatusCode.OK.CODE);
+        ret.getProperties().build(new NVPair("simple_format", GSONUtil.SIMPLE_FORMAT ? Const.Bool.ENABLED.getName() : Const.Bool.DISABLED.getName()));
         return ret;
     }
     @Override
