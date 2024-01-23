@@ -20,7 +20,7 @@
     "credential-hasher":
     {
       "hash_type": "sha-256",
-      "iteration": 64
+      "iteration": 1
     }
   }
 }

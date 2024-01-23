@@ -26,6 +26,7 @@ import org.zoxweb.shared.util.KVMapStoreDefault;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SetNVProperties;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 
@@ -39,7 +40,7 @@ implements SetNVProperties
     private final KVMapStore<String, AuthenticationInfo> kvAuthcInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
-    private CredentialHasher<PasswordDAO> credentialHasher = new PasswordDAOHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(1);
+    private CredentialHasher<PasswordDAO> credentialHasher = new PasswordDAOHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(64);
 
 
 
@@ -186,15 +187,18 @@ implements SetNVProperties
         if(log.isEnabled()) log.getLogger().info(resourcePath);
         this.resourcePath = resourcePath;
         // load configProperties
-        configProperties = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(resourcePath), NVGenericMap.class);
-        NVGenericMap httpAPIConfig = (NVGenericMap) configProperties.get("shiro-proxy-http-api");
-        String domain = httpAPIConfig.getValue("domain");
-        HTTPMessageConfigInterface hmciConfig = httpAPIConfig.getValue("hmci_config");
+        File resoureFile = IOUtil.locateFile(resourcePath);
+        if(log.isEnabled()) log.getLogger().info("File: " + resoureFile);
+        configProperties = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(resoureFile), NVGenericMap.class);
+        NVGenericMap proxyRealmAPIConfig = (NVGenericMap) configProperties.get("shiro-proxy-http-api");
+        String domain = proxyRealmAPIConfig.getValue("domain");
+        HTTPMessageConfigInterface hmciConfig = proxyRealmAPIConfig.getValue("hmci_config");
         ShiroProxyHTTPAPI httpapi = new ShiroProxyHTTPAPI(hmciConfig);
         httpapi.setDomain(domain).setName(hmciConfig.getName());
         setRemoteRealm(httpapi);
 
-        NVGenericMap passwordHashConfig = (NVGenericMap) configProperties.get("credential-hasher");
+        NVGenericMap passwordHashConfig = (NVGenericMap) proxyRealmAPIConfig.get("credential-hasher");
+        if(log.isEnabled()) log.getLogger().info("credential-hasher: " + passwordHashConfig);
         if(passwordHashConfig != null)
         {
             try
@@ -203,6 +207,7 @@ implements SetNVProperties
                 passwordDAOHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
                         .setIteration(passwordHashConfig.getValue("iteration"));
                 credentialHasher = passwordDAOHasher;
+                if(log.isEnabled()) log.getLogger().info("Credential hasher: " +  passwordDAOHasher.getHashType() + " " + passwordDAOHasher.getIteration());
             }
             catch (Exception e)
             {
