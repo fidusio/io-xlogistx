@@ -39,7 +39,7 @@ implements SetNVProperties
     private final KVMapStore<String, AuthenticationInfo> kvAuthcInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
-    private CredentialHasher<PasswordDAO> credentialHasher = new PasswordDAOHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(64);
+    private CredentialHasher<PasswordDAO> credentialHasher = new PasswordDAOHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(1);
 
 
 
