@@ -1,7 +1,7 @@
 {
   "shiro-proxy-http-api" : {
     "domain": "xlogistx.io",
-    "hmci_config": {
+    "hmci-config": {
       "class_type": "org.zoxweb.shared.http.HTTPMessageConfig",
       "name": "remote-login",
       "description": "Profile API configuration",
@@ -20,7 +20,7 @@
     "credential-hasher":
     {
       "hash_type": "sha-256",
-      "iteration": 1
+      "iteration": 128
     }
   }
 }

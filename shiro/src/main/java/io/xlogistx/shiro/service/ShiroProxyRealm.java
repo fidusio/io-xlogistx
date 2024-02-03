@@ -192,7 +192,7 @@ implements SetNVProperties
         configProperties = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(resoureFile), NVGenericMap.class);
         NVGenericMap proxyRealmAPIConfig = (NVGenericMap) configProperties.get("shiro-proxy-http-api");
         String domain = proxyRealmAPIConfig.getValue("domain");
-        HTTPMessageConfigInterface hmciConfig = proxyRealmAPIConfig.getValue("hmci_config");
+        HTTPMessageConfigInterface hmciConfig = proxyRealmAPIConfig.getValue("hmci-config");
         ShiroProxyHTTPAPI httpapi = new ShiroProxyHTTPAPI(hmciConfig);
         httpapi.setDomain(domain).setName(hmciConfig.getName());
         setRemoteRealm(httpapi);
