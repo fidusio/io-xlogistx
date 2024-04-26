@@ -44,7 +44,7 @@ implements SetNVProperties
 
 
 
-    private String resourcePath;
+    private String configPath;
     private HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm;
 
     public ShiroProxyRealm()
@@ -178,45 +178,53 @@ implements SetNVProperties
 
 
 
-    public String getResourcePath() {
-        return resourcePath;
+    public String getConfigPath() {
+        return configPath;
     }
 
-    public void setResourcePath(String resourcePath) throws IOException
+    public void setConfigPath(String configPath) throws IOException
     {
-        if(log.isEnabled()) log.getLogger().info(resourcePath);
-        this.resourcePath = resourcePath;
-        // load configProperties
-        File resoureFile = IOUtil.locateFile(resourcePath);
-        if(log.isEnabled()) log.getLogger().info("File: " + resoureFile);
-        configProperties = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(resoureFile), NVGenericMap.class);
-        NVGenericMap proxyRealmAPIConfig = (NVGenericMap) configProperties.get("shiro-proxy-http-api");
-        String domain = proxyRealmAPIConfig.getValue("domain");
-        HTTPMessageConfigInterface hmciConfig = proxyRealmAPIConfig.getValue("hmci-config");
-        ShiroProxyHTTPAPI httpapi = new ShiroProxyHTTPAPI(hmciConfig);
-        httpapi.setDomain(domain).setName(hmciConfig.getName());
-        setRemoteRealm(httpapi);
+        try {
+            if (log.isEnabled()) log.getLogger().info(configPath);
+            this.configPath = configPath;
+            // load configProperties
+            File resoureFile = IOUtil.locateFile(configPath);
+            if (log.isEnabled()) log.getLogger().info("File: " + resoureFile);
 
-        NVGenericMap passwordHashConfig = (NVGenericMap) proxyRealmAPIConfig.get("credential-hasher");
-        if(log.isEnabled()) log.getLogger().info("credential-hasher: " + passwordHashConfig);
-        if(passwordHashConfig != null)
-        {
-            try
-            {
-                PasswordDAOHasher passwordDAOHasher = new PasswordDAOHasher();
-                passwordDAOHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
-                        .setIteration(passwordHashConfig.getValue("iteration"));
-                credentialHasher = passwordDAOHasher;
-                if(log.isEnabled()) log.getLogger().info("Credential hasher: " +  passwordDAOHasher.getHashType() + " " + passwordDAOHasher.getIteration());
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
+            configProperties = GSONUtil.fromJSONDefault(IOUtil.inputStreamToString(resoureFile), NVGenericMap.class);
+            if (log.isEnabled()) log.getLogger().info("json loaded " + configProperties);
+
+
+            NVGenericMap proxyRealmAPIConfig = (NVGenericMap) configProperties.get("shiro-proxy-http-api");
+            String domain = proxyRealmAPIConfig.getValue("domain");
+            HTTPMessageConfigInterface hmciConfig = proxyRealmAPIConfig.getValue("hmci-config");
+            ShiroProxyHTTPAPI httpapi = new ShiroProxyHTTPAPI(hmciConfig);
+            httpapi.setDomain(domain).setName(hmciConfig.getName());
+            setRemoteRealm(httpapi);
+
+            NVGenericMap passwordHashConfig = (NVGenericMap) proxyRealmAPIConfig.get("credential-hasher");
+            if (log.isEnabled()) log.getLogger().info("credential-hasher: " + passwordHashConfig);
+            if (passwordHashConfig != null) {
+                try {
+                    PasswordDAOHasher passwordDAOHasher = new PasswordDAOHasher();
+                    passwordDAOHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
+                            .setIteration(passwordHashConfig.getValue("iteration"));
+                    credentialHasher = passwordDAOHasher;
+                    if (log.isEnabled())
+                        log.getLogger().info("Credential hasher: " + passwordDAOHasher.getHashType() + " " + passwordDAOHasher.getIteration());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
             }
 
+
+            if (log.isEnabled()) log.getLogger().info("remote realm set");
         }
-
-
-        if(log.isEnabled()) log.getLogger().info("remote real set");
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            throw new IOException(e.getMessage());
+        }
     }
 }

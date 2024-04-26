@@ -137,18 +137,25 @@ public class NIOHTTPServer
 //            if(statusCode == null)
 //                statusCode = HTTPStatusCode.BAD_REQUEST;
 //            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage(), statusCode), hph.getRawResponse());
-            HTTPUtil.formatResponse((HTTPCallException) e, hph.getRawResponse());
+            HTTPUtil.formatResponse((HTTPCallException) e, hph.getRawResponse(),
+                    HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                    HTTPConst.CommonHeader.EXPIRES_ZERO);
         }
         else if (e instanceof AuthenticationException)
         {
-            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getRawResponse());
+            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getRawResponse(),
+                    HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                    HTTPConst.CommonHeader.EXPIRES_ZERO);
         }
         else
         {
-            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse());
+            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse(),
+                    HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                    HTTPConst.CommonHeader.EXPIRES_ZERO);
         }
         try
         {
+            //logger.getLogger().info(hph.getRawResponse().toString());
             hph.getRawResponse().writeTo(os);
         } catch (IOException ex) {
             ex.printStackTrace();
