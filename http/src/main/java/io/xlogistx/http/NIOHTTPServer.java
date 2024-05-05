@@ -58,6 +58,7 @@ public class NIOHTTPServer
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
     private boolean isClosed = true;
+    private volatile boolean securiyManagerEnabled = false;
     private EndPointsManager endPointsManager = null;
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
@@ -164,54 +165,50 @@ public class NIOHTTPServer
 
    private  void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
     {
-        CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
-
-
-        // for performance check
-        // if the resource authentication is required
-        // if the resource permission  is PERM_RESOURCE_ANY
-        if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
-                !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions()))
+        //if(securiyManagerEnabled)
         {
-            HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
-            if (logger.isEnabled())
-                logger.getLogger().info("Authorization header: " + httpAuthorization);
+            CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
 
-            if (httpAuthorization == null)
-            {
-                HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
-                hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
-                hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
 
-                // if basic authentication is supported
-                if (SharedUtil.contains(CryptoConst.AuthenticationType.BASIC, resourceAuthTypes) ||
-                        SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
-                    hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
+            // for performance check
+            // if the resource authentication is required
+            // if the resource permission  is PERM_RESOURCE_ANY
+            if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
+                    !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
+                HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
+                if (logger.isEnabled())
+                    logger.getLogger().info("Authorization header: " + httpAuthorization);
 
-                throw new HTTPCallException("authentication missing", hmci);
+                if (httpAuthorization == null) {
+                    HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
+                    hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+                    hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
 
-            }
-            else
-            {
-                if (httpAuthorization instanceof HTTPAuthorizationBasic &&
-                        (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
-                                SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null))
-                {
+                    // if basic authentication is supported
+                    if (SharedUtil.contains(CryptoConst.AuthenticationType.BASIC, resourceAuthTypes) ||
+                            SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
+                        hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
 
-                    SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
-                    if(logger.isEnabled()) logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                    throw new HTTPCallException("authentication missing", hmci);
 
-                    if(!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint))
-                    {
+                } else {
+                    if (httpAuthorization instanceof HTTPAuthorizationBasic &&
+                            (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
+                                    SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
+
+                        SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+                        if (logger.isEnabled())
+                            logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+
+                        if (!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint)) {
 //                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
 //                        hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
 //                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
-                        throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
+                            throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
+                        }
+                    } else {
+                        if (logger.isEnabled()) logger.getLogger().info("*********** NO LOGIN **********");
                     }
-                }
-                else
-                {
-                    if(logger.isEnabled()) logger.getLogger().info("*********** NO LOGIN **********");
                 }
             }
         }
@@ -385,6 +382,7 @@ public class NIOHTTPServer
 //                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
 //                    }
                     logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
+                    securiyManagerEnabled = true;
                 }
                 catch(Exception e)
                 {
