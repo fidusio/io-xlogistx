@@ -123,7 +123,9 @@ public class OpensslToJKS {
 
             KeyStore keyStore = createKeyStore(key, cert, chain, keyStoreType, password);
             // Store the keystore to filesystem
-            String ksFilename = SharedStringUtil.concat(keyStoreDir,  domain + ".jks", "/");
+            String ksFilename = domain + ".jks";
+            if(keyStoreDir != null)
+                ksFilename = SharedStringUtil.concat(keyStoreDir,  domain + ".jks", "/");
             System.out.println(ksFilename);
             FileOutputStream fos = new java.io.FileOutputStream(ksFilename);
             keyStore.store(fos, password.toCharArray());
