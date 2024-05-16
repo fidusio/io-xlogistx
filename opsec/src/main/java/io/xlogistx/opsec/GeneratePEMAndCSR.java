@@ -1,7 +1,6 @@
 package io.xlogistx.opsec;
 
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.zoxweb.server.io.IOUtil;
@@ -14,15 +13,12 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.security.KeyPair;
-import java.security.Security;
+import java.security.SecureRandom;
 
-public class GeneratePEMAndCSR {
-
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
-    public static void main(String[] args) {
+public class GeneratePEMAndCSR
+{
+    public static void main(String[] args)
+    {
 
         try
         {
@@ -30,18 +26,18 @@ public class GeneratePEMAndCSR {
 
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
             String keyType = params.stringValue("keytype");
-            //String cn = params.stringValue("cn");
+
             String altNames = params.stringValue("alt", true);
             String outDir = params.stringValue("out_dir", true);
             String attrs = params.stringValue("attrs", true);
-            // Generate Key Pair based on provided parameters
-            KeyPair keyPair = CryptoUtil.generateKeyPair(keyType);
+            KeyPair keyPair = CryptoUtil.generateKeyPair(keyType, SecureRandom.getInstanceStrong());
 
 
             String filename = OPSecUtil.extractFilename(attrs);
 
             // Save Private Key to PEM file
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".key")))) {
+            try (Writer writer = new OutputStreamWriter(new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".key"))))
+            {
                 JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
                 pemWriter.writeObject(keyPair.getPrivate());
                 pemWriter.close();
@@ -52,16 +48,16 @@ public class GeneratePEMAndCSR {
 
             // Save CSR to PEM file
             UByteArrayOutputStream csrBAOS = new UByteArrayOutputStream();
-            try (Writer writer = new OutputStreamWriter(csrBAOS)) {
+            try (Writer writer = new OutputStreamWriter(csrBAOS))
+            {
                 JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
                 pemWriter.writeObject(csr);
                 pemWriter.close();
                 os = new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".csr"));
                 csrBAOS.writeTo(os);
-
-
             }
-            finally {
+            finally
+            {
                 IOUtil.close(os);
             }
 
