@@ -29,7 +29,7 @@ public class GeneratePEMAndCSR
 
             String altNames = params.stringValue("alt", true);
             String outDir = params.stringValue("out_dir", true);
-            String attrs = params.stringValue("attrs", true);
+            String attrs = params.stringValue("attrs");
             KeyPair keyPair = CryptoUtil.generateKeyPair(keyType, SecureRandom.getInstanceStrong());
 
 
