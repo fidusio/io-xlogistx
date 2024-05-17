@@ -123,12 +123,12 @@
             <artifactId>xlogistx-core</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
-        <!-- <dependency>
+        <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-opsec</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
-        -->
+
 
 
     </dependencies>
