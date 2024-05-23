@@ -12,11 +12,13 @@
     <version>1.0.0</version>
   </parent>
 
-  
+
   
   <description>XlogistX.IO http</description>
   <artifactId>xlogistx-http</artifactId>
-
+  <properties>
+    <websocket.version>1.1</websocket.version>
+  </properties>
 
 
 
@@ -63,6 +65,14 @@
       <artifactId>xlogistx-shiro</artifactId>
       <version>${xlogistx.version}</version>
     </dependency>
+
+
+    <dependency>
+      <groupId>javax.websocket</groupId>
+      <artifactId>javax.websocket-api</artifactId>
+      <version>${websocket.version}</version>
+    </dependency>
+
 
 
   </dependencies>

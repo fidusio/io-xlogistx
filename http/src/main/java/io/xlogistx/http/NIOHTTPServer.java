@@ -233,7 +233,8 @@ public class NIOHTTPServer
                 if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
 
-                if (epm != null) {
+                if (epm != null)
+                {
                     if (logger.isEnabled())
                         logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
                     // validate if method supported
@@ -247,12 +248,13 @@ public class NIOHTTPServer
                     //
 
                     // check if instance of HTTPSessionHandler
-                    if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler) {
-                        HTTPSessionData sessionData = new HTTPSessionData(hph, hph.getOutputStream());
-
+                    if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
+                    {
+                        HTTPSessionData sessionData = new HTTPSessionData(hph);
                         ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(sessionData);
-                    } else {
-
+                    }
+                    else
+                    {
                         if (logger.isEnabled()) {
                             logger.getLogger().info("" + epm.result.methodHolder.getInstance());
                             logger.getLogger().info("" + hph.getRequest());
@@ -268,20 +270,12 @@ public class NIOHTTPServer
                                 epm.result.methodHolder.getMethodAnnotations(),
                                 parameters);
 
-                        if (result != null) {
-
-//                        if (result instanceof File) {
-//
-//                        }
-//                        else if (result instanceof HTTPResult)
-//                        {
-//
-//                        }
-//                        else
-                            {
-                                hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
-                            }
-                        } else {
+                        if (result != null)
+                        {
+                            hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
+                        }
+                        else
+                        {
                             hmciResponse = HTTPUtil.formatResponse(HTTPStatusCode.OK);
                         }
                     }
@@ -303,10 +297,34 @@ public class NIOHTTPServer
                     build(HTTPConst.CommonHeader.CONNECTION_CLOSE).
                     build(HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF);
 
+//                    if (hph.getKeepAlive() != null && !hph.getKeepAlive().isExpired())
+//                    {
+//                        // we keep alive
+//                        hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE).
+//                                build(HTTPHeader.KEEP_ALIVE.toHTTPHeader(new NVInt("timeout",
+//                                        (int)TimeUnit.SECONDS.convert(hph.getKeepAlive().getDelayInMillis(), TimeUnit.MILLISECONDS)),
+//                                        new NVInt("max", (int)(hph.getKeepAlive().getMaxUse() - hph.getKeepAlive().getUsageCounter()))));
+//                    }
+//                    else
+//                    {
+//                        //we close the connection
+//                        hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);
+//                    }
+                    HTTPProtocolHandler.preResponse(hph, hmciResponse);
+
                     HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
                 }
 
-                IOUtil.close(hph);
+                hph.postResponse(hph);
+
+//                if (hph.getKeepAlive() != null && !hph.getKeepAlive().isExpired())
+//                {
+//                    System.out.println(hph.getKeepAlive().hashCode() + " " + hph.getKeepAlive().getUsageCounter() + " " + hph.getOutputStream());
+//                    ///System.out.println(hmciResponse.getHeaders().lookup(HTTPHeader.KEEP_ALIVE));
+//                    hph.reset();
+//                }
+//                else
+//                    IOUtil.close(hph);
         }
         finally
         {

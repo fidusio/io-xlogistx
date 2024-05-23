@@ -3,15 +3,20 @@ package io.xlogistx.common.http;
 
 import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.io.ByteBufferUtil;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
+import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.http.HTTPConst;
+import org.zoxweb.shared.http.HTTPHeader;
 import org.zoxweb.shared.http.HTTPMessageConfig;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
-import org.zoxweb.shared.util.IsClosed;
+import org.zoxweb.shared.util.*;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HTTPProtocolHandler
@@ -23,18 +28,11 @@ public class HTTPProtocolHandler
     private HTTPMessageConfigInterface response = new HTTPMessageConfig();
     private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
-    private   final boolean https;
+    private final boolean https;
+    private Lifetime keepAliveLifetime = null;
+    private Appointment keepAliveAppointment = null;
 
     private volatile OutputStream outputStream;
-    //private volatile ByteBuffer dataBuffer;
-
-
-
-
-//    private volatile S subjectInfo;
-
-
-
 
     public HTTPProtocolHandler(boolean https)
     {
@@ -54,12 +52,49 @@ public class HTTPProtocolHandler
         ByteBufferUtil.write(inBuffer, rawRequest.getDataStream(), true);
 
         rawRequest.parse(true);
-        return rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
+        boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
+
+        if (ret)
+        {
+            checkKeepAlive();
+        }
+        return ret;
     }
-//    public boolean parseRequest() throws IOException
-//    {
-//        return parseRequest(getDataBuffer());
-//    }
+
+
+    private void checkKeepAlive()
+    {
+        if (SharedStringUtil.contains(rawRequest.getHTTPMessageConfig().getHeaders().lookupValue(HTTPHeader.CONNECTION),
+            "keep-alive", true))
+        {
+            if (keepAliveLifetime == null)
+            {
+                synchronized (this)
+                {
+                    if (keepAliveLifetime == null)
+                    {
+                        keepAliveLifetime = new Lifetime(System.currentTimeMillis(), 20, null, Const.TimeInMillis.SECOND.MILLIS*5);
+                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), ()-> {
+                            IOUtil.close(this);
+                            //System.out.println(this + " expired");
+
+                        });
+                    }
+                }
+            }
+
+            if (!keepAliveLifetime.isClosed())
+            {
+                keepAliveAppointment.reset(true);
+                keepAliveLifetime.incUsage();
+            }
+        }
+        else if (keepAliveLifetime != null)
+        {
+           IOUtil.close(keepAliveLifetime);
+        }
+
+    }
 
 
     public boolean isRequestComplete()
@@ -90,8 +125,16 @@ public class HTTPProtocolHandler
     {
         if(!closed.getAndSet(true))
         {
-            ByteBufferUtil.cache(rawResponse, rawRequest.getDataStream());
-            getOutputStream().close();
+            IOUtil.close(keepAliveLifetime);
+            IOUtil.close(keepAliveAppointment);
+            try
+            {
+                getOutputStream().close();
+            }
+            finally
+            {
+                ByteBufferUtil.cache(rawResponse, rawRequest.getDataStream());
+            }
         }
     }
 
@@ -118,26 +161,48 @@ public class HTTPProtocolHandler
         return this;
     }
 
-//    public ByteBuffer getDataBuffer()
-//    {
-//        return dataBuffer;
-//    }
-//
-//    public HTTPProtocolHandler incomingDataBuffer(ByteBuffer byteBuffer)
-//    {
-//        this.dataBuffer = byteBuffer;
-//        return this;
-//    }
+    public boolean isKeepAliveExpired()
+    {
+        return keepAliveLifetime != null && !keepAliveLifetime.isClosed();
+    }
 
 
-//    public S getSubjectInfo() {
-//        return subjectInfo;
-//    }
+    public Lifetime getKeepAliveLifetime()
+    {
+        return keepAliveLifetime;
+    }
 
-//    public void setSubjectInfo(S subjectInfo)
-//    {
-//        this.subjectInfo = subjectInfo;
-//    }
+
+    public static void preResponse(HTTPProtocolHandler hph, HTTPMessageConfigInterface hmciResponse)
+    {
+        if (hph.isKeepAliveExpired())
+        {
+
+            String kaValue = "timeout= " +  TimeUnit.SECONDS.convert(hph.getKeepAliveLifetime().getDelayInMillis(),TimeUnit.MILLISECONDS) +
+                    ", max=" + (hph.getKeepAliveLifetime().getMaxUse() - hph.getKeepAliveLifetime().getUsageCounter());
+            // we keep alive
+            hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE).
+                    build(HTTPHeader.KEEP_ALIVE.toHTTPHeader(kaValue));
+        }
+        else
+        {
+            //we close the connection
+            hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);
+        }
+    }
+
+    public static void postResponse(HTTPProtocolHandler hph)
+    {
+        if (hph.isKeepAliveExpired())
+        {
+            //System.out.println(hph.getKeepAliveLifetime().hashCode() + " " + hph.getKeepAliveLifetime().getUsageCounter() + " " + hph.getOutputStream());
+            ///System.out.println(hmciResponse.getHeaders().lookup(HTTPHeader.KEEP_ALIVE));
+            hph.reset();
+        }
+        else
+            IOUtil.close(hph);
+    }
+
 
 
 

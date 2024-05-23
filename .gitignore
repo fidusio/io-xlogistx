@@ -50,6 +50,7 @@ test-classes/
 *.swp
 *.sh
 *.bat
+*.bak
 
 /src/main/java/META-INF/
 #old GWT (1.5) created this dir

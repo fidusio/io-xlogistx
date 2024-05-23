@@ -1,6 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPSessionHandler;
 import io.xlogistx.common.http.HTTPSessionData;
 import org.zoxweb.server.io.IOUtil;
@@ -67,9 +68,14 @@ public class HTTPFileServiceHandler
         sessionData.protocolHandler.getResponse().getHeaders().add(HTTPHeader.SERVER.getName(),
                 (String)ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER));
 
+
+
+
+        HTTPProtocolHandler.preResponse(sessionData.protocolHandler, sessionData.protocolHandler.getResponse());
+
         FileInputStream fileIS = new FileInputStream(file);
         sessionData.writeResponse();
-        IOUtil.relayStreams(fileIS, sessionData.os, true, false);
+        IOUtil.relayStreams(fileIS, sessionData.protocolHandler.getOutputStream(), true, false);
     }
 
 
