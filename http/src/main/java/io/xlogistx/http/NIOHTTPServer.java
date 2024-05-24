@@ -65,7 +65,7 @@ public class NIOHTTPServer
             .lookupResource(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
-    private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPSSession::new;
+    private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
 
 
 
@@ -101,7 +101,7 @@ public class NIOHTTPServer
 
     }
 
-    public class HTTPSSession
+    public class HTTPsSession
             extends SSLSessionCallback
     {
         private final HTTPProtocolHandler hph = new HTTPProtocolHandler(true);
@@ -132,6 +132,7 @@ public class NIOHTTPServer
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
     {
+        e.printStackTrace();
         if (e instanceof HTTPCallException)
         {
 //            HTTPStatusCode statusCode = ((HTTPCallException) e).getStatusCode();
@@ -156,7 +157,7 @@ public class NIOHTTPServer
         }
         try
         {
-            //logger.getLogger().info(hph.getRawResponse().toString());
+            logger.getLogger().info(hph.getRawResponse().toString());
             hph.getRawResponse().writeTo(os);
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -219,8 +220,9 @@ public class NIOHTTPServer
     {
 
 
-        try {
-            //UByteArrayOutputStream resp = null;
+        try
+        {
+
             HTTPMessageConfigInterface hmciResponse = null;
 
 
@@ -247,6 +249,8 @@ public class NIOHTTPServer
                     //CryptoConst.AuthenticationType[] authTypes = epm.result.httpEndPoint.getAuthenticationTypes();
                     //
 
+                    // security check
+                    securityCheck(epm, hph);
                     // check if instance of HTTPSessionHandler
                     if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
                     {
@@ -263,7 +267,8 @@ public class NIOHTTPServer
 
 
                         Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
-                        securityCheck(epm, hph);
+                        // moved up
+                        // securityCheck(epm, hph);
 
 
                         Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
@@ -297,25 +302,14 @@ public class NIOHTTPServer
                     build(HTTPConst.CommonHeader.CONNECTION_CLOSE).
                     build(HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF);
 
-//                    if (hph.getKeepAlive() != null && !hph.getKeepAlive().isExpired())
-//                    {
-//                        // we keep alive
-//                        hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE).
-//                                build(HTTPHeader.KEEP_ALIVE.toHTTPHeader(new NVInt("timeout",
-//                                        (int)TimeUnit.SECONDS.convert(hph.getKeepAlive().getDelayInMillis(), TimeUnit.MILLISECONDS)),
-//                                        new NVInt("max", (int)(hph.getKeepAlive().getMaxUse() - hph.getKeepAlive().getUsageCounter()))));
-//                    }
-//                    else
-//                    {
-//                        //we close the connection
-//                        hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);
-//                    }
                     HTTPProtocolHandler.preResponse(hph, hmciResponse);
 
                     HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
                 }
 
-                hph.postResponse(hph);
+                if(!hph.reset())
+                    IOUtil.close(hph);
+                //hph.postResponse(hph);
 
 //                if (hph.getKeepAlive() != null && !hph.getKeepAlive().isExpired())
 //                {
