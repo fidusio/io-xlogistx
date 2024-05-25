@@ -72,39 +72,38 @@
 
 
 
-        <commons-logging.version>1.2</commons-logging.version>
-        <commons-beanutils.version>1.9.4</commons-beanutils.version>
-        <commons-codec.version>1.15</commons-codec.version>
-        <commons-csv.version>1.10.0</commons-csv.version>
-        <commons-fileupload.version>1.5</commons-fileupload.version>
+        <commons-logging.version>RELEASE</commons-logging.version>
+        <commons-beanutils.version>RELEASE</commons-beanutils.version>
+        <commons-codec.version>RELEASE</commons-codec.version>
+        <commons-csv.version>RELEASE</commons-csv.version>
+        <commons-fileupload.version>RELEASE</commons-fileupload.version>
         <apache.shiro.version>1.13.0</apache.shiro.version>
         <ehcache-org.version>3.9.11</ehcache-org.version>
-        <gson.version>2.10.1</gson.version>
-        <javax-cache.version>1.1.1</javax-cache.version>
+        <gson.version>RELEASE</gson.version>
+        <javax-cache.version>RELEASE</javax-cache.version>
         <jakarta-mail.version>2.0.1</jakarta-mail.version>
         <javax-servlet.version>4.0.1</javax-servlet.version>
-        <jsoup.version>1.17.2</jsoup.version>
-        <snakeyaml.version>2.0</snakeyaml.version>
-        <websocket.version>1.1</websocket.version>
-        <junit.version>5.10.2</junit.version>
-        <java-websocket.version>1.4.1</java-websocket.version>
-        <jsch.version>0.1.55</jsch.version>
+        <jsoup.version>RELEASE</jsoup.version>
+        <snakeyaml.version>RELEASE</snakeyaml.version>
+        <junit.version>RELEASE</junit.version>
+        <java-websocket.version>RELEASE</java-websocket.version>
+        <jsch.version>RELEASE</jsch.version>
 
         <websocket.version>1.1</websocket.version>
-        <javax-servlet.version>4.0.1</javax-servlet.version>
+
 
         <zoxweb-core.version>2.3.7</zoxweb-core.version>
 
         <xlogistx.version>1.0.0</xlogistx.version>
-        <java-xt-core.version>2.1.1</java-xt-core.version>
-        <squareup.version>38.0.0.20240222</squareup.version>
+        <java-xt-core.version>RELEASE</java-xt-core.version>
+        <squareup.version>RELEASE</squareup.version>
 
 
-        <slf4j.version>2.0.5</slf4j.version>
+        <slf4j.version>RELEASE</slf4j.version>
 
 
 
-        <cron-util.version>9.2.0</cron-util.version>
+        <cron-util.version>RELEASE</cron-util.version>
   </properties>
 
   <build>
@@ -205,6 +204,13 @@
       <dependency>
           <groupId>org.junit.jupiter</groupId>
           <artifactId>junit-jupiter-params</artifactId>
+          <version>${junit.version}</version>
+          <scope>test</scope>
+      </dependency>
+
+      <dependency>
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupite-api</artifactId>
           <version>${junit.version}</version>
           <scope>test</scope>
       </dependency>
