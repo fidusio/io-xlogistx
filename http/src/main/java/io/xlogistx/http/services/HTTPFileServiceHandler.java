@@ -3,9 +3,9 @@ package io.xlogistx.http.services;
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPSessionHandler;
-import io.xlogistx.common.http.HTTPSessionData;
+import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
-
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.http.*;
@@ -22,7 +22,7 @@ public class HTTPFileServiceHandler
     extends PropertyHolder
     implements HTTPSessionHandler
 {
-
+    public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);
 
     private File baseFolder;
 
@@ -33,10 +33,10 @@ public class HTTPFileServiceHandler
 
     @Override
     @EndPointProp(methods = {HTTPMethod.GET}, name="files", uris="/")
-    public void handle(@ParamProp(name="filename", source=Const.ParamSource.RESOURCE, optional=true)HTTPSessionData sessionData)
+    public void handle(@ParamProp(name="filename", source=Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler protocolHandler)
             throws IOException
     {
-        String filename = sessionData.protocolHandler.getRequest().getURI();
+        String filename = protocolHandler.getRequest().getURI();
 
         if (SharedStringUtil.isEmpty(filename) || filename.equals("/"))
         {
@@ -61,21 +61,29 @@ public class HTTPFileServiceHandler
                 log.getLogger().info("File Not Found:" + file.getName());
             throw new HTTPCallException(file.getName() + " not found", HTTPStatusCode.NOT_FOUND);
         }
-        if(mime != null)
-            sessionData.protocolHandler.getResponse().setContentType(mime.getValue());
-        sessionData.protocolHandler.getResponse().setContentLength((int)file.length());
-        sessionData.protocolHandler.getResponse().setHTTPStatusCode(HTTPStatusCode.OK);
-        sessionData.protocolHandler.getResponse().getHeaders().add(HTTPHeader.SERVER.getName(),
-                (String)ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER));
 
 
 
-
-        HTTPProtocolHandler.preResponse(sessionData.protocolHandler, sessionData.protocolHandler.getResponse());
 
         FileInputStream fileIS = new FileInputStream(file);
-        sessionData.writeResponse();
-        IOUtil.relayStreams(fileIS, sessionData.protocolHandler.getOutputStream(), true, false);
+
+
+        HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
+                HTTPHeader.SERVER.toHTTPHeader((String)ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+
+        if(mime != null)
+            hmci.setContentType(mime.getValue());
+        hmci.setContentLength((int)file.length());
+
+//        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
+//        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
+        HTTPUtil.formatResponse(hmci,
+                protocolHandler.getResponseStream())
+                .writeTo(protocolHandler.getOutputStream());
+
+        IOUtil.relayStreams(fileIS, protocolHandler.getOutputStream(), true, false);
+        if(log.isEnabled()) log.getLogger().info("filename: " + filename);
+
     }
 
 

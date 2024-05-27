@@ -133,34 +133,32 @@ public class NIOHTTPServer
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
     {
         e.printStackTrace();
-        if (e instanceof HTTPCallException)
+        if(!hph.isClosed())
         {
-//            HTTPStatusCode statusCode = ((HTTPCallException) e).getStatusCode();
-//            if(statusCode == null)
-//                statusCode = HTTPStatusCode.BAD_REQUEST;
-//            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage(), statusCode), hph.getRawResponse());
-            HTTPUtil.formatResponse((HTTPCallException) e, hph.getRawResponse(),
-                    HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
-                    HTTPConst.CommonHeader.EXPIRES_ZERO);
-        }
-        else if (e instanceof AuthenticationException)
-        {
-            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getRawResponse(),
-                    HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
-                    HTTPConst.CommonHeader.EXPIRES_ZERO);
+            if (e instanceof HTTPCallException) {
+
+                HTTPUtil.formatErrorResponse((HTTPCallException) e, hph.getResponseStream(),
+                        HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+            } else if (e instanceof AuthenticationException) {
+                HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
+                        HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+            } else {
+                HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse("" + e, HTTPStatusCode.BAD_REQUEST), hph.getResponseStream(),
+                        HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+            }
+            try {
+                logger.getLogger().info(hph.getResponseStream().toString());
+                hph.getResponseStream().writeTo(os);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
         else
         {
-            HTTPUtil.formatResponse(HTTPUtil.formatErrorResponse("" +e, HTTPStatusCode.BAD_REQUEST), hph.getRawResponse(),
-                    HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
-                    HTTPConst.CommonHeader.EXPIRES_ZERO);
-        }
-        try
-        {
-            logger.getLogger().info(hph.getRawResponse().toString());
-            hph.getRawResponse().writeTo(os);
-        } catch (IOException ex) {
-            ex.printStackTrace();
+            if(logger.isEnabled()) logger.getLogger().info("Channel closed can't process exception " + e);
         }
     }
 
@@ -223,7 +221,8 @@ public class NIOHTTPServer
         try
         {
 
-            HTTPMessageConfigInterface hmciResponse = null;
+
+            //HTTPMessageConfigInterface hmciResponse = null;
 
 
                 if (logger.isEnabled()) {
@@ -246,16 +245,13 @@ public class NIOHTTPServer
                                 HTTPStatusCode.METHOD_NOT_ALLOWED);
                     }
 
-                    //CryptoConst.AuthenticationType[] authTypes = epm.result.httpEndPoint.getAuthenticationTypes();
-                    //
 
                     // security check
                     securityCheck(epm, hph);
                     // check if instance of HTTPSessionHandler
                     if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
                     {
-                        HTTPSessionData sessionData = new HTTPSessionData(hph);
-                        ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(sessionData);
+                        ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(hph);
                     }
                     else
                     {
@@ -265,27 +261,20 @@ public class NIOHTTPServer
                             logger.getLogger().info(epm.path);
                         }
 
-
                         Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
-                        // moved up
-                        // securityCheck(epm, hph);
-
-
                         Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
                                 epm.result.methodHolder.getMethodAnnotations(),
                                 parameters);
 
-                        if (result != null)
-                        {
-                            hmciResponse = HTTPUtil.formatResponse(GSONUtil.toJSONDefault(result), HTTPStatusCode.OK);
-                        }
-                        else
-                        {
-                            hmciResponse = HTTPUtil.formatResponse(HTTPStatusCode.OK);
-                        }
+                        HTTPMessageConfigInterface hmci = hph.buildJSONResponse(result, HTTPStatusCode.OK,
+                                        HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
+                                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+
+                        HTTPUtil.formatResponse(hmci, hph.getResponseStream())
+                                .writeTo(hph.getOutputStream());
+                        // message complete and sent to client
                     }
-
-
                 }
                 else
                 {
@@ -293,19 +282,25 @@ public class NIOHTTPServer
                     SimpleMessage sm = new SimpleMessage();
                     sm.setError(hph.getRequest().getURI() + " not found");
                     sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
-                    hmciResponse = HTTPUtil.formatResponse(sm, HTTPStatusCode.NOT_FOUND);
+
+
+                    HTTPMessageConfigInterface hmci = hph.buildJSONResponse(sm, HTTPStatusCode.NOT_FOUND,
+                            HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                    HTTPUtil.formatResponse(hmci, hph.getResponseStream())
+                            .writeTo(hph.getOutputStream());
                 }
 
                 // we have a response
-                if (hmciResponse != null) {
-                    hmciResponse.getHeaders().build(HTTPHeader.SERVER.getName(), NAME).
-                    build(HTTPConst.CommonHeader.CONNECTION_CLOSE).
-                    build(HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF);
-
-                    HTTPProtocolHandler.preResponse(hph, hmciResponse);
-
-                    HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
-                }
+//                if (hmciResponse != null) {
+//                    hmciResponse.getHeaders().build(HTTPHeader.SERVER.getName(), NAME).
+//                    build(HTTPConst.CommonHeader.CONNECTION_CLOSE).
+//                    build(HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF);
+//
+//                    HTTPProtocolHandler.preResponse(hph, hmciResponse);
+//
+//                    HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
+//                }
 
                 if(!hph.reset())
                     IOUtil.close(hph);
