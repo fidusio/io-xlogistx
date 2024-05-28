@@ -37,21 +37,22 @@ public class Ping
         if(detailed)
         {
 
-            response.add("jdk_version", System.getProperty("java.version"));
-            response.add("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS));
-            response.add("current_thread", Thread.currentThread().getName());
-            response.add("version", "1.1.1");
-            response.add("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
-            + "," + System.getProperty("os.arch"));
-
-            response.add(new NVInt("byte_buffer_cache", ByteBufferUtil.cacheCount()));
-            response.add(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()));
-            response.add(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())));
+            response.build("jdk_version", System.getProperty("java.version"))
+                    .build("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS))
+                    .build("current_thread", Thread.currentThread().getName())
+                    .build("version", "1.1.1")
+                    .build("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
+                            + "," + System.getProperty("os.arch"))
+                    .build(new NVInt("byte_buffer_cache", ByteBufferUtil.cacheCount()))
+                    .build(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()))
+                    .build(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())))
             //response.getProperties().add("version", )
-            response.add(TaskUtil.defaultTaskScheduler().getProperties());
-            response.add(TaskUtil.defaultTaskProcessor().getProperties());
-            response.add(RuntimeUtil.vmSnapshot(sib));
-            response.add((NVGenericMap)ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO));
+                    .build(TaskUtil.defaultTaskScheduler().getProperties())
+                    .build(TaskUtil.defaultTaskProcessor().getProperties())
+                    .build(RuntimeUtil.vmSnapshot(sib))
+                    .build((NVGenericMap)ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO))
+                    .build((NVGenericMap)ResourceManager.lookupResource("keep-alive-config"));
+
             NIOHTTPServer niohttpServer = ResourceManager.lookupResource("nio-http-server");
             if(niohttpServer != null)
                 response.add(niohttpServer.getNIOSocket().getStats());

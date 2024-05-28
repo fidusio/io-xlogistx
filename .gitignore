@@ -57,6 +57,7 @@ test-classes/
 .gwt-tmp/
 bin
 target
+.DS_Store
 
 
 
