@@ -18,6 +18,11 @@
 
       }
     }
+    ,"keep-alive":
+    {
+      "time_out": "5s",
+      "maximum" : 10
+    }
   },
 
   "connections":

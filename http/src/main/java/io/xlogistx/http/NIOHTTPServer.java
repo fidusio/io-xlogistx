@@ -69,6 +69,8 @@ public class NIOHTTPServer
 
 
 
+
+
     public class HTTPSession
         extends PlainSessionCallback
     {
@@ -368,6 +370,7 @@ public class NIOHTTPServer
         // very crucial step must be executed first
         TaskUtil.registerMainThread();
         String msg = "";
+        NVGenericMap keepAliveConfig = null;
         if (isClosed) {
             if (config != null) {
                 isClosed = false;
@@ -396,6 +399,19 @@ public class NIOHTTPServer
                     e.printStackTrace();
                 }
             }
+
+            keepAliveConfig = config.getProperties().lookup("keep-alive");
+            logger.getLogger().info("Keep-Alive Config: " + keepAliveConfig);
+            if(keepAliveConfig != null)
+            {
+                GetNameValue<?> timeout = keepAliveConfig.lookup("time_out");
+                if (timeout.getValue() instanceof String)
+                {
+                    long timeoutInMillis = Const.TimeInMillis.toMillis((String)timeout.getValue());
+                    keepAliveConfig.add(new NVLong("time_out", timeoutInMillis));
+                }
+            }
+
 
             endPointsManager = EndPointsManager.scan(getConfig());
             if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
@@ -493,6 +509,8 @@ public class NIOHTTPServer
 
 
         ResourceManager.SINGLETON.register("nio-http-server", this);
+        if(keepAliveConfig != null)
+            ResourceManager.SINGLETON.register("keep-alive-config", keepAliveConfig);
 
 
     }

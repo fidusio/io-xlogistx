@@ -20,10 +20,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HTTPProtocolHandler
-    implements Closeable, IsClosed
+    implements Closeable, IsClosed, Runnable
 {
 
-    public final LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(true);
+    public final LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(false);
     private final UByteArrayOutputStream responseStream = ByteBufferUtil.allocateUBAOS(256);//new UByteArrayOutputStream(256);
     private HTTPMessageConfigInterface response = new HTTPMessageConfig();
     private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
@@ -64,9 +64,29 @@ public class HTTPProtocolHandler
     }
 
 
+    public void run()
+    {
+        if (!isClosed())
+        {
+            if(log.isEnabled()) log.getLogger().info("*********** request complete: " + isRequestComplete() + " request data size " + rawRequest.getDataStream().size() + " " + keepAliveLifetime);
+
+            try
+            {
+                close();
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
     private void checkKeepAlive()
     {
-        if (SharedStringUtil.contains(rawRequest.getHTTPMessageConfig().getHeaders().lookupValue(HTTPHeader.CONNECTION),
+
+        if (ResourceManager.SINGLETON.lookup("keep-alive-config") != null &&
+                SharedStringUtil.contains(rawRequest.getHTTPMessageConfig().getHeaders().lookupValue(HTTPHeader.CONNECTION),
             "keep-alive", true))
         {
             if (keepAliveLifetime == null)
@@ -75,19 +95,11 @@ public class HTTPProtocolHandler
                 {
                     if (keepAliveLifetime == null)
                     {
-                        keepAliveLifetime = new Lifetime(System.currentTimeMillis(), 10, null, Const.TimeInMillis.SECOND.MILLIS*5);
-                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), ()-> {
-                            if (!isClosed()) {
-                                try {
-                                    close();
-                                }
-                                catch (Exception e)
-                                {
-                                    e.printStackTrace();
-                                }
-                                if(log.isEnabled()) log.getLogger().info(this + " expired" + keepAliveLifetime);
-                            }
-                        });
+                        NVGenericMap keepAliveConfig = ResourceManager.lookupResource("keep-alive-config");
+                        int maxUse = keepAliveConfig.getValue("maximum");
+                        long timeOut = keepAliveConfig.getValue("time_out");
+                        keepAliveLifetime = new Lifetime(System.currentTimeMillis(), maxUse, null, timeOut);
+                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), this);
                     }
                 }
             }
@@ -95,7 +107,7 @@ public class HTTPProtocolHandler
             if (!keepAliveLifetime.isClosed())
             {
                 keepAliveAppointment.cancel();
-                keepAliveLifetime.incUsage();
+//                keepAliveLifetime.incUsage();
             }
         }
         else if (keepAliveLifetime != null)
@@ -143,7 +155,7 @@ public class HTTPProtocolHandler
     public synchronized boolean reset()
     {
 
-        if(keepAliveAppointment != null && !isKeepAliveExpired())
+        if(!isKeepAliveExpired())
         {
             if (keepAliveAppointment.reset(true))
             {
@@ -174,9 +186,9 @@ public class HTTPProtocolHandler
         return this;
     }
 
-    public boolean isKeepAliveExpired()
+    public synchronized boolean isKeepAliveExpired()
     {
-        return keepAliveLifetime == null || keepAliveLifetime.isClosed() || keepAliveLifetime.isClosed();
+        return keepAliveLifetime == null || keepAliveLifetime.isClosed() || keepAliveAppointment.isClosed();
     }
 
     public synchronized HTTPMessageConfigInterface buildJSONResponse(Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
