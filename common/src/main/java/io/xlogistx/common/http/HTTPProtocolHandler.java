@@ -241,7 +241,7 @@ public class HTTPProtocolHandler
             response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE)
                     // we keep alive
                     .build(new NVPair(HTTPHeader.KEEP_ALIVE, "timeout=" +  TimeUnit.SECONDS.convert(keepAliveLifetime.getDelayInMillis(),TimeUnit.MILLISECONDS) +
-                            ", max=" + (keepAliveLifetime.getMaxUse() - keepAliveLifetime.getUsageCounter())));
+                            (keepAliveLifetime.getMaxUse() > 0 ? ", max=" + (keepAliveLifetime.getMaxUse() - keepAliveLifetime.getUsageCounter()) : "")));
         }
     }
 
