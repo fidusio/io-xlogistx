@@ -1,14 +1,13 @@
 package io.xlogistx.http.services;
 
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.model.SecurityModel;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.NVEnum;
-import org.zoxweb.shared.util.NVGenericMap;
+import org.zoxweb.shared.util.*;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -29,6 +28,24 @@ public class TestEndPoint {
 
 
 
+    @EndPointProp(methods = {HTTPMethod.GET}, name="sleep-test", uris="/sleep-test/{time-to-sleep}")
+    public NVGenericMap sleep(@ParamProp(name="time-to-sleep") String timeToSleep)
+    {
+        long tts = Const.TimeInMillis.toMillis(timeToSleep);
+
+
+        NVGenericMap response = new NVGenericMap();
+
+        long timeReceived = System.currentTimeMillis();
+        TaskUtil.sleep(tts);
+        long delta = System.currentTimeMillis() - timeReceived;
+
+        response.build(new NVLong("time_received", timeReceived))
+                .build(new NVPair("time_slept", Const.TimeInMillis.toString(delta)))
+                .build(new NVLong("time_finished", System.currentTimeMillis()));
+
+        return response;
+    }
 
 
     @EndPointProp(methods = {HTTPMethod.POST}, name="testjson", uris="/testjson/{api-id}")

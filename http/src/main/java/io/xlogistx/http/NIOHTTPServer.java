@@ -84,7 +84,9 @@ public class NIOHTTPServer
             {
                 if(hph.parseRequest(inBuffer))
                 {
+                    hph.isBusy.set(true);
                     incomingData(hph.setOutputStream(get()));
+                    hph.isBusy.set(false);
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 }
                 else
@@ -97,6 +99,7 @@ public class NIOHTTPServer
                 if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(hph);
+
                 // we should close
             }
         }
@@ -114,7 +117,11 @@ public class NIOHTTPServer
             {
                 if(hph.parseRequest(inBuffer))
                 {
+                    // we are processing a request
+                    hph.isBusy.set(true);
                     incomingData(hph.setOutputStream(get()));
+                    // processing finished
+                    hph.isBusy.set(false);
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 }
                 else
@@ -127,8 +134,10 @@ public class NIOHTTPServer
                 if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(hph);
+
                 // we should close
             }
+
         }
     }
 

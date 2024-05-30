@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HTTPProtocolHandler
-    implements Closeable, IsClosed, Runnable
+    implements Closeable, IsClosed
 {
 
     public final LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(false);
@@ -31,6 +31,9 @@ public class HTTPProtocolHandler
     private final boolean https;
     private Lifetime keepAliveLifetime = null;
     private Appointment keepAliveAppointment = null;
+
+
+    public AtomicBoolean isBusy = new AtomicBoolean();
 
 
 
@@ -64,33 +67,20 @@ public class HTTPProtocolHandler
     }
 
 
-    public void run()
-    {
-        if (!isClosed())
-        {
-            if(log.isEnabled()) log.getLogger().info("*********** request complete: " + isRequestComplete() + " request data size " + rawRequest.getDataStream().size() + " " + keepAliveLifetime);
 
-            try
-            {
-                close();
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
-        }
-    }
 
 
     private void checkKeepAlive()
     {
-
+        // check if we have keep alive configured by the server then
+        // if the incoming request wants it
         if (ResourceManager.SINGLETON.lookup("keep-alive-config") != null &&
                 SharedStringUtil.contains(rawRequest.getHTTPMessageConfig().getHeaders().lookupValue(HTTPHeader.CONNECTION),
             "keep-alive", true))
         {
             if (keepAliveLifetime == null)
             {
+                // reason for double lock check is speed baby
                 synchronized (this)
                 {
                     if (keepAliveLifetime == null)
@@ -99,21 +89,43 @@ public class HTTPProtocolHandler
                         int maxUse = keepAliveConfig.getValue("maximum");
                         long timeOut = keepAliveConfig.getValue("time_out");
                         keepAliveLifetime = new Lifetime(System.currentTimeMillis(), maxUse, null, timeOut);
-                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), this);
+                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), ()->{
+                            if (!isClosed())
+                            {
+                                if(log.isEnabled()) log.getLogger().info(SharedUtil.toCanonicalID(',',  "complete:"+isRequestComplete(), "busy:"+isBusy.get(), rawRequest.getDataStream().size(), keepAliveLifetime));
+                                try
+                                {
+                                    if(!isBusy.get())
+                                        close();
+                                    else
+                                    {
+                                        synchronized (HTTPProtocolHandler.this)
+                                        {
+                                            // situation could occur if the request processing if the client
+                                            // taking longer than expected and we need to close
+                                            // and the keep timeout and keep alive is active
+                                            // very very rare case not sure if it will ever occur
+                                            IOUtil.close(keepAliveAppointment, keepAliveLifetime);
+                                            if(log.isEnabled()) log.getLogger().info("//****************** Very rare case to happen!!!  ******************\\\\");
+                                        }
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
                     }
                 }
             }
 
             if (!keepAliveLifetime.isClosed())
-            {
                 keepAliveAppointment.cancel();
-//                keepAliveLifetime.incUsage();
-            }
         }
         else if (keepAliveLifetime != null)
-        {
            IOUtil.close(keepAliveAppointment, keepAliveLifetime);
-        }
+
 
     }
 
@@ -128,24 +140,17 @@ public class HTTPProtocolHandler
         return isRequestComplete() ? rawRequest.getHTTPMessageConfig() : null;
     }
 
-    public UByteArrayOutputStream getRawRequest()
-    {
-        return isRequestComplete() ? rawRequest.getDataStream() : null;
-    }
-
     public UByteArrayOutputStream getResponseStream()
     {
         return isRequestComplete() ? responseStream : null;
     }
-
-
-//    public HTTPMessageConfigInterface getResponse(){return response;}
 
     @Override
     public synchronized void close() throws IOException
     {
         if(!closed.getAndSet(true))
         {
+            isBusy.set(false);
             IOUtil.close(keepAliveLifetime, keepAliveAppointment, getOutputStream());
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
             if(log.isEnabled()) log.getLogger().info(keepAliveAppointment + " " + keepAliveLifetime);
@@ -244,50 +249,5 @@ public class HTTPProtocolHandler
                             (keepAliveLifetime.getMaxUse() > 0 ? ", max=" + (keepAliveLifetime.getMaxUse() - keepAliveLifetime.getUsageCounter()) : "")));
         }
     }
-
-
-//    public static void preResponse(HTTPProtocolHandler hph, HTTPMessageConfigInterface hmciResponse)
-//    {
-//        if (!hph.isKeepAliveExpired())
-//        {
-//
-//            String kaValue = "timeout= " +  TimeUnit.SECONDS.convert(hph.keepAliveLifetime.getDelayInMillis(),TimeUnit.MILLISECONDS) +
-//                    ", max=" + (hph.keepAliveLifetime.getMaxUse() - hph.keepAliveLifetime.getUsageCounter());
-//            // we keep alive
-//            hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE).
-//                    build(HTTPHeader.KEEP_ALIVE.toHTTPHeader(kaValue));
-//        }
-//        else
-//        {
-//            //we close the connection
-//            hmciResponse.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);
-//        }
-//    }
-
-
-
-
-//    public static void postResponse(HTTPProtocolHandler hph)
-//    {
-//        if (!hph.isKeepAliveExpired())
-//        {
-//            //System.out.println(hph.getKeepAliveLifetime().hashCode() + " " + hph.getKeepAliveLifetime().getUsageCounter() + " " + hph.getOutputStream());
-//            ///System.out.println(hmciResponse.getHeaders().lookup(HTTPHeader.KEEP_ALIVE));
-//            hph.reset();
-//        }
-//        else
-//        {
-//            try {
-//                hph.close();
-//            }
-//            catch (Exception e)
-//            {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
-
-
 
 }
