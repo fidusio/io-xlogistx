@@ -17,12 +17,8 @@
         "LocalAdmin" : ""
 
       }
-    }
-    ,"keep-alive":
-    {
-      "time_out": "5s",
-      "maximum" : 20
-    }
+    },
+    "keep-alive": { "time_out": "5s", "maximum" : 20}
   },
 
   "connections":
