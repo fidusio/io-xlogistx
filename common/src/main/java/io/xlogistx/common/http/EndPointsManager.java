@@ -82,6 +82,8 @@ public class EndPointsManager {
                 hep.setName(epp.name());
                 hep.setDescription(epp.description());
                 hep.setMethods(epp.methods());
+                hep.setInputContentType(epp.iContentType());
+                hep.setOutputContentType(epp.oContentType());
 
                 String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
                 if(methodCheck)

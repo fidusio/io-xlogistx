@@ -5,6 +5,7 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.http.HTTPConst;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
@@ -26,6 +27,37 @@ public class TestEndPoint {
         }
     }
 
+    @EndPointProp(methods = {HTTPMethod.GET}, name="html-test", uris="/html/{testValue}", oContentType = HTTPConst.TEXT_HTML)
+    public String strinAsHTML(@ParamProp(name="testValue", optional = true) String testValue)
+    {
+        StringBuilder htmlBuilder = new StringBuilder();
+
+        // Start HTML document
+        htmlBuilder.append("<!DOCTYPE html>\n");
+        htmlBuilder.append("<html>\n");
+        htmlBuilder.append("<head>\n");
+        htmlBuilder.append("    <title>Example HTML</title>\n");
+        htmlBuilder.append("</head>\n");
+        htmlBuilder.append("<body>\n");
+
+        // Add content
+        htmlBuilder.append("    <h1>Welcome to My Website</h1>\n");
+        htmlBuilder.append("    <p>This is a paragraph of text on my website.</p>\n");
+        htmlBuilder.append("    <ul>\n");
+        htmlBuilder.append("        <li>today date: " + new Date() + "</li>\n");
+        if(!SharedStringUtil.isEmpty(testValue))
+            htmlBuilder.append("        <li>user value: " + testValue + "</li>\n");
+        htmlBuilder.append("    </ul>\n");
+
+        // End HTML document
+        htmlBuilder.append("</body>\n");
+        htmlBuilder.append("</html>\n");
+
+        // Convert StringBuilder to String
+        String htmlString = htmlBuilder.toString();
+
+        return htmlString;
+    }
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name="sleep-test", uris="/sleep-test/{time-to-sleep}")

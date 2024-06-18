@@ -19,7 +19,7 @@ public class ExecTask {
 
     private final static Logger log = Logger.getLogger(ExecTask.class.getName());
 
-    public NVGenericMap execCommands(String commands[], long delay) throws IOException, InterruptedException {
+    public NVGenericMap execCommands(String[] commands, long delay) throws IOException, InterruptedException {
         int passCount = 0;
         NVGenericMap ret = new NVGenericMap();
         long ts = System.currentTimeMillis();

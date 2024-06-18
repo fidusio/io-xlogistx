@@ -196,12 +196,48 @@ public class HTTPProtocolHandler
         return keepAliveLifetime == null || keepAliveLifetime.isClosed() || keepAliveAppointment.isClosed();
     }
 
-    public synchronized HTTPMessageConfigInterface buildJSONResponse(Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
+//    public synchronized HTTPMessageConfigInterface buildJSONResponse(Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
+//    {
+//        if (!isRequestComplete())
+//            throw new IllegalStateException("HTTP request not complete yet");
+//
+//        HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
+//        validateKeepAlive();
+//        return response;
+//    }
+
+
+    public synchronized HTTPMessageConfigInterface buildResponse(String contentType, Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
     {
         if (!isRequestComplete())
             throw new IllegalStateException("HTTP request not complete yet");
 
-        HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
+        response.setContentType(contentType);
+        // json response
+        if(SharedStringUtil.contains(contentType, "application/json", true))
+            HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
+        else
+        {
+            if (result instanceof String) {
+                HTTPUtil.buildResponse(response, statusCode, headersToAdd);
+                response.setContent((String) result);
+            }
+            else if (result instanceof byte[]) {
+                HTTPUtil.buildResponse(response, statusCode, headersToAdd);
+                response.setContent((byte[]) result);
+            }
+            else if (result != null)
+            {
+                // look for encoder for the time being stick with json
+                HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
+            }
+            else
+            {
+                HTTPUtil.buildResponse(response, statusCode, headersToAdd);
+            }
+
+        }
+
         validateKeepAlive();
         return response;
     }

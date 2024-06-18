@@ -58,10 +58,10 @@ public class NIOHTTPServer
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
     private boolean isClosed = true;
-    private volatile boolean securiyManagerEnabled = false;
+    private volatile boolean securityManagerEnabled = false;
     private EndPointsManager endPointsManager = null;
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
-    public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NIOHTTPServer")
+    public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NOUFN")
             .lookupResource(ResourceManager.Resource.HTTP_SERVER);
     private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
@@ -277,7 +277,7 @@ public class NIOHTTPServer
                                 epm.result.methodHolder.getMethodAnnotations(),
                                 parameters);
 
-                        HTTPMessageConfigInterface hmci = hph.buildJSONResponse(result, HTTPStatusCode.OK,
+                        HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
                                         HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
                                         HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                         HTTPConst.CommonHeader.EXPIRES_ZERO);
@@ -295,7 +295,7 @@ public class NIOHTTPServer
                     sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
 
 
-                    HTTPMessageConfigInterface hmci = hph.buildJSONResponse(sm, HTTPStatusCode.NOT_FOUND,
+                    HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(),sm, HTTPStatusCode.NOT_FOUND,
                             HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                     HTTPUtil.formatResponse(hmci, hph.getResponseStream())
@@ -401,7 +401,7 @@ public class NIOHTTPServer
 //                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
 //                    }
                     logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
-                    securiyManagerEnabled = true;
+                    securityManagerEnabled = true;
                 }
                 catch(Exception e)
                 {
