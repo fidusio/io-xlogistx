@@ -59,7 +59,7 @@ public class RealmTest {
     @Test
     public void testValidLogin()
     {
-        org.apache.shiro.web.servlet.ShiroFilter sf;
+//        org.apache.shiro.web.servlet.ShiroFilter sf;
         Subject subject = SecurityUtils.getSubject();
         subject.getSession(true);
         DomainUsernamePasswordToken token =  new DomainUsernamePasswordToken("root", "secret1", false, null, null);

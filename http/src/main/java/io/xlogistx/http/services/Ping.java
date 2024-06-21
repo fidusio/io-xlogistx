@@ -2,6 +2,7 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.http.NIOHTTPServer;
+import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.DateUtil;
@@ -9,8 +10,8 @@ import org.zoxweb.server.util.RuntimeUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
+import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.util.*;
 
 import java.util.Date;
@@ -37,7 +38,8 @@ public class Ping
         if(detailed)
         {
 
-            response.build("jdk_version", System.getProperty("java.version"))
+            response.build("subject-id", ShiroUtil.subjectUserID())
+                    .build("jdk_version", System.getProperty("java.version"))
                     .build("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS))
                     .build("current_thread", Thread.currentThread().getName())
                     .build("version", "1.1.1")

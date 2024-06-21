@@ -1,12 +1,14 @@
 package io.xlogistx.shiro.cache;
 
 
-import org.apache.shiro.ShiroException;
+//import org.apache.shiro.ShiroException;
+
 import org.apache.shiro.cache.Cache;
 import org.apache.shiro.cache.CacheException;
 import org.apache.shiro.cache.CacheManager;
-import org.apache.shiro.util.Destroyable;
-import org.apache.shiro.util.Initializable;
+import org.apache.shiro.lang.ShiroException;
+import org.apache.shiro.lang.util.Destroyable;
+import org.apache.shiro.lang.util.Initializable;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.util.cache.JCacheExpiryPolicy;
 
