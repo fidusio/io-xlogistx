@@ -54,8 +54,7 @@ public class CronConfig
 
     public CronSchedulerConfig[] getConfigs()
     {
-       ArrayValues<NVEntity> av = (ArrayValues<NVEntity>) lookup(Param.SCHEDULES);
-       return (CronSchedulerConfig[]) av.values(new CronSchedulerConfig[av.size()]);
+       return ((ArrayValues<NVEntity>) lookup(Param.SCHEDULES)).valuesAs(new CronSchedulerConfig[0]);
     }
 
     public long getSetupDelay()
