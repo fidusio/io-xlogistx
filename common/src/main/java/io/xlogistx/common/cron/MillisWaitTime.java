@@ -16,7 +16,7 @@ implements WaitTime<MillisWaitTime>
     }
 
     @Override
-    public MillisWaitTime get() {
+    public MillisWaitTime getType() {
         return this;
     }
 }

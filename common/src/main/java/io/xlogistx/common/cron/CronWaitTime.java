@@ -25,7 +25,7 @@ implements WaitTime<Cron>
     }
 
     @Override
-    public Cron get() {
+    public Cron getType() {
         return cron;
     }
 }
