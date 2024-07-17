@@ -44,7 +44,7 @@
       "ssl_config":
       {
         "name": "SSLCONFIG",
-        "keystore_file": "web.rsa.2k.xlogistx.io.jks",
+        "keystore_file": "web.ec.xlogistx.io.jks",
 
         "simple_state_machine": true,
 

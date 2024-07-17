@@ -482,17 +482,17 @@ public class NIOHTTPServer
                                         sysInfo.add("ssl_state_machine_type", "SSLStateMachine");
                                     }
                                 }
-                                getNIOSocket().addServerSocket(serverAddress.getPort(),
+                                getNIOSocket().addServerSocket(serverAddress,
                                         serverAddress.getBacklog(),
                                         sslnioSocketHandlerFactory);
-                                msg += " HTTPS @ port: " + serverAddress.getPort();
+                                msg += " HTTPS @" + serverAddress;
                                 break;
                             case HTTP:
                                 // we need to create a http server
                                 logger.getLogger().info("we need to create an http server");
                                 serverAddress = cc.getSocketConfig();
-                                getNIOSocket().addServerSocket(serverAddress.getPort(), serverAddress.getBacklog(), new NIOSocketHandlerFactory(httpIC));
-                                msg += " HTTP @ port: " + serverAddress.getPort();
+                                getNIOSocket().addServerSocket(serverAddress, serverAddress.getBacklog(), new NIOSocketHandlerFactory(httpIC));
+                                msg += " HTTP @" + serverAddress;
                                 break;
                             case FTP:
                             case FILE:
