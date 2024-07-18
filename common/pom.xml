@@ -27,7 +27,7 @@
   </repositories>
   -->
   <properties>
-    <metadata-exctractor.verion>2.18.0</metadata-exctractor.verion>
+    <metadata-exctractor.verion>RELEASE</metadata-exctractor.verion>
   </properties>
 
 

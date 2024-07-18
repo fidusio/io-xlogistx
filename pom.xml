@@ -77,7 +77,7 @@
         <commons-codec.version>RELEASE</commons-codec.version>
         <commons-csv.version>RELEASE</commons-csv.version>
         <commons-fileupload.version>RELEASE</commons-fileupload.version>
-        <apache.shiro.version>RELEASE</apache.shiro.version>
+        <apache.shiro.version>1.13.0</apache.shiro.version>
         <ehcache-org.version>3.9.11</ehcache-org.version>
         <gson.version>RELEASE</gson.version>
         <javax-cache.version>RELEASE</javax-cache.version>

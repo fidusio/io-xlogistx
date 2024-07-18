@@ -19,7 +19,7 @@ package io.xlogistx.shiro;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.lang.ShiroException;
+import org.apache.shiro.ShiroException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;

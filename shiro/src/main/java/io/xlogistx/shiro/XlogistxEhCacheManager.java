@@ -17,8 +17,8 @@ package io.xlogistx.shiro;
 
 import io.xlogistx.shiro.cache.ShiroJCacheManager;
 import org.apache.shiro.cache.CacheManager;
-import org.apache.shiro.lang.util.Destroyable;
-import org.apache.shiro.lang.util.Initializable;
+import org.apache.shiro.util.Destroyable;
+import org.apache.shiro.util.Initializable;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.ResourceManager;
 

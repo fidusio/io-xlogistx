@@ -84,15 +84,15 @@
             <artifactId>bcprov-lts8on</artifactId>
             <version>${bc.version}</version>
         </dependency>
-        <!-- <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bctls-lts8on</artifactId>
-            <version>${bc.version}</version>
-        </dependency>
-        -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-lts8on</artifactId>
+            <version>${bc.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcutil-lts8on</artifactId>
             <version>${bc.version}</version>
         </dependency>
 
