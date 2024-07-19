@@ -99,8 +99,9 @@ public class OpensslToJKS {
             String password = params.stringValue("password");
             String keyStoreType = params.stringValue("ks_type", CryptoConst.PKCS12);
             String outDir = params.stringValue("out_dir", null);
+            String certAlias = params.stringValue("cer_alias", null);
 
-            KeyStore keyStore = OPSecUtil.createKeyStore(key, cert, chain, keyStoreType, password);
+            KeyStore keyStore = OPSecUtil.createKeyStore(key, cert, chain, keyStoreType, password, certAlias);
             // Store the keystore to filesystem
             String ksFilename = OPSecUtil.outputFilename(outDir, domain + ".jks");
             System.out.println(ksFilename);
@@ -110,7 +111,7 @@ public class OpensslToJKS {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("OpensslToJSK convert a pem certificate to java key store");
-            System.err.println("Usage: OpensslToJKS cert=certificate key=private-key chain=chain-certificate domain=domain-name password=keystore-password [ks_type=keystore-type,JKS or PKCS12 ] [out_dir=keystore-directory]");
+            System.err.println("Usage: OpensslToJKS cert=certificate key=private-key chain=chain-certificate domain=domain-name password=keystore-password [ks_type=keystore-type,JKS or PKCS12 ] [out_dir=keystore-directory] [cert_alias=certificate-alias] ");
         }
     }
 }

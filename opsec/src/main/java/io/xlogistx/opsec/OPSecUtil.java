@@ -191,7 +191,7 @@ public class OPSecUtil
         return certificateFactory.generateCertificate(new ByteArrayInputStream(encodedCertificate));
     }
 
-    public static KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword) throws CertificateException, IOException, PKCSException, OperatorCreationException, KeyStoreException, NoSuchAlgorithmException {
+    public static KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword, String certAlias) throws CertificateException, IOException, PKCSException, OperatorCreationException, KeyStoreException, NoSuchAlgorithmException {
         // Load Certificate Chain
         CertificateFactory factory = CertificateFactory.getInstance("X.509");
         List<Certificate> chain = new ArrayList<>();
@@ -245,7 +245,7 @@ public class OPSecUtil
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         keyStore.load(null, null);
         Certificate[] certificates = chain.toArray(new Certificate[0]);
-        keyStore.setKeyEntry("keyalias", privateKey, keyStorePassword.toCharArray(), certificates);
+        keyStore.setKeyEntry(SharedStringUtil.isEmpty(certAlias) ? "keyalias" : certAlias, privateKey, keyStorePassword.toCharArray(), certificates);
 
         return keyStore;
     }
