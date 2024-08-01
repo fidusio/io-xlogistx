@@ -5,7 +5,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
-import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.shared.util.ParamUtil;
 
 import java.io.FileOutputStream;
@@ -30,17 +29,54 @@ public class GeneratePEMAndCSR
             String altNames = params.stringValue("alt", true);
             String outDir = params.stringValue("out_dir", true);
             String attrs = params.stringValue("attrs");
-            KeyPair keyPair = CryptoUtil.generateKeyPair(keyType, SecureRandom.getInstanceStrong());
+            KeyPair keyPair = OPSecUtil.generateKeyPair(keyType, "BC", new SecureRandom());
 
 
             String filename = OPSecUtil.extractFilename(attrs);
 
+
+
+            UByteArrayOutputStream keyBAOS = new UByteArrayOutputStream();
             // Save Private Key to PEM file
-            try (Writer writer = new OutputStreamWriter(new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".key"))))
+            try (Writer writer = new OutputStreamWriter(keyBAOS))
             {
                 JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
+
+
+//                String[] parsed = keyType.split("[ ,:]");
+//                if (parsed.length != 2)
+//                {
+//                    throw new IllegalArgumentException("invalid key " + keyType + " ie:  rsa 2048 or ec:secp256r1 or use , as separator");
+//                }
+//                String parsedType = parsed[0].toUpperCase();
+//                String parsedSpec = parsed[1];
+//                if ("EC".equals(parsedType))
+//                {
+//                    // this a hack really should not be done like this
+//                    // just to fix a bug
+//                    switch(parsedSpec.toLowerCase())
+//                    {
+//                        case "secp256r1":
+//                            keyBAOS.write(OPSecUtil.BEGIN_EC_PARAM +"\n");
+//                            keyBAOS.write(OPSecUtil.SECP_256_R1_EC_VAL +"\n");
+//                            keyBAOS.write(OPSecUtil.END_EC_PARAM+"\n");
+//                            break;
+//                        case "secp384r1":
+//                            keyBAOS.write(OPSecUtil.BEGIN_EC_PARAM +"\n");
+//                            keyBAOS.write(OPSecUtil.SECP_384_R1_EC_VAL +"\n");
+//                            keyBAOS.write(OPSecUtil.END_EC_PARAM+"\n");
+//                            break;
+//                        default:
+//                            throw new IllegalArgumentException("Unsupported " + keyType);
+//
+//                    }
+//                }
+
+
                 pemWriter.writeObject(keyPair.getPrivate());
                 pemWriter.close();
+                os = new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".key"));
+                keyBAOS.writeTo(os);
             }
 
             // Generate CSR
@@ -62,6 +98,9 @@ public class GeneratePEMAndCSR
             }
 
             System.out.println("PEM and CSR files have been generated.\n");
+
+
+            System.out.println(keyBAOS.toString());
 
             System.out.println(csrBAOS.toString());
 

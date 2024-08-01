@@ -8,8 +8,8 @@ import org.zoxweb.shared.data.AppIDDAO;
 import org.zoxweb.shared.security.model.PPEncoder;
 import org.zoxweb.shared.security.model.SecurityModel.PermissionToken;
 import org.zoxweb.shared.security.shiro.ShiroAssociationRuleDAO;
-import org.zoxweb.shared.security.shiro.ShiroPermissionDAO;
-import org.zoxweb.shared.security.shiro.ShiroRoleDAO;
+import org.zoxweb.shared.security.shiro.ShiroPermission;
+import org.zoxweb.shared.security.shiro.ShiroRole;
 import org.zoxweb.shared.util.CRUD;
 import org.zoxweb.shared.util.NVEntity;
 import org.zoxweb.shared.util.NVPair;
@@ -119,9 +119,9 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 				case PERMISSION_TO_RESOURCE:
 					break;
 				case PERMISSION_TO_SUBJECT:
-					if (sard.getAssociation() != null && sard.getAssociation() instanceof ShiroPermissionDAO)
+					if (sard.getAssociation() != null && sard.getAssociation() instanceof ShiroPermission)
 					{
-						ShiroPermissionDAO permission = sard.getAssociation();
+						ShiroPermission permission = sard.getAssociation();
 						if (permission.getPermissionPattern() != null)
 						{
 							stringPermissions.add(permission.getPermissionPattern());
@@ -162,15 +162,15 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 					break;
 				case ROLE_TO_SUBJECT:
 				case ROLE_TO_RESOURCE:
-					ShiroRoleDAO role = sard.getAssociation();
+					ShiroRole role = sard.getAssociation();
 					if (role != null)
 					{
 						roles.add(role.getSubjectID());
 						for (NVEntity nve : role.getPermissions().values())
 						{
-							if (nve instanceof ShiroPermissionDAO)
+							if (nve instanceof ShiroPermission)
 							{
-								ShiroPermissionDAO permission = (ShiroPermissionDAO) nve;
+								ShiroPermission permission = (ShiroPermission) nve;
 								String permissionPattern = permission.getPermissionPattern();
 								if (permissionPattern != null)
 								{

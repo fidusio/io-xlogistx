@@ -35,13 +35,13 @@ implements ShiroRealmStore
      * Add a subject
      *
      * @param subject
-     * @return ShiroSubjectDAO
+     * @return ShiroSubject
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroSubjectDAO addSubject(ShiroSubjectDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroSubject addSubject(ShiroSubject subject) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.CREATE, subject);
     }
 
@@ -50,7 +50,7 @@ implements ShiroRealmStore
      * Add a subject
      *
      * @param subject
-     * @return ShiroSubjectDAO
+     * @return ShiroSubject
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
@@ -65,13 +65,13 @@ implements ShiroRealmStore
      *
      * @param subject
      * @param withRoles
-     * @return ShiroSubjectDAO
+     * @return ShiroSubject
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroSubjectDAO deleteSubject(ShiroSubjectDAO subject, boolean withRoles) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroSubject deleteSubject(ShiroSubject subject, boolean withRoles) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.DELETE, subject);
     }
 
@@ -79,13 +79,13 @@ implements ShiroRealmStore
      * Updates a subject, usually the password.
      *
      * @param subject
-     * @return ShiroSubjectDAO
+     * @return ShiroSubject
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroSubjectDAO updateSubject(ShiroSubjectDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroSubject updateSubject(ShiroSubject subject) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.UPDATE, subject);
     }
 
@@ -99,7 +99,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroRoleDAO addRole(ShiroRoleDAO role) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRole addRole(ShiroRole role) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -113,7 +113,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroRoleDAO lookupRole(String roleID) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRole lookupRole(String roleID) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -122,13 +122,13 @@ implements ShiroRealmStore
      *
      * @param role
      * @param withPermissions
-     * @return ShiroRoleDAO
+     * @return ShiroRole
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroRoleDAO deleteRole(ShiroRoleDAO role, boolean withPermissions) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRole deleteRole(ShiroRole role, boolean withPermissions) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -136,13 +136,13 @@ implements ShiroRealmStore
      * Updates a role
      *
      * @param role
-     * @return ShiroRoleDAO
+     * @return ShiroRole
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroRoleDAO updateRole(ShiroRoleDAO role) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRole updateRole(ShiroRole role) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -150,13 +150,13 @@ implements ShiroRealmStore
      * Adds a role group.
      *
      * @param rolegroup
-     * @return ShiroRoleGroupDAO
+     * @return ShiroRoleGroup
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroRoleGroupDAO addRoleGroup(ShiroRoleGroupDAO rolegroup) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRoleGroup addRoleGroup(ShiroRoleGroup rolegroup) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -164,13 +164,13 @@ implements ShiroRealmStore
      * Delete a role group.
      *
      * @param rolegroup
-     * @return ShiroRoleGroupDAO
+     * @return ShiroRoleGroup
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroRoleGroupDAO deleteRoleGroup(ShiroRoleGroupDAO rolegroup) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRoleGroup deleteRoleGroup(ShiroRoleGroup rolegroup) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -178,13 +178,13 @@ implements ShiroRealmStore
      * Update a role group.
      *
      * @param rolegroup
-     * @return ShiroRoleGroupDAO
+     * @return ShiroRoleGroup
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroRoleGroupDAO updateRoleGroup(ShiroRoleGroupDAO rolegroup) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroRoleGroup updateRoleGroup(ShiroRoleGroup rolegroup) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -192,13 +192,13 @@ implements ShiroRealmStore
      * Add a permission
      *
      * @param permission
-     * @return ShiroPermissionDAO
+     * @return ShiroPermission
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroPermissionDAO addPermission(ShiroPermissionDAO permission) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroPermission addPermission(ShiroPermission permission) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -212,7 +212,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroPermissionDAO lookupPermission(String permissionID) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroPermission lookupPermission(String permissionID) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -220,13 +220,13 @@ implements ShiroRealmStore
      * Delete a permission
      *
      * @param permission
-     * @return ShiroPermissionDAO
+     * @return ShiroPermission
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroPermissionDAO deletePermission(ShiroPermissionDAO permission) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroPermission deletePermission(ShiroPermission permission) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -234,57 +234,57 @@ implements ShiroRealmStore
      * Updates a permission.
      *
      * @param permission
-     * @return ShiroPermissionDAO
+     * @return ShiroPermission
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroPermissionDAO updatePermission(ShiroPermissionDAO permission) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroPermission updatePermission(ShiroPermission permission) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
     /**
      * Returns all subjects.
      *
-     * @return list of ShiroSubjectDAO
+     * @return list of ShiroSubject
      * @throws AccessException
      */
     @Override
-    public List<ShiroSubjectDAO> getAllShiroSubjects() throws AccessException {
+    public List<ShiroSubject> getAllShiroSubjects() throws AccessException {
         return null;
     }
 
     /**
      * Returns all roles.
      *
-     * @return list ShiroRoleDAO
+     * @return list ShiroRole
      * @throws AccessException
      */
     @Override
-    public List<ShiroRoleDAO> getAllShiroRoles() throws AccessException {
+    public List<ShiroRole> getAllShiroRoles() throws AccessException {
         return null;
     }
 
     /**
      * Returns all roles groups.
      *
-     * @return list ShiroRoleGroupDAO
+     * @return list ShiroRoleGroup
      * @throws AccessException
      */
     @Override
-    public List<ShiroRoleGroupDAO> getAllShiroRoleGroups() throws AccessException {
+    public List<ShiroRoleGroup> getAllShiroRoleGroups() throws AccessException {
         return null;
     }
 
     /**
      * Returns all permissions.
      *
-     * @return list ShiroPermissionDAO
+     * @return list ShiroPermission
      * @throws AccessException
      */
     @Override
-    public List<ShiroPermissionDAO> getAllShiroPermissions() throws AccessException {
+    public List<ShiroPermission> getAllShiroPermissions() throws AccessException {
         return null;
     }
 
@@ -292,13 +292,13 @@ implements ShiroRealmStore
      * Looks up a subject based on username.
      *
      * @param userName
-     * @return ShiroSubjectDAO
+     * @return ShiroSubject
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroSubjectDAO lookupSubject(String userName) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroSubject lookupSubject(String userName) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -312,10 +312,10 @@ implements ShiroRealmStore
      * @throws IllegalArgumentException
      * @throws AccessException
      */
-    @Override
-    public ShiroCollectionAssociationDAO lookupShiroCollection(ShiroDAO shiroDao, ShiroAssociationType sat) throws NullPointerException, IllegalArgumentException, AccessException {
-        return null;
-    }
+//    @Override
+//    public ShiroCollectionAssociationDAO lookupShiroCollection(ShiroBase shiroDao, ShiroAssociationType sat) throws NullPointerException, IllegalArgumentException, AccessException {
+//        return null;
+//    }
 
     /**
      * Create an association.

@@ -5,6 +5,7 @@ import org.zoxweb.shared.util.ParamUtil;
 
 import java.io.FileOutputStream;
 import java.security.KeyStore;
+import java.util.Scanner;
 
 public class OpensslToJKS {
 
@@ -96,10 +97,20 @@ public class OpensslToJKS {
             String key = params.stringValue("key");
             String chain = params.stringValue("chain");
             String domain = params.stringValue("domain");
-            String password = params.stringValue("password");
+            String password = params.stringValue("password", null);
             String keyStoreType = params.stringValue("ks_type", CryptoConst.PKCS12);
             String outDir = params.stringValue("out_dir", null);
             String certAlias = params.stringValue("cer_alias", null);
+
+            if(password == null)
+            {
+                Scanner scanner = new Scanner(System.in);
+
+                System.out.println("Enter password:");
+                password = scanner.nextLine();
+                scanner.close();
+            }
+
 
             KeyStore keyStore = OPSecUtil.createKeyStore(key, cert, chain, keyStoreType, password, certAlias);
             // Store the keystore to filesystem

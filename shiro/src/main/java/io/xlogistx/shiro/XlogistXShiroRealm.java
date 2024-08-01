@@ -47,7 +47,7 @@ public class XlogistXShiroRealm
 
 {
 
-	public static final LogWrapper log = new LogWrapper(XlogistXShiroRealm.class).setEnabled(false);
+	public static final LogWrapper log = new LogWrapper(XlogistXShiroRealm.class).setEnabled(true);
 
 	protected boolean permissionsLookupEnabled = false;
 	private boolean cachePersistenceEnabled = false;
@@ -72,6 +72,7 @@ public class XlogistXShiroRealm
 	@Override
 	protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals)
     {
+		if(log.isEnabled()) log.getLogger().info("PrincipalCollection: " + principals);
        //null usernames are invalid
        if (principals == null)
        {
@@ -143,7 +144,7 @@ public class XlogistXShiroRealm
 	protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token)
 			throws AuthenticationException
 	{
-		//if(log.isEnabled()) log.getLogger().info("AuthenticationToken:" + token);
+		if(log.isEnabled()) log.getLogger().info("AuthenticationToken: " + token);
 		
 		if (token instanceof DomainUsernamePasswordToken)
 		{

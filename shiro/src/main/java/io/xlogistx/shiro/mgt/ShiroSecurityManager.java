@@ -9,17 +9,30 @@ import org.zoxweb.shared.security.AccessException;
 
 public class ShiroSecurityManager extends DefaultSecurityManager {
     public static LogWrapper log = new LogWrapper(ShiroSecurityManager.class).setEnabled(true);
-
+    private boolean blockMainThread = true;
 //    public Subject createSubject(SubjectContext subjectContext)
 //    {
 //        log.getLogger().info("subjectContext:" + subjectContext);
 //        return super.createSubject(subjectContext);
 //    }
 
+
+
+
     public Subject createSubject(SubjectContext subjectContext) {
 
-        if (TaskUtil.isMainThread())
+        if (isMainThreadBlocked() && TaskUtil.isMainThread())
             throw new AccessException("Can not login via the main app thread");
         return super.createSubject(subjectContext);
+    }
+
+    public boolean isMainThreadBlocked()
+    {
+        return blockMainThread;
+    }
+
+    public void setMainThreadBlocked(boolean stat)
+    {
+        this.blockMainThread = stat;
     }
 }
