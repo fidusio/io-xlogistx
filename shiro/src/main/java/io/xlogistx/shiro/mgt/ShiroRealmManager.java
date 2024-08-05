@@ -7,6 +7,7 @@ import org.zoxweb.shared.security.shiro.ShiroPermission;
 import org.zoxweb.shared.security.shiro.ShiroRole;
 import org.zoxweb.shared.security.shiro.ShiroRoleGroup;
 
+
 public interface ShiroRealmManager
 extends AuthorizationInfoLookup
 {

@@ -12,7 +12,7 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.PasswordDAO;
-import org.zoxweb.shared.security.SubjectIDDAO;
+import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.*;
 
@@ -64,7 +64,7 @@ public class TestSubjectSwap {
         System.out.println(securityManager.getClass().getName());
         SecurityUtils.setSecurityManager(securityManager);
 
-        SubjectIDDAO subjectIDDAO = new SubjectIDDAO();
+        SubjectIdentifier subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("root");
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
@@ -77,13 +77,13 @@ public class TestSubjectSwap {
 
 
 
-        subjectIDDAO = new SubjectIDDAO();
+        subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("marwan");
         srs.addSubject(subjectIDDAO);
         srs.setSubjectPassword("marwan", "password1");
 
-        subjectIDDAO = new SubjectIDDAO();
+        subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("toSwapWith");
         srs.addSubject(subjectIDDAO);

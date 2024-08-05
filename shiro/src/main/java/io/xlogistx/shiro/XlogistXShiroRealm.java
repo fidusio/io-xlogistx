@@ -34,7 +34,7 @@ import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.AppDeviceDAO;
 import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.security.SubjectAPIKey;
-import org.zoxweb.shared.security.SubjectIDDAO;
+import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.ResourceManager;
 import org.zoxweb.shared.util.ResourceManager.Resource;
@@ -156,7 +156,7 @@ public class XlogistXShiroRealm
 	        {
 	            throw new AccountException("Null usernames are not allowed by this realm.");
 	        }
-	        SubjectIDDAO userIDDAO = shiroStore.lookupSubjectID(dupToken.getUsername(), "_id", "_user_id");
+	        SubjectIdentifier userIDDAO = shiroStore.lookupSubjectID(dupToken.getUsername(), "_id", "_user_id");
 	        if (userIDDAO == null)
 	        {
 	            throw new AccountException("Account not found usernames are not allowed by this realm.");

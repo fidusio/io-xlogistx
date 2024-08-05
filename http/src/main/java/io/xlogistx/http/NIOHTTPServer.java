@@ -201,7 +201,9 @@ public class NIOHTTPServer
 
                     throw new HTTPCallException("authentication missing", hmci);
 
-                } else {
+                }
+                else
+                {
                     if (httpAuthorization instanceof HTTPAuthorizationBasic &&
                             (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
                                     SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {

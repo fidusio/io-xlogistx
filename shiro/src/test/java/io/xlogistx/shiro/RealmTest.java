@@ -11,7 +11,7 @@ import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.zoxweb.shared.security.SubjectIDDAO;
+import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.BaseSubjectID;
@@ -34,7 +34,7 @@ public class RealmTest {
         System.out.println(securityManager.getClass().getName());
         SecurityUtils.setSecurityManager(securityManager);
         Subject subject = SecurityUtils.getSubject();
-        SubjectIDDAO subjectIDDAO = new SubjectIDDAO();
+        SubjectIdentifier subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("root");
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
@@ -71,6 +71,7 @@ public class RealmTest {
                 "imitate:animal:jaguar",
                 "imitate:animal:cat",
                 "document:read:*",
+                SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION, "app:", "gta")
         };
 
 

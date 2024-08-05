@@ -95,6 +95,16 @@
             <artifactId>bcutil-lts8on</artifactId>
             <version>${bc.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-common</artifactId>
+            <version>${xlogistx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-shiro</artifactId>
+            <version>${xlogistx.version}</version>
+        </dependency>
 
 
     </dependencies>

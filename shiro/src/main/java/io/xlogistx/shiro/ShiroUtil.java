@@ -18,6 +18,8 @@ package io.xlogistx.shiro;
 
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
+import io.xlogistx.shiro.mgt.ShiroRealmManager;
+import io.xlogistx.shiro.mgt.ShiroRealmManagerHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -213,6 +215,35 @@ public class ShiroUtil
 		return null;
 	}
 
+	public static ShiroRealmManager getShiroRealmManager()
+	{
+		return getShiroRealmManager(SecurityUtils.getSecurityManager());
+	}
+
+	public static ShiroRealmManager getShiroRealmManager(SecurityManager sm)
+	{
+		if (sm instanceof RealmSecurityManager)
+		{
+			Collection<Realm> realms = ((RealmSecurityManager)sm).getRealms();
+
+			if (realms != null)
+			{
+				for (Realm realm : realms)
+				{
+					if (realm instanceof ShiroRealmManagerHolder)
+					{
+						return ((ShiroRealmManagerHolder) realm).getShiroRealmManger();
+					}
+					if (realm instanceof ShiroRealmManager)
+					{
+						return (ShiroRealmManager) realm;
+					}
+				}
+			}
+		}
+		throw new NotFoundException("No shiro realm manager found.");
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <V extends Realm> List<V> getAllRealms(SecurityManager sm, Class<? extends Realm> c)
     {
@@ -394,8 +425,7 @@ public class ShiroUtil
 	{
 
 
-		if(rs != null &&
-				rs.authenticationTypes() != null)
+		if(rs != null && rs.authenticationTypes() != null)
 		{
 
 			if (SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))

@@ -41,7 +41,7 @@ import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.db.QueryMatchString;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.SubjectAPIKey;
-import org.zoxweb.shared.security.SubjectIDDAO;
+import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.*;
 import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.Const.RelationalOperator;
@@ -381,14 +381,14 @@ public abstract class ShiroBaseRealm
 //	}
 
 	
-	public ShiroAssociationDAO addShiroAssociation(ShiroAssociationDAO association)
+	public ShiroAssociation addShiroAssociation(ShiroAssociation association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	
-	public ShiroAssociationDAO removeShiroAssociation(ShiroAssociationDAO association)
+	public ShiroAssociation removeShiroAssociation(ShiroAssociation association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
@@ -471,7 +471,7 @@ public abstract class ShiroBaseRealm
 	 * @throws AccessException
 	 */
 	@Override
-	public SubjectIDDAO lookupSubjectID(GetValue<String> subjectID, String... params)
+	public SubjectIdentifier lookupSubjectID(GetValue<String> subjectID, String... params)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		return lookupSubjectID(subjectID.getValue(), params);
 	}
@@ -485,19 +485,19 @@ public abstract class ShiroBaseRealm
 	 * @throws AccessException
 	 */
 	@Override
-	public SubjectIDDAO lookupSubjectID(String subjectID, String... params)
+	public SubjectIdentifier lookupSubjectID(String subjectID, String... params)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		UserIDDAO userID = lookupUserID(subjectID, params);
 		if(userID != null)
 		{
-			SubjectIDDAO subjectIDDAO = new SubjectIDDAO();
-			subjectIDDAO.setReferenceID(userID.getReferenceID());
-			subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
-			subjectIDDAO.setSubjectID(userID.getSubjectID());
-			subjectIDDAO.setUserID(userID.getUserID());
-			subjectIDDAO.setGlobalID(userID.getGlobalID());
-			subjectIDDAO.getProperties().add("user_info", userID.getUserInfo());
-			return subjectIDDAO;
+			SubjectIdentifier subjectIdentifier = new SubjectIdentifier();
+			subjectIdentifier.setReferenceID(userID.getReferenceID());
+			subjectIdentifier.setSubjectType(BaseSubjectID.SubjectType.USER);
+			subjectIdentifier.setSubjectID(userID.getSubjectID());
+			subjectIdentifier.setUserID(userID.getUserID());
+			subjectIdentifier.setGlobalID(userID.getGlobalID());
+			subjectIdentifier.getProperties().add("user_info", userID.getUserInfo());
+			return subjectIdentifier;
 
 		}
 		return null;

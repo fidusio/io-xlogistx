@@ -18,6 +18,7 @@ package io.xlogistx.shiro;
 import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.zoxweb.shared.util.AppID;
 import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SharedUtil;
 
 @SuppressWarnings("serial")
 public class DomainPrincipalCollection
@@ -27,23 +28,24 @@ public class DomainPrincipalCollection
 
 	protected String domain_id;
 	protected String application_id;
-	protected String user_id;
+	protected String subject_gid;
 	protected String token_subject_id;
 
 	/**
      *
 	 * @param principal the login id ie email
-	 * @param userID unique user domain identifier 
+	 * @param subjectGID subject global id as uuid
 	 * @param realmName
 	 * @param domainID
 	 * @param applicationID
 	 */
-	public DomainPrincipalCollection(Object principal, String userID, String realmName, String domainID, String applicationID, String jwtSubjectID)
+	public DomainPrincipalCollection(Object principal, String subjectGID, String realmName, String domainID, String applicationID, String jwtSubjectID)
     {
 		super(principal, realmName);
+		SharedUtil.checkIfNulls("Subject GID can't be null", subjectGID);
 		domain_id = SharedStringUtil.toLowerCase(domainID);
 		application_id = SharedStringUtil.toLowerCase(applicationID);
-		user_id = userID;
+		subject_gid = subjectGID;
 		token_subject_id = jwtSubjectID;
 		
 		// first on to add for optimization issue
@@ -85,7 +87,7 @@ public class DomainPrincipalCollection
 	 */
 	public String getUserID()
     {
-		return user_id;
+		return subject_gid;
 	}
 
 	@Override
@@ -106,7 +108,10 @@ public class DomainPrincipalCollection
 		
 	}
 
-	
+	public String getSubjectGID()
+	{
+		return subject_gid;
+	}
 
 	@Override
 	public String getAppID() {

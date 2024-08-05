@@ -7,7 +7,7 @@ import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.db.QueryMarker;
 import org.zoxweb.shared.security.AccessException;
-import org.zoxweb.shared.security.SubjectIDDAO;
+import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.*;
 import org.zoxweb.shared.util.CRUD;
 import org.zoxweb.shared.util.GetValue;
@@ -56,7 +56,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public SubjectIDDAO addSubject(SubjectIDDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
+    public SubjectIdentifier addSubject(SubjectIdentifier subject) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.CREATE, subject);
     }
 
@@ -327,7 +327,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroAssociationDAO addShiroAssociation(ShiroAssociationDAO association) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroAssociation addShiroAssociation(ShiroAssociation association) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -335,13 +335,13 @@ implements ShiroRealmStore
      * Removes an association.
      *
      * @param association
-     * @return ShiroAssociationDAO
+     * @return ShiroAssociation
      * @throws NullPointerException
      * @throws IllegalArgumentException
      * @throws AccessException
      */
     @Override
-    public ShiroAssociationDAO removeShiroAssociation(ShiroAssociationDAO association) throws NullPointerException, IllegalArgumentException, AccessException {
+    public ShiroAssociation removeShiroAssociation(ShiroAssociation association) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -361,7 +361,7 @@ implements ShiroRealmStore
     }
 
     @Override
-    public PasswordDAO setSubjectPassword(SubjectIDDAO subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+    public PasswordDAO setSubjectPassword(SubjectIdentifier subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 
@@ -371,7 +371,7 @@ implements ShiroRealmStore
     }
 
     @Override
-    public PasswordDAO setSubjectPassword(SubjectIDDAO subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+    public PasswordDAO setSubjectPassword(SubjectIdentifier subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
         PasswordDAO passwordDAO = null;
         try
         {
@@ -466,7 +466,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public SubjectIDDAO lookupSubjectID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+    public SubjectIdentifier lookupSubjectID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
 
 
         return null;
@@ -481,32 +481,32 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public SubjectIDDAO lookupSubjectID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
-        return (SubjectIDDAO) cacheGet(KeyType.SUBJECT, subjectID);
+    public SubjectIdentifier lookupSubjectID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+        return (SubjectIdentifier) cacheGet(KeyType.SUBJECT, subjectID);
     }
 
     @Override
-    public void addShiroRule(ShiroAssociationRuleDAO sard) {
-
-    }
-
-    @Override
-    public void deleteShiroRule(ShiroAssociationRuleDAO sard) {
+    public void addShiroRule(ShiroAssociationRule sard) {
 
     }
 
     @Override
-    public void updateShiroRule(ShiroAssociationRuleDAO sard) {
+    public void deleteShiroRule(ShiroAssociationRule sard) {
 
     }
 
     @Override
-    public List<ShiroAssociationRuleDAO> search(QueryMarker... queryCriteria) {
+    public void updateShiroRule(ShiroAssociationRule sard) {
+
+    }
+
+    @Override
+    public List<ShiroAssociationRule> search(QueryMarker... queryCriteria) {
         return null;
     }
 
     @Override
-    public List<ShiroAssociationRuleDAO> search(Collection<QueryMarker> queryCriteria) {
+    public List<ShiroAssociationRule> search(Collection<QueryMarker> queryCriteria) {
         return null;
     }
 

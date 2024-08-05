@@ -7,7 +7,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.data.AppIDDAO;
 import org.zoxweb.shared.security.model.PPEncoder;
 import org.zoxweb.shared.security.model.SecurityModel.PermissionToken;
-import org.zoxweb.shared.security.shiro.ShiroAssociationRuleDAO;
+import org.zoxweb.shared.security.shiro.ShiroAssociationRule;
 import org.zoxweb.shared.security.shiro.ShiroPermission;
 import org.zoxweb.shared.security.shiro.ShiroRole;
 import org.zoxweb.shared.util.CRUD;
@@ -29,9 +29,9 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	
 	static class RuleHolder
 	{
-		final ShiroAssociationRuleDAO sard;
+		final ShiroAssociationRule sard;
 		final NVPair[] tokens;
-		RuleHolder(ShiroAssociationRuleDAO rule, NVPair[]  params)
+		RuleHolder(ShiroAssociationRule rule, NVPair[]  params)
 		{
 			this.sard = rule;
 			this.tokens = (params != null && params.length > 0) ? params : null ;
@@ -40,7 +40,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	}
 	
 	protected Map<String, RuleHolder> rulesMap = new LinkedHashMap<String, RuleHolder>();
-	protected Set<ShiroAssociationRuleDAO> dynamicSet = new LinkedHashSet<ShiroAssociationRuleDAO>();
+	protected Set<ShiroAssociationRule> dynamicSet = new LinkedHashSet<ShiroAssociationRule>();
 	protected Set<String> stringPermissions = null;
 	protected Set<String> roles = null;
 	protected Set<Permission> objectPermissions = null;
@@ -55,9 +55,9 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 		this.realm = realm;
 	}
 	
-	public synchronized void addShiroAssociationRule(ShiroAssociationRuleDAO sard, NVPair...nvps)
+	public synchronized void addShiroAssociationRule(ShiroAssociationRule sard, NVPair...nvps)
 	{
-		SharedUtil.checkIfNulls("Null ShiroAssociationRuleDAO", sard);
+		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sard);
 		
 		Date date = sard.getExpiration();
 		
@@ -71,9 +71,9 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	}
 	
 	
-	public synchronized void addDynamicShiroAssociationRule(ShiroAssociationRuleDAO sard)
+	public synchronized void addDynamicShiroAssociationRule(ShiroAssociationRule sard)
 	{
-		SharedUtil.checkIfNulls("Null ShiroAssociationRuleDAO", sard);
+		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sard);
 		
 		Date date = sard.getExpiration();
 		
@@ -111,7 +111,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 			while(it.hasNext())
 			{
 				RuleHolder rh = it.next();
-				ShiroAssociationRuleDAO sard = rh.sard;
+				ShiroAssociationRule sard = rh.sard;
 				switch(sard.getAssociationType())
 				{
 				case PERMISSION_TO_ROLE:
@@ -201,23 +201,23 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	}
 	
 	
-	public synchronized void addShiroAssociationRule(Collection<ShiroAssociationRuleDAO> sards, NVPair ...nvps)
+	public synchronized void addShiroAssociationRule(Collection<ShiroAssociationRule> sards, NVPair ...nvps)
 	{
-		SharedUtil.checkIfNulls("Null ShiroAssociationRuleDAO", sards);
+		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sards);
 		
-		for(ShiroAssociationRuleDAO sard : sards)
+		for(ShiroAssociationRule sard : sards)
 		{
 			addShiroAssociationRule(sard, nvps);
 		}
 	}
 	
 	
-//	public synchronized void deleteShiroAssociationRule(ShiroAssociationRuleDAO sard)
+//	public synchronized void deleteShiroAssociationRule(ShiroAssociationRule sard)
 //	{
 //		
 //	}
 //	
-//	public synchronized void updateShiroAssciationRule(ShiroAssociationRuleDAO sard)
+//	public synchronized void updateShiroAssciationRule(ShiroAssociationRule sard)
 //	{
 //		
 //	}

@@ -24,7 +24,7 @@ import org.zoxweb.shared.filters.ChainedFilter;
 import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.JWTToken;
-import org.zoxweb.shared.security.SubjectIDDAO;
+import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.*;
 import org.zoxweb.shared.util.*;
@@ -667,7 +667,7 @@ public class APISecurityManagerProvider
 	 * @throws AccessException
 	 */
 	@Override
-	public SubjectIDDAO addSubject(SubjectIDDAO subject) throws NullPointerException, IllegalArgumentException, AccessException {
+	public SubjectIdentifier addSubject(SubjectIdentifier subject) throws NullPointerException, IllegalArgumentException, AccessException {
 		return null;
 	}
 
@@ -808,7 +808,7 @@ public class APISecurityManagerProvider
 //	}
 
 	@Override
-	public ShiroAssociationDAO addShiroAssociation(ShiroAssociationDAO association)
+	public ShiroAssociation addShiroAssociation(ShiroAssociation association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		
@@ -816,7 +816,7 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public ShiroAssociationDAO removeShiroAssociation(ShiroAssociationDAO association)
+	public ShiroAssociation removeShiroAssociation(ShiroAssociation association)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		
@@ -839,7 +839,7 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public PasswordDAO setSubjectPassword(SubjectIDDAO subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+	public PasswordDAO setSubjectPassword(SubjectIdentifier subject, PasswordDAO passwd) throws NullPointerException, IllegalArgumentException, AccessException {
 		return null;
 	}
 
@@ -849,7 +849,7 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public PasswordDAO setSubjectPassword(SubjectIDDAO subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
+	public PasswordDAO setSubjectPassword(SubjectIdentifier subject, String passwd) throws NullPointerException, IllegalArgumentException, AccessException {
 		return null;
 	}
 
@@ -924,7 +924,7 @@ public class APISecurityManagerProvider
 	 * @throws AccessException
 	 */
 	@Override
-	public SubjectIDDAO lookupSubjectID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+	public SubjectIdentifier lookupSubjectID(GetValue<String> subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
 		return null;
 	}
 
@@ -937,15 +937,15 @@ public class APISecurityManagerProvider
 	 * @throws AccessException
 	 */
 	@Override
-	public SubjectIDDAO lookupSubjectID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
+	public SubjectIdentifier lookupSubjectID(String subjectID, String... params) throws NullPointerException, IllegalArgumentException, AccessException {
 		return null;
 	}
 
 
 	@Override
-	public void addShiroRule(ShiroAssociationRuleDAO sard) {
+	public void addShiroRule(ShiroAssociationRule sard) {
 		// TODO Auto-generated method stub
-		SharedUtil.checkIfNulls("Null ShiroAssociationRuleDAO", sard, sard.getAssociationType());
+		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sard, sard.getAssociationType());
 		
 		switch(sard.getAssociationType())
 		{
@@ -972,7 +972,7 @@ public class APISecurityManagerProvider
 
 
 	@Override
-	public void deleteShiroRule(ShiroAssociationRuleDAO sard) 
+	public void deleteShiroRule(ShiroAssociationRule sard)
 	{
 		// TODO Auto-generated method stub
 		
@@ -981,7 +981,7 @@ public class APISecurityManagerProvider
 
 
 	@Override
-	public void updateShiroRule(ShiroAssociationRuleDAO sard) {
+	public void updateShiroRule(ShiroAssociationRule sard) {
 		// TODO Auto-generated method stub
 		
 		getShiroBaseRealm().updateShiroRule(sard);
@@ -989,13 +989,13 @@ public class APISecurityManagerProvider
 
 
 	@Override
-	public List<ShiroAssociationRuleDAO> search(QueryMarker... queryCriteria) {
+	public List<ShiroAssociationRule> search(QueryMarker... queryCriteria) {
 		// TODO Auto-generated method stub
 		return getShiroBaseRealm().search(queryCriteria);
 	}
 	
 	
-	public List<ShiroAssociationRuleDAO> search(Collection<QueryMarker> queryCriteria) {
+	public List<ShiroAssociationRule> search(Collection<QueryMarker> queryCriteria) {
 		// TODO Auto-generated method stub
 		return getShiroBaseRealm().search(queryCriteria);
 	}
