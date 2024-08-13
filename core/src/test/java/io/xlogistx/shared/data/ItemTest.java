@@ -62,7 +62,7 @@ public class ItemTest {
         //imageDAO.setResourceLocator(baseURL + "" + XXURI.IMAGE + "/" + appIDDAO.getDomainID() + "/" + appIDDAO.getAppID() + "/item-tank.png");
 
         ItemDAO itemDAO = new ItemDAO();
-        itemDAO.setAppGID(appGID);
+        itemDAO.setAppGUID(appGID);
         itemDAO.setDescription("20 LB Propane Tank - Exchange");
         itemDAO.setPriceRange(priceRangeDAO);
         itemDAO.getImages().add(imageDAO);

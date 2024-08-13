@@ -495,7 +495,7 @@ public abstract class ShiroBaseRealm
 			subjectIdentifier.setSubjectType(BaseSubjectID.SubjectType.USER);
 			subjectIdentifier.setSubjectID(userID.getSubjectID());
 			subjectIdentifier.setUserID(userID.getUserID());
-			subjectIdentifier.setGlobalID(userID.getGlobalID());
+			subjectIdentifier.setGUID(userID.getGUID());
 			subjectIdentifier.getProperties().add("user_info", userID.getUserInfo());
 			return subjectIdentifier;
 

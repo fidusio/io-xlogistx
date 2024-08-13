@@ -15,8 +15,8 @@ public class OrderTransactionDAO
   public enum Param
       implements GetNVConfig {
 
-    APP_GID(NVConfigManager
-        .createNVConfig("app_gid", "App Global ID", "AppGID", true, true, String.class)),
+    APP_GUID(NVConfigManager
+        .createNVConfig("app_guid", "App Global ID", "AppGUID", true, true, String.class)),
     ORDER(NVConfigManager
         .createNVConfigEntity("order", "Order", "Order", true, true, OrderDAO.class,
             NVConfigEntity.ArrayType.NOT_ARRAY)),
@@ -73,16 +73,16 @@ public class OrderTransactionDAO
    * Returns the App Global ID.
    */
   @Override
-  public String getAppGID() {
-    return lookupValue(Param.APP_GID);
+  public String getAppGUID() {
+    return lookupValue(Param.APP_GUID);
   }
 
   /**
    * Sets the App Global ID.
    */
   @Override
-  public void setAppGID(String appGID) {
-    setValue(Param.APP_GID, appGID);
+  public void setAppGUID(String appGID) {
+    setValue(Param.APP_GUID, appGID);
   }
 
   /**

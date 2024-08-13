@@ -30,7 +30,7 @@ public class AppDeviceDAOTest {
     deviceDAO.setSerialNumber(UUID.randomUUID().toString());
 
     AppDeviceDAO appDeviceDAO = new AppDeviceDAO();
-    appDeviceDAO.setAppGID(new AppIDDAO("xlogistx.io", "io/xlogistx").getAppGID());
+    appDeviceDAO.setAppGUID(new AppIDDAO("xlogistx.io", "io/xlogistx").getAppGUID());
     appDeviceDAO.setUserID(UUID.randomUUID().toString());
     appDeviceDAO.setSubjectID(UUID.randomUUID().toString());
 

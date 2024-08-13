@@ -57,11 +57,11 @@ public class PKIPemTest {
 
 
             // Encrypt the AES key using the EC public key
-            Cipher pkCipher = Cipher.getInstance(cipherName, "BC");
+            Cipher pkCipher = Cipher.getInstance(cipherName);
             pkCipher.init(Cipher.ENCRYPT_MODE, publicKey);
             byte[] encryptedAesKey = pkCipher.doFinal(SharedBase64.decode(aesKeyBase64));
             String encryptedAesKeyBase64 = Base64.getEncoder().encodeToString(encryptedAesKey);
-            System.out.println("Encrypted AES Key (Base64): " + encryptedAesKeyBase64 + " key size " + SharedBase64.decode(aesKeyBase64).length);
+            System.out.println("Encrypted AES Key (Base64): " + encryptedAesKeyBase64 +  " encrypted key length " + encryptedAesKey.length +   " key size " + SharedBase64.decode(aesKeyBase64).length);
 
             // Save EC keys (in this example, we will just keep them in memory)
 
