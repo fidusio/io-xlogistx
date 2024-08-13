@@ -18,6 +18,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8DecryptorProviderBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.InputDecryptorProvider;
@@ -31,14 +32,9 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.util.CanonicalID;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.ParamUtil;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.Certificate;
@@ -250,6 +246,75 @@ public class OPSecUtil
 
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         return csrBuilder.build(signer);
+    }
+
+
+    public static String convertPrivateKeyToPEM(PrivateKey privateKey) throws IOException {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(privateKey);
+        }
+        return stringWriter.toString();
+    }
+
+
+    public static PrivateKey convertPemToPrivateKey(String pem) throws IOException {
+        StringReader stringReader = new StringReader(pem);
+        try (PEMParser pemParser = new PEMParser(stringReader)) {
+            Object object = pemParser.readObject();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+
+            if (object instanceof PrivateKey) {
+                return (PrivateKey) object;
+            } else if (object instanceof org.bouncycastle.openssl.PEMKeyPair) {
+                return converter.getPrivateKey(((org.bouncycastle.openssl.PEMKeyPair) object).getPrivateKeyInfo());
+            } else if (object instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo) {
+                return converter.getPrivateKey((org.bouncycastle.asn1.pkcs.PrivateKeyInfo) object);
+            } else {
+                throw new IllegalArgumentException("Unknown PEM object type: " + object.getClass().getName());
+            }
+        }
+    }
+
+    public static String convertPublicKeyToPEM(PublicKey publicKey) throws IOException {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(publicKey);
+        }
+        return stringWriter.toString();
+    }
+
+    public static PublicKey convertPemToPublicKey(String pem) throws IOException {
+        StringReader stringReader = new StringReader(pem);
+        try (PEMParser pemParser = new PEMParser(stringReader)) {
+            Object object = pemParser.readObject();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+
+            if (object instanceof org.bouncycastle.asn1.x509.SubjectPublicKeyInfo) {
+                return converter.getPublicKey((org.bouncycastle.asn1.x509.SubjectPublicKeyInfo) object);
+            } else {
+                throw new IllegalArgumentException("Unknown PEM object type: " + object.getClass().getName());
+            }
+        }
+    }
+
+
+    public static X509Certificate convertPemToX509Certificate(String pemCert) throws IOException, CertificateException {
+        // Read the PEM file content
+
+        // Strip the headers and footers
+        pemCert = pemCert.replace("-----BEGIN CERTIFICATE-----", "")
+                .replace("-----END CERTIFICATE-----", "")
+                .replaceAll("\\s", "");  // Remove any whitespace
+
+        // Decode the base64 content
+        byte[] decoded = SharedBase64.decode(SharedBase64.Base64Type.DEFAULT, pemCert);
+
+        // Convert the decoded bytes to an X509Certificate
+        CertificateFactory factory = CertificateFactory.getInstance("X.509");
+        try (InputStream in = new ByteArrayInputStream(decoded)) {
+            return (X509Certificate) factory.generateCertificate(in);
+        }
     }
 
     public static Certificate convertBCCertificateToJcaCertificate(X509CertificateHolder bcCertificate)

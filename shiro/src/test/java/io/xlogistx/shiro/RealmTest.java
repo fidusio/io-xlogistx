@@ -17,6 +17,9 @@ import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.BaseSubjectID;
 import org.zoxweb.shared.util.RateCounter;
 
+import java.io.PrintStream;
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
@@ -53,24 +56,34 @@ public class RealmTest {
     @Test
     public void testPermission()
     {
+
+
+        String deviceUUID = UUID.randomUUID().toString();
         String[] subjectPermissions ={
                 SecurityModel.toSecTok(SecurityModel.APP, SecurityModel.ALL, "toto"),
                 SecurityModel.toSecTok(SecurityModel.USER, SecurityModel.ALL, "toto"),
                 SecurityModel.toSecTok(SecurityModel.SHARE, SecurityModel.ALL, SecurityModel.RESOURCE),
+                SecurityModel.toSecTok(SecurityModel.PERM_READ_RESOURCE, deviceUUID),
                 "document:read:*",
                 "document:write",
                 "imitate:animal:lion,jaguar"
         };
 
+
+
         String[] permissionsToTest = {
                 "app:delete:toto",
                 "app:update:toto",
                 "app:create:titi",
+                SecurityModel.toSecTok(SecurityModel.PERM_READ_RESOURCE, deviceUUID, "port:5"),
                 "document:read:man and the sea",
                 "imitate:animal:lion",
                 "imitate:animal:jaguar",
                 "imitate:animal:cat",
                 "document:read:*",
+                SecurityModel.toSecTok(SecurityModel.PERM_READ_RESOURCE, UUID.randomUUID().toString()),
+
+
                 SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION, "app:", "gta")
         };
 
@@ -129,7 +142,10 @@ public class RealmTest {
             ts = System.currentTimeMillis();
             boolean result = subject.isPermitted(permission);
             rc.registerTimeStamp(ts);
-            System.out.println(subject.getPrincipal() + " isPermitted  " + result + " permission " + permission + " " + rc);
+
+            PrintStream ps = result ?  System.out : System.err;
+            ps.println(subject.getPrincipal() + " isPermitted  " + result + " permission " + permission + " " + rc);
+
         }
 
         subject.logout();
