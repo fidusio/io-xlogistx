@@ -156,7 +156,7 @@ public class XlogistXShiroRealm
 	        {
 	            throw new AccountException("Null usernames are not allowed by this realm.");
 	        }
-	        SubjectIdentifier userIDDAO = shiroStore.lookupSubjectID(dupToken.getUsername(), "_id", "_user_id");
+	        SubjectIdentifier userIDDAO = shiroStore.lookupSubjectID(dupToken.getUsername(), "_id", "_subject_guid");
 	        if (userIDDAO == null)
 	        {
 	            throw new AccountException("Account not found usernames are not allowed by this realm.");
@@ -192,7 +192,7 @@ public class XlogistXShiroRealm
 				SubjectAPIKey sak = appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
 				if (sak == null)
 					throw new UnknownAccountException("No account found for user [" + jwtAuthToken.getJWTSubjectID() + "]");
-				UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getUserID(), "_id", "_user_id", "primary_email");
+				UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
 			    if (userIDDAO == null)
 			    {
 			        throw new AccountException("Account not found usernames are not allowed by this realm.");
@@ -209,7 +209,7 @@ public class XlogistXShiroRealm
 				    appID    = ((AppDeviceDAO) sak).getAppID();
 			    }
 			    
-			    DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getUserID(), sak //sak.getAPIKeyAsBytes()
+			    DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getSubjectID(), sak //sak.getAPIKeyAsBytes()
 			    		, getName(), domainID, appID, jwtAuthToken.getJWTSubjectID());
 			    
 			    return ret;
@@ -340,7 +340,7 @@ public class XlogistXShiroRealm
 					SubjectAPIKey sak = appManager.lookupSubjectAPIKey(resourceID, false);
 					if (sak != null)
 					{
-						UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getUserID(), "_id", "_user_id", "primary_email");
+						UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
 						if (userIDDAO != null)
 						{
 							//if(log.isEnabled()) log.getLogger().info("We have a subject api key:" + sak.getSubjectID());
@@ -352,7 +352,7 @@ public class XlogistXShiroRealm
 				// try user
 				if (principalCollection == null)
 				{
-					UserIDDAO userIDDAO = shiroStore.lookupUserID(resourceID, "_id", "_user_id", "primary_email");
+					UserIDDAO userIDDAO = shiroStore.lookupUserID(resourceID, "_id", "_subject_guid", "primary_email");
 					if (userIDDAO != null)
 					{
 						//if(log.isEnabled()) log.getLogger().info("We have a user:" + userIDDAO.getSubjectID());

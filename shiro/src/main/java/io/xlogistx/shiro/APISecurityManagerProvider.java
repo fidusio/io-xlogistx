@@ -302,7 +302,7 @@ public class APISecurityManagerProvider
 		// TODO Auto-generated method stub
 		if (nve.getReferenceID() == null)
 		{
-			if (nve.getUserID() == null)
+			if (nve.getSubjectGUID() == null)
 			{
 				if (userID != null)
 				try
@@ -316,7 +316,7 @@ public class APISecurityManagerProvider
 
 				/// must create a exclusion filter
 				if (!(nve instanceof UserIDDAO || nve instanceof MessageTemplateDAO))
-					nve.setUserID(userID != null ? userID : currentUserID());
+					nve.setSubjectGUID(userID != null ? userID : currentUserID());
 				
 				for (NVBase<?> nvb : nve.getAttributes().values().toArray( new NVBase[0]))
 				{
@@ -454,17 +454,17 @@ public class APISecurityManagerProvider
 		
 		if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO)
 		{
-			return nve.getUserID();
+			return nve.getSubjectGUID();
 		}
 		
 		String userID = currentUserID();
 		
-		if (userID == null || nve.getUserID() == null)
+		if (userID == null || nve.getSubjectGUID() == null)
 		{
 			throw new AccessException("Unauthenticed subject: " + nve.getClass().getName());
 		}
 		
-		if (!nve.getUserID().equals(userID))
+		if (!nve.getSubjectGUID().equals(userID))
 		{
 			
 			if (permissions != null && permissions.length > 0)
@@ -483,10 +483,10 @@ public class APISecurityManagerProvider
 					
 				}
 				if(checkStatus)
-					return nve.getUserID();
+					return nve.getSubjectGUID();
 			}
 			
-			if(log.isEnabled()) log.getLogger().info("nveUserID:" + nve.getUserID() + " userID:" + userID);
+			if(log.isEnabled()) log.getLogger().info("nveUserID:" + nve.getSubjectGUID() + " userID:" + userID);
 			throw new AccessException("Access Denied. for resource:" + nve.getReferenceID());
 		}
 		

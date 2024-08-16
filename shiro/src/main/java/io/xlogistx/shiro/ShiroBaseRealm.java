@@ -122,12 +122,12 @@ public abstract class ShiroBaseRealm
 			{
 				throw new AccountException("Null usernames are not allowed by this realm.");
 			}
-			UserIDDAO userIDDAO = lookupUserID(dupToken.getUsername(), "_id", "_user_id");
+			UserIDDAO userIDDAO = lookupUserID(dupToken.getUsername(), "_id", "_subject_guid");
 			if (userIDDAO == null)
 			{
 				throw new AccountException("Account not found usernames are not allowed by this realm.");
 			}
-			dupToken.setUserID(userIDDAO.getUserID());
+			dupToken.setUserID(userIDDAO.getSubjectID());
 			// String userID = upToken.getUserID();
 			//if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 			// Null username is invalid
@@ -158,7 +158,7 @@ public abstract class ShiroBaseRealm
 				SubjectAPIKey sak = appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
 				if (sak == null)
 					throw new UnknownAccountException("No account found for user [" + jwtAuthToken.getJWTSubjectID() + "]");
-				UserIDDAO userIDDAO = lookupUserID(sak.getUserID(), "_id", "_user_id", "primary_email");
+				UserIDDAO userIDDAO = lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
 				if (userIDDAO == null)
 				{
 					throw new AccountException("Account not found usernames are not allowed by this realm.");
@@ -175,7 +175,7 @@ public abstract class ShiroBaseRealm
 					appID    = ((AppDeviceDAO) sak).getAppID();
 				}
 
-				DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getUserID(), sak //sak.getAPIKeyAsBytes()
+				DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getSubjectID(), sak //sak.getAPIKeyAsBytes()
 						, getName(), domainID, appID, jwtAuthToken.getJWTSubjectID());
 
 				return ret;
@@ -494,7 +494,7 @@ public abstract class ShiroBaseRealm
 			subjectIdentifier.setReferenceID(userID.getReferenceID());
 			subjectIdentifier.setSubjectType(BaseSubjectID.SubjectType.USER);
 			subjectIdentifier.setSubjectID(userID.getSubjectID());
-			subjectIdentifier.setUserID(userID.getUserID());
+			subjectIdentifier.setSubjectGUID(userID.getSubjectGUID());
 			subjectIdentifier.setGUID(userID.getGUID());
 			subjectIdentifier.getProperties().add("user_info", userID.getUserInfo());
 			return subjectIdentifier;
@@ -573,7 +573,7 @@ public abstract class ShiroBaseRealm
 					SubjectAPIKey sak = appManager.lookupSubjectAPIKey(resourceID, false);
 					if (sak != null)
 					{
-						UserIDDAO userIDDAO = lookupUserID(sak.getUserID(), "_id", "_user_id", "primary_email");
+						UserIDDAO userIDDAO = lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
 						if (userIDDAO != null)
 						{
 							//if(log.isEnabled()) log.getLogger().info("We have a subject api key:" + sak.getSubjectID());
@@ -585,7 +585,7 @@ public abstract class ShiroBaseRealm
 				// try user
 				if (principalCollection == null)
 				{
-					UserIDDAO userIDDAO = lookupUserID(resourceID, "_id", "_user_id", "primary_email");
+					UserIDDAO userIDDAO = lookupUserID(resourceID, "_id", "_subject_guid", "primary_email");
 					if (userIDDAO != null)
 					{
 						//if(log.isEnabled()) log.getLogger().info("We have a user:" + userIDDAO.getSubjectID());

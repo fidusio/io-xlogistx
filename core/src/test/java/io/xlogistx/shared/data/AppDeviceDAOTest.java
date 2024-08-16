@@ -31,7 +31,7 @@ public class AppDeviceDAOTest {
 
     AppDeviceDAO appDeviceDAO = new AppDeviceDAO();
     appDeviceDAO.setAppGUID(new AppIDDAO("xlogistx.io", "io/xlogistx").getAppGUID());
-    appDeviceDAO.setUserID(UUID.randomUUID().toString());
+    appDeviceDAO.setSubjectGUID(UUID.randomUUID().toString());
     appDeviceDAO.setSubjectID(UUID.randomUUID().toString());
 
     appDeviceDAO.setAPIKey(CryptoUtil.generateKey(CryptoConst.CryptoAlgo.AES, 256).getEncoded());
