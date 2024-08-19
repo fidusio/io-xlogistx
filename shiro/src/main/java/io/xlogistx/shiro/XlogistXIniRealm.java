@@ -1,6 +1,6 @@
 package io.xlogistx.shiro;
 
-import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -11,7 +11,7 @@ import org.zoxweb.server.logging.LogWrapper;
 
 public class XlogistXIniRealm
 extends IniRealm
-implements AuthorizationInfoLookup
+implements AuthorizationInfoLookup<AuthorizationInfo, PrincipalCollection>
 {
     public static final LogWrapper log = new LogWrapper(XlogistXIniRealm.class).setEnabled(false);
     public AuthorizationInfo lookupAuthorizationInfo(PrincipalCollection principalCollection)

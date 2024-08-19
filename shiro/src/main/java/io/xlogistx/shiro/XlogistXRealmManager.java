@@ -31,19 +31,7 @@ implements ShiroRealmStore
 
     public static final LogWrapper log = new LogWrapper(XlogistXRealmManager.class).setEnabled(false);
 
-    /**
-     * Add a subject
-     *
-     * @param subject
-     * @return ShiroSubject
-     * @throws NullPointerException
-     * @throws IllegalArgumentException
-     * @throws AccessException
-     */
-    @Override
-    public ShiroSubject addSubject(ShiroSubject subject) throws NullPointerException, IllegalArgumentException, AccessException {
-        return crudSubject(CRUD.CREATE, subject);
-    }
+
 
 
     /**
@@ -71,7 +59,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroSubject deleteSubject(ShiroSubject subject, boolean withRoles) throws NullPointerException, IllegalArgumentException, AccessException {
+    public SubjectIdentifier deleteSubject(SubjectIdentifier subject, boolean withRoles) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.DELETE, subject);
     }
 
@@ -85,7 +73,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroSubject updateSubject(ShiroSubject subject) throws NullPointerException, IllegalArgumentException, AccessException {
+    public SubjectIdentifier updateSubject(SubjectIdentifier subject) throws NullPointerException, IllegalArgumentException, AccessException {
         return crudSubject(CRUD.UPDATE, subject);
     }
 
@@ -251,7 +239,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public List<ShiroSubject> getAllShiroSubjects() throws AccessException {
+    public List<SubjectIdentifier> getAllSubjects() throws AccessException {
         return null;
     }
 
@@ -298,7 +286,7 @@ implements ShiroRealmStore
      * @throws AccessException
      */
     @Override
-    public ShiroSubject lookupSubject(String userName) throws NullPointerException, IllegalArgumentException, AccessException {
+    public SubjectIdentifier lookupSubject(String userName) throws NullPointerException, IllegalArgumentException, AccessException {
         return null;
     }
 

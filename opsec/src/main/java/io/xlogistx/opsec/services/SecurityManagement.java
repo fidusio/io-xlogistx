@@ -2,7 +2,7 @@ package io.xlogistx.opsec.services;
 
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.shiro.ShiroUtil;
-import io.xlogistx.shiro.mgt.ShiroRealmManager;
+import org.zoxweb.shared.security.shiro.ShiroRealmManager;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;

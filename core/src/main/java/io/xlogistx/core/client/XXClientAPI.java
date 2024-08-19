@@ -181,7 +181,7 @@ public class XXClientAPI {
     //imageDAO.setResourceLocator(baseURL + "" + XXURI.IMAGE + "/" + appIDDAO.getDomainID() + "/" + appIDDAO.getAppID() + "/item-tank.png");
 
     ItemDAO itemDAO = new ItemDAO();
-    itemDAO.setAppGUID(appGID);
+    //itemDAO.setAppGUID(appGID);
     itemDAO.setDescription("20 LB Propane Tank - Exchange");
     itemDAO.setPriceRange(priceRangeDAO);
     itemDAO.getImages().add(imageDAO);
@@ -204,7 +204,8 @@ public class XXClientAPI {
   public static AppDeviceDAO createAppDeviceDAO(String domainID, String appID) {
     AppDeviceDAO ret = new AppDeviceDAO();
     ret.setDevice(createDeviceDAO());
-    ret.setAppGUID(new AppIDDAO(domainID, appID).getAppGUID());
+    ret.setDomainID(domainID);
+    ret.setAppID(appID);
     return ret;
   }
 
@@ -282,8 +283,8 @@ public class XXClientAPI {
       String appID) throws IOException {
     AppDeviceDAO appDeviceDAO = new AppDeviceDAO();
 
-    appDeviceDAO.setAppGUID(new AppIDDAO(domainID, appID).getAppGUID());
-
+    appDeviceDAO.setDomainID(domainID);//setAppGUID(new AppIDDAO(domainID, appID).getAppGUID());
+    appDeviceDAO.setAppID(appID);
     String uri = "" + XXURI.APP + "/" + domainID + "/" + appID;
     HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
     hmci.setBasicAuthorization(subjectID, password);
@@ -637,8 +638,8 @@ public class XXClientAPI {
               args.length > index ? Bool.lookupValue(args[index++]) : false);
           break;
         case "createitem":
-          AppIDDAO.toAppID(domainID, appID).getAppGUID();
-          ItemDAO item = createItemDAO(AppIDDAO.toAppID(domainID, appID).getAppGUID(), "http://localhost");
+          //AppIDDAO.toAppID(domainID, appID).getAppGUID();
+          ItemDAO item = createItemDAO(AppIDDAO.toAppID(domainID, appID).toCanonicalID(), "http://localhost");
 
           renewToken(url, subjectID, password, domainID, appID,
                   args.length > index ? Bool.lookupValue(args[index++]) : false,

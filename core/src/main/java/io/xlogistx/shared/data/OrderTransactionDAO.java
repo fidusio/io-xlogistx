@@ -4,19 +4,16 @@ import org.zoxweb.shared.accounting.AmountDAO;
 import org.zoxweb.shared.accounting.PaymentInfoDAO;
 import org.zoxweb.shared.accounting.TransactionStatus;
 import org.zoxweb.shared.accounting.TransactionType;
-import org.zoxweb.shared.data.TimeStampDAO;
+import org.zoxweb.shared.data.AppIDResource;
 import org.zoxweb.shared.util.*;
 
 @SuppressWarnings("serial")
 public class OrderTransactionDAO
-    extends TimeStampDAO
-    implements AppGlobalID<String> {
+    extends AppIDResource
+{
 
   public enum Param
       implements GetNVConfig {
-
-    APP_GUID(NVConfigManager
-        .createNVConfig("app_guid", "App Global ID", "AppGUID", true, true, String.class)),
     ORDER(NVConfigManager
         .createNVConfigEntity("order", "Order", "Order", true, true, OrderDAO.class,
             NVConfigEntity.ArrayType.NOT_ARRAY)),
@@ -62,28 +59,14 @@ public class OrderTransactionDAO
       SharedUtil.extractNVConfigs(Param.values()),
       null,
       false,
-      TimeStampDAO.NVC_TIME_STAMP_DAO
+          AppIDResource.NVC_APP_ID_RESOURCE
   );
 
   public OrderTransactionDAO() {
     super(NVC_ORDER_TRANSACTION_DAO);
   }
 
-  /**
-   * Returns the App Global ID.
-   */
-  @Override
-  public String getAppGUID() {
-    return lookupValue(Param.APP_GUID);
-  }
 
-  /**
-   * Sets the App Global ID.
-   */
-  @Override
-  public void setAppGUID(String appGID) {
-    setValue(Param.APP_GUID, appGID);
-  }
 
   /**
    * Returns the order.

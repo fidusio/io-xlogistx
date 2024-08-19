@@ -5,11 +5,12 @@ import org.apache.shiro.authc.RememberMeAuthenticationToken;
 import org.zoxweb.shared.security.JWTToken;
 import org.zoxweb.shared.util.AppID;
 import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SubjectID;
 
 @SuppressWarnings("serial")
 public class JWTAuthenticationToken
 //extends UsernamePasswordToken
-implements AppID<String>, HostAuthenticationToken, RememberMeAuthenticationToken
+implements AppID<String>, HostAuthenticationToken, RememberMeAuthenticationToken, SubjectID<String>
 {
 	
 	private JWTToken jwtToken;

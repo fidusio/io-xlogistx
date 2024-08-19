@@ -17,9 +17,9 @@ package io.xlogistx.shiro;
 
 
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
-import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
-import io.xlogistx.shiro.mgt.ShiroRealmManager;
-import io.xlogistx.shiro.mgt.ShiroRealmManagerHolder;
+import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.shiro.ShiroRealmManager;
+import org.zoxweb.shared.security.shiro.ShiroRealmManagerHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -43,17 +43,17 @@ import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.model.SecurityModel;
-import org.zoxweb.shared.security.shiro.ShiroNVEntityCRUDs;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
-import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
+import org.zoxweb.shared.util.GetValue;
+import org.zoxweb.shared.util.NotFoundException;
+import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SharedUtil;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 public class ShiroUtil
 {
@@ -585,36 +585,7 @@ public class ShiroUtil
 		return isPermitted(subject(), permission);
 	}
 
-	public static ShiroNVEntityCRUDs assignCRUDs(NVEntity nve, CRUD... cruds)
-    {
-		return assignCRUDs(nve.getReferenceID(), cruds);
-	}
 
-	public static ShiroNVEntityCRUDs assignCRUDs(String refID, CRUD... cruds)
-    {
-		refID = SharedStringUtil.trimOrNull(refID);
-		SharedUtil.checkIfNulls("Null Parameter", refID, cruds);
-		Set<CRUD> set = new ConcurrentSkipListSet<CRUD>();
-
-		for (CRUD c : cruds)
-		{
-			if (c != null)
-			{
-				set.add(c);
-			}
-		}
-		
-		if (set.isEmpty())
-		{
-			throw new IllegalArgumentException("Empty CRUD array.");
-		}
-		
-		ShiroNVEntityCRUDs ret = new ShiroNVEntityCRUDs();
-		ret.setReferenceID(refID);
-		ret.setValue(ShiroNVEntityCRUDs.Param.CRUDS, new ArrayList<CRUD>(set));
-		
-		return ret;
-	}
 
 	public static boolean isPermitted(Subject subject, String permission)
 		throws NullPointerException, AccessException
@@ -650,7 +621,7 @@ public class ShiroUtil
 		Realm realm = getRealm(realmClass);
 		// set the permission manually
 		if (realm instanceof AuthorizationInfoLookup)
-			return ((AuthorizationInfoLookup) realm).lookupAuthorizationInfo(pc);
+			return (AuthorizationInfo) ((AuthorizationInfoLookup<AuthorizationInfo, PrincipalCollection>) realm).lookupAuthorizationInfo(pc);
 		return null;
 	}
 

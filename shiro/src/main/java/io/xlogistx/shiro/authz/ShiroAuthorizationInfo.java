@@ -4,14 +4,7 @@ import io.xlogistx.shiro.ShiroBaseRealm;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.Permission;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.data.AppIDDAO;
-import org.zoxweb.shared.security.model.PPEncoder;
-import org.zoxweb.shared.security.model.SecurityModel.PermissionToken;
 import org.zoxweb.shared.security.shiro.ShiroAssociationRule;
-import org.zoxweb.shared.security.shiro.ShiroPermission;
-import org.zoxweb.shared.security.shiro.ShiroRole;
-import org.zoxweb.shared.util.CRUD;
-import org.zoxweb.shared.util.NVEntity;
 import org.zoxweb.shared.util.NVPair;
 import org.zoxweb.shared.util.SharedUtil;
 
@@ -88,116 +81,117 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	
 	private synchronized void update()
 	{
-		 if(log.isEnabled()) log.getLogger().info("START:" + rulesMap.size());
-		if (dirty)
-		{
-			if (stringPermissions == null)
-			{
-				 stringPermissions = new LinkedHashSet<String>();
-			}
-			if (roles == null)
-			{
-				roles = new LinkedHashSet<String>();
-			}
-			
-			if (objectPermissions == null)
-			{
-				objectPermissions = new LinkedHashSet<Permission>();
-			}
-			stringPermissions.clear();
-			roles.clear();
-			objectPermissions.clear();
-			Iterator<RuleHolder> it = rulesMap.values().iterator();
-			while(it.hasNext())
-			{
-				RuleHolder rh = it.next();
-				ShiroAssociationRule sard = rh.sard;
-				switch(sard.getAssociationType())
-				{
-				case PERMISSION_TO_ROLE:
-					break;
-				case PERMISSION_TO_RESOURCE:
-					break;
-				case PERMISSION_TO_SUBJECT:
-					if (sard.getAssociation() != null && sard.getAssociation() instanceof ShiroPermission)
-					{
-						ShiroPermission permission = sard.getAssociation();
-						if (permission.getPermissionPattern() != null)
-						{
-							stringPermissions.add(permission.getPermissionPattern());
-						}
-					}
-					else
-					{
-						stringPermissions.add(sard.getPattern());
-						// to avoid management permissions
-						if (sard.getAssociate() != null)
-						{
-							stringPermissions.add(SharedUtil.toCanonicalID(':', sard.getName(), CRUD.MOVE, sard.getAssociate()).toLowerCase());
-							try
-							{						
-										
-								Set<String> toAdds = realm.getRecursiveNVEReferenceIDFromForm(sard.getAssociate());
-								if (toAdds != null)
-								{
-									//System.out.println(toAdds);
-									for (String toAdd : toAdds)
-									{
-										stringPermissions.add(SharedUtil.toCanonicalID(':', sard.getName(), sard.getCRUD(), toAdd).toLowerCase());
-										// we will automatically grant MOVE permission if a permission exist
-										stringPermissions.add(SharedUtil.toCanonicalID(':', sard.getName(), CRUD.MOVE, toAdd).toLowerCase());
-									}
-								}
-							}
-							catch(Exception e)
-							{
-								e.printStackTrace();
-							}
-						}
-					}
-					break;
-				case ROLEGROUP_TO_SUBJECT:
-					break;
-				case ROLE_TO_ROLEGROUP:
-					break;
-				case ROLE_TO_SUBJECT:
-				case ROLE_TO_RESOURCE:
-					ShiroRole role = sard.getAssociation();
-					if (role != null)
-					{
-						roles.add(role.getSubjectID());
-						for (NVEntity nve : role.getPermissions().values())
-						{
-							if (nve instanceof ShiroPermission)
-							{
-								ShiroPermission permission = (ShiroPermission) nve;
-								String permissionPattern = permission.getPermissionPattern();
-								if (permissionPattern != null)
-								{
-									// if(log.isEnabled()) log.getLogger().info("Original permission pattern:" + permissionPattern);
-									if (rh.tokens != null)
-									{
-										for (NVPair token: rh.tokens)
-										{
-											permissionPattern = PPEncoder.SINGLETON.encodePattern(permissionPattern, token);
-										}
-									}
-									
-									if (permission.getDomainID() != null && permission.getDomainID() != null)
-										permissionPattern = PPEncoder.SINGLETON.encodePattern(permissionPattern, PermissionToken.APP_ID, AppIDDAO.appIDSubjectID(permission.getDomainID(), permission.getAppID()));
-									// if(log.isEnabled()) log.getLogger().info("Encoded permission pattern:" + permissionPattern);
-									stringPermissions.add(permissionPattern);
-								}
-							}
-						}
-					}
-					
-					break;
-
-				}
-			}
-			dirty = false;
-		}
+		throw new IllegalArgumentException("Not implemented");
+//		 if(log.isEnabled()) log.getLogger().info("START:" + rulesMap.size());
+//		if (dirty)
+//		{
+//			if (stringPermissions == null)
+//			{
+//				 stringPermissions = new LinkedHashSet<String>();
+//			}
+//			if (roles == null)
+//			{
+//				roles = new LinkedHashSet<String>();
+//			}
+//
+//			if (objectPermissions == null)
+//			{
+//				objectPermissions = new LinkedHashSet<Permission>();
+//			}
+//			stringPermissions.clear();
+//			roles.clear();
+//			objectPermissions.clear();
+//			Iterator<RuleHolder> it = rulesMap.values().iterator();
+//			while(it.hasNext())
+//			{
+//				RuleHolder rh = it.next();
+//				ShiroAssociationRule sard = rh.sard;
+//				switch(sard.getAssociationType())
+//				{
+//				case PERMISSION_TO_ROLE:
+//					break;
+//				case PERMISSION_TO_RESOURCE:
+//					break;
+//				case PERMISSION_TO_SUBJECT:
+//					if (sard.getAssociation() != null && sard.getAssociation() instanceof ShiroPermission)
+//					{
+//						ShiroPermission permission = sard.getAssociation();
+//						if (permission.getPermissionPattern() != null)
+//						{
+//							stringPermissions.add(permission.getPermissionPattern());
+//						}
+//					}
+//					else
+//					{
+//						stringPermissions.add(sard.getPattern());
+//						// to avoid management permissions
+//						if (sard.getAssociate() != null)
+//						{
+//							stringPermissions.add(SharedUtil.toCanonicalID(':', sard.getName(), CRUD.MOVE, sard.getAssociate()).toLowerCase());
+//							try
+//							{
+//
+//								Set<String> toAdds = realm.getRecursiveNVEReferenceIDFromForm(sard.getAssociate());
+//								if (toAdds != null)
+//								{
+//									//System.out.println(toAdds);
+//									for (String toAdd : toAdds)
+//									{
+//										stringPermissions.add(SharedUtil.toCanonicalID(':', sard.getName(), sard.getCRUD(), toAdd).toLowerCase());
+//										// we will automatically grant MOVE permission if a permission exist
+//										stringPermissions.add(SharedUtil.toCanonicalID(':', sard.getName(), CRUD.MOVE, toAdd).toLowerCase());
+//									}
+//								}
+//							}
+//							catch(Exception e)
+//							{
+//								e.printStackTrace();
+//							}
+//						}
+//					}
+//					break;
+//				case ROLEGROUP_TO_SUBJECT:
+//					break;
+//				case ROLE_TO_ROLEGROUP:
+//					break;
+//				case ROLE_TO_SUBJECT:
+//				case ROLE_TO_RESOURCE:
+//					ShiroRole role = sard.getAssociation();
+//					if (role != null)
+//					{
+//						//roles.add(role.getSubjectID());
+//						for (NVEntity nve : role.getPermissions().values())
+//						{
+//							if (nve instanceof ShiroPermission)
+//							{
+//								ShiroPermission permission = (ShiroPermission) nve;
+//								String permissionPattern = permission.getPermissionPattern();
+//								if (permissionPattern != null)
+//								{
+//									// if(log.isEnabled()) log.getLogger().info("Original permission pattern:" + permissionPattern);
+//									if (rh.tokens != null)
+//									{
+//										for (NVPair token: rh.tokens)
+//										{
+//											permissionPattern = PPEncoder.SINGLETON.encodePattern(permissionPattern, token);
+//										}
+//									}
+//
+//									if (permission.getDomainID() != null && permission.getDomainID() != null)
+//										permissionPattern = PPEncoder.SINGLETON.encodePattern(permissionPattern, PermissionToken.APP_ID, AppIDDAO.appIDSubjectID(permission.getDomainID(), permission.getAppID()));
+//									// if(log.isEnabled()) log.getLogger().info("Encoded permission pattern:" + permissionPattern);
+//									stringPermissions.add(permissionPattern);
+//								}
+//							}
+//						}
+//					}
+//
+//					break;
+//
+//				}
+//			}
+//			dirty = false;
+//		}
 	}
 	
 	

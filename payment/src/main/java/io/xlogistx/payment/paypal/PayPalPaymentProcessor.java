@@ -1,18 +1,7 @@
 package io.xlogistx.payment.paypal;
 
-import java.io.IOException;
-
-import io.xlogistx.payment.paypal.daos.PPAddressDAO;
-import io.xlogistx.payment.paypal.daos.PPAmountDAO;
-import io.xlogistx.payment.paypal.daos.PPCreditCardDAO;
-import io.xlogistx.payment.paypal.daos.PPFundingInstrumentDAO;
-import io.xlogistx.payment.paypal.daos.PPPayerDAO;
-import io.xlogistx.payment.paypal.daos.PPPaymentDAO;
-import io.xlogistx.payment.paypal.daos.PPRefundDAO;
-import io.xlogistx.payment.paypal.daos.PPTransactionDAO;
+import io.xlogistx.payment.paypal.daos.*;
 import io.xlogistx.shared.data.OrderTransactionDAO;
-
-
 import org.zoxweb.server.api.APIPaymentProcessor;
 import org.zoxweb.server.util.DateUtil;
 import org.zoxweb.shared.accounting.FinancialTransactionDAO;
@@ -24,6 +13,8 @@ import org.zoxweb.shared.data.AddressDAO;
 import org.zoxweb.shared.data.CreditCardDAO;
 import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.SharedUtil;
+
+import java.io.IOException;
 
 
 @SuppressWarnings("serial")
@@ -162,15 +153,7 @@ public class PayPalPaymentProcessor
 
     }
 
-    @Override
-    public String getSubjectID() {
-        return null;
-    }
 
-    @Override
-    public void setSubjectID(String id) {
-
-    }
 
     @Override
     public FinancialTransactionDAO createTransaction(FinancialTransactionDAO financialTransactionDAO) {

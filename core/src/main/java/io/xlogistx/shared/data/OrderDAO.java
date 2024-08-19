@@ -3,7 +3,7 @@ package io.xlogistx.shared.data;
 import io.xlogistx.shared.util.XXStatus;
 import org.zoxweb.shared.accounting.AmountDAO;
 import org.zoxweb.shared.data.AddressDAO;
-import org.zoxweb.shared.data.TimeStampDAO;
+import org.zoxweb.shared.data.AppIDResource;
 import org.zoxweb.shared.util.*;
 
 import java.util.Date;
@@ -11,14 +11,13 @@ import java.util.List;
 
 @SuppressWarnings("serial")
 public class OrderDAO
-    extends TimeStampDAO
-    implements AppGlobalID<String> {
+    extends AppIDResource
+    {
 
   public enum Param
       implements GetNVConfig {
 
-    APP_GUID(NVConfigManager
-        .createNVConfig("app_guid", "App Global ID", "AppGUID", true, true, String.class)),
+
     ORDER_ID(NVConfigManager
         .createNVConfig("order_id", "Order ID", "OrderID", false, false, String.class)),
     ORDER_STATUS(NVConfigManager
@@ -63,7 +62,7 @@ public class OrderDAO
       SharedUtil.extractNVConfigs(Param.values()),
       null,
       false,
-      TimeStampDAO.NVC_TIME_STAMP_DAO
+          AppIDResource.NVC_APP_ID_RESOURCE
   );
 
   public OrderDAO() {
@@ -71,21 +70,7 @@ public class OrderDAO
   }
 
 
-  /**
-   * Returns the App Global ID.
-   */
-  @Override
-  public String getAppGUID() {
-    return lookupValue(Param.APP_GUID);
-  }
 
-  /**
-   * Sets the App Global ID.
-   */
-  @Override
-  public void setAppGUID(String appGID) {
-    setValue(Param.APP_GUID, appGID);
-  }
 
   /**
    * Returns the order ID.

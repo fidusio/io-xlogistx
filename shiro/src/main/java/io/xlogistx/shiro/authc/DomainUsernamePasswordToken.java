@@ -18,16 +18,17 @@ package io.xlogistx.shiro.authc;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.zoxweb.shared.util.AppID;
 import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SubjectID;
 
 @SuppressWarnings("serial")
 public class DomainUsernamePasswordToken
     extends UsernamePasswordToken
-    implements AppID<String>
+    implements AppID<String>, SubjectID<String>
 {
 
 	private String domain_id;
 	private String app_id;
-	private String user_id;
+	private String subject_id;
 	private boolean autoAuthenticationEnabled = false;
 
 	public DomainUsernamePasswordToken()
@@ -72,12 +73,12 @@ public class DomainUsernamePasswordToken
 	
 	public String getUserID()
     {
-		return user_id;
+		return subject_id;
 	}
 	
 	public void setUserID(String userID)
     {
-		user_id = userID;
+		subject_id= userID;
 	}
 	
 	

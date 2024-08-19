@@ -189,7 +189,8 @@ public class XlogistXShiroRealm
 				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 				
 				ss = new SubjectSwap(sm.getDaemonSubject());
-				SubjectAPIKey sak = appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
+				// Todo to be fixed
+				SubjectAPIKey sak = null;// appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
 				if (sak == null)
 					throw new UnknownAccountException("No account found for user [" + jwtAuthToken.getJWTSubjectID() + "]");
 				UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
@@ -337,7 +338,8 @@ public class XlogistXShiroRealm
 				if (sm != null && appManager != null)
 				{
 					ss = new SubjectSwap(sm.getDaemonSubject());
-					SubjectAPIKey sak = appManager.lookupSubjectAPIKey(resourceID, false);
+					// Todo to be fixed
+					SubjectAPIKey sak = null;//appManager.lookupSubjectAPIKey(resourceID, false);
 					if (sak != null)
 					{
 						UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");

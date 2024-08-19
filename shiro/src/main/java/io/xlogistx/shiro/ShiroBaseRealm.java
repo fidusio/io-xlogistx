@@ -18,7 +18,7 @@ package io.xlogistx.shiro;
 import io.xlogistx.shiro.authc.DomainAuthenticationInfo;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import io.xlogistx.shiro.authc.JWTAuthenticationToken;
-import io.xlogistx.shiro.authz.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -36,7 +36,6 @@ import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.AppDeviceDAO;
-import org.zoxweb.shared.data.AppIDDAO;
 import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.db.QueryMatchString;
 import org.zoxweb.shared.security.AccessException;
@@ -53,7 +52,7 @@ import java.util.Set;
 
 public abstract class ShiroBaseRealm
     extends AuthorizingRealm
-    implements ShiroRealmStore, AuthorizationInfoLookup
+    implements ShiroRealmStore, AuthorizationInfoLookup<AuthorizationInfo, PrincipalCollection>
 {
 
 	public static final LogWrapper log = new LogWrapper(ShiroBaseRealm.class).setEnabled(false);
@@ -155,10 +154,11 @@ public abstract class ShiroBaseRealm
 				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 
 				ss = new SubjectSwap(sm.getDaemonSubject());
-				SubjectAPIKey sak = appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
+				// Todo to be fixed
+				SubjectAPIKey sak = null;//appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
 				if (sak == null)
 					throw new UnknownAccountException("No account found for user [" + jwtAuthToken.getJWTSubjectID() + "]");
-				UserIDDAO userIDDAO = lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
+				UserIDDAO userIDDAO = lookupUserID(sak.getSubjectGUID(), "_id", "subject_guid", "primary_email");
 				if (userIDDAO == null)
 				{
 					throw new AccountException("Account not found usernames are not allowed by this realm.");
@@ -244,21 +244,21 @@ public abstract class ShiroBaseRealm
 	
 	
 
-	public ShiroSubject addSubject(ShiroSubject subject)
+	public SubjectIdentifier addSubject(SubjectIdentifier subject)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 
-	public ShiroSubject deleteSubject(ShiroSubject subject, boolean withRoles)
+	public SubjectIdentifier deleteSubject(SubjectIdentifier subject, boolean withRoles)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 
-	public ShiroSubject updateSubject(ShiroSubject subject)
+	public SubjectIdentifier updateSubject(SubjectIdentifier subject)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
@@ -289,7 +289,7 @@ public abstract class ShiroBaseRealm
 	public ShiroRole deleteRole(ShiroRole role, boolean withPermissions)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
-		getAPIDataStore().delete(ShiroRole.NVC_SHIRO_ROLE, new QueryMatchString(RelationalOperator.EQUAL, role.getSubjectID(), AppIDDAO.Param.SUBJECT_ID));
+		getAPIDataStore().delete(ShiroRole.NVC_SHIRO_ROLE, new QueryMatchString(RelationalOperator.EQUAL, role.getSubjectGUID(), MetaToken.SUBJECT_GUID));
 		return role;
 	}
 
@@ -331,7 +331,7 @@ public abstract class ShiroBaseRealm
 	
 	public ShiroPermission deletePermission(ShiroPermission permission)
 			throws NullPointerException, IllegalArgumentException, AccessException {
-		getAPIDataStore().delete(ShiroPermission.NVC_SHIRO_PERMISSION, new QueryMatchString(RelationalOperator.EQUAL, permission.getSubjectID(),AppIDDAO.Param.SUBJECT_ID));
+		getAPIDataStore().delete(ShiroPermission.NVC_SHIRO_PERMISSION, new QueryMatchString(RelationalOperator.EQUAL, permission.getSubjectGUID(), MetaToken.SUBJECT_GUID));
 		return permission;
 	}
 
@@ -343,7 +343,7 @@ public abstract class ShiroBaseRealm
 	}
 
 	
-	public ArrayList<ShiroSubject> getAllShiroSubjects() throws AccessException {
+	public ArrayList<SubjectIdentifier> getAllSubjects() throws AccessException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -367,7 +367,7 @@ public abstract class ShiroBaseRealm
 	}
 
 	
-	public ShiroSubject lookupSubject(String userName)
+	public SubjectIdentifier lookupSubject(String userName)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return null;
@@ -406,7 +406,8 @@ public abstract class ShiroBaseRealm
 		}
 		else
 		{
-			ret = getAPIDataStore().search(ShiroPermission.NVC_SHIRO_PERMISSION, null, new QueryMatchString(RelationalOperator.EQUAL, permissionID, AppIDDAO.Param.SUBJECT_ID));
+			// this is wrong fix later
+			ret = getAPIDataStore().search(ShiroPermission.NVC_SHIRO_PERMISSION, null, new QueryMatchString(RelationalOperator.EQUAL, permissionID, MetaToken.SUBJECT_GUID));
 		}
 		
 		if (ret != null && ret.size() == 1)
@@ -430,7 +431,8 @@ public abstract class ShiroBaseRealm
 		}
 		else
 		{
-			ret = getAPIDataStore().search(ShiroRole.NVC_SHIRO_ROLE, null, new QueryMatchString(RelationalOperator.EQUAL, roleID, AppIDDAO.Param.SUBJECT_ID));
+			// Todo this is wrong
+			ret = getAPIDataStore().search(ShiroRole.NVC_SHIRO_ROLE, null, new QueryMatchString(RelationalOperator.EQUAL, roleID, MetaToken.SUBJECT_GUID));
 		}
 		
 		if (ret != null && ret.size() == 1)
@@ -570,10 +572,11 @@ public abstract class ShiroBaseRealm
 				if (sm != null && appManager != null)
 				{
 					ss = new SubjectSwap(sm.getDaemonSubject());
-					SubjectAPIKey sak = appManager.lookupSubjectAPIKey(resourceID, false);
+					// Todo to be fixed
+					SubjectAPIKey sak = null;//appManager.lookupSubjectAPIKey(resourceID, false);
 					if (sak != null)
 					{
-						UserIDDAO userIDDAO = lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
+						UserIDDAO userIDDAO = lookupUserID(sak.getSubjectGUID(), "_id", "subject_guid", "primary_email");
 						if (userIDDAO != null)
 						{
 							//if(log.isEnabled()) log.getLogger().info("We have a subject api key:" + sak.getSubjectID());

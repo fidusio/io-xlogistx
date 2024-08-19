@@ -650,12 +650,7 @@ public class APISecurityManagerProvider
 		return ShiroUtil.subjectJWTID();
 	}
 
-	@Override
-	public ShiroSubject addSubject(ShiroSubject subject)
-			throws NullPointerException, IllegalArgumentException, AccessException {
-		// TODO Auto-generated method stub
-		return getShiroBaseRealm().addSubject(subject);
-	}
+
 
 	/**
 	 * Add a subject
@@ -672,14 +667,14 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public ShiroSubject deleteSubject(ShiroSubject subject, boolean withRoles)
+	public SubjectIdentifier deleteSubject(SubjectIdentifier subject, boolean withRoles)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return  getShiroBaseRealm().deleteSubject(subject, withRoles);
 	}
 
 	@Override
-	public ShiroSubject updateSubject(ShiroSubject subject)
+	public SubjectIdentifier updateSubject(SubjectIdentifier subject)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return  getShiroBaseRealm().updateSubject(subject);
@@ -770,9 +765,9 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public List<ShiroSubject> getAllShiroSubjects() throws AccessException {
+	public List<SubjectIdentifier> getAllSubjects() throws AccessException {
 		// TODO Auto-generated method stub
-		return  getShiroBaseRealm().getAllShiroSubjects();
+		return  getShiroBaseRealm().getAllSubjects();
 	}
 
 	@Override
@@ -794,7 +789,7 @@ public class APISecurityManagerProvider
 	}
 
 	@Override
-	public ShiroSubject lookupSubject(String userName)
+	public SubjectIdentifier lookupSubject(String userName)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		// TODO Auto-generated method stub
 		return  getShiroBaseRealm().lookupSubject(userName);

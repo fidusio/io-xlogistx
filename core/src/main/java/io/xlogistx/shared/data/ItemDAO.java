@@ -1,21 +1,19 @@
 package io.xlogistx.shared.data;
 
+import org.zoxweb.shared.data.AppIDResource;
 import org.zoxweb.shared.data.ImageDAO;
-import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.util.*;
 
 import java.util.List;
 
 @SuppressWarnings("serial")
 public class ItemDAO
-    extends SetNameDescriptionDAO
-    implements AppGlobalID<String> {
+    extends AppIDResource
+{
 
   public enum Param
       implements GetNVConfig {
 
-    APP_GUID(NVConfigManager
-        .createNVConfig("app_guid", "App Global ID", "AppGUID", true, true, String.class)),
     PRICE_RANGE(NVConfigManager
         .createNVConfigEntity("price_range", "Price range", "Price Range", true, true,
             PriceRangeDAO.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
@@ -52,7 +50,7 @@ public class ItemDAO
       SharedUtil.extractNVConfigs(Param.values()),
       null,
       false,
-      SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+      AppIDResource.NVC_APP_ID_RESOURCE
   );
 
 
@@ -60,21 +58,7 @@ public class ItemDAO
     super(NVC_ITEM_DAO);
   }
 
-  /**
-   * Returns the App Global ID.
-   */
-  @Override
-  public String getAppGUID() {
-    return lookupValue(Param.APP_GUID);
-  }
 
-  /**
-   * Sets the App Global ID.
-   */
-  @Override
-  public void setAppGUID(String appGID) {
-    setValue(Param.APP_GUID, appGID);
-  }
 
   /**
    * Returns the price range.

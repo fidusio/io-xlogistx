@@ -19,11 +19,12 @@ import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.zoxweb.shared.util.AppID;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SubjectID;
 
 @SuppressWarnings("serial")
 public class DomainPrincipalCollection
     extends SimplePrincipalCollection
-    implements AppID<String>
+    implements AppID<String>, SubjectID<String>
 {
 
 	protected String domain_id;
