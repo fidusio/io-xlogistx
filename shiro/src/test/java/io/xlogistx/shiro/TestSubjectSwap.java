@@ -69,25 +69,25 @@ public class TestSubjectSwap {
         subjectIDDAO.setSubjectID("root");
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
         ShiroRealmStore srs = realm.getShiroRealmStore();
-        srs.addSubject(subjectIDDAO);
-        PasswordDAO rootPasswordDAO = HashUtil.toPassword(CryptoConst.HASHType.BCRYPT, 0, 10, "secret1");
+        srs.addSubjectIdentifier(subjectIDDAO);
+        PasswordDAO rootPasswordDAO = HashUtil.toBCryptPassword("secret1");
         String bcryptedPassword = rootPasswordDAO.toCanonicalID();
         log.getLogger().info(bcryptedPassword);
-        srs.setSubjectPassword("root", PasswordDAO.fromCanonicalID(bcryptedPassword));
+        srs.addCredentialInfo("root", PasswordDAO.fromCanonicalID(bcryptedPassword));
 
 
 
         subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
-        subjectIDDAO.setSubjectID("marwan");
-        srs.addSubject(subjectIDDAO);
-        srs.setSubjectPassword("marwan", "password1");
+        subjectIDDAO.setSubjectID("mario");
+        srs.addSubjectIdentifier(subjectIDDAO);
+        srs.addCredentialInfo("mario", "password1");
 
         subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("toSwapWith");
-        srs.addSubject(subjectIDDAO);
-        srs.setSubjectPassword("toSwapWith", "batata1");
+        srs.addSubjectIdentifier(subjectIDDAO);
+        srs.addCredentialInfo("toSwapWith", "batata1");
     }
 
 

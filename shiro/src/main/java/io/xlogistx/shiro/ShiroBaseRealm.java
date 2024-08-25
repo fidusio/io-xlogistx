@@ -18,7 +18,6 @@ package io.xlogistx.shiro;
 import io.xlogistx.shiro.authc.DomainAuthenticationInfo;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import io.xlogistx.shiro.authc.JWTAuthenticationToken;
-import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -39,6 +38,7 @@ import org.zoxweb.shared.data.AppDeviceDAO;
 import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.db.QueryMatchString;
 import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.CredentialInfo;
 import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.*;
@@ -52,7 +52,7 @@ import java.util.Set;
 
 public abstract class ShiroBaseRealm
     extends AuthorizingRealm
-    implements ShiroRealmStore, AuthorizationInfoLookup<AuthorizationInfo, PrincipalCollection>
+    implements ShiroRealmStore<AuthorizationInfo, PrincipalCollection>
 {
 
 	public static final LogWrapper log = new LogWrapper(ShiroBaseRealm.class).setEnabled(false);
@@ -60,14 +60,14 @@ public abstract class ShiroBaseRealm
 	protected boolean permissionsLookupEnabled = false;
 	private boolean cachePersistenceEnabled = false;
 	
-	private APISecurityManager<Subject> apiSecurityManager;
+	private APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager;
 	
 	
-	public APISecurityManager<Subject> getAPISecurityManager() {
+	public APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> getAPISecurityManager() {
 		return apiSecurityManager != null ? apiSecurityManager :  ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 	}
 
-	public void setAPISecurityManager(APISecurityManager<Subject> apiSecurityManager) {
+	public void setAPISecurityManager(APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager) {
 		this.apiSecurityManager = apiSecurityManager;
 	}
 
@@ -131,7 +131,7 @@ public abstract class ShiroBaseRealm
 			//if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 			// Null username is invalid
 
-			PasswordDAO password = getSubjectPassword(null, dupToken.getUsername());
+			PasswordDAO password = lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
 			if (password == null)
 			{
 				throw new UnknownAccountException("No account found for user [" + dupToken.getUserID() + "]");
@@ -150,7 +150,7 @@ public abstract class ShiroBaseRealm
 			SubjectSwap ss = null;
 			try
 			{
-				APISecurityManager<Subject> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 
 				ss = new SubjectSwap(sm.getDaemonSubject());
@@ -367,11 +367,7 @@ public abstract class ShiroBaseRealm
 	}
 
 	
-	public SubjectIdentifier lookupSubject(String userName)
-			throws NullPointerException, IllegalArgumentException, AccessException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 
 	
 //	public ShiroCollectionAssociationDAO lookupShiroCollection(ShiroBase shiroDao, ShiroAssociationType sat)
@@ -464,32 +460,19 @@ public abstract class ShiroBaseRealm
 		return lookupUserID(subjectID.getValue(), params);
 	}
 
-	/**
-	 * @param subjectID
-	 * @param params
-	 * @return
-	 * @throws NullPointerException
-	 * @throws IllegalArgumentException
-	 * @throws AccessException
-	 */
-	@Override
-	public SubjectIdentifier lookupSubjectID(GetValue<String> subjectID, String... params)
-			throws NullPointerException, IllegalArgumentException, AccessException {
-		return lookupSubjectID(subjectID.getValue(), params);
-	}
+
 
 	/**
 	 * @param subjectID
-	 * @param params
 	 * @return
 	 * @throws NullPointerException
 	 * @throws IllegalArgumentException
 	 * @throws AccessException
 	 */
 	@Override
-	public SubjectIdentifier lookupSubjectID(String subjectID, String... params)
+	public SubjectIdentifier lookupSubjectIdentifier(String subjectID)
 			throws NullPointerException, IllegalArgumentException, AccessException {
-		UserIDDAO userID = lookupUserID(subjectID, params);
+		UserIDDAO userID = lookupUserID(subjectID);
 		if(userID != null)
 		{
 			SubjectIdentifier subjectIdentifier = new SubjectIdentifier();
@@ -566,7 +549,7 @@ public abstract class ShiroBaseRealm
 			try
 			{
 				//if(log.isEnabled()) log.getLogger().info("ResourceID:" + resourceID);
-				APISecurityManager<Subject> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 				// try subject api key first
 				if (sm != null && appManager != null)

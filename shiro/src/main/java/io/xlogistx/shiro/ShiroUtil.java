@@ -17,9 +17,6 @@ package io.xlogistx.shiro;
 
 
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
-import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
-import org.zoxweb.shared.security.shiro.ShiroRealmManager;
-import org.zoxweb.shared.security.shiro.ShiroRealmManagerHolder;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -43,6 +40,9 @@ import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.model.SecurityModel;
+import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.shiro.ShiroRealmController;
+import org.zoxweb.shared.security.shiro.ShiroRealmControllerHolder;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
 import org.zoxweb.shared.util.GetValue;
@@ -215,12 +215,12 @@ public class ShiroUtil
 		return null;
 	}
 
-	public static ShiroRealmManager getShiroRealmManager()
+	public static ShiroRealmController getShiroRealmManager()
 	{
 		return getShiroRealmManager(SecurityUtils.getSecurityManager());
 	}
 
-	public static ShiroRealmManager getShiroRealmManager(SecurityManager sm)
+	public static ShiroRealmController getShiroRealmManager(SecurityManager sm)
 	{
 		if (sm instanceof RealmSecurityManager)
 		{
@@ -230,13 +230,13 @@ public class ShiroUtil
 			{
 				for (Realm realm : realms)
 				{
-					if (realm instanceof ShiroRealmManagerHolder)
+					if (realm instanceof ShiroRealmControllerHolder)
 					{
-						return ((ShiroRealmManagerHolder) realm).getShiroRealmManger();
+						return ((ShiroRealmControllerHolder) realm).getShiroRealmController();
 					}
-					if (realm instanceof ShiroRealmManager)
+					if (realm instanceof ShiroRealmController)
 					{
-						return (ShiroRealmManager) realm;
+						return (ShiroRealmController) realm;
 					}
 				}
 			}

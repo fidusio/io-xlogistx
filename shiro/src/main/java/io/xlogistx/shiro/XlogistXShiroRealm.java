@@ -33,6 +33,7 @@ import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.data.AppDeviceDAO;
 import org.zoxweb.shared.data.UserIDDAO;
+import org.zoxweb.shared.security.CredentialInfo;
 import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
@@ -54,18 +55,18 @@ public class XlogistXShiroRealm
 
 
 
-	private ShiroRealmStore shiroStore = null;
-	
-	private APISecurityManager<Subject> apiSecurityManager;
-	
-	
-	public APISecurityManager<Subject> getAPISecurityManager() {
-		return apiSecurityManager != null ? apiSecurityManager :  ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
-	}
-
-	public void setAPISecurityManager(APISecurityManager<Subject> apiSecurityManager) {
-		this.apiSecurityManager = apiSecurityManager;
-	}
+	private ShiroRealmStore<AuthorizationInfo, PrincipalCollection> shiroStore = null;
+//
+//	private APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager;
+//
+//
+//	public APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> getAPISecurityManager() {
+//		return apiSecurityManager != null ? apiSecurityManager :  ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+//	}
+//
+//	public void setAPISecurityManager(APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager) {
+//		this.apiSecurityManager = apiSecurityManager;
+//	}
 
 	
 
@@ -156,7 +157,7 @@ public class XlogistXShiroRealm
 	        {
 	            throw new AccountException("Null usernames are not allowed by this realm.");
 	        }
-	        SubjectIdentifier userIDDAO = shiroStore.lookupSubjectID(dupToken.getUsername(), "_id", "_subject_guid");
+	        SubjectIdentifier userIDDAO = shiroStore.lookupSubjectIdentifier(dupToken.getUsername());
 	        if (userIDDAO == null)
 	        {
 	            throw new AccountException("Account not found usernames are not allowed by this realm.");
@@ -166,7 +167,7 @@ public class XlogistXShiroRealm
 	        //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 	        // Null username is invalid
 	        
-	        PasswordDAO password = shiroStore.getSubjectPassword(null, dupToken.getUsername());
+	        PasswordDAO password = shiroStore.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
 	        if (password == null)
 	        {
 	        	throw new UnknownAccountException("No account found for user [" + dupToken.getUserID() + "]");
@@ -185,7 +186,7 @@ public class XlogistXShiroRealm
 			SubjectSwap ss = null;
 			try
 			{
-				APISecurityManager<Subject> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 				
 				ss = new SubjectSwap(sm.getDaemonSubject());
@@ -332,7 +333,7 @@ public class XlogistXShiroRealm
 			try
 			{
 				//if(log.isEnabled()) log.getLogger().info("ResourceID:" + resourceID);
-				APISecurityManager<Subject> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
 				// try subject api key first
 				if (sm != null && appManager != null)

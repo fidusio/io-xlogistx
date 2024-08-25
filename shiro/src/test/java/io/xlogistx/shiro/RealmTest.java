@@ -11,6 +11,7 @@ import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
@@ -37,13 +38,15 @@ public class RealmTest {
         System.out.println(securityManager.getClass().getName());
         SecurityUtils.setSecurityManager(securityManager);
         Subject subject = SecurityUtils.getSubject();
-        SubjectIdentifier subjectIDDAO = new SubjectIdentifier();
-        subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
-        subjectIDDAO.setSubjectID("root");
+        SubjectIdentifier subjectIdentifier = new SubjectIdentifier();
+        subjectIdentifier.setSubjectType(BaseSubjectID.SubjectType.USER);
+        subjectIdentifier.setSubjectID("root");
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
         ShiroRealmStore srs = realm.getShiroRealmStore();
-        srs.addSubject(subjectIDDAO);
-        srs.setSubjectPassword("root", "secret1");
+        srs.addSubjectIdentifier(subjectIdentifier);
+
+        srs.addCredentialInfo("root", HashUtil.toBCryptPassword("secret1"));
+
     }
 
 
@@ -64,6 +67,7 @@ public class RealmTest {
                 SecurityModel.toSecTok(SecurityModel.USER, SecurityModel.ALL, "toto"),
                 SecurityModel.toSecTok(SecurityModel.SHARE, SecurityModel.ALL, SecurityModel.RESOURCE),
                 SecurityModel.toSecTok(SecurityModel.PERM_READ_RESOURCE, deviceUUID),
+                //SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION),
                 "document:read:*",
                 "document:write",
                 "imitate:animal:lion,jaguar"
@@ -84,7 +88,8 @@ public class RealmTest {
                 SecurityModel.toSecTok(SecurityModel.PERM_READ_RESOURCE, UUID.randomUUID().toString()),
 
 
-                SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION, "app:", "gta")
+                SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION, "app:", "gta"),
+                SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION)
         };
 
 

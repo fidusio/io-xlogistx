@@ -2,7 +2,7 @@ package io.xlogistx.opsec.services;
 
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.shiro.ShiroUtil;
-import org.zoxweb.shared.security.shiro.ShiroRealmManager;
+import org.zoxweb.shared.security.shiro.ShiroRealmController;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -21,7 +21,7 @@ extends PropertyHolder
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_USER)
     public SimpleMessage createSubject(@ParamProp(name="",source = Const.ParamSource.PAYLOAD) NVGenericMap subjectInfoCredentials)
     {
-        ShiroRealmManager realmManager = ShiroUtil.getShiroRealmManager();
+        ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
         // get the subject info from the
         String subjectID = subjectInfoCredentials.lookup("subject_id");
 
@@ -36,7 +36,7 @@ extends PropertyHolder
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_DELETE_USER)
     public SimpleMessage createSubject(@ParamProp( name = "subject_id") String subjectID)
     {
-        ShiroRealmManager realmManager = ShiroUtil.getShiroRealmManager();
+        ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
 
 
         return null;
@@ -47,7 +47,7 @@ extends PropertyHolder
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_PERMISSION)
     public SimpleMessage createPermission(@ParamProp(name="",source = Const.ParamSource.PAYLOAD) NVGenericMap permissionInfo)
     {
-        ShiroRealmManager realmManager = ShiroUtil.getShiroRealmManager();
+        ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
 
 
         return null;

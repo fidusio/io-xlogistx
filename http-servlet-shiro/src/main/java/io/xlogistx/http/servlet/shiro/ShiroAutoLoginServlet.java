@@ -16,6 +16,8 @@
 package io.xlogistx.http.servlet.shiro;
 
 import io.xlogistx.http.servlet.HTTPServletUtil;
+import org.apache.shiro.authz.AuthorizationInfo;
+import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.http.HTTPRequestAttributes;
 import org.zoxweb.server.util.GSONUtil;
@@ -56,7 +58,7 @@ public class ShiroAutoLoginServlet
 			hra = HTTPServletUtil.extractRequestAttributes(req);
 		if(log.isEnabled()) log.getLogger().info("Request started");
 		
-		APISecurityManager<Subject> apiSecurityManager = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+		APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
 		if (apiSecurityManager != null && apiSecurityManager.getDaemonSubject() == null)
 		{
 			try
