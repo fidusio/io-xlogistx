@@ -6,15 +6,11 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.crypto.PasswordDAO;
 import org.zoxweb.shared.db.QueryMatchString;
-import org.zoxweb.shared.security.AccessSecurityException;
-import org.zoxweb.shared.security.CredentialInfo;
-import org.zoxweb.shared.security.SubjectIdentifier;
+import org.zoxweb.shared.filters.FilterType;
+import org.zoxweb.shared.security.*;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.*;
-import org.zoxweb.shared.util.BaseSubjectID;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.MetaToken;
-import org.zoxweb.shared.util.NotFoundException;
+import org.zoxweb.shared.util.*;
 
 import java.util.Set;
 import java.util.UUID;
@@ -24,6 +20,42 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
 {
 
     private volatile APIDataStore<?> dataStore;
+    private volatile KeyMaker keyMaker;
+
+    /**
+     * Create a subject identifier
+     *
+     * @param subjectID   the email or uuid identifier of the subject
+     * @param subjectType the type of the subject
+     * @param credential  subject credentials
+     * @return the created subject identifier
+     * @throws AccessSecurityException if not permitted
+     */
+    @Override
+    public synchronized SubjectIdentifier addSubjectIdentifier(String subjectID, BaseSubjectID.SubjectType subjectType, CredentialInfo credential) throws AccessSecurityException {
+        // 1 check if the subject exist
+        //   yes throw exception
+        // 2 no subject do not exist
+        // 3 create subject identifier
+        // 4 set GUID and subjectGUID to the same value
+        // 5 use dataStore to persist subject
+
+
+        SubjectIdentifier toCreate = new SubjectIdentifier();
+        toCreate.setSubjectID(subjectID);
+        toCreate.setSubjectType(subjectType);
+        toCreate.setGUID(UUID.randomUUID().toString());
+        toCreate = addSubjectIdentifier(toCreate);
+        // set the credential
+        if (credential instanceof NVEntity)
+        {
+            ((NVEntity) credential).setGUID(toCreate.getGUID());
+            ((NVEntity) credential).setSubjectGUID(toCreate.getSubjectGUID());
+            getDataStore().insert((NVEntity)credential);
+        }
+        return toCreate;
+    }
+
     /**
      * Create a subject identifier
      * @param subjectID the email or uuid identifier of the subject
@@ -32,23 +64,7 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
      * @throws AccessSecurityException if not permitted
      */
     public SubjectIdentifier addSubjectIdentifier(String subjectID, BaseSubjectID.SubjectType subjectType) throws AccessSecurityException {
-        // 1 check if the subject exist
-        //   yes throw exception
-        // 2 no subject do not exist
-        // 3 create subject identifier
-        // 4 set GUID and subjectGUID to the same value
-        // 5 use dataStore to persist subject
-
-        SubjectIdentifier toCreate = lookupSubjectIdentifier(subjectID);
-
-        if (toCreate != null)
-            throw new AccessSecurityException(subjectID + " Already exists.");
-
-        toCreate = new SubjectIdentifier();
-        toCreate.setSubjectID(subjectID);
-        toCreate.setGUID(UUID.randomUUID().toString());
-        toCreate = getDataStore().insert(toCreate);
-        return toCreate;
+       return addSubjectIdentifier(subjectID, subjectType, null);
     }
 
     /**
@@ -59,7 +75,8 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
      * @throws AccessSecurityException if not permitted
      */
     @Override
-    public SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier) throws AccessSecurityException {
+    public synchronized SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier) throws AccessSecurityException {
+
         // 1 check if the subject exist
         //   yes throw exception
         // 2 no subject do not exist
@@ -73,8 +90,24 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
             throw new AccessSecurityException(subjectIdentifier.getSubjectID() + " Already exists.");
 
         toInsert = subjectIdentifier;
-        toInsert.setGUID(UUID.randomUUID().toString());
+        if(toInsert.getSubjectGUID() == null)
+            toInsert.setSubjectGUID(UUID.randomUUID().toString());
+
         toInsert = getDataStore().insert(toInsert);
+
+        // next create the subject EncryptedKeyDAO
+        getDataStore().insert(getKeyMaker().createSubjectIDKey(toInsert, getKeyMaker().getMasterKey()));
+
+        SubjectPreference subjectPreference = new SubjectPreference();
+        subjectPreference.setGUID(toInsert.getGUID());
+        subjectPreference.setSubjectGUID(subjectIdentifier.getSubjectGUID());
+        SubjectInfo subjectInfo = new SubjectInfo();
+        if(FilterType.EMAIL.isValid(subjectIdentifier.getSubjectID()))
+            subjectInfo.setEmail(subjectIdentifier.getSubjectID());
+        subjectInfo.setGUID(subjectIdentifier.getGUID());
+        subjectInfo.setSubjectGUID(subjectIdentifier.getSubjectGUID());
+        getDataStore().insert(subjectInfo);
+        getDataStore().insert(subjectPreference);
         return toInsert;
     }
 
@@ -361,6 +394,24 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
     @Override
     public ShiroAuthzInfo deleteShiroAuthzInfo(ShiroAuthzInfo shiroAuthzInfo) throws AccessSecurityException {
         return null;
+    }
+
+    /**
+     * @return the key maker associated with shiro realm controller
+     * @throws AccessSecurityException if not permitted
+     */
+    @Override
+    public KeyMaker getKeyMaker() throws AccessSecurityException {
+        return keyMaker;
+    }
+
+    /**
+     * @param keyMaker to be set for the shiro realm controller
+     * @throws AccessSecurityException if no permitted
+     */
+    @Override
+    public void setKeyMaker(KeyMaker keyMaker) throws AccessSecurityException {
+        this.keyMaker = keyMaker;
     }
 
     @Override

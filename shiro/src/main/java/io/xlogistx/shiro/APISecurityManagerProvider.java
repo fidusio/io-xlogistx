@@ -746,6 +746,24 @@ public class APISecurityManagerProvider
 		return null;
 	}
 
+	/**
+	 * @return the key maker associated with shiro realm controller
+	 * @throws AccessSecurityException if not permitted
+	 */
+	@Override
+	public KeyMaker getKeyMaker() throws AccessSecurityException {
+		return null;
+	}
+
+	/**
+	 * @param keyMaker to be set for the shiro realm controller
+	 * @throws AccessSecurityException if no permitted
+	 */
+	@Override
+	public void setKeyMaker(KeyMaker keyMaker) throws AccessSecurityException {
+
+	}
+
 	@Override
 	public ShiroRoleGroup updateRoleGroup(ShiroRoleGroup rolegroup)
 			throws NullPointerException, IllegalArgumentException, AccessException {
@@ -762,6 +780,20 @@ public class APISecurityManagerProvider
 	 */
 	@Override
 	public SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier) throws AccessSecurityException {
+		return null;
+	}
+
+	/**
+	 * Create a subject identifier
+	 *
+	 * @param subjectID   the email or uuid identifier of the subject
+	 * @param subjectType the type of the subject
+	 * @param credential  subject credentials
+	 * @return the created subject identifier
+	 * @throws AccessSecurityException if not permitted
+	 */
+	@Override
+	public SubjectIdentifier addSubjectIdentifier(String subjectID, BaseSubjectID.SubjectType subjectType, CredentialInfo credential) throws AccessSecurityException {
 		return null;
 	}
 
