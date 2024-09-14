@@ -215,12 +215,12 @@ public class ShiroUtil
 		return null;
 	}
 
-	public static ShiroRealmController getShiroRealmManager()
+	public static ShiroRealmController<AuthorizationInfo, PrincipalCollection> getShiroRealmManager()
 	{
 		return getShiroRealmManager(SecurityUtils.getSecurityManager());
 	}
 
-	public static ShiroRealmController getShiroRealmManager(SecurityManager sm)
+	public static ShiroRealmController<AuthorizationInfo, PrincipalCollection> getShiroRealmManager(SecurityManager sm)
 	{
 		if (sm instanceof RealmSecurityManager)
 		{
@@ -232,11 +232,11 @@ public class ShiroUtil
 				{
 					if (realm instanceof ShiroRealmControllerHolder)
 					{
-						return ((ShiroRealmControllerHolder) realm).getShiroRealmController();
+						return ((ShiroRealmControllerHolder<AuthorizationInfo, PrincipalCollection>) realm).getShiroRealmController();
 					}
 					if (realm instanceof ShiroRealmController)
 					{
-						return (ShiroRealmController) realm;
+						return (ShiroRealmController<AuthorizationInfo, PrincipalCollection>) realm;
 					}
 				}
 			}

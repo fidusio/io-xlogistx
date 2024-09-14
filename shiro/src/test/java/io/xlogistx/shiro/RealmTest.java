@@ -64,7 +64,7 @@ public class RealmTest {
         String deviceUUID = UUID.randomUUID().toString();
         String[] subjectPermissions ={
                 SecurityModel.toSecTok(SecurityModel.APP, SecurityModel.ALL, "toto"),
-                SecurityModel.toSecTok(SecurityModel.USER, SecurityModel.ALL, "toto"),
+                SecurityModel.toSecTok(SecurityModel.SUBJECT, SecurityModel.ALL, "toto"),
                 SecurityModel.toSecTok(SecurityModel.SHARE, SecurityModel.ALL, SecurityModel.RESOURCE),
                 SecurityModel.toSecTok(SecurityModel.PERM_READ_RESOURCE, deviceUUID),
                 //SecurityModel.toSecTok(SecurityModel.PERM_ADD_PERMISSION),

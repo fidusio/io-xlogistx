@@ -28,7 +28,7 @@ public class DomainUsernamePasswordToken
 
 	private String domain_id;
 	private String app_id;
-	private String subject_id;
+	private String subject_guid;
 	private boolean autoAuthenticationEnabled = false;
 
 	public DomainUsernamePasswordToken()
@@ -70,15 +70,15 @@ public class DomainUsernamePasswordToken
     {
 		this.app_id = SharedStringUtil.trimOrEmpty(SharedStringUtil.toLowerCase(applicationID));
 	}
-	
-	public String getUserID()
+
+	public String getSubjectGUID()
     {
-		return subject_id;
+		return subject_guid;
 	}
 	
-	public void setUserID(String userID)
+	public void setSubjectGUID(String subject_guid)
     {
-		subject_id= userID;
+		this.subject_guid = subject_guid;
 	}
 	
 	

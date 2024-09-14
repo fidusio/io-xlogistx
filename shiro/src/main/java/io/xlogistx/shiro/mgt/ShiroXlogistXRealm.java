@@ -13,8 +13,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.xlogistx.shiro;
+package io.xlogistx.shiro.mgt;
 
+import io.xlogistx.shiro.DomainPrincipalCollection;
 import io.xlogistx.shiro.authc.DomainAuthenticationInfo;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import io.xlogistx.shiro.authc.JWTAuthenticationToken;
@@ -24,38 +25,29 @@ import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
-import org.apache.shiro.subject.SimplePrincipalCollection;
-import org.apache.shiro.subject.Subject;
-import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.api.APIAppManager;
-import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.crypto.PasswordDAO;
-import org.zoxweb.shared.data.AppDeviceDAO;
-import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.security.CredentialInfo;
-import org.zoxweb.shared.security.SubjectAPIKey;
+import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.SubjectIdentifier;
-import org.zoxweb.shared.security.shiro.ShiroRealmStore;
-import org.zoxweb.shared.util.ResourceManager;
-import org.zoxweb.shared.util.ResourceManager.Resource;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.security.shiro.ShiroRealmController;
+import org.zoxweb.shared.security.shiro.ShiroRealmControllerHolder;
 
-import java.util.Set;
-
-public class XlogistXShiroRealm
+public class ShiroXlogistXRealm
     extends AuthorizingRealm
+	implements ShiroRealmControllerHolder<AuthorizationInfo, PrincipalCollection>
 
 {
 
-	public static final LogWrapper log = new LogWrapper(XlogistXShiroRealm.class).setEnabled(true);
+	public static final LogWrapper log = new LogWrapper(ShiroXlogistXRealm.class).setEnabled(true);
 
 	protected boolean permissionsLookupEnabled = false;
 	private boolean cachePersistenceEnabled = false;
 
 
 
-	private ShiroRealmStore<AuthorizationInfo, PrincipalCollection> shiroStore = null;
+	//private ShiroRealmStore<AuthorizationInfo, PrincipalCollection> shiroStore = null;
+	private ShiroRealmController<AuthorizationInfo, PrincipalCollection> realmController = null;
 //
 //	private APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager;
 //
@@ -84,20 +76,16 @@ public class XlogistXShiroRealm
 
        if (principals instanceof DomainPrincipalCollection)
        {
-	        String userID = (String) getAvailablePrincipal(principals);
+	        String subjectID = (String) getAvailablePrincipal(principals);
 	        String domainID   = ((DomainPrincipalCollection) principals).getDomainID();
-	        Set<String> roleNames = shiroStore.getSubjectRoles(domainID, userID);
-	        Set<String> permissions = null;
-	         
-	        if (isPermissionsLookupEnabled())
-	        {
-	        	permissions = shiroStore.getSubjectPermissions(domainID, userID, roleNames);
-	        }
+		    ResourceSecurity rs = realmController.subjectResourceSecurity(subjectID, domainID, null);
 
-
-
-	        SimpleAuthorizationInfo info = new SimpleAuthorizationInfo(roleNames);
-	        info.setStringPermissions(permissions);
+	        SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
+			if(rs != null)
+			{
+				info.setRoles(rs.getRoles());
+				info.setStringPermissions(rs.getPermissions());
+			}
 
 	        return info;
        }
@@ -107,7 +95,7 @@ public class XlogistXShiroRealm
 	
 	
 	protected Object getAuthenticationCacheKey(AuthenticationToken token) {
-		//if(log.isEnabled()) log.getLogger().info("TAG1::key:" + token);
+		if(log.isEnabled()) log.getLogger().info("TAG1::key:" + token);
 		if(token instanceof JWTAuthenticationToken)
 		{
 			return ((JWTAuthenticationToken)token).getJWTSubjectID();
@@ -117,7 +105,7 @@ public class XlogistXShiroRealm
 	
 	 protected Object getAuthenticationCacheKey(PrincipalCollection principals)
 	 {
-		 //if(log.isEnabled()) log.getLogger().info("TAG2::key:" + principals);
+		 if(log.isEnabled()) log.getLogger().info("TAG2::key:" + principals);
 		 if (principals instanceof DomainPrincipalCollection)
 		 {
 				DomainPrincipalCollection dpc = (DomainPrincipalCollection)principals;
@@ -129,7 +117,7 @@ public class XlogistXShiroRealm
 	
 	protected Object getAuthorizationCacheKey(PrincipalCollection principals)
 	{
-		//if(log.isEnabled()) log.getLogger().info("TAG3:" + principals + " " + principals.getClass());
+		if(log.isEnabled()) log.getLogger().info("TAG3:" + principals + " " + principals.getClass());
 		if (principals instanceof DomainPrincipalCollection)
 		{
 			DomainPrincipalCollection dpc = (DomainPrincipalCollection)principals;
@@ -157,17 +145,18 @@ public class XlogistXShiroRealm
 	        {
 	            throw new AccountException("Null usernames are not allowed by this realm.");
 	        }
-	        SubjectIdentifier userIDDAO = shiroStore.lookupSubjectIdentifier(dupToken.getUsername());
-	        if (userIDDAO == null)
+	        SubjectIdentifier subjectIdentifier = realmController.lookupSubjectIdentifier(dupToken.getUsername());
+	        if (subjectIdentifier == null)
 	        {
 	            throw new AccountException("Account not found usernames are not allowed by this realm.");
 	        }
-	        dupToken.setSubjectGUID(userIDDAO.getSubjectID());
+	        dupToken.setSubjectGUID(subjectIdentifier.getSubjectGUID());
+
 	        // String userID = upToken.getUserID();
 	        //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 	        // Null username is invalid
 	        
-	        PasswordDAO password = shiroStore.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
+	        PasswordDAO password = realmController.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
 	        if (password == null)
 	        {
 	        	throw new UnknownAccountException("No account found for user [" + dupToken.getSubjectGUID() + "]");
@@ -175,55 +164,53 @@ public class XlogistXShiroRealm
 	        
 	        String realm = getName();
 
-	        return new DomainAuthenticationInfo(dupToken.getUsername(), dupToken.getSubjectGUID(), password, realm, dupToken.getDomainID(), dupToken.getAppID(), null);
+			DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(dupToken.getUsername(), dupToken.getSubjectGUID(), password, realm, dupToken.getDomainID(), dupToken.getAppID(), null);
+			return ret;
 	    }
 		else if (token instanceof JWTAuthenticationToken)
 		{
-			//if(log.isEnabled()) log.getLogger().info("JWTAuthenticationToken based authentication");
-			// lookup AppDeviceDAO or SubjectAPIKey
-			// in oder to do that we need to switch the user to SUPER_ADMIN or DAEMON user
-			JWTAuthenticationToken jwtAuthToken = (JWTAuthenticationToken) token;
-			SubjectSwap ss = null;
-			try
-			{
-				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
-				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
-				
-				ss = new SubjectSwap(sm.getDaemonSubject());
-				// Todo to be fixed
-				SubjectAPIKey sak = null;// appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
-				if (sak == null)
-					throw new UnknownAccountException("No account found for user [" + jwtAuthToken.getJWTSubjectID() + "]");
-				UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
-			    if (userIDDAO == null)
-			    {
-			        throw new AccountException("Account not found usernames are not allowed by this realm.");
-			    }
-			    
-			    // set the actual user 
-			    jwtAuthToken.setSubjectID(userIDDAO.getSubjectID());
-			    
-			    String domainID = jwtAuthToken.getDomainID();
-			    String appID    = jwtAuthToken.getAppID();
-			    if (sak instanceof AppDeviceDAO)
-			    {
-			    	domainID = ((AppDeviceDAO) sak).getDomainID();
-				    appID    = ((AppDeviceDAO) sak).getAppID();
-			    }
-			    
-			    DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getSubjectID(), sak //sak.getAPIKeyAsBytes()
-			    		, getName(), domainID, appID, jwtAuthToken.getJWTSubjectID());
-			    
-			    return ret;
-			}
-			catch(Exception e)
-			{
-				e.printStackTrace();
-			}
-			finally
-			{
-				IOUtil.close(ss);
-			}
+//			//if(log.isEnabled()) log.getLogger().info("JWTAuthenticationToken based authentication");
+//			// lookup AppDeviceDAO or SubjectAPIKey
+//			// in oder to do that we need to switch the user to SUPER_ADMIN or DAEMON user
+//			JWTAuthenticationToken jwtAuthToken = (JWTAuthenticationToken) token;
+////			SubjectSwap ss = null;
+//			try
+//			{
+////				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+////				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
+//
+//				//ss = new SubjectSwap(sm.getDaemonSubject());
+//				// Todo to be fixed
+//				SubjectAPIKey sak = null;// appManager.lookupSubjectAPIKey(jwtAuthToken.getJWTSubjectID(), false);
+//				if (sak == null)
+//					throw new UnknownAccountException("No account found for user [" + jwtAuthToken.getJWTSubjectID() + "]");
+//				UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
+//			    if (userIDDAO == null)
+//			    {
+//			        throw new AccountException("Account not found usernames are not allowed by this realm.");
+//			    }
+//
+//			    // set the actual user
+//			    jwtAuthToken.setSubjectID(userIDDAO.getSubjectID());
+//
+//			    String domainID = jwtAuthToken.getDomainID();
+//			    String appID    = jwtAuthToken.getAppID();
+//			    if (sak instanceof AppDeviceDAO)
+//			    {
+//			    	domainID = ((AppDeviceDAO) sak).getDomainID();
+//				    appID    = ((AppDeviceDAO) sak).getAppID();
+//			    }
+//
+//			    DomainAuthenticationInfo ret =  new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getSubjectID(), sak //sak.getAPIKeyAsBytes()
+//			    		, getName(), domainID, appID, jwtAuthToken.getJWTSubjectID());
+//
+//			    return ret;
+//			}
+//			catch(Exception e)
+//			{
+//				e.printStackTrace();
+//			}
+
 			
 			
 		}
@@ -248,22 +235,6 @@ public class XlogistXShiroRealm
 	
 
 
-
-	
-
-
-	
-
-
-	
-
-
-	
-
-
-	
-
-	
 	public AuthorizationInfo lookupAuthorizationInfo(PrincipalCollection principals)
 	{
 		return getAuthorizationInfo(principals);
@@ -321,70 +292,70 @@ public class XlogistXShiroRealm
 	 }
 	 
 	 
-	 public void invalidate(String resourceID)
-	 {
-		 //if(log.isEnabled()) log.getLogger().info("start for:" + resourceID);
-		 if (!SharedStringUtil.isEmpty(resourceID))
-		 {
-			 // check it is a subject key id
-			 
-			SubjectSwap ss = null;
-			SimplePrincipalCollection principalCollection = null;
-			try
-			{
-				//if(log.isEnabled()) log.getLogger().info("ResourceID:" + resourceID);
-				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
-				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
-				// try subject api key first
-				if (sm != null && appManager != null)
-				{
-					ss = new SubjectSwap(sm.getDaemonSubject());
-					// Todo to be fixed
-					SubjectAPIKey sak = null;//appManager.lookupSubjectAPIKey(resourceID, false);
-					if (sak != null)
-					{
-						UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
-						if (userIDDAO != null)
-						{
-							//if(log.isEnabled()) log.getLogger().info("We have a subject api key:" + sak.getSubjectID());
-							principalCollection = new DomainPrincipalCollection(userIDDAO.getSubjectID(), null, getName(), null, null, sak.getSubjectID());
-						}
-					}
-				}
-				
-				// try user
-				if (principalCollection == null)
-				{
-					UserIDDAO userIDDAO = shiroStore.lookupUserID(resourceID, "_id", "_subject_guid", "primary_email");
-					if (userIDDAO != null)
-					{
-						//if(log.isEnabled()) log.getLogger().info("We have a user:" + userIDDAO.getSubjectID());
-						principalCollection = new DomainPrincipalCollection(userIDDAO.getSubjectID(), null, getName(), null, null, null);
-					}
-				}
-			}
-			catch(Exception e)
-			{
-				e.printStackTrace();
-			}
-			finally
-			{
-				IOUtil.close(ss);
-			}
-			 
-			if (principalCollection != null)
-			{
-				if(log.isEnabled()) log.getLogger().info("clearing cached data for:" + principalCollection);
-				clearCachedAuthenticationInfo(principalCollection);
-				clearCachedAuthorizationInfo(principalCollection);
-			}
-			else
-			{
-				if(log.isEnabled()) log.getLogger().info("NOT FOUND!!:" + resourceID);
-			}
-			 // or user id
-		 }
-	 }
+//	 public void invalidate(String resourceID)
+//	 {
+//		 //if(log.isEnabled()) log.getLogger().info("start for:" + resourceID);
+//		 if (!SharedStringUtil.isEmpty(resourceID))
+//		 {
+//			 // check it is a subject key id
+//
+//			SubjectSwap ss = null;
+//			SimplePrincipalCollection principalCollection = null;
+//			try
+//			{
+//				//if(log.isEnabled()) log.getLogger().info("ResourceID:" + resourceID);
+//				APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> sm = ResourceManager.lookupResource(Resource.API_SECURITY_MANAGER);
+//				APIAppManager appManager =  ResourceManager.lookupResource(Resource.API_APP_MANAGER);
+//				// try subject api key first
+//				if (sm != null && appManager != null)
+//				{
+//					ss = new SubjectSwap(sm.getDaemonSubject());
+//					// Todo to be fixed
+//					SubjectAPIKey sak = null;//appManager.lookupSubjectAPIKey(resourceID, false);
+//					if (sak != null)
+//					{
+//						UserIDDAO userIDDAO = shiroStore.lookupUserID(sak.getSubjectGUID(), "_id", "_subject_guid", "primary_email");
+//						if (userIDDAO != null)
+//						{
+//							//if(log.isEnabled()) log.getLogger().info("We have a subject api key:" + sak.getSubjectID());
+//							principalCollection = new DomainPrincipalCollection(userIDDAO.getSubjectID(), null, getName(), null, null, sak.getSubjectID());
+//						}
+//					}
+//				}
+//
+//				// try user
+//				if (principalCollection == null)
+//				{
+//					UserIDDAO userIDDAO = shiroStore.lookupUserID(resourceID, "_id", "_subject_guid", "primary_email");
+//					if (userIDDAO != null)
+//					{
+//						//if(log.isEnabled()) log.getLogger().info("We have a user:" + userIDDAO.getSubjectID());
+//						principalCollection = new DomainPrincipalCollection(userIDDAO.getSubjectID(), null, getName(), null, null, null);
+//					}
+//				}
+//			}
+//			catch(Exception e)
+//			{
+//				e.printStackTrace();
+//			}
+//			finally
+//			{
+//				IOUtil.close(ss);
+//			}
+//
+//			if (principalCollection != null)
+//			{
+//				if(log.isEnabled()) log.getLogger().info("clearing cached data for:" + principalCollection);
+//				clearCachedAuthenticationInfo(principalCollection);
+//				clearCachedAuthorizationInfo(principalCollection);
+//			}
+//			else
+//			{
+//				if(log.isEnabled()) log.getLogger().info("NOT FOUND!!:" + resourceID);
+//			}
+//			 // or user id
+//		 }
+//	 }
 
 	public boolean isCachePersistenceEnabled() {
 		return cachePersistenceEnabled;
@@ -394,13 +365,21 @@ public class XlogistXShiroRealm
 		this.cachePersistenceEnabled = sessionLessModeEnabled;
 	}
 
-	public ShiroRealmStore getShiroRealmStore()
-	{
-		return shiroStore;
+
+	/**
+	 * @return shiro realm controller
+	 */
+	@Override
+	public ShiroRealmController<AuthorizationInfo, PrincipalCollection> getShiroRealmController() {
+		return realmController;
 	}
 
-	public synchronized void setShiroRealmStore(ShiroRealmStore shiroRealmStore)
+	/**
+	 * @param realmController to be set
+	 */
+	@Override
+	public synchronized void setShiroRealmController(ShiroRealmController<AuthorizationInfo, PrincipalCollection> realmController)
 	{
-		this.shiroStore = shiroRealmStore;
+		this.realmController = realmController;
 	}
 }

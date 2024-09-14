@@ -119,14 +119,14 @@ public class EndPointsManager {
 
             if (pathOverride && outer.getPaths().length > 0)
                 inner.setPaths(outer.getPaths());
-            if (outer.getPermissions() != null && outer.getPermissions().length > 0)
-                inner.setPermissions(outer.getPermissions());
-            if (outer.getRoles() != null && outer.getRoles().length > 0)
-                inner.setRoles(outer.getRoles());
+            if (outer.getPermissions() != null && outer.getPermissions().size() > 0)
+                inner.setPermissions(outer.permissions());
+            if (outer.getRoles() != null && outer.getRoles().size() > 0)
+                inner.setRoles(outer.roles());
             if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
                 inner.setAuthenticationTypes(outer.getAuthenticationTypes());
-            if (outer.getRestrictions() != null && outer.getRestrictions().length > 0)
-                inner.setRestrictions(outer.getRestrictions());
+            if (outer.getRestrictions() != null && outer.getRestrictions().size() > 0)
+                inner.setRestrictions(outer.restrictions());
             if (outer.getProtocols() != null && outer.getProtocols().length > 0)
                 inner.setProtocols(outer.getProtocols());
 

@@ -29,24 +29,24 @@ public class DomainPrincipalCollection
 
 	protected String domain_id;
 	protected String application_id;
-	protected String subject_gid;
+	protected String subject_guid;
 	protected String token_subject_id;
 
 	/**
      *
 	 * @param principal the login id ie email
-	 * @param subjectGID subject global id as uuid
+	 * @param subjectGUID subject global id as uuid
 	 * @param realmName
 	 * @param domainID
 	 * @param applicationID
 	 */
-	public DomainPrincipalCollection(Object principal, String subjectGID, String realmName, String domainID, String applicationID, String jwtSubjectID)
+	public DomainPrincipalCollection(Object principal, String subjectGUID, String realmName, String domainID, String applicationID, String jwtSubjectID)
     {
 		super(principal, realmName);
-		SharedUtil.checkIfNulls("Subject GID can't be null", subjectGID);
+		SharedUtil.checkIfNulls("Subject GID can't be null", subjectGUID);
 		domain_id = SharedStringUtil.toLowerCase(domainID);
 		application_id = SharedStringUtil.toLowerCase(applicationID);
-		subject_gid = subjectGID;
+		this.subject_guid = subjectGUID;
 		token_subject_id = jwtSubjectID;
 		
 		// first on to add for optimization issue
@@ -88,7 +88,7 @@ public class DomainPrincipalCollection
 	 */
 	public String getUserID()
     {
-		return subject_gid;
+		return subject_guid;
 	}
 
 	@Override
@@ -111,7 +111,7 @@ public class DomainPrincipalCollection
 
 	public String getSubjectGID()
 	{
-		return subject_gid;
+		return subject_guid;
 	}
 
 	@Override

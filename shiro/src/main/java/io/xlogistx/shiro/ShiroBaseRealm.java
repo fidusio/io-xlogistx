@@ -126,7 +126,7 @@ public abstract class ShiroBaseRealm
 			{
 				throw new AccountException("Account not found usernames are not allowed by this realm.");
 			}
-			dupToken.setUserID(userIDDAO.getSubjectID());
+			dupToken.setSubjectGUID(userIDDAO.getSubjectID());
 			// String userID = upToken.getUserID();
 			//if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 			// Null username is invalid
@@ -134,12 +134,12 @@ public abstract class ShiroBaseRealm
 			PasswordDAO password = lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
 			if (password == null)
 			{
-				throw new UnknownAccountException("No account found for user [" + dupToken.getUserID() + "]");
+				throw new UnknownAccountException("No account found for user [" + dupToken.getSubjectGUID() + "]");
 			}
 
 			String realm = getName();
 
-			return new DomainAuthenticationInfo(dupToken.getUsername(), dupToken.getUserID(), password, realm, dupToken.getDomainID(), dupToken.getAppID(), null);
+			return new DomainAuthenticationInfo(dupToken.getUsername(), dupToken.getSubjectGUID(), password, realm, dupToken.getDomainID(), dupToken.getAppID(), null);
 		}
 		else if (token instanceof JWTAuthenticationToken)
 		{

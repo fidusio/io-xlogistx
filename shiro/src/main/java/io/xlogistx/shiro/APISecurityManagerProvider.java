@@ -764,6 +764,19 @@ public class APISecurityManagerProvider
 
 	}
 
+	/**
+	 * Lookup subject resource security based on the subject id
+	 *
+	 * @param subjectID the subject identifier can't be null
+	 * @param domainID  the domain id can be null
+	 * @param appID     the app id can be null
+	 * @return permissions and role associated with subject
+	 */
+	@Override
+	public ResourceSecurity subjectResourceSecurity(String subjectID, String domainID, String appID) {
+		return null;
+	}
+
 	@Override
 	public ShiroRoleGroup updateRoleGroup(ShiroRoleGroup rolegroup)
 			throws NullPointerException, IllegalArgumentException, AccessException {

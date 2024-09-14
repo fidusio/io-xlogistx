@@ -18,18 +18,28 @@ package io.xlogistx.shiro.authc;
 import io.xlogistx.shiro.DomainPrincipalCollection;
 import org.apache.shiro.authc.SimpleAuthenticationInfo;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
+
 
 @SuppressWarnings("serial")
 public class DomainAuthenticationInfo
     extends SimpleAuthenticationInfo
 {
 
-	public DomainAuthenticationInfo(Object principal, String userID, Object credentials, String realmName, String domainID, String applicationID, String jwtSubjectID)
+	public DomainAuthenticationInfo(Object principal, String subjectGUID, Object credentials, String realmName, String domainID, String applicationID, String jwtSubjectID)
     {
-		 this.principals = new DomainPrincipalCollection(principal, userID, realmName, domainID, applicationID, jwtSubjectID);
+		Set<Object> principalCollection = new LinkedHashSet<>();
+		principalCollection.add(principal);
+		if (subjectGUID != null)
+			principalCollection.add(UUID.fromString(subjectGUID));
+
+		this.principals = new DomainPrincipalCollection(principalCollection, subjectGUID, realmName, domainID, applicationID, jwtSubjectID);
 		 
-	     this.credentials = credentials;
+		this.credentials = credentials;
 	}
+
 	
 //	 public DomainAuthenticationInfo(Object principal, Object credentials, String realmName, String domainID) 
 //	 {

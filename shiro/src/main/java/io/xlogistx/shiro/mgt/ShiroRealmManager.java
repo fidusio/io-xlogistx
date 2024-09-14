@@ -17,6 +17,7 @@ import java.util.UUID;
 
 public class ShiroRealmManager
 implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
+
 {
 
     private volatile APIDataStore<?> dataStore;
@@ -120,7 +121,7 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
      */
     @Override
     public SubjectIdentifier deleteSubjectIdentifier(String subjectID) throws AccessSecurityException {
-        ShiroUtil.checkPermissions(SecurityModel.toSecTok(SecurityModel.PERM_DELETE_USER, subjectID));
+        ShiroUtil.checkPermissions(SecurityModel.toSecTok(SecurityModel.PERM_DELETE_SUBJECT, subjectID));
         SubjectIdentifier ret = lookupSubjectIdentifier(subjectID);
         if(ret != null)
             getDataStore().delete(ret, false);
@@ -412,6 +413,42 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
     @Override
     public void setKeyMaker(KeyMaker keyMaker) throws AccessSecurityException {
         this.keyMaker = keyMaker;
+    }
+
+    /**
+     * Lookup subject resource security based on the subject id
+     *
+     * @param subject the subject identifier can't be null
+     * @param domainID  the domain id can be null
+     * @param appID     the app id can be null
+     * @return permissions and role associated with subject
+     */
+    @Override
+    public ResourceSecurity subjectResourceSecurity(String subject, String domainID, String appID)
+    {
+        SubjectIdentifier subjectID = lookupSubjectIdentifier(subject);
+        SharedUtil.checkIfNulls("SubjectIdentifier null for " + subject, subjectID);
+        SecurityProfile sp = new SecurityProfile();
+        sp.setSubjectGUID(subjectID.getSubjectGUID());
+        sp.setGUID(subjectID.getGUID());
+        // adding * access to object created by the subject
+        sp.getPermissions().add(SecurityModel.SecToken.updateToken(SecurityModel.PERM_SUBJECT_GUID_RESOURCE_ACCESS,
+                SecurityModel.SecToken.SUBJECT_GUID.toGNV(subjectID.getSubjectGUID())));
+
+        // 1 query datastore for assigned role group
+        // 2 query datastore for assigned roles
+        // this is done by reading the ShiroAuthzInfo assigned to the subject
+        // datastore query subject_guid domain and appID for the matching ShiroAuthzInfo
+        // added map reduced roles to sp
+        // add roles permissions to sp
+
+        // 3 query datastore for the assigned permission
+        // add permissions to sp
+
+
+
+
+        return sp;
     }
 
     @Override

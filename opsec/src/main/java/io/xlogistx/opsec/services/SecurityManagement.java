@@ -33,7 +33,7 @@ extends PropertyHolder
     }
 
     @EndPointProp(methods = {HTTPMethod.DELETE}, name="delete-subject", uris="/opsec/unregister/{$subject_id}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_DELETE_USER)
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_DELETE_SUBJECT)
     public SimpleMessage createSubject(@ParamProp( name = "subject_id") String subjectID)
     {
         ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
