@@ -4,17 +4,19 @@ import io.xlogistx.shiro.DomainPrincipalCollection;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
+import org.apache.shiro.authc.credential.SimpleCredentialsMatcher;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.server.security.JWTProvider;
-import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.security.JWT;
 import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.util.Const.Status;
 import org.zoxweb.shared.util.SharedStringUtil;
 
-public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
-	public static final LogWrapper log = new LogWrapper(JWTPasswordCredentialsMatcher.class).setEnabled(false);
+public class CredentialInfoMatcher implements CredentialsMatcher {
+	public static final LogWrapper log = new LogWrapper(CredentialInfoMatcher.class).setEnabled(false);
+	private static final SimpleCredentialsMatcher SIMPLE_C_M = new SimpleCredentialsMatcher();
 	@Override
 	public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)
 	{
@@ -23,7 +25,7 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 		try
         {
 		
-			if (info.getCredentials() instanceof PasswordDAO)
+			if (info.getCredentials() instanceof CIPassword)
 			{
 				if (!token.getPrincipal().equals(info.getPrincipals().getPrimaryPrincipal()))
 				{
@@ -39,7 +41,7 @@ public class JWTPasswordCredentialsMatcher implements CredentialsMatcher {
 				//if(log.isEnabled()) log.getLogger().info("SimpleAuthentication token:" + token.getClass().getName());
 			
 	
-				PasswordDAO passwordDAO = (PasswordDAO) info.getCredentials();
+				CIPassword passwordDAO = (CIPassword) info.getCredentials();
 				String password = null;
 				
 				if (token.getCredentials() instanceof char[])

@@ -26,16 +26,16 @@ import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.security.CredentialInfo;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.SubjectIdentifier;
-import org.zoxweb.shared.security.shiro.ShiroRealmController;
-import org.zoxweb.shared.security.shiro.ShiroRealmControllerHolder;
+import org.zoxweb.shared.security.shiro.RealmController;
+import org.zoxweb.shared.security.shiro.RealmControllerHolder;
 
 public class ShiroXlogistXRealm
     extends AuthorizingRealm
-	implements ShiroRealmControllerHolder<AuthorizationInfo, PrincipalCollection>
+	implements RealmControllerHolder<AuthorizationInfo, PrincipalCollection>
 
 {
 
@@ -47,7 +47,7 @@ public class ShiroXlogistXRealm
 
 
 	//private ShiroRealmStore<AuthorizationInfo, PrincipalCollection> shiroStore = null;
-	private ShiroRealmController<AuthorizationInfo, PrincipalCollection> realmController = null;
+	private RealmController<AuthorizationInfo, PrincipalCollection> realmController = null;
 //
 //	private APISecurityManager<Subject, AuthorizationInfo, PrincipalCollection> apiSecurityManager;
 //
@@ -156,7 +156,7 @@ public class ShiroXlogistXRealm
 	        //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 	        // Null username is invalid
 	        
-	        PasswordDAO password = realmController.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
+	        CIPassword password = realmController.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
 	        if (password == null)
 	        {
 	        	throw new UnknownAccountException("No account found for user [" + dupToken.getSubjectGUID() + "]");
@@ -370,7 +370,7 @@ public class ShiroXlogistXRealm
 	 * @return shiro realm controller
 	 */
 	@Override
-	public ShiroRealmController<AuthorizationInfo, PrincipalCollection> getShiroRealmController() {
+	public RealmController<AuthorizationInfo, PrincipalCollection> getRealmController() {
 		return realmController;
 	}
 
@@ -378,7 +378,7 @@ public class ShiroXlogistXRealm
 	 * @param realmController to be set
 	 */
 	@Override
-	public synchronized void setShiroRealmController(ShiroRealmController<AuthorizationInfo, PrincipalCollection> realmController)
+	public synchronized void setRealmController(RealmController<AuthorizationInfo, PrincipalCollection> realmController)
 	{
 		this.realmController = realmController;
 	}

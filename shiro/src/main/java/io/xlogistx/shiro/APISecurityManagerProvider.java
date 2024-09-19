@@ -784,15 +784,18 @@ public class APISecurityManagerProvider
 		return  getShiroBaseRealm().updateRoleGroup(rolegroup);
 	}
 
+
+
 	/**
 	 * Create a subject identifier
 	 *
-	 * @param subjectIdentifier   the email or uuid identifier of the subject-
+	 * @param subjectIdentifier the subject identifier
+	 * @param credential        the subject credential
 	 * @return the created subject identifier
 	 * @throws AccessSecurityException if not permitted
 	 */
 	@Override
-	public SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier) throws AccessSecurityException {
+	public SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier, CredentialInfo credential) throws AccessSecurityException {
 		return null;
 	}
 
@@ -810,18 +813,7 @@ public class APISecurityManagerProvider
 		return null;
 	}
 
-	/**
-	 * Create a subject identifier
-	 *
-	 * @param subjectID   the email or uuid identifier of the subject
-	 * @param subjectType the type of the subject
-	 * @return the created subject identifier
-	 * @throws AccessSecurityException if not permitted
-	 */
-	@Override
-	public SubjectIdentifier addSubjectIdentifier(String subjectID, BaseSubjectID.SubjectType subjectType) throws AccessSecurityException {
-		return null;
-	}
+
 
 	/**
 	 * Delete a user identifier use with extreme care

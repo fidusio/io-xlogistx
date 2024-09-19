@@ -13,11 +13,11 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.server.http.HTTPAPIEndPoint;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.PasswordDAOHasher;
+import org.zoxweb.server.security.CIPasswordHasher;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CredentialHasher;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.http.HTTPAPIResult;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.security.shiro.ShiroSessionData;
@@ -40,7 +40,7 @@ implements SetNVProperties
     private final KVMapStore<String, AuthenticationInfo> kvAuthcInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
-    private CredentialHasher<PasswordDAO> credentialHasher = new PasswordDAOHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(64);
+    private CredentialHasher<CIPassword> credentialHasher = new CIPasswordHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(64);
 
 
 
@@ -97,7 +97,7 @@ implements SetNVProperties
             {
                 HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall(token);
                 if (log.isEnabled()) log.getLogger().info("remoteRealm " + result);
-                PasswordDAO passwordDAO = credentialHasher.hash((char[]) token.getCredentials());
+                CIPassword passwordDAO = credentialHasher.hash((char[]) token.getCredentials());
                 authenticationInfo = new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
 
                 kvSessionData.put((String) token.getPrincipal(), result.getData());
@@ -206,12 +206,12 @@ implements SetNVProperties
             if (log.isEnabled()) log.getLogger().info("credential-hasher: " + passwordHashConfig);
             if (passwordHashConfig != null) {
                 try {
-                    PasswordDAOHasher passwordDAOHasher = new PasswordDAOHasher();
-                    passwordDAOHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
+                    CIPasswordHasher passwordHasher = new CIPasswordHasher();
+                    passwordHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
                             .setIteration(passwordHashConfig.getValue("iteration"));
-                    credentialHasher = passwordDAOHasher;
+                    credentialHasher = passwordHasher;
                     if (log.isEnabled())
-                        log.getLogger().info("Credential hasher: " + passwordDAOHasher.getHashType() + " " + passwordDAOHasher.getIteration());
+                        log.getLogger().info("Credential hasher: " + passwordHasher.getHashType() + " " + passwordHasher.getIteration());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

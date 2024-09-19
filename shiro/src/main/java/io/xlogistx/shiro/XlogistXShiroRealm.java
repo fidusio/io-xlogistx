@@ -30,7 +30,7 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.api.APIAppManager;
 import org.zoxweb.shared.api.APISecurityManager;
-import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.data.AppDeviceDAO;
 import org.zoxweb.shared.data.UserIDDAO;
 import org.zoxweb.shared.security.CredentialInfo;
@@ -167,7 +167,7 @@ public class XlogistXShiroRealm
 	        //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
 	        // Null username is invalid
 	        
-	        PasswordDAO password = shiroStore.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
+	        CIPassword password = shiroStore.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
 	        if (password == null)
 	        {
 	        	throw new UnknownAccountException("No account found for user [" + dupToken.getSubjectGUID() + "]");

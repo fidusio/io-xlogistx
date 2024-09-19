@@ -41,8 +41,8 @@ import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
-import org.zoxweb.shared.security.shiro.ShiroRealmController;
-import org.zoxweb.shared.security.shiro.ShiroRealmControllerHolder;
+import org.zoxweb.shared.security.shiro.RealmController;
+import org.zoxweb.shared.security.shiro.RealmControllerHolder;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
 import org.zoxweb.shared.util.GetValue;
@@ -215,12 +215,12 @@ public class ShiroUtil
 		return null;
 	}
 
-	public static ShiroRealmController<AuthorizationInfo, PrincipalCollection> getShiroRealmManager()
+	public static RealmController<AuthorizationInfo, PrincipalCollection> getRealmController()
 	{
-		return getShiroRealmManager(SecurityUtils.getSecurityManager());
+		return getRealmController(SecurityUtils.getSecurityManager());
 	}
 
-	public static ShiroRealmController<AuthorizationInfo, PrincipalCollection> getShiroRealmManager(SecurityManager sm)
+	public static RealmController<AuthorizationInfo, PrincipalCollection> getRealmController(SecurityManager sm)
 	{
 		if (sm instanceof RealmSecurityManager)
 		{
@@ -230,13 +230,13 @@ public class ShiroUtil
 			{
 				for (Realm realm : realms)
 				{
-					if (realm instanceof ShiroRealmControllerHolder)
+					if (realm instanceof RealmControllerHolder)
 					{
-						return ((ShiroRealmControllerHolder<AuthorizationInfo, PrincipalCollection>) realm).getShiroRealmController();
+						return ((RealmControllerHolder<AuthorizationInfo, PrincipalCollection>) realm).getRealmController();
 					}
-					if (realm instanceof ShiroRealmController)
+					if (realm instanceof RealmController)
 					{
-						return (ShiroRealmController<AuthorizationInfo, PrincipalCollection>) realm;
+						return (RealmController<AuthorizationInfo, PrincipalCollection>) realm;
 					}
 				}
 			}

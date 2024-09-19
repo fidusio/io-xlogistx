@@ -43,7 +43,7 @@ public class RealmTest {
         subjectIdentifier.setSubjectID("root");
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
         ShiroRealmStore srs = realm.getShiroRealmStore();
-        srs.addSubjectIdentifier(subjectIdentifier);
+        srs.addSubjectIdentifier(subjectIdentifier, null );
 
         srs.addCredentialInfo("root", HashUtil.toBCryptPassword("secret1"));
 

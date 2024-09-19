@@ -11,7 +11,7 @@ import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.*;
@@ -69,24 +69,24 @@ public class TestSubjectSwap {
         subjectIDDAO.setSubjectID("root");
         XlogistXShiroRealm realm = ShiroUtil.getRealm(null);
         ShiroRealmStore srs = realm.getShiroRealmStore();
-        srs.addSubjectIdentifier(subjectIDDAO);
-        PasswordDAO rootPasswordDAO = HashUtil.toBCryptPassword("secret1");
-        String bcryptedPassword = rootPasswordDAO.toCanonicalID();
+        srs.addSubjectIdentifier(subjectIDDAO, null);
+        CIPassword rootCIPassword = HashUtil.toBCryptPassword("secret1");
+        String bcryptedPassword = rootCIPassword.toCanonicalID();
         log.getLogger().info(bcryptedPassword);
-        srs.addCredentialInfo("root", PasswordDAO.fromCanonicalID(bcryptedPassword));
+        srs.addCredentialInfo("root", CIPassword.fromCanonicalID(bcryptedPassword));
 
 
 
         subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("mario");
-        srs.addSubjectIdentifier(subjectIDDAO);
+        srs.addSubjectIdentifier(subjectIDDAO, null);
         srs.addCredentialInfo("mario", "password1");
 
         subjectIDDAO = new SubjectIdentifier();
         subjectIDDAO.setSubjectType(BaseSubjectID.SubjectType.USER);
         subjectIDDAO.setSubjectID("toSwapWith");
-        srs.addSubjectIdentifier(subjectIDDAO);
+        srs.addSubjectIdentifier(subjectIDDAO, null);
         srs.addCredentialInfo("toSwapWith", "batata1");
     }
 

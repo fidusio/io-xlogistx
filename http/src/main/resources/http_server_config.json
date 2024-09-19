@@ -111,7 +111,7 @@
       "methods": [ "GET"],
       "protocols": ["HTTP", "HTTPS"],
       "properties": {
-        "base_folder": "/webs/xlogistx.io",
+        "base_folder": "/webs/test",
         "default_file": "index.html",
         "caching": true
       }

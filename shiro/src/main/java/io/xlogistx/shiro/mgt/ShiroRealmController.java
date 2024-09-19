@@ -4,7 +4,7 @@ import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.shared.api.APIDataStore;
-import org.zoxweb.shared.crypto.PasswordDAO;
+import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.db.QueryMatchString;
 import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.security.*;
@@ -15,8 +15,8 @@ import org.zoxweb.shared.util.*;
 import java.util.Set;
 import java.util.UUID;
 
-public class ShiroRealmManager
-implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
+public class ShiroRealmController
+implements RealmController<AuthorizationInfo, PrincipalCollection>
 
 {
 
@@ -46,46 +46,29 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
         toCreate.setSubjectID(subjectID);
         toCreate.setSubjectType(subjectType);
         toCreate.setGUID(UUID.randomUUID().toString());
-        toCreate = addSubjectIdentifier(toCreate);
-        // set the credential
-        if (credential instanceof NVEntity)
-        {
-            ((NVEntity) credential).setGUID(toCreate.getGUID());
-            ((NVEntity) credential).setSubjectGUID(toCreate.getSubjectGUID());
-            getDataStore().insert((NVEntity)credential);
-        }
+        toCreate = addSubjectIdentifier(toCreate, credential);
         return toCreate;
     }
 
-    /**
-     * Create a subject identifier
-     * @param subjectID the email or uuid identifier of the subject
-     * @param subjectType the type of the subject
-     * @return the created subject identifier
-     * @throws AccessSecurityException if not permitted
-     */
-    public SubjectIdentifier addSubjectIdentifier(String subjectID, BaseSubjectID.SubjectType subjectType) throws AccessSecurityException {
-       return addSubjectIdentifier(subjectID, subjectType, null);
-    }
+
 
     /**
      * Create a subject identifier
      *
      * @param subjectIdentifier the subject identifier
+     * @param credential        the subject credential
      * @return the created subject identifier
      * @throws AccessSecurityException if not permitted
      */
     @Override
-    public synchronized SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier) throws AccessSecurityException {
-
+    public SubjectIdentifier addSubjectIdentifier(SubjectIdentifier subjectIdentifier, CredentialInfo credential) throws AccessSecurityException {
+        SubjectIdentifier toInsert = lookupSubjectIdentifier(subjectIdentifier.getSubjectID());
         // 1 check if the subject exist
         //   yes throw exception
         // 2 no subject do not exist
         // 3 create subject identifier
         // 4 set GUID and subjectGUID to the same value
         // 5 use dataStore to persist subject
-
-        SubjectIdentifier toInsert = lookupSubjectIdentifier(subjectIdentifier.getSubjectID());
 
         if (toInsert != null)
             throw new AccessSecurityException(subjectIdentifier.getSubjectID() + " Already exists.");
@@ -109,6 +92,13 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
         subjectInfo.setSubjectGUID(subjectIdentifier.getSubjectGUID());
         getDataStore().insert(subjectInfo);
         getDataStore().insert(subjectPreference);
+
+        if (credential instanceof NVEntity)
+        {
+            ((NVEntity) credential).setGUID(toInsert.getGUID());
+            ((NVEntity) credential).setSubjectGUID(toInsert.getSubjectGUID());
+            getDataStore().insert((NVEntity)credential);
+        }
         return toInsert;
     }
 
@@ -158,7 +148,7 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
         switch (credentialType)
         {
             case PASSWORD:
-               ret = getDataStore().findOne(PasswordDAO.NVCE_PASSWORD_DAO,
+               ret = getDataStore().findOne(CIPassword.NVCE_CI_PASSWORD,
                        null,
                        QueryMatchString.toQueryMatch(MetaToken.SUBJECT_GUID.getName() + "=" + subjectIdentifier.getSubjectGUID()),
                        QueryMatchString.toQueryMatch(MetaToken.GUID.getName() + "=" + subjectIdentifier.getGUID()));
@@ -191,9 +181,9 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
         // if subject is null
         if(subjectIdentifier == null)
             throw new NotFoundException( subjectID + " do not exit");
-        if(ci instanceof  PasswordDAO)
+        if(ci instanceof  CIPassword)
         {
-            PasswordDAO password = (PasswordDAO) ci;
+            CIPassword password = (CIPassword) ci;
             password.setGUID(subjectIdentifier.getGUID());
             password.setSubjectGUID(subjectIdentifier.getSubjectGUID());
             return getDataStore().insert(password);
@@ -238,6 +228,10 @@ implements ShiroRealmController<AuthorizationInfo, PrincipalCollection>
      */
     @Override
     public CredentialInfo deleteCredentialInfo(CredentialInfo ci) throws AccessSecurityException {
+        if (ci instanceof CIPassword)
+        {
+            return getDataStore().delete((CIPassword)ci, false) ? ci : null;
+        }
         return null;
     }
 

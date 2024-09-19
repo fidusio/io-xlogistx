@@ -2,7 +2,6 @@ package io.xlogistx.opsec.services;
 
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.shiro.ShiroUtil;
-import org.zoxweb.shared.security.shiro.ShiroRealmController;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -10,6 +9,8 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.model.SecurityModel;
+import org.zoxweb.shared.security.shiro.RealmController;
+
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 
@@ -21,7 +22,7 @@ extends PropertyHolder
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_USER)
     public SimpleMessage createSubject(@ParamProp(name="",source = Const.ParamSource.PAYLOAD) NVGenericMap subjectInfoCredentials)
     {
-        ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
+        RealmController realmManager = ShiroUtil.getRealmController();
         // get the subject info from the
         String subjectID = subjectInfoCredentials.lookup("subject_id");
 
@@ -36,7 +37,7 @@ extends PropertyHolder
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_DELETE_SUBJECT)
     public SimpleMessage createSubject(@ParamProp( name = "subject_id") String subjectID)
     {
-        ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
+        RealmController realmManager = ShiroUtil.getRealmController();
 
 
         return null;
@@ -47,7 +48,7 @@ extends PropertyHolder
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_PERMISSION)
     public SimpleMessage createPermission(@ParamProp(name="",source = Const.ParamSource.PAYLOAD) NVGenericMap permissionInfo)
     {
-        ShiroRealmController realmManager = ShiroUtil.getShiroRealmManager();
+        RealmController realmManager = ShiroUtil.getRealmController();
 
 
         return null;
