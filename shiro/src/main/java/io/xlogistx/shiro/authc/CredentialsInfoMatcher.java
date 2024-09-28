@@ -14,8 +14,8 @@ import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.util.Const.Status;
 import org.zoxweb.shared.util.SharedStringUtil;
 
-public class CredentialInfoMatcher implements CredentialsMatcher {
-	public static final LogWrapper log = new LogWrapper(CredentialInfoMatcher.class).setEnabled(false);
+public class CredentialsInfoMatcher implements CredentialsMatcher {
+	public static final LogWrapper log = new LogWrapper(CredentialsInfoMatcher.class).setEnabled(false);
 	private static final SimpleCredentialsMatcher SIMPLE_C_M = new SimpleCredentialsMatcher();
 	@Override
 	public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)

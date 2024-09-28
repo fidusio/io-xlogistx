@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.crypto.EncryptedDAO;
-import org.zoxweb.shared.crypto.EncryptedKeyDAO;
+import org.zoxweb.shared.crypto.EncryptedData;
+import org.zoxweb.shared.crypto.EncryptedKey;
 import org.zoxweb.shared.util.*;
 
 import javax.crypto.*;
@@ -69,7 +69,7 @@ public class PKIEncryption {
         NVGenericMap nvgm = new NVGenericMap();
         nvgm.add(new NVBlob("rsa", encryptedData));
         SecretKey aes = CryptoUtil.generateKey(CryptoConst.CryptoAlgo.AES, 256);
-        EncryptedDAO edao = CryptoUtil.encryptDAO(new EncryptedDAO(), aes.getEncoded(), data);
+        EncryptedData edao = CryptoUtil.encryptData(new EncryptedData(), aes.getEncoded(), data);
         nvgm.add("aes", edao);
         String json = GSONUtil.toJSONGenericMap(nvgm, false, false, true);
         System.out.println(json);
@@ -80,8 +80,8 @@ public class PKIEncryption {
         byte[] decryptedData = CryptoUtil.decrypt(kp.getPrivate(), nvgm.getValue("rsa"));
         System.out.println("RSA Decrypted data: " + new String(decryptedData));
         System.out.println(new String(decryptedData));
-        edao = (EncryptedDAO) nvgm.getValue("aes");
-        decryptedData = CryptoUtil.decryptEncryptedDAO(edao, aes.getEncoded());
+        edao = (EncryptedData) nvgm.getValue("aes");
+        decryptedData = CryptoUtil.decryptEncryptedData(edao, aes.getEncoded());
         System.out.println("Decrypted data: " + SharedStringUtil.bytesToHex(decryptedData));
         System.out.println(new String(decryptedData));
 
@@ -127,13 +127,13 @@ public class PKIEncryption {
         SecretKey keySelf =  selfV.generateSecret("TlsPremasterSecret");
         System.out.println("key:"  + SharedUtil.toCanonicalID(',',keySelf.getAlgorithm(), keySelf.getEncoded().length, keySelf.getFormat(), SharedStringUtil.bytesToHex(keySelf.getEncoded())));
 
-        EncryptedKeyDAO ecd = CryptoUtil.createEncryptedKeyDAO(keySelf.getEncoded());
+        EncryptedKey ecd = CryptoUtil.createEncryptedKey(keySelf.getEncoded());
         System.out.println(GSONUtil.toJSON(ecd, true));
 
         byte[] data = SharedStringUtil.getBytes("Hello World of cipher and key makers. Matrix Neo and  LANA");
         System.out.println(SharedBase64.encodeAsString(SharedBase64.Base64Type.URL, data));
         System.out.println(SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, data));
-        EncryptedDAO encryptedData = CryptoUtil.encryptDAO(new EncryptedDAO(), keySelf.getEncoded(), data);
+        EncryptedData encryptedData = CryptoUtil.encryptData(new EncryptedData(), keySelf.getEncoded(), data);
         String encryptedDataJson = GSONUtil.toJSON(encryptedData, true, false, true, SharedBase64.Base64Type.URL);
         encryptedData = GSONUtil.fromJSON(encryptedDataJson);
         System.out.println(encryptedDataJson);
@@ -142,7 +142,7 @@ public class PKIEncryption {
         SharedBase64.Base64Type b64Type = SharedBase64.detectType(b64EncData);
         System.out.println(b64Type + ":" + encryptedData.getEncryptedData().length + ":" + b64EncData.length()
                 + ": " + b64EncData );
-        System.out.println(SharedStringUtil.toString(CryptoUtil.decryptEncryptedDAO(encryptedData, keySelf.getEncoded())));
+        System.out.println(SharedStringUtil.toString(CryptoUtil.decryptEncryptedData(encryptedData, keySelf.getEncoded())));
 
     }
 }

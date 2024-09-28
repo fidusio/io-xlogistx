@@ -14,8 +14,8 @@ import org.zoxweb.shared.api.APICredentialsDAO;
 import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.api.APITokenDAO;
-import org.zoxweb.shared.crypto.EncryptedDAO;
-import org.zoxweb.shared.crypto.EncryptedKeyDAO;
+import org.zoxweb.shared.crypto.EncryptedData;
+import org.zoxweb.shared.crypto.EncryptedKey;
 import org.zoxweb.shared.data.DataConst.SessionParam;
 import org.zoxweb.shared.data.MessageTemplateDAO;
 import org.zoxweb.shared.data.UserIDDAO;
@@ -100,7 +100,7 @@ public class APISecurityManagerProvider
 			byte dataKey[] = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getReferenceID());
 			try
 			{
-				return CryptoUtil.encryptDAO(new EncryptedDAO(), dataKey, BytesValueFilter.SINGLETON.validate(nvb));
+				return CryptoUtil.encryptData(new EncryptedData(), dataKey, BytesValueFilter.SINGLETON.validate(nvb));
 				
 			} catch (InvalidKeyException | NullPointerException
 					| IllegalArgumentException | NoSuchAlgorithmException
@@ -173,7 +173,7 @@ public class APISecurityManagerProvider
 			throws NullPointerException, IllegalArgumentException, AccessException
 		{
 		
-			if (container instanceof EncryptedDAO)
+			if (container instanceof EncryptedData)
 			{
 				return nvp != null ? nvp.getValue() : null;
 			}
@@ -187,8 +187,8 @@ public class APISecurityManagerProvider
 				byte dataKey[] = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getReferenceID());
 				try
 				{
-					EncryptedDAO ed = EncryptedDAO.fromCanonicalID(nvp.getValue());
-					byte data[] = CryptoUtil.decryptEncryptedDAO(ed, dataKey);
+					EncryptedData ed = EncryptedData.fromCanonicalID(nvp.getValue());
+					byte data[] = CryptoUtil.decryptEncryptedData(ed, dataKey);
 					
 					nvp.setValue( new String(data, SharedStringUtil.UTF_8));
 					return nvp.getValue();
@@ -213,7 +213,7 @@ public class APISecurityManagerProvider
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
 	
-		if (container instanceof EncryptedDAO && !(container instanceof EncryptedKeyDAO))
+		if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
 		{
 			container.setValue(nvb.getName(), value);
 			return nvb.getValue();
@@ -223,14 +223,14 @@ public class APISecurityManagerProvider
 		SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvb);
 		NVConfig nvc = ((NVConfigEntity)container.getNVConfig()).lookup(nvb.getName());
 		
-		if (value instanceof EncryptedDAO && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
+		if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
 		{
 			
 			byte dataKey[] = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getReferenceID());
 			try
 			{
 				
-				byte data[] = CryptoUtil.decryptEncryptedDAO((EncryptedDAO) value, dataKey);
+				byte data[] = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
 				
 				BytesValueFilter.setByteArrayToNVBase(nvb, data);
 				
@@ -260,7 +260,7 @@ public class APISecurityManagerProvider
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
 	
-		if (container instanceof EncryptedDAO && !(container instanceof EncryptedKeyDAO))
+		if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
 		{
 			
 			return value;
@@ -269,7 +269,7 @@ public class APISecurityManagerProvider
 	
 		SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container);
 		
-		if (value instanceof EncryptedDAO)
+		if (value instanceof EncryptedData)
 		{
 			//if(log.isEnabled()) log.getLogger().info("userID:" + userID);
 			
@@ -277,7 +277,7 @@ public class APISecurityManagerProvider
 			try
 			{
 				
-				byte data[] = CryptoUtil.decryptEncryptedDAO((EncryptedDAO) value, dataKey);
+				byte data[] = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
 				return BytesValueFilter.bytesToValue(String.class, data);
 				
 				

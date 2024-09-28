@@ -18,7 +18,7 @@ import org.zoxweb.shared.accounting.AmountDAO;
 import org.zoxweb.shared.accounting.Currency;
 import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.crypto.EncryptedDAO;
+import org.zoxweb.shared.crypto.EncryptedData;
 import org.zoxweb.shared.data.*;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.JWT;
@@ -397,12 +397,12 @@ public class XXClientAPI {
       add = createAppDevice(url, subjectID, password, domainID, appID);
       for (int i = 0; i < repeat; i++) {
         String sData = "hello";
-        EncryptedDAO ed = new EncryptedDAO();
-        ed = CryptoUtil.encryptDAO(ed, add.getAPIKeyAsBytes(), SharedStringUtil.getBytes(sData));
+        EncryptedData ed = new EncryptedData();
+        ed = CryptoUtil.encryptData(ed, add.getAPIKeyAsBytes(), SharedStringUtil.getBytes(sData));
         String json = GWRAPPER.toJSON(ed, false, false, false);
         System.out.println(json);
-        ed = GWRAPPER.fromJSON(json, EncryptedDAO.class);
-        byte data[] = CryptoUtil.decryptEncryptedDAO(ed, add.getAPIKeyAsBytes());
+        ed = GWRAPPER.fromJSON(json, EncryptedData.class);
+        byte data[] = CryptoUtil.decryptEncryptedData(ed, add.getAPIKeyAsBytes());
         System.out.println("Decrypted data:" + SharedStringUtil.toString(data));
       }
     } finally {
@@ -438,9 +438,9 @@ public class XXClientAPI {
       HTTPResponseData hrd = hc.sendRequest();
 
       NVEntity nve = GWRAPPER.fromJSON(hrd.getData());
-      if (encrypt && nve instanceof EncryptedDAO) {
+      if (encrypt && nve instanceof EncryptedData) {
         add = GWRAPPER
-            .fromJSON(CryptoUtil.decryptEncryptedDAO((EncryptedDAO) nve, add.getAPIKeyAsBytes()));
+            .fromJSON(CryptoUtil.decryptEncryptedData((EncryptedData) nve, add.getAPIKeyAsBytes()));
       } else {
         add = (AppDeviceDAO) nve;
       }

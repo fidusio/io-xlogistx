@@ -26,7 +26,7 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
-import org.zoxweb.shared.net.InetSocketAddressDAO;
+import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
 
@@ -443,7 +443,7 @@ public class NIOHTTPServer
                     URIScheme uriScheme = SharedUtil.lookupEnum(scheme, URIScheme.values());
                     if (uriScheme != null)
                     {
-                        InetSocketAddressDAO serverAddress;
+                        IPAddress serverAddress;
                         switch (uriScheme)
                         {
                             case HTTPS:

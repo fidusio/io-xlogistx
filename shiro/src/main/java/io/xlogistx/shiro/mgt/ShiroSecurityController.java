@@ -8,8 +8,8 @@ import org.zoxweb.server.security.KeyMakerProvider;
 import org.zoxweb.shared.api.APICredentialsDAO;
 import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.api.APITokenDAO;
-import org.zoxweb.shared.crypto.EncryptedDAO;
-import org.zoxweb.shared.crypto.EncryptedKeyDAO;
+import org.zoxweb.shared.crypto.EncryptedData;
+import org.zoxweb.shared.crypto.EncryptedKey;
 import org.zoxweb.shared.data.MessageTemplateDAO;
 import org.zoxweb.shared.filters.BytesValueFilter;
 import org.zoxweb.shared.filters.ChainedFilter;
@@ -74,7 +74,7 @@ public class ShiroSecurityController
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
             try
             {
-                return CryptoUtil.encryptDAO(new EncryptedDAO(), dataKey, BytesValueFilter.SINGLETON.validate(nvb));
+                return CryptoUtil.encryptData(new EncryptedData(), dataKey, BytesValueFilter.SINGLETON.validate(nvb));
 
             } catch (InvalidKeyException | NullPointerException
                      | IllegalArgumentException | NoSuchAlgorithmException
@@ -141,7 +141,7 @@ public class ShiroSecurityController
             throws NullPointerException, IllegalArgumentException, AccessException
     {
 
-        if (container instanceof EncryptedDAO)
+        if (container instanceof EncryptedData)
         {
             return nvp != null ? nvp.getValue() : null;
         }
@@ -155,8 +155,8 @@ public class ShiroSecurityController
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
             try
             {
-                EncryptedDAO ed = EncryptedDAO.fromCanonicalID(nvp.getValue());
-                byte[] data = CryptoUtil.decryptEncryptedDAO(ed, dataKey);
+                EncryptedData ed = EncryptedData.fromCanonicalID(nvp.getValue());
+                byte[] data = CryptoUtil.decryptEncryptedData(ed, dataKey);
 
                 nvp.setValue(SharedStringUtil.toString(data));
                 return nvp.getValue();
@@ -183,7 +183,7 @@ public class ShiroSecurityController
             throws NullPointerException, IllegalArgumentException, AccessException
     {
 
-        if (container instanceof EncryptedDAO && !(container instanceof EncryptedKeyDAO))
+        if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
         {
             container.setValue(nvb.getName(), value);
             return nvb.getValue();
@@ -193,14 +193,14 @@ public class ShiroSecurityController
         SharedUtil.checkIfNulls("Null parameters", container.getGUID(), nvb);
         NVConfig nvc = ((NVConfigEntity)container.getNVConfig()).lookup(nvb.getName());
 
-        if (value instanceof EncryptedDAO && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
+        if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
         {
 
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
             try
             {
 
-                byte[] data = CryptoUtil.decryptEncryptedDAO((EncryptedDAO) value, dataKey);
+                byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
 
                 BytesValueFilter.setByteArrayToNVBase(nvb, data);
 
@@ -230,7 +230,7 @@ public class ShiroSecurityController
             throws NullPointerException, IllegalArgumentException, AccessException
     {
 
-        if (container instanceof EncryptedDAO && !(container instanceof EncryptedKeyDAO))
+        if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
         {
             return value;
         }
@@ -238,7 +238,7 @@ public class ShiroSecurityController
 
         SharedUtil.checkIfNulls("Null parameters", container.getGUID());
 
-        if (value instanceof EncryptedDAO)
+        if (value instanceof EncryptedData)
         {
             //if(log.isEnabled()) log.getLogger().info("userID:" + userID);
 
@@ -246,7 +246,7 @@ public class ShiroSecurityController
             try
             {
 
-                byte[] data = CryptoUtil.decryptEncryptedDAO((EncryptedDAO) value, dataKey);
+                byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
                 return BytesValueFilter.bytesToValue(String.class, data);
 
 

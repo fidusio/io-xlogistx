@@ -23,7 +23,7 @@ import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.net.ConnectionConfig;
-import org.zoxweb.shared.net.InetSocketAddressDAO;
+import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.DaemonController;
 import org.zoxweb.shared.util.NVGenericMap;
@@ -77,7 +77,7 @@ public class HTTPBasicServer
           if (uriScheme != null)
           {
             String serverId = null;
-            InetSocketAddressDAO serverAddress = null;
+            IPAddress serverAddress = null;
             InetSocketAddress isa = null;
             switch (uriScheme)
             {
