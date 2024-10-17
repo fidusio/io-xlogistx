@@ -243,7 +243,7 @@ public class NIOHTTPServer
                     logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
                     logger.getLogger().info("" + hph.getRequest().getHeaders());
                 }
-                URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+                URIMap.URIMapResult<EndPointMeta> epm = getEndPointsManager().lookupWithPath(hph.getRequest().getURI());
                 if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
 
@@ -274,7 +274,7 @@ public class NIOHTTPServer
                             logger.getLogger().info(epm.path);
                         }
 
-                        Map<String, Object> parameters = EndPointsManager.buildParameters(epm, hph.getRequest());
+                        Map<String, Object> parameters = getEndPointsManager().buildParameters(epm, hph.getRequest());
                         Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
                                 epm.result.methodHolder.getMethodAnnotations(),
                                 parameters);
@@ -524,6 +524,11 @@ public class NIOHTTPServer
             ResourceManager.SINGLETON.register("keep-alive-config", keepAliveConfig);
 
 
+    }
+
+    public EndPointsManager getEndPointsManager()
+    {
+        return endPointsManager;
     }
 
     public static void main(String... args) {

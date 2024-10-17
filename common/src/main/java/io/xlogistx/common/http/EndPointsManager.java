@@ -6,13 +6,11 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.annotation.EndPointProp;
-import org.zoxweb.shared.annotation.ParamProp;
-import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.annotation.*;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPEndPoint;
-import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPMediaType;
+import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.util.*;
 
@@ -20,10 +18,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class EndPointsManager {
 
@@ -34,6 +29,8 @@ public class EndPointsManager {
 
     private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
 
+    private final Map<String, Object> beanMaps = new LinkedHashMap<>();
+
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh)
     {
         uri = SharedStringUtil.toTrimmedLowerCase(uri);
@@ -41,6 +38,25 @@ public class EndPointsManager {
         EndPointMeta epm = new EndPointMeta(hep, mh);
         uriEndPointMeta.put(uri, epm);
         return epm;
+    }
+
+    private void mapBean(Object bean, MappedProp mappedProp)
+    {
+        if (mappedProp != null)
+        {
+            log.getLogger().info("MappedProp found: " + mappedProp);
+            beanMaps.put(mappedProp.name(), bean);
+            if(SUS.isNotEmpty(mappedProp.id()))
+                beanMaps.put(mappedProp.id(), bean);
+        }
+
+        log.getLogger().info("class name " + bean.getClass().getName());
+        beanMaps.put(bean.getClass().getName(), bean);
+    }
+
+    public synchronized <B> B lookupBean(String beanID)
+    {
+        return (B)beanMaps.get(beanID);
     }
 
 
@@ -117,17 +133,31 @@ public class EndPointsManager {
             if (outer.getMethods() != null && outer.getMethods().length > 0)
                 inner.setMethods(outer.getMethods());
 
-            if (pathOverride && outer.getPaths().length > 0)
+//            if (pathOverride && outer.getPaths().length > 0)
+//                inner.setPaths(outer.getPaths());
+//            if (outer.getPermissions() != null && !outer.getPermissions().isEmpty())
+//                inner.setPermissions(outer.permissions());
+//            if (outer.getRoles() != null && outer.getRoles().size() > 0)
+//                inner.setRoles(outer.roles());
+//            if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
+//                inner.setAuthenticationTypes(outer.getAuthenticationTypes());
+//            if (outer.getRestrictions() != null && outer.getRestrictions().size() > 0)
+//                inner.setRestrictions(outer.restrictions());
+//            if (outer.getProtocols() != null && outer.getProtocols().length > 0)
+//                inner.setProtocols(outer.getProtocols());
+
+
+            if (pathOverride && SUS.isNotEmpty(outer.getPaths()))
                 inner.setPaths(outer.getPaths());
-            if (outer.getPermissions() != null && outer.getPermissions().size() > 0)
+            if (SUS.isNotEmpty(outer.getPermissions()))
                 inner.setPermissions(outer.permissions());
-            if (outer.getRoles() != null && outer.getRoles().size() > 0)
+            if (SUS.isNotEmpty(outer.getRoles()))
                 inner.setRoles(outer.roles());
-            if (outer.getAuthenticationTypes() != null && outer.getAuthenticationTypes().length > 0)
+            if (SUS.isNotEmpty(outer.getAuthenticationTypes()))
                 inner.setAuthenticationTypes(outer.getAuthenticationTypes());
-            if (outer.getRestrictions() != null && outer.getRestrictions().size() > 0)
+            if (SUS.isNotEmpty(outer.getRestrictions()))
                 inner.setRestrictions(outer.restrictions());
-            if (outer.getProtocols() != null && outer.getProtocols().length > 0)
+            if (SUS.isNotEmpty(outer.getProtocols()))
                 inner.setProtocols(outer.getProtocols());
 
             inner.getProperties().add(outer.getProperties().values(), true);
@@ -192,7 +222,21 @@ public class EndPointsManager {
 
                 {
                     if(log.isEnabled()) log.getLogger().info("Scan the class");
-                    ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
+                    ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, MappedProp.class);
+                    // --- Map the bean to the mapped id
+                    if(classAnnotationMap != null && SUS.isNotEmpty(classAnnotationMap.getClassAnnotations()))
+                    {
+                        ret.mapBean(beanInstance, (MappedProp)classAnnotationMap.getClassAnnotations()[0]);
+                    }
+                    else
+                    {
+                        ret.mapBean(beanInstance, null);
+                    }
+                    // ---
+
+                    // -- process the rest of the annocation
+                    classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
+
 
                     //if(log.isEnabled()) log.getLogger().info("Class Annotation:" + classAM);
                     if (classAnnotationMap != null)

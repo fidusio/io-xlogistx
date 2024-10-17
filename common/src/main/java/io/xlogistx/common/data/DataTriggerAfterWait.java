@@ -1,7 +1,7 @@
 package io.xlogistx.common.data;
 
 import org.zoxweb.shared.util.NamedDescription;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 public class DataTriggerAfterWait<D>
     extends NamedDescription
@@ -18,7 +18,7 @@ public class DataTriggerAfterWait<D>
 
     public DataTriggerAfterWait(Enum<?> name, long waitTime)
     {
-        super(SharedUtil.enumName(name));
+        super(SUS.enumName(name));
         setWaitTime(waitTime);
     }
 
@@ -29,7 +29,7 @@ public class DataTriggerAfterWait<D>
 
     public DataTriggerAfterWait(Enum<?> name)
     {
-        super(SharedUtil.enumName(name));
+        super(SUS.enumName(name));
     }
 
     public long getWaitTime() {

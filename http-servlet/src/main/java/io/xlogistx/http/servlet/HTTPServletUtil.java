@@ -509,7 +509,8 @@ public class HTTPServletUtil
 			if (HttpServlet.class.isAssignableFrom(c)) {
 				HTTPEndPoint servletHep = servletToEndPoint(c);
 				if (hep.getName().equals(hep.getBean())) hep.setName(servletHep.getName());
-				if (SharedUtil.isEmpty(hep.getPaths())) hep.setPaths(servletHep.getPaths());
+
+				if (!SUS.isNotEmpty(hep.getPaths())) hep.setPaths(servletHep.getPaths());
 
 				ServletRegistration.Dynamic registration = sc.addServlet(hep.getName(), (Class<? extends Servlet>) c);
 				registration.addMapping(hep.getPaths());

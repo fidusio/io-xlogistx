@@ -31,7 +31,7 @@ public class OktaCache {
 
 
         for(RateCount rc : RateCount.values())
-            getCache().addObject(CacheType.RATE_COUNTER, new RateCounter(SharedUtil.enumName(rc)));
+            getCache().addObject(CacheType.RATE_COUNTER, new RateCounter(SUS.enumName(rc)));
 
 
 

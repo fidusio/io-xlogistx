@@ -8,6 +8,7 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.DateUtil;
 import org.zoxweb.server.util.RuntimeUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
+import org.zoxweb.shared.annotation.MappedProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
@@ -16,7 +17,7 @@ import org.zoxweb.shared.util.*;
 
 import java.util.Date;
 
-
+@MappedProp(name = "ping", id = "ping-class")
 public class Ping
     extends PropertyHolder
 {
