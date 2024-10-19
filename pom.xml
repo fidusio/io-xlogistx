@@ -53,6 +53,7 @@
       <module>okta</module>
       <module>opsec</module>
       <module>assembly</module>
+      <module>widgets</module>
   </modules>
   
   
