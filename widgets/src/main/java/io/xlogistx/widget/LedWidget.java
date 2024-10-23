@@ -1,20 +1,14 @@
 package io.xlogistx.widget;
 
-import org.zoxweb.shared.util.GetName;
-
-import javax.swing.*;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * LedWidget is a custom Swing component that displays a filled circle (LED)
  * which can be toggled between "on" and "off" states with customizable colors.
  */
-public class LedWidget extends JPanel {
+public class LedWidget extends StatusWidget<Color> {
 
-    private Color currentColor;
-    private final Map<String, Color> colorMap = new HashMap<>();
+
     /**
      * Constructs a LedWidget with specified dimensions and colors.
      *
@@ -25,67 +19,9 @@ public class LedWidget extends JPanel {
     public LedWidget(int width, int height, Color defaultColor) {
         // Set preferred size
         this.setPreferredSize(new Dimension(width, height));
-        setStatusColor(defaultColor);
+        setMappedStatus(defaultColor);
     }
 
-    public LedWidget mapColors(Enum<?> tag, Color color)
-    {
-        colorMap.put(tag.name(), color);
-        if(tag instanceof GetName)
-        {
-            colorMap.put(((GetName) tag).getName(), color);
-        }
-        return this;
-    }
-
-    public LedWidget mapColors(String tag, Color color)
-    {
-        colorMap.put(tag, color);
-        return this;
-    }
-
-//    /**
-//     * Toggles the LED state between on and off.
-//     */
-//    public void toggleState() {
-//        this.isOn = !this.isOn;
-//        repaint(); // Repaint the widget to reflect the state change
-//    }
-
-   public boolean setStatus(String status)
-   {
-       return setStatusColor(getStatusColor(status));
-   }
-
-   public boolean setStatus(Enum<?> status)
-   {
-       return setStatusColor(getStatucColor(status));
-   }
-
-   private boolean setStatusColor(Color color)
-   {
-       if(color != null)
-       {
-           currentColor = color;
-           repaint();
-           return true;
-       }
-       return false;
-   }
-
-
-    public Color getStatucColor(Enum<?> status)
-    {
-        Color ret = colorMap.get(status.name());
-        if (ret == null && status instanceof GetName)
-            ret = colorMap.get(((GetName) status).getName());
-
-        return ret;
-    }
-    public Color getStatusColor(String status)
-    {
-        return colorMap.get(status);
-    }
 
 
     /**
@@ -107,7 +43,7 @@ public class LedWidget extends JPanel {
     private void drawLED(Graphics g) {
         Graphics2D g2d = (Graphics2D) g.create();
 
-        // Enable anti-aliasing for smooth edges
+        // Enable antialiasing for smooth edges
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
 
@@ -120,7 +56,7 @@ public class LedWidget extends JPanel {
 
 
         // Fill with the off color
-        g2d.setColor(currentColor);
+        g2d.setColor(currentValue);
         g2d.fillOval(x, y, diameter, diameter);
 
 

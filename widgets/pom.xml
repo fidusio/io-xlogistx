@@ -12,6 +12,9 @@
     <artifactId>xlogistx-widget</artifactId>
     <packaging>jar</packaging>
 
+
+
+
     <build>
         <directory>target</directory>
         <resources>
@@ -73,6 +76,8 @@
             <artifactId>xlogistx-shiro</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
+
+
 
 
     </dependencies>
