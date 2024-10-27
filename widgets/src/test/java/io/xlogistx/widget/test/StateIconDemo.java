@@ -88,9 +88,9 @@ public class StateIconDemo {
 
                 // Create StateIcon with default state "OFF"
                 IconWidget stateIcon = new IconWidget(40,40);
-                stateIcon.mapIcon("youtube", youtubeIcon)
-                        .mapIcon("xlogistx", xlogistxIcon)
-                        .mapIcon("google", googleIcon);
+                stateIcon.mapStatus("youtube", youtubeIcon)
+                        .mapStatus("xlogistx", xlogistxIcon)
+                        .mapStatus("google", googleIcon);
 
                 stateIcon.setStatus("google");
 

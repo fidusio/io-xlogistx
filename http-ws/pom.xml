@@ -19,7 +19,7 @@
             <version>${zoxweb-core.version}</version>
         </dependency>
 
-        <dependency>
+        <!--<dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
@@ -29,7 +29,7 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
-        </dependency>
+        </dependency> -->
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-http</artifactId>

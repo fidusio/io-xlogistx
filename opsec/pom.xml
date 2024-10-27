@@ -57,21 +57,24 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.zoxweb</groupId>
-            <artifactId>zoxweb-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
+
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-core</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
 
-        <dependency>
+        <!--<dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
+
+
+            <dependency>
+            <groupId>org.zoxweb</groupId>
+            <artifactId>zoxweb-core</artifactId>
         </dependency>
+
+        </dependency>-->
 
         <dependency>
             <groupId>com.jcraft</groupId>

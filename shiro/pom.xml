@@ -29,16 +29,23 @@
 	  <artifactId>zoxweb-core</artifactId>
 	  <scope>provided</scope>
 	</dependency>
-    <dependency>
+    <!--<dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
     </dependency>
-
+    -->
     <dependency>
         <groupId>org.apache.shiro</groupId>
         <artifactId>shiro-core</artifactId>
         <version>${apache.shiro.version}</version>
     </dependency>
+    <!--<dependency>
+      <groupId>org.apache.shiro</groupId>
+      <artifactId>shiro-web</artifactId>
+      <version>${apache.shiro.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    -->
 
 
     <dependency>
@@ -70,12 +77,6 @@
       <artifactId>ehcache</artifactId>
       <version>${ehcache-org.version}</version>
     </dependency>
-      <dependency>
-          <groupId>org.apache.shiro</groupId>
-          <artifactId>shiro-web</artifactId>
-          <version>${apache.shiro.version}</version>
-          <scope>compile</scope>
-      </dependency>
 
   </dependencies>
 

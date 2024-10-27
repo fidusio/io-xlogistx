@@ -37,10 +37,10 @@
             <groupId>org.zoxweb</groupId>
             <artifactId>zoxweb-core</artifactId>
         </dependency>
-        <dependency>
+        <!--<dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

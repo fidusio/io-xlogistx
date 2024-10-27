@@ -49,10 +49,10 @@
       <version>${xlogistx.version}</version>
     </dependency>
 
-      <dependency>
+      <!--<dependency>
           <groupId>com.google.code.gson</groupId>
           <artifactId>gson</artifactId>
-      </dependency>
+      </dependency> -->
     <dependency>
       <groupId>com.sun.mail</groupId>
       <artifactId>jakarta.mail</artifactId>

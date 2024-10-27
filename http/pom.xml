@@ -37,7 +37,7 @@
 	  <scope>provided</scope>
 	</dependency>
 
-    <dependency>
+    <!--<dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
     </dependency>
@@ -46,7 +46,7 @@
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
       <scope>provided</scope>
-    </dependency>
+    </dependency> -->
     <dependency>
       <groupId>io.xlogistx</groupId>
       <artifactId>xlogistx-common</artifactId>
