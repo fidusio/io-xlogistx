@@ -66,7 +66,10 @@ public class HTTPProtocolHandler
         return ret;
     }
 
-
+    public HTTPRawMessage getRawRequest()
+    {
+        return rawRequest;
+    }
 
 
 
