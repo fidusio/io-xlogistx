@@ -540,7 +540,7 @@ public abstract class ShiroBaseRealm
 	 public void invalidate(String resourceID)
 	 {
 		 //if(log.isEnabled()) log.getLogger().info("start for:" + resourceID);
-		 if (!SharedStringUtil.isEmpty(resourceID))
+		 if (!SUS.isEmpty(resourceID))
 		 {
 			 // check it is a subject key id
 			 

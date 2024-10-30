@@ -39,7 +39,7 @@ import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.ResourceManager;
 import org.zoxweb.shared.util.ResourceManager.Resource;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.util.Set;
 
@@ -324,7 +324,7 @@ public class XlogistXShiroRealm
 	 public void invalidate(String resourceID)
 	 {
 		 //if(log.isEnabled()) log.getLogger().info("start for:" + resourceID);
-		 if (!SharedStringUtil.isEmpty(resourceID))
+		 if (!SUS.isEmpty(resourceID))
 		 {
 			 // check it is a subject key id
 			 

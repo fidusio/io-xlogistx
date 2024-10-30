@@ -156,7 +156,7 @@ public class XXDataFactory
   public <V extends NVEntity> V createNVEntity(String canonicalID) {
     V ret = ZWDataFactory.SINGLETON.createNVEntity(canonicalID);
 
-    if (ret == null && !SharedStringUtil.isEmpty(canonicalID)) {
+    if (ret == null && SUS.isNotEmpty(canonicalID)) {
       XXNVEntityTypeClass type = (XXNVEntityTypeClass) SharedUtil
           .lookupEnum(canonicalID, XXNVEntityTypeClass.values());
 

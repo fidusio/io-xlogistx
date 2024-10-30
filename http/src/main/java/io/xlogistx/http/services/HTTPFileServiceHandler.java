@@ -9,10 +9,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.ResourceManager;
-import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,7 +35,7 @@ public class HTTPFileServiceHandler
     {
         String filename = protocolHandler.getRequest().getURI();
 
-        if (SharedStringUtil.isEmpty(filename) || filename.equals("/"))
+        if (SUS.isEmpty(filename) || filename.equals("/"))
         {
             String override = getProperties().getValue("default_file");
             if(override != null)

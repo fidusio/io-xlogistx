@@ -331,7 +331,7 @@ public abstract class ShiroBaseServlet
 		if (dct != null && dct.dataAutoConvert())
 		{
 			HTTPRequestAttributes hra = (HTTPRequestAttributes) req.getAttribute(HTTPRequestAttributes.HRA);
-			if (!SharedStringUtil.isEmpty(hra.getContent()))
+			if (SUS.isNotEmpty(hra.getContent()))
 			{
 				Class<?> retType = dct.dataType();
 				try

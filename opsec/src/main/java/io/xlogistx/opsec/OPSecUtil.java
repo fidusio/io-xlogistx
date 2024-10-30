@@ -411,7 +411,7 @@ public class OPSecUtil
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         keyStore.load(null, null);
         Certificate[] certificates = chain.toArray(new Certificate[0]);
-        keyStore.setKeyEntry(SharedStringUtil.isEmpty(certAlias) ? "keyalias" : certAlias, privateKey, keyStorePassword.toCharArray(), certificates);
+        keyStore.setKeyEntry(SUS.isEmpty(certAlias) ? "keyalias" : certAlias, privateKey, keyStorePassword.toCharArray(), certificates);
 
         return keyStore;
     }

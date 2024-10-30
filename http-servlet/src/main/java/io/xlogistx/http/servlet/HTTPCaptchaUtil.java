@@ -28,8 +28,8 @@ public final class HTTPCaptchaUtil {
         // get the captcha-id and captcha
         GetNameValue<String> captchaIDParam = formData.get("captcha-id");
         GetNameValue<String> captchaParam = formData.get("captcha");
-        if(captchaIDParam == null || SharedStringUtil.isEmpty(captchaIDParam.getValue()) ||
-                captchaParam == null || SharedStringUtil.isEmpty(captchaParam.getValue()))
+        if(captchaIDParam == null || SUS.isEmpty(captchaIDParam.getValue()) ||
+                captchaParam == null || SUS.isEmpty(captchaParam.getValue()))
         {
             // if the captcha data is missing return
             HTTPServletUtil.sendJSON(req, resp, HTTPStatusCode.BAD_REQUEST, new APIError("Missing CAPTCHA"));

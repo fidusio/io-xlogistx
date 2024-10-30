@@ -112,8 +112,8 @@ public class EndPointsManager {
             } else if (a instanceof SecurityProp) {
                 SecurityProp sp = (SecurityProp) a;
 
-                String[] roles = SharedStringUtil.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-                String[] permissions = SharedStringUtil.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
+                String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
+                String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
                 CryptoConst.AuthenticationType[] authTypes = sp.authentications();
                 String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
                 hep.setPermissions(permissions);

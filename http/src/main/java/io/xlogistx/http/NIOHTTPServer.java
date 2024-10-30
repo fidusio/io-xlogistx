@@ -515,7 +515,7 @@ public class NIOHTTPServer
 
 
 
-        if(!SharedStringUtil.isEmpty(msg))
+        if(!SUS.isEmpty(msg))
             logger.getLogger().info("Services started"+msg);
 
 

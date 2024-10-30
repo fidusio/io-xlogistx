@@ -480,7 +480,7 @@ public class HTTPServletUtil
 	{
 		HTTPEndPoint hep = servletToEndPoint(servletClass);
 
-		if (SharedStringUtil.isEmpty(name))
+		if (SUS.isEmpty(name))
 			name = hep.getName();
 		if(urlPatterns == null || urlPatterns.length == 0)
 			urlPatterns = hep.getPaths();
@@ -537,7 +537,7 @@ public class HTTPServletUtil
 //		Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], uri.getPath(), false);
 //
 //		// parse the query parameters if they are set in the body
-//		if (!SharedStringUtil.isEmpty(uri.getQuery()))
+//		if (!SUS.isEmpty(uri.getQuery()))
 //		{
 //			List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery());
 //

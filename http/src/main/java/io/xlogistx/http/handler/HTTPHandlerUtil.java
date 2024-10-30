@@ -135,7 +135,7 @@ public class HTTPHandlerUtil {
       Map<String, Object> parameters = HTTPUtil.parsePathParameters(eph.getHTTPEndPoint().getPaths()[0], uri.getPath(), false);
 
     // parse the query parameters if they are set in the body
-    if (!SharedStringUtil.isEmpty(uri.getQuery()))
+    if (SUS.isNotEmpty(uri.getQuery()))
     {
       List<GetNameValue<String>> queryParameters = HTTPUtil.parseQuery(uri.getQuery(), false);
 

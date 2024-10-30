@@ -62,7 +62,7 @@ public class ShiroSimpleTest
             Subject sub = SecurityUtils.getSubject();
             SecurityManager sm =SecurityUtils.getSecurityManager();
             log.getLogger().info("Subject : " + sub.getPrincipals() + " "  +sm);
-            org.apache.shiro.web.mgt.DefaultWebSecurityManager f;
+            //org.apache.shiro.web.mgt.DefaultWebSecurityManager f;
         });
 
         TaskUtil.waitIfBusy(50);

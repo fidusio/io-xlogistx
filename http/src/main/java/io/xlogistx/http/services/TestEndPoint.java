@@ -45,7 +45,7 @@ public class TestEndPoint {
         htmlBuilder.append("    <p>This is a paragraph of text on my website.</p>\n");
         htmlBuilder.append("    <ul>\n");
         htmlBuilder.append("        <li>today date: " + new Date() + "</li>\n");
-        if(!SharedStringUtil.isEmpty(testValue))
+        if(!SUS.isEmpty(testValue))
             htmlBuilder.append("        <li>user value: " + testValue + "</li>\n");
         htmlBuilder.append("    </ul>\n");
 

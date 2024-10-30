@@ -77,7 +77,7 @@ public class ZipCodeDistanceListDAO
   }
 
   public boolean isWithinRange(String zipCodeToCheck) {
-    if (!SharedStringUtil.isEmpty(zipCodeToCheck)) {
+    if (SUS.isNotEmpty(zipCodeToCheck)) {
       return (getZipCodes().get(zipCodeToCheck) != null);
     }
 

@@ -30,7 +30,7 @@ import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.ResourceManager;
 import org.zoxweb.shared.util.ResourceManager.Resource;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.servlet.ServletException;
@@ -72,7 +72,7 @@ public class ShiroAutoLoginServlet
 //					if(log.isEnabled()) log.getLogger().info("Content:" + hra.getContent());
 					AppIDDAO appIDDAO = null;
 					
-					if (!SharedStringUtil.isEmpty(hra.getContent()))
+					if (SUS.isNotEmpty(hra.getContent()))
 					{
 						appIDDAO = GSONUtil.fromJSON(hra.getContent(), AppIDDAO.class);
 					}
