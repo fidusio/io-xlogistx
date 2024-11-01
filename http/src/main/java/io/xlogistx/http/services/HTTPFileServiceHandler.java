@@ -74,8 +74,7 @@ public class HTTPFileServiceHandler
 
 //        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
 //        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
-        HTTPUtil.formatResponse(hmci,
-                protocolHandler.getResponseStream())
+        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream())
                 .writeTo(protocolHandler.getOutputStream());
 
         IOUtil.relayStreams(fileIS, protocolHandler.getOutputStream(), true, false);
