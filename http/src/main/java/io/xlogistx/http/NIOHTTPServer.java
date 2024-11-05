@@ -84,7 +84,7 @@ public class NIOHTTPServer
             {
                 if(hph.parseRequest(inBuffer))
                 {
-                    //if (logger.isEnabled())
+                    if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     hph.isBusy.set(true);
                     incomingData(hph.setOutputStream(get()));
@@ -119,7 +119,7 @@ public class NIOHTTPServer
             {
                 if(hph.parseRequest(inBuffer))
                 {
-//                    if (logger.isEnabled())
+                    if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     // we are processing a request
                     hph.isBusy.set(true);

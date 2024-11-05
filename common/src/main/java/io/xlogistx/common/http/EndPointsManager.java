@@ -98,8 +98,8 @@ public class EndPointsManager {
                 hep.setName(epp.name());
                 hep.setDescription(epp.description());
                 hep.setMethods(epp.methods());
-                hep.setInputContentType(epp.iContentType());
-                hep.setOutputContentType(epp.oContentType());
+                hep.setInputContentType(epp.requestContentType());
+                hep.setOutputContentType(epp.responseContentType());
 
                 String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
                 if(methodCheck)
@@ -363,7 +363,7 @@ public class EndPointsManager {
         for(Parameter p : uriMapResult.result.methodHolder.getMethodAnnotations().method.getParameters())
         {
             Annotation pAnnotation  = uriMapResult.result.methodHolder.getMethodAnnotations().parametersAnnotations.get(p);
-            if(pAnnotation != null  && pAnnotation instanceof ParamProp)
+            if(pAnnotation instanceof ParamProp)
             {
                 ParamProp pp = (ParamProp) pAnnotation;
                 if (pp.source() == Const.ParamSource.PAYLOAD)
@@ -438,7 +438,10 @@ public class EndPointsManager {
                         continue;
                     }
                     else
+                    {
+                        System.out.println(contentType);
                         throw new IllegalArgumentException("Missing parameter " + pp.name());
+                    }
                 }
 
                 if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType()))

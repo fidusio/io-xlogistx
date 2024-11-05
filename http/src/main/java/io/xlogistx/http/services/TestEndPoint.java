@@ -27,8 +27,8 @@ public class TestEndPoint {
         }
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name="html-test", uris="/html/{testValue}", oContentType = HTTPConst.TEXT_HTML)
-    public String strinAsHTML(@ParamProp(name="testValue", optional = true) String testValue)
+    @EndPointProp(methods = {HTTPMethod.GET}, name="html-test", uris="/html/{testValue}", responseContentType = HTTPConst.TEXT_HTML)
+    public String stringAsHTML(@ParamProp(name="testValue", optional = true) String testValue)
     {
         StringBuilder htmlBuilder = new StringBuilder();
 

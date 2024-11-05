@@ -4,16 +4,14 @@ import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPSessionHandler;
 import org.zoxweb.server.http.HTTPUtil;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
-import org.zoxweb.shared.http.HTTPHeader;
-import org.zoxweb.shared.http.HTTPMessageConfigInterface;
-import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.http.HTTPStatusCode;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.ResourceManager;
+import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 public class HTTPUploadHandler
     extends PropertyHolder
@@ -29,10 +27,35 @@ public class HTTPUploadHandler
             throws IOException
     {
         HTTPMessageConfigInterface hmciRequest = hph.getRequest();
-        System.out.println(hmciRequest.getHeaders());
+        //System.out.println(hph.getRawRequest());
+        System.out.println(hmciRequest.getParameters());
+
+
+        for (GetNameValue<?> gnv : hmciRequest.getParameters().values())
+        {
+            if (gnv instanceof NamedValue)
+            {
+                if(gnv.getValue() instanceof InputStream)
+                {
+                    System.out.println(IOUtil.inputStreamToString((InputStream) gnv.getValue(), true));
+                }
+            }
+            else if (gnv instanceof NVGenericMap)
+            {
+                System.out.println(gnv);
+            }
+            else
+            {
+                System.out.println(gnv);
+            }
+        }
+
+
+        System.out.println("\n--------------------------------------------------\n" + hph.getRawRequest().getDataStream().toString());
 
         HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
                 HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+        hmciResponse.setContentType(HTTPMediaType.APPLICATION_JSON);
 
 
 //        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
