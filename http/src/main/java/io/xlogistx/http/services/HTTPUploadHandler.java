@@ -31,13 +31,16 @@ public class HTTPUploadHandler
         System.out.println(hmciRequest.getParameters());
 
 
+        long count = 0;
+
         for (GetNameValue<?> gnv : hmciRequest.getParameters().values())
         {
             if (gnv instanceof NamedValue)
             {
                 if(gnv.getValue() instanceof InputStream)
                 {
-                    System.out.println(IOUtil.inputStreamToString((InputStream) gnv.getValue(), true));
+                    count = IOUtil.countInputStreamBytes((InputStream) gnv.getValue(), true);
+                    System.out.println("Input stream length: " + count);
                 }
             }
             else if (gnv instanceof NVGenericMap)
@@ -51,7 +54,8 @@ public class HTTPUploadHandler
         }
 
 
-        System.out.println("\n--------------------------------------------------\n" + hph.getRawRequest().getDataStream().toString());
+        if(count < 10000)
+            System.out.println("\n--------------------------------------------------\n" + hph.getRawRequest().getDataStream().toString());
 
         HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
                 HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
