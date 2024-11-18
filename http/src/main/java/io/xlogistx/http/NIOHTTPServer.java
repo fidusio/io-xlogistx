@@ -143,6 +143,11 @@ public class NIOHTTPServer
             }
 
         }
+
+        public void exception(Exception e)
+        {
+            if(logger.isEnabled()) logger.getLogger().info("" + e);
+        }
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
@@ -165,7 +170,7 @@ public class NIOHTTPServer
                         HTTPConst.CommonHeader.EXPIRES_ZERO);
             }
             try {
-                logger.getLogger().info(hph.getResponseStream().toString());
+                //logger.getLogger().info(hph.getResponseStream().toString());
                 hph.getResponseStream().writeTo(os);
             } catch (IOException ex) {
                 ex.printStackTrace();
