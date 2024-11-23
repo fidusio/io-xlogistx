@@ -7,6 +7,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 
@@ -20,7 +21,6 @@ public final class TextToImage {
 
         BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);// Represents an image with 8-bit RGBA color components packed into integer pixels.
         Graphics2D graphics2d = image.createGraphics();
-        //Font font = new Font("Arial", Font.ITALIC, 18);
         graphics2d.setFont(font);
         FontMetrics fontmetrics = graphics2d.getFontMetrics();
         int width = fontmetrics.stringWidth(text);
@@ -38,7 +38,7 @@ public final class TextToImage {
         graphics2d.dispose();
         UByteArrayOutputStream ubaos = new UByteArrayOutputStream(256);
         ImageIO.write(image, imageFormat, ubaos);
-
-        return new ImageInfo(System.currentTimeMillis(), id, ubaos.toByteArrayInputStream(), width, height, imageFormat) ;
+        ByteArrayInputStream bais = ubaos.toByteArrayInputStream();
+        return new ImageInfo(System.currentTimeMillis(), id, bais, bais.available(), imageFormat, width, height) ;
     }
 }

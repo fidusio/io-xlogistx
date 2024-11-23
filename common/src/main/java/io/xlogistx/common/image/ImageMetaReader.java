@@ -63,7 +63,7 @@ public class ImageMetaReader {
         metaDataExtractor(new FileInputStream(filename));
     }
 
-    public static void metaDataExtractor(InputStream is ) throws ImageProcessingException, IOException
+    public static void metaDataExtractor(InputStream is) throws ImageProcessingException, IOException
     {
         try
         {
