@@ -20,12 +20,21 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
 	@Override
 	public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)
 	{
-		
-		
+
+
 		try
         {
-		
-			if (info.getCredentials() instanceof CIPassword)
+
+			if(log.isEnabled()) log.getLogger().info("credentials " + info.getCredentials() + " " + info.getCredentials().getClass());
+			CIPassword ciPassword = null;
+			if (info.getCredentials() instanceof CIPassword) {
+				ciPassword = (CIPassword) info.getCredentials();
+			}
+			else if (info.getCredentials() instanceof String) {
+				ciPassword = CIPassword.fromCanonicalID((String) info.getCredentials());
+			}
+
+			if(ciPassword != null)
 			{
 				if (!token.getPrincipal().equals(info.getPrincipals().getPrimaryPrincipal()))
 				{
@@ -39,9 +48,7 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
 				}
 				
 				//if(log.isEnabled()) log.getLogger().info("SimpleAuthentication token:" + token.getClass().getName());
-			
-	
-				CIPassword passwordDAO = (CIPassword) info.getCredentials();
+
 				String password = null;
 				
 				if (token.getCredentials() instanceof char[])
@@ -56,8 +63,8 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
 				{
 					password = (String) token.getCredentials();
 				}
-				
-				return HashUtil.isPasswordValid(passwordDAO, password);
+
+				return HashUtil.isPasswordValid(ciPassword, password);
 			}
 			else if (info.getCredentials() instanceof SubjectAPIKey && token instanceof JWTAuthenticationToken)
 			{
