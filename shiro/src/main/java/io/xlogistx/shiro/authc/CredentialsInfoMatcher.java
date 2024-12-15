@@ -20,11 +20,8 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
 	@Override
 	public boolean doCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)
 	{
-
-
 		try
         {
-
 			if(log.isEnabled()) log.getLogger().info("credentials " + info.getCredentials() + " " + info.getCredentials().getClass());
 			CIPassword ciPassword = null;
 			if (info.getCredentials() instanceof CIPassword) {
