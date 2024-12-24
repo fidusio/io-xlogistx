@@ -91,6 +91,7 @@ public class HTTPFileServiceHandler
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())
             throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath());
         this.baseFolder = folder;
+        ResourceManager.SINGLETON.register("base-folder", getBaseFolder());
         return this;
     }
 

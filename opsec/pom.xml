@@ -84,18 +84,25 @@
 
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-lts8on</artifactId>
+            <artifactId>bcprov-jdk15to18</artifactId>
             <version>${bc.version}</version>
         </dependency>
+
+        <!-- <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpqc-jdk8on</artifactId>
+            <version>${bc.version}</version>
+        </dependency> -->
+
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-lts8on</artifactId>
+            <artifactId>bcpkix-jdk15to18</artifactId>
             <version>${bc.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcutil-lts8on</artifactId>
+            <artifactId>bcutil-jdk15to18</artifactId>
             <version>${bc.version}</version>
         </dependency>
         <dependency>
