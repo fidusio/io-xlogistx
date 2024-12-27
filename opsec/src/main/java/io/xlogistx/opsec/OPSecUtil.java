@@ -14,6 +14,9 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.jcajce.SecretKeyWithEncapsulation;
+import org.bouncycastle.jcajce.spec.KEMExtractSpec;
+import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -29,11 +32,13 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
 import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.*;
 
+import javax.crypto.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
@@ -57,49 +62,16 @@ public class OPSecUtil
     static
     {
         Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastlePQCProvider());
     }
+
     private OPSecUtil(){}
 
 
-//    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, String cn, String altNames) throws Exception {
-//        X500Principal subject = new X500Principal("CN=" + cn);
-//        PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
-//
-//        // Add Subject Alternative Names (SAN) extension if provided
-//        if (altNames != null && !altNames.isEmpty()) {
-//            List<GeneralName> sanList = new ArrayList<>();
-//            String[] altNamesArray = altNames.split(",");
-//            for (String altName : altNamesArray) {
-//                String[] parts = altName.split(":");
-//                String type = parts[0];
-//                String value = parts[1];
-//
-//                GeneralName san;
-//                switch (type.toUpperCase()) {
-//                    case "DNS":
-//                        san = new GeneralName(GeneralName.dNSName, value);
-//                        break;
-//                    case "IP":
-//                        san = new GeneralName(GeneralName.iPAddress, value);
-//                        break;
-//                    default:
-//                        throw new IllegalArgumentException("Unsupported SAN type: " + type);
-//                }
-//                sanList.add(san);
-//            }
-//
-//            GeneralNames subjectAltName = new GeneralNames(sanList.toArray(new GeneralName[0]));
-//            csrBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, new DERSequence(subjectAltName));
-//        }
-//
-//        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
-//        if ("EC".equalsIgnoreCase(keyPair.getPrivate().getAlgorithm())) {
-//            csBuilder = new JcaContentSignerBuilder("SHA256withECDSA");
-//        }
-//
-//        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
-//        return csrBuilder.build(signer);
-//    }
+    public static void init()
+    {
+
+    }
 
 
     public static X500Name createSubject(String attributes)
@@ -147,16 +119,16 @@ public class OPSecUtil
     }
 
 
-    public static KeyPair generateKeyPair(String keyType, String provider, SecureRandom sr)
+    public static KeyPair generateKeyPair(String keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException
     {
-        return CryptoUtil.generateKeyPair(keyType, provider, sr);
+        return CryptoUtil.generateKeyPair(keyType, provider, CryptoUtil.defaultSecureRandom());
     }
 
-    public static KeyPair generateKeyPair(CanonicalID keyType, String provider, SecureRandom sr)
+    public static KeyPair generateKeyPair(CanonicalID keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException
     {
-        return CryptoUtil.generateKeyPair(keyType, provider, sr);
+        return CryptoUtil.generateKeyPair(keyType, provider, CryptoUtil.defaultSecureRandom());
     }
 
     public static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, X500Name issuer, X500Name subject, String duration) throws Exception {
@@ -167,7 +139,7 @@ public class OPSecUtil
         Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration)); // 1 year
 
         // Create the certificate builder
-        BigInteger serial = new BigInteger(64, new java.security.SecureRandom());
+        BigInteger serial = new BigInteger(64, CryptoUtil.defaultSecureRandom());
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
                 issuer,
                 serial,
@@ -440,4 +412,69 @@ public class OPSecUtil
 
         return filename;
     }
+
+    public static SecretKeyWithEncapsulation generateCKEncryptionKey(PublicKey publicKey)
+            throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
+    {
+        KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
+        keyGen.init(new KEMGenerateSpec(publicKey, "AES"), CryptoUtil.defaultSecureRandom());
+        return (SecretKeyWithEncapsulation) keyGen.generateKey();
+    }
+
+    public static SecretKeyWithEncapsulation extractCKDecryptionKey(PrivateKey privateKey, byte[] encapsulatedKey)
+            throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
+    {
+        KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
+        keyGen.init(new KEMExtractSpec(privateKey, encapsulatedKey, "AES"), CryptoUtil.defaultSecureRandom());
+        return (SecretKeyWithEncapsulation)keyGen.generateKey();
+    }
+
+    public static byte[] encryptCKAESKey(PublicKey publicKey, byte[] aesKey)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException {
+        return encryptCKAESKey(publicKey, CryptoUtil.toSecretKey(aesKey, "AES"));
+    }
+
+
+
+    public static byte[] encryptCKAESKey(PublicKey publicKey, SecretKey aesKey)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException
+    {
+        Cipher kyberWrapCipher = Cipher.getInstance("Kyber", "BCPQC");
+        kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, CryptoUtil.defaultSecureRandom());
+        return kyberWrapCipher.wrap(aesKey);
+    }
+    public static Key decryptCKAESKey(PrivateKey  privateKey, byte[] wrappedAesKeyBytes)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException
+    {
+        Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", "BCPQC");
+        kyberUnwrapCipher.init(Cipher.UNWRAP_MODE, privateKey);
+        return kyberUnwrapCipher.unwrap(wrappedAesKeyBytes, "AES", Cipher.SECRET_KEY);
+    }
+
+
+//    public static PrivateKey extractKCPrivateKeyFromEncoded(byte[] encodedKey) {
+//        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(encodedKey);
+//        KeyFactory keyFactory = null;
+//        try {
+//            keyFactory = KeyFactory.getInstance("KYBER", "BCPQC");
+//            return keyFactory.generatePrivate(pkcs8EncodedKeySpec);
+//        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
+//
+//    public static PublicKey exctractCKPublicKeyFromEncoded(byte[] encodedKey) {
+//        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(encodedKey);
+//        try {
+//            KeyFactory keyFactory = KeyFactory.getInstance("KYBER", "BCPQC");
+//            return keyFactory.generatePublic(x509EncodedKeySpec);
+//        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
+
+
 }
+

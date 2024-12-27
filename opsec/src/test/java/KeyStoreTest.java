@@ -11,7 +11,7 @@ public class KeyStoreTest {
 
     @Test
     public void testSelfSignedCreateKeyStore() throws Exception {
-        KeyPair keyPair = OPSecUtil.generateKeyPair(CryptoConst.PKInfo.EC_256, "BC", null);
+        KeyPair keyPair = OPSecUtil.generateKeyPair(CryptoConst.PKInfo.EC_256, "BC");
         X509Certificate cert = OPSecUtil.generateSelfSignedCertificate(keyPair,
                 new X500Name("CN=XLOGISTX Test CA, O=XLOGISTX.IO, L=Los Angeles, C=US"),
                 new X500Name("CN=testr.xlogistx.io, O=XLOGISTX.IO, L=Los Angeles, C=US"), "5year");

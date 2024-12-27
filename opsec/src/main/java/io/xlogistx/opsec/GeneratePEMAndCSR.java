@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.security.KeyPair;
-import java.security.SecureRandom;
 
 public class GeneratePEMAndCSR
 {
@@ -29,7 +28,7 @@ public class GeneratePEMAndCSR
             String altNames = params.stringValue("alt", true);
             String outDir = params.stringValue("out_dir", true);
             String attrs = params.stringValue("attrs");
-            KeyPair keyPair = OPSecUtil.generateKeyPair(keyType, "BC", new SecureRandom());
+            KeyPair keyPair = OPSecUtil.generateKeyPair(keyType, "BC");
 
 
             String filename = OPSecUtil.extractFilename(attrs);
