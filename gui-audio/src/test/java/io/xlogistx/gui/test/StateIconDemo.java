@@ -1,6 +1,6 @@
-package io.xlogistx.widget.test;
+package io.xlogistx.gui.test;
 
-import io.xlogistx.widget.IconWidget;
+import io.xlogistx.gui.IconWidget;
 
 import javax.swing.*;
 import java.awt.*;

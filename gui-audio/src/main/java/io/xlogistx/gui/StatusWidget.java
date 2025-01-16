@@ -1,4 +1,4 @@
-package io.xlogistx.widget;
+package io.xlogistx.gui;
 
 import org.zoxweb.shared.util.GetName;
 
@@ -47,12 +47,12 @@ abstract public class StatusWidget<M>
         return false;
     }
 
-    public StatusWidget<M> mapStatus(Enum<?> tag, M mapped) {
+    public <V extends StatusWidget<M>> V mapStatus(Enum<?> tag, M mapped) {
         windgetMap.put(tag.name(), mapped);
         if (tag instanceof GetName) {
             windgetMap.put(((GetName) tag).getName(), mapped);
         }
-        return this;
+        return (V)this;
     }
 
     /**
@@ -62,8 +62,8 @@ abstract public class StatusWidget<M>
      * @param mapped  The Icon associated with the status.
      * @return The IconWidget instance for chaining.
      */
-    public StatusWidget<M> mapStatus(String tag, M mapped) {
+    public <V extends StatusWidget<M>> V mapStatus(String tag, M mapped) {
         windgetMap.put(tag, mapped);
-        return this;
+        return (V)this;
     }
 }

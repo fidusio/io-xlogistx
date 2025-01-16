@@ -8,8 +8,8 @@
         <artifactId>xlogistx</artifactId>
         <version>1.0.0</version>
     </parent>
-    <name>xlogistx-widget</name>
-    <artifactId>xlogistx-widget</artifactId>
+    <name>xlogistx-gui-audio</name>
+    <artifactId>xlogistx-gui-audio</artifactId>
     <packaging>jar</packaging>
 
 

@@ -1,5 +1,6 @@
-package io.xlogistx.widget;
+package io.xlogistx.gui;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -8,11 +9,11 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class WidgetUtil {
+public class GUIUtil {
     private static final Lock lock = new ReentrantLock();
 
     private static final Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-    private WidgetUtil(){}
+    private GUIUtil(){}
 
     public static boolean compareImages(BufferedImage imgA, BufferedImage imgB) {
         // Check if dimensions are the same
@@ -88,5 +89,17 @@ public class WidgetUtil {
         StringSelection stringSelection = new StringSelection(text);
         // Set the clipboard contents to the StringSelection
         clipboard.setContents(stringSelection, null); // null for owner means no owner
+    }
+
+    public static JPanel createPanel(String title, LayoutManager layout, JComponent ...components)
+    {
+        JPanel panel = new JPanel(layout);
+        for (JComponent component: components)
+            panel.add(component);
+
+        // Optionally, set a border with the panel title
+        panel.setBorder(BorderFactory.createTitledBorder(title));
+
+        return panel;
     }
 }

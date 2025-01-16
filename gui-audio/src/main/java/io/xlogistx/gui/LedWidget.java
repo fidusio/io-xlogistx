@@ -1,4 +1,4 @@
-package io.xlogistx.widget;
+package io.xlogistx.gui;
 
 import java.awt.*;
 
