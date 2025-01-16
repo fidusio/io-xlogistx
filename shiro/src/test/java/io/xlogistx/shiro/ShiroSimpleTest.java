@@ -6,7 +6,6 @@ import org.apache.shiro.env.BasicIniEnvironment;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.RateCounter;
 
@@ -17,7 +16,6 @@ public class ShiroSimpleTest
     public static final LogWrapper log = new LogWrapper(ShiroSimpleTest.class).setEnabled(true);
     public static void main(String ...args)
     {
-        LoggerUtil.enableDefaultLogger("io.xlogistx");
         try
         {
 

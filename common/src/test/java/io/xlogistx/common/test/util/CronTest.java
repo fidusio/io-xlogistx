@@ -7,9 +7,7 @@ import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
-
 import io.xlogistx.common.cron.CronTool;
-import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.Const;
 
@@ -58,7 +56,6 @@ public class CronTest {
     public static void main(String ...args)
     {
         try {
-            LoggerUtil.enableDefaultLogger("io.xlogistx");
             CronTool ct = new CronTool(TaskUtil.defaultTaskScheduler());
             int index = 0;
             String cron = args[index++];

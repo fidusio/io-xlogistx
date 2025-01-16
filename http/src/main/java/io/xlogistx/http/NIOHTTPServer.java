@@ -10,7 +10,6 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.NIOSocketHandlerFactory;
 import org.zoxweb.server.net.PlainSessionCallback;
@@ -44,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
-import java.util.logging.Logger;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
@@ -54,7 +52,7 @@ public class NIOHTTPServer
 {
 
 
-    public final static LogWrapper logger = new LogWrapper(Logger.getLogger(NIOHTTPServer.class.getName())).setEnabled(false);
+    public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
     private boolean isClosed = true;
@@ -350,11 +348,6 @@ public class NIOHTTPServer
 
 
 
-
-
-
-
-
     public NIOHTTPServer(HTTPServerConfig config)
     {
         this(config,null);
@@ -547,7 +540,6 @@ public class NIOHTTPServer
         TaskSchedulerProcessor tsp = null;
         try {
 
-            LoggerUtil.enableDefaultLogger("io.xlogistx");
 
             ParamUtil.ParamMap parsedParam = ParamUtil.parse("=", args);
             System.out.println(parsedParam);

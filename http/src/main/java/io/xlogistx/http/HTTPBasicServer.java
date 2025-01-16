@@ -3,19 +3,16 @@ package io.xlogistx.http;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
-
 import com.sun.net.httpserver.HttpsServer;
-
 import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.common.http.EndPointScanner;
 import io.xlogistx.common.http.EndPointsManager;
 import io.xlogistx.common.http.HTTPServerMapper;
 import io.xlogistx.http.handler.BaseEndPointHandler;
 import io.xlogistx.http.handler.EndPointHandler;
-import io.xlogistx.common.http.EndPointScanner;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
@@ -34,8 +31,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -219,7 +218,6 @@ public class HTTPBasicServer
     long startTS = System.currentTimeMillis();
     try {
 
-      LoggerUtil.enableDefaultLogger("io.xlogistx");
       int index = 0;
 
 

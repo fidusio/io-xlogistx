@@ -5,7 +5,6 @@ import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.http.NIOHTTPServerCreator;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.net.NIOConfig;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.security.IPBlockerListener;
@@ -14,7 +13,10 @@ import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.data.ConfigDAO;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.security.IPBlockerConfig;
-import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.util.GetNameValue;
+import org.zoxweb.shared.util.SetNameValue;
+import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SharedUtil;
 
 import java.io.File;
 import java.util.List;
@@ -61,7 +63,7 @@ public class Main {
     {
         try
         {
-            LoggerUtil.enableDefaultLogger("io.xlogistx");
+
             List<GetNameValue<String>> parameters = SharedStringUtil.parseStrings('=', args);
             NIOHTTPServer ws;
             NIOSocket nioSocket = null;

@@ -1,6 +1,6 @@
 package io.xlogistx.common.task;
 
-import org.zoxweb.server.logging.LoggerUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.RuntimeUtil;
@@ -13,11 +13,10 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class ExecTask {
 
-    private final static Logger log = Logger.getLogger(ExecTask.class.getName());
+    public final static LogWrapper log = new LogWrapper(ExecTask.class.getName());
 
     public NVGenericMap execCommands(String[] commands, long delay) throws IOException, InterruptedException {
         int passCount = 0;
@@ -29,12 +28,12 @@ public class ExecTask {
 
             if(rrd.getExitCode() == 0)
                 passCount++;
-            log.info(rrd.getExitCode() + " " + cmd);
+            log.getLogger().info(rrd.getExitCode() + " " + cmd);
             if(delay > 0)
                 TaskUtil.sleep(delay);
         }
         ts = System.currentTimeMillis() - ts;
-        log.info("commands count: " + commands.length + " pass count: " + passCount);
+        log.getLogger().info("commands count: " + commands.length + " pass count: " + passCount);
         ret.add(new NVInt("exec-counts", commands.length));
         ret.add(new NVInt("exec-passed", passCount));
         ret.add("exec-time", Const.TimeInMillis.toString(ts));
@@ -99,7 +98,6 @@ public class ExecTask {
 
     public static void main(String ...args)
     {
-        LoggerUtil.enableDefaultLogger("io.xlogistx");
         try
         {
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
@@ -110,7 +108,7 @@ public class ExecTask {
             long delay = Const.TimeInMillis.toMillisNullZero(params.stringValue("delay", true));
 
             NVGenericMap result = new ExecTask().execTasks(command, token, new File(dir), ff, delay);
-            log.info(GSONUtil.toJSONGenericMap(result,true,false, false));
+            log.getLogger().info(GSONUtil.toJSONGenericMap(result,true,false, false));
 
 
         }

@@ -5,13 +5,12 @@ import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.logging.LoggerUtil;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.CIPassword;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.shiro.ShiroRealmStore;
 import org.zoxweb.shared.util.*;
@@ -96,7 +95,7 @@ public class TestSubjectSwap {
         try {
 
 
-            LoggerUtil.enableDefaultLogger("io.xlogistx");
+
             domainSubjectSetup();
             RateCounter rc = new RateCounter("shiro");
             AtomicInteger counter = new AtomicInteger();
