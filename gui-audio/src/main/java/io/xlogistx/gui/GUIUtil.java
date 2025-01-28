@@ -1,6 +1,8 @@
 package io.xlogistx.gui;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -107,6 +109,36 @@ public class GUIUtil {
         return panel;
     }
 
+    /**
+     * Configures a JTextArea with default settings.
+     *
+     * @param textArea The JTextArea to configure.
+     * @param font     of the text area, null a default one will be created.
+     * @param border of the text area, null a default one will be created.
+     * @return The updated text aread
+     */
+    public static JTextArea configureTextArea(JTextArea textArea, Font font, Border border) {
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setFont(font != null ? font : new Font("SansSerif", Font.PLAIN, 14));
+        textArea.setBorder(border != null ? border : BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        return textArea;
+    }
+    /**
+     * Creates a JScrollPane containing the given JTextArea with a titled border.
+     *
+     * @param jComponent The JComponent to include in the scroll pane.
+     * @param title    The title for the border.
+     * @param titleFont if null a default on will be created
+     * @return A JScrollPane containing the text area.
+     */
+    public static  JScrollPane createScrollPane(JComponent jComponent, String title, Font titleFont) {
+        JScrollPane scrollPane = new JScrollPane(jComponent);
+        TitledBorder border = BorderFactory.createTitledBorder(title);
+        border.setTitleFont(titleFont != null ? titleFont : new Font("SansSerif", Font.BOLD, 12));
+        scrollPane.setBorder(border);
+        return scrollPane;
+    }
 
     public static Color colorToRation(Color start, Color mid, Color end, float ratio)
     {

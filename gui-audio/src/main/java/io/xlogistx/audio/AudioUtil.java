@@ -450,7 +450,8 @@ public class AudioUtil
             if (!detectSilence(inBuffer, inBufferOffset, bytesRead, tdl.getFormat()))
                 outStream.write(inBuffer, inBufferOffset, bytesRead);
         }
-        else {
+        else
+        {
             outStream.write(inBuffer, inBufferOffset, bytesRead);
         }
         return bytesRead;

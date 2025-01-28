@@ -20,6 +20,7 @@ implements AutoCloseable, Runnable
         ERROR,
         CLOSED,
         PROCESSING,
+        RESET,
     }
 
     private Status status = Status.STOP_RECORDING;
@@ -104,7 +105,18 @@ implements AutoCloseable, Runnable
     }
 
 
-    public AudioRecorder setStatus(Status status)
+    public AudioRecorder setStatus(Status status, Runnable ...runnables)
+    {
+        setStatus(status);
+        for (Runnable runnable: runnables)
+            if(runnable != null)
+            {
+                runnable.run();
+            }
+        return this;
+    }
+
+    public synchronized AudioRecorder setStatus(Status status)
     {
         this.status = status;
 
@@ -112,6 +124,8 @@ implements AutoCloseable, Runnable
         {
             case RECORDING:
                 dataLine.start();
+                break;
+            case RESET:
                 break;
             case STOP_RECORDING:
                 dataLine.stop();
@@ -121,16 +135,30 @@ implements AutoCloseable, Runnable
             case CLOSED:
                 break;
         }
-        synchronized(this)
-        {
-            notifyAll();
-        }
+        notifyAll();
         return this;
     }
 
-    public boolean isRunning()
+    public synchronized boolean isRunning()
     {
-        return status == Status.RECORDING || status == Status.STOP_RECORDING;
+        Status[] running = {
+          Status.RECORDING,
+          Status.STOP_RECORDING,
+          Status.RESET,
+          Status.PROCESSING
+        };
+
+        for(Status valid : running)
+            if(status == valid)
+                return true;
+
+        return false;
+    }
+
+
+    public AudioRecorder reset()
+    {
+        return setStatus(Status.RESET);
     }
 
     public void run() {
@@ -148,6 +176,9 @@ implements AutoCloseable, Runnable
                             AudioUtil.recordChunk(dataLine, dropSilence, dataRecorder, buffer);
                         }
                         break;
+                    case RESET:
+                        if(dataRecorder.size() > 0)
+                            dataRecorder.reset();
                     case STOP_RECORDING:
                         synchronized (this)
                         {
