@@ -130,13 +130,19 @@ public class GUIUtil {
      * @param jComponent The JComponent to include in the scroll pane.
      * @param title    The title for the border.
      * @param titleFont if null a default on will be created
+     * @param dimension preferred size of the scroll pane null is ok
      * @return A JScrollPane containing the text area.
      */
-    public static  JScrollPane createScrollPane(JComponent jComponent, String title, Font titleFont) {
+    public static  JScrollPane createScrollPane(JComponent jComponent, String title, Font titleFont, Dimension dimension) {
         JScrollPane scrollPane = new JScrollPane(jComponent);
         TitledBorder border = BorderFactory.createTitledBorder(title);
         border.setTitleFont(titleFont != null ? titleFont : new Font("SansSerif", Font.BOLD, 12));
         scrollPane.setBorder(border);
+        if(dimension != null)
+        {
+            scrollPane.setPreferredSize(dimension);
+        }
+
         return scrollPane;
     }
 
