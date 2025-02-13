@@ -28,7 +28,7 @@ public class HTTPProtocolHandler
     private HTTPMessageConfigInterface response = new HTTPMessageConfig();
     private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
-    private final boolean https;
+    private URIScheme protocolMode;
     private Lifetime keepAliveLifetime = null;
     private Appointment keepAliveAppointment = null;
 
@@ -39,31 +39,58 @@ public class HTTPProtocolHandler
 
     private volatile OutputStream outputStream;
 
-    public HTTPProtocolHandler(boolean https)
+    public HTTPProtocolHandler(URIScheme protocol)
     {
-        this.https = https;
+        switchProtocol(protocol);
     }
 
 
-    public boolean isHTTPs()
+    public URIScheme getProtocol()
     {
-        return https;
+        return protocolMode;
+    }
+
+    public HTTPProtocolHandler switchProtocol(URIScheme protocol)
+    {
+        switch (protocol)
+        {
+            case HTTPS:
+            case HTTP:
+            case WSS:
+            case WS:
+                this.protocolMode = protocol;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported protocol " + protocolMode);
+        }
+        return this;
     }
 
 
 
     public boolean parseRequest(ByteBuffer inBuffer) throws IOException
     {
+
         ByteBufferUtil.write(inBuffer, rawRequest.getDataStream(), true);
-
-        rawRequest.parse(true);
-        boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
-
-        if (ret)
+        switch(protocolMode)
         {
-            checkKeepAlive();
+            case HTTP:
+            case HTTPS:
+                rawRequest.parse(true);
+                boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
+
+                if (ret)
+                {
+                    checkKeepAlive();
+                }
+                if (log.isEnabled()) log.getLogger().info("Protocol Mode: " + protocolMode + " message complete " + ret);
+                return ret;
+            case WS:
+            case WSS:
+                // to be added here
+            default:
+                throw new IllegalStateException("Unexpected value: " + protocolMode);
         }
-        return ret;
     }
 
     public HTTPRawMessage getRawRequest()

@@ -72,7 +72,7 @@ public class NIOHTTPServer
     public class HTTPSession
         extends PlainSessionCallback
     {
-        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(false);
+        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP);
 
         @Override
         public void accept(ByteBuffer inBuffer)
@@ -85,7 +85,7 @@ public class NIOHTTPServer
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     hph.isBusy.set(true);
-                    incomingData(hph.setOutputStream(get()));
+                    incomingData(getEndPointsManager(), hph.setOutputStream(get()));
                     hph.isBusy.set(false);
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 }
@@ -109,7 +109,7 @@ public class NIOHTTPServer
     public class HTTPsSession
             extends SSLSessionCallback
     {
-        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(true);
+        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS);
         @Override
         public void accept(ByteBuffer inBuffer)
         {
@@ -121,7 +121,7 @@ public class NIOHTTPServer
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     // we are processing a request
                     hph.isBusy.set(true);
-                    incomingData(hph.setOutputStream(get()));
+                    incomingData(getEndPointsManager(), hph.setOutputStream(get()));
                     // processing finished
                     hph.isBusy.set(false);
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
@@ -180,160 +180,130 @@ public class NIOHTTPServer
         }
     }
 
-   private  void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
+   private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
     {
-        //if(securiyManagerEnabled)
-        {
-            CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
 
+        CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
 
-            // for performance check
-            // if the resource authentication is required
-            // if the resource permission  is PERM_RESOURCE_ANY
-            if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
-                    !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
-                HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
-                if (logger.isEnabled())
-                    logger.getLogger().info("Authorization header: " + httpAuthorization);
+        // for performance check
+        // if the resource authentication is required
+        // if the resource permission  is PERM_RESOURCE_ANY
+        if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
+                !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
+            HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
+            if (logger.isEnabled())
+                logger.getLogger().info("Authorization header: " + httpAuthorization);
 
-                if (httpAuthorization == null) {
-                    HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
-                    hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
-                    hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
+            if (httpAuthorization == null) {
+                HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
+                hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+                hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
 
-                    // if basic authentication is supported
-                    if (SharedUtil.contains(CryptoConst.AuthenticationType.BASIC, resourceAuthTypes) ||
-                            SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
-                        hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
+                // if basic authentication is supported
+                if (SharedUtil.contains(CryptoConst.AuthenticationType.BASIC, resourceAuthTypes) ||
+                        SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
+                    hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
 
-                    throw new HTTPCallException("authentication missing", hmci);
+                throw new HTTPCallException("authentication missing", hmci);
 
-                }
-                else
-                {
-                    if (httpAuthorization instanceof HTTPAuthorizationBasic &&
-                            (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
-                                    SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
+            }
+            else
+            {
+                if (httpAuthorization instanceof HTTPAuthorizationBasic &&
+                        (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
+                                SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
 
-                        SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
-                        if (logger.isEnabled())
-                            logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                    SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+                    if (logger.isEnabled())
+                        logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
 
-                        if (!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint)) {
+                    if (!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint)) {
 //                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
 //                        hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
 //                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
-                            throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
-                        }
-                    } else {
-                        if (logger.isEnabled()) logger.getLogger().info("*********** NO LOGIN **********");
+                        throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
                     }
+                } else {
+                    if (logger.isEnabled()) logger.getLogger().info("*********** NO LOGIN **********");
                 }
             }
         }
+
     }
 
-    private void incomingData(HTTPProtocolHandler hph)
+    private static void incomingData(EndPointsManager endPointsManager, HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
-
-
         try
         {
+            if (logger.isEnabled())
+            {
+                logger.getLogger().info(hph.getRequest().getURI());
+                logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
+                logger.getLogger().info("" + hph.getRequest().getHeaders());
+            }
 
+            URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+            if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
-            //HTTPMessageConfigInterface hmciResponse = null;
-
-
-                if (logger.isEnabled()) {
-                    logger.getLogger().info(hph.getRequest().getURI());
-                    logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
-                    logger.getLogger().info("" + hph.getRequest().getHeaders());
+            if (epm != null)
+            {
+                if (logger.isEnabled())
+                    logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
+                // validate if method supported
+                if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod())) {
+                    throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
+                            Arrays.toString(epm.result.httpEndPoint.getMethods()),
+                            HTTPStatusCode.METHOD_NOT_ALLOWED);
                 }
-                URIMap.URIMapResult<EndPointMeta> epm = getEndPointsManager().lookupWithPath(hph.getRequest().getURI());
-                if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
 
-                if (epm != null)
+                // security check
+                securityCheck(epm, hph);
+                // check if instance of HTTPSessionHandler
+                if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
                 {
-                    if (logger.isEnabled())
-                        logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
-                    // validate if method supported
-                    if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod())) {
-                        throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
-                                Arrays.toString(epm.result.httpEndPoint.getMethods()),
-                                HTTPStatusCode.METHOD_NOT_ALLOWED);
-                    }
-
-
-                    // security check
-                    securityCheck(epm, hph);
-                    // check if instance of HTTPSessionHandler
-                    if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
-                    {
-                        ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(hph);
-                    }
-                    else
-                    {
-                        if (logger.isEnabled()) {
-                            logger.getLogger().info("" + epm.result.methodHolder.getInstance());
-                            logger.getLogger().info("" + hph.getRequest());
-                            logger.getLogger().info(epm.path);
-                        }
-
-                        Map<String, Object> parameters = getEndPointsManager().buildParameters(epm, hph.getRequest());
-                        Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
-                                epm.result.methodHolder.getMethodAnnotations(),
-                                parameters);
-
-                        HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
-                                        HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
-                                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                                        HTTPConst.CommonHeader.EXPIRES_ZERO);
-
-                        HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                                .writeTo(hph.getOutputStream());
-                        // message complete and sent to client
-                    }
+                    ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(hph);
                 }
                 else
                 {
-                    // error status uri map not found
-                    SimpleMessage sm = new SimpleMessage();
-                    sm.setError(hph.getRequest().getURI() + " not found");
-                    sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
+                    if (logger.isEnabled()) {
+                        logger.getLogger().info("" + epm.result.methodHolder.getInstance());
+                        logger.getLogger().info("" + hph.getRequest());
+                        logger.getLogger().info(epm.path);
+                    }
 
+                    Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
+                    Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
+                            epm.result.methodHolder.getMethodAnnotations(),
+                            parameters);
 
-                    HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(),sm, HTTPStatusCode.NOT_FOUND,
-                            HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                    HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
+                                    HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
+                                    HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                                    HTTPConst.CommonHeader.EXPIRES_ZERO);
+
                     HTTPUtil.formatResponse(hmci, hph.getResponseStream())
                             .writeTo(hph.getOutputStream());
+                    // message complete and sent to client
                 }
+            }
+            else
+            {
+                // error status uri map not found
+                SimpleMessage sm = new SimpleMessage();
+                sm.setError(hph.getRequest().getURI() + " not found");
+                sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
 
-                // we have a response
-//                if (hmciResponse != null) {
-//                    hmciResponse.getHeaders().build(HTTPHeader.SERVER.getName(), NAME).
-//                    build(HTTPConst.CommonHeader.CONNECTION_CLOSE).
-//                    build(HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF);
-//
-//                    HTTPProtocolHandler.preResponse(hph, hmciResponse);
-//
-//                    HTTPUtil.formatResponse(hmciResponse, hph.getRawResponse()).writeTo(hph.getOutputStream());
-//                }
 
-                if(!hph.reset())
-                    IOUtil.close(hph);
-                //hph.postResponse(hph);
-
-//                if (hph.getKeepAlive() != null && !hph.getKeepAlive().isExpired())
-//                {
-//                    System.out.println(hph.getKeepAlive().hashCode() + " " + hph.getKeepAlive().getUsageCounter() + " " + hph.getOutputStream());
-//                    ///System.out.println(hmciResponse.getHeaders().lookup(HTTPHeader.KEEP_ALIVE));
-//                    hph.reset();
-//                }
-//                else
-//                    IOUtil.close(hph);
+                HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(),sm, HTTPStatusCode.NOT_FOUND,
+                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+                HTTPUtil.formatResponse(hmci, hph.getResponseStream())
+                        .writeTo(hph.getOutputStream());
+            }
+            if(!hph.reset())
+                IOUtil.close(hph);
         }
         finally
         {
