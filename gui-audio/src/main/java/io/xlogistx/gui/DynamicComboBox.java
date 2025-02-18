@@ -4,16 +4,11 @@ import org.zoxweb.shared.util.SUS;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 
 public class DynamicComboBox extends JPanel {
 
-    private JComboBox<String> comboBox;
-    private DefaultComboBoxModel<String> comboBoxModel;
-    private JTextField textField;
-    private JButton addButton;
-    private JButton deleteButton;
-    private JButton updateButton;
+    private final JComboBox<String> comboBox;
+    private final DefaultComboBoxModel<String> comboBoxModel;
 
     public DynamicComboBox() {
         // Layout for this panel
@@ -22,68 +17,76 @@ public class DynamicComboBox extends JPanel {
         // Create the model and combo box
         comboBoxModel = new DefaultComboBoxModel<>();
         comboBox = new JComboBox<>(comboBoxModel);
-        comboBox.setEditable(false); // Use a non-editable combo box so user picks from the dropdown
+        comboBox.setEditable(true); // Use a non-editable combo box so user picks from the dropdown
 
         // Listen for selection changes
-        comboBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // When user selects an item, copy it to the text field
-                if (comboBox.getSelectedIndex() != -1) {
-                    setSelectionIndex(comboBox.getSelectedIndex());
-//                    String selectedItem = (String) comboBox.getSelectedItem();
-//                    textField.setText(selectedItem);
-                }
-            }
-        });
+//        comboBox.addActionListener((e)-> {
+//
+//                // When user selects an item, copy it to the text field
+//                if (comboBox.getSelectedIndex() != -1) {
+//                    setSelectionIndex(comboBox.getSelectedIndex());
+//
+//            }
+//        });
+
+
+        comboBox.getEditor().addActionListener((e)->handleEditorUpdate());
 
         // Create the text field for new or updated entries
-        textField = new JTextField(15);
+        //textField = new JTextField(15);
 
         // Create buttons
-        addButton = new JButton("Add");
-        deleteButton = new JButton("Delete");
-        updateButton = new JButton("Update");
+        JButton addButton =new JButton(GUIUtil.ADD_SIGN);//new JButton("Add");
+        JButton deleteButton = new JButton(GUIUtil.DELETE_SIGN);
+        JButton updateButton = new JButton(GUIUtil.UPDATE_SIGN); // NOT USED for now
 
         // Panel for controls (text field + buttons)
         JPanel controlPanel = new JPanel();
         controlPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
-       // controlPanel.add(textField);
-        controlPanel.add(updateButton);
         controlPanel.add(addButton);
         controlPanel.add(deleteButton);
+        //controlPanel.add(updateButton);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
 
         // Add components to the main panel
         add(comboBox);//, BorderLayout.CENTER);
-        add(textField);
+        //add(textField);
         add(controlPanel);//, BorderLayout.SOUTH);
 
         // Set preferred size (optional)
        // setPreferredSize(new Dimension(360, 100));
 
         // Button Listeners
-        addButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addNewEntry(null);
-            }
-        });
+        addButton.addActionListener((e)-> addNewEntry(""));
 
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                removeSelectedEntry();
-            }
-        });
+        deleteButton.addActionListener((e)->removeSelectedEntry());
+        updateButton.addActionListener((e)->handleEditorUpdate());
 
-        updateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateSelectedEntry();
-            }
-        });
+
+    }
+
+    private void handleEditorUpdate() {
+        // The edited text
+        String newText = comboBox.getEditor().getItem().toString().trim();
+        if (newText.isEmpty()) {
+            return;
+        }
+
+        // Current selection index
+        //Object currentSelection = comboBoxModel.getSelectedItem();
+        int selectedIndex = comboBox.getSelectedIndex();
+
+        if (selectedIndex >= 0) {
+            // User was editing an existing item
+            comboBoxModel.removeElementAt(selectedIndex);
+            comboBoxModel.insertElementAt(newText, selectedIndex);
+            comboBox.setSelectedIndex(selectedIndex);
+        } else {
+            // No valid selection -> treat as a new item
+            comboBoxModel.addElement(newText);
+            comboBox.setSelectedIndex(comboBoxModel.getSize() - 1);
+        }
     }
 
     public DynamicComboBox addItem(String item)
@@ -92,22 +95,20 @@ public class DynamicComboBox extends JPanel {
         return this;
     }
 
-    private void setSelectionIndex(int index)
-    {
-        comboBox.setSelectedIndex(index);
-        String selectedItem = (String) comboBox.getSelectedItem();
-        textField.setText(selectedItem);
-    }
+//    private void setSelectionIndex(int index)
+//    {
+//        comboBox.setSelectedIndex(index);
+//    }
 
-    /**
-     * Adds a new entry to the combo box from textField content.
-     */
-    private void addNewEntry(String toAdd) {
-        if(toAdd == null)
-            toAdd = textField.getText().trim();
-        if (!toAdd.isEmpty()) {
-            comboBoxModel.addElement(toAdd);
-            textField.setText("");
+
+    private void addNewEntry(String toAdd)
+    {
+        if(toAdd != null)
+        {
+//            comboBoxModel.addElement(toAdd);
+//            comboBox.setSelectedIndex(comboBox.getItemCount() -1);
+            comboBoxModel.insertElementAt(toAdd, comboBox.getItemCount());
+            comboBoxModel.setSelectedItem(toAdd);
         }
     }
 
@@ -118,29 +119,15 @@ public class DynamicComboBox extends JPanel {
         int selectedIndex = comboBox.getSelectedIndex();
         if (selectedIndex != -1) {
             comboBoxModel.removeElementAt(selectedIndex);
-            textField.setText("");
         }
     }
 
-    /**
-     * Updates the currently selected entry with the text in textField.
-     */
-    private void updateSelectedEntry() {
-        int selectedIndex = comboBox.getSelectedIndex();
-        if (selectedIndex != -1) {
-            String updatedText = textField.getText().trim();
-            if (!updatedText.isEmpty()) {
-                comboBoxModel.removeElementAt(selectedIndex);
-                comboBoxModel.insertElementAt(updatedText, selectedIndex);
-                comboBox.setSelectedIndex(selectedIndex);
-            }
-        }
-    }
+
 
     // Accessor methods if needed
-    public JComboBox<String> getComboBox() {
-        return comboBox;
-    }
+//    public JComboBox<String> getComboBox() {
+//        return comboBox;
+//    }
 
     private DefaultComboBoxModel<String> getModel() {
         return comboBoxModel;
@@ -158,27 +145,7 @@ public class DynamicComboBox extends JPanel {
         if(nextIndex + 1 > count)
             nextIndex = 0;
 
-        setSelectionIndex(nextIndex);
+        comboBox.setSelectedIndex(nextIndex);
         return  nextIndex;
     }
-
-    // Demo main method
-//    public static void main(String[] args) {
-//        SwingUtilities.invokeLater(() -> {
-//            JFrame frame = new JFrame("Dynamic ComboBox Panel Demo");
-//            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//
-//            DynamicComboBox dynamicComboBoxPanel = new DynamicComboBox();
-//
-//            // Add some initial entries (optional)
-//            dynamicComboBoxPanel.getModel().addElement("Option 1");
-//            dynamicComboBoxPanel.getModel().addElement("Option 2");
-//            dynamicComboBoxPanel.getModel().addElement("Option 3");
-//
-//            frame.add(dynamicComboBoxPanel);
-//            frame.pack();
-//            frame.setLocationRelativeTo(null);  // Center on screen
-//            frame.setVisible(true);
-//        });
-//    }
 }

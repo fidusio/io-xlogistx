@@ -16,6 +16,11 @@ public class GUIUtil {
     public static final Color MID_COLOR   = new Color(0, 128, 255);  // Blueish
     public static final Color END_COLOR   = new Color(0, 255, 0);
 
+    public static final String ADD_SIGN = "\u2795";
+    public static final String DELETE_SIGN = "\u2796";
+    public static final String UPDATE_SIGN = "\uD83D\uDD04";
+
+
     private static final Lock lock = new ReentrantLock();
 
     private static final Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
