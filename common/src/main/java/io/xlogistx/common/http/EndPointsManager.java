@@ -6,7 +6,10 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.annotation.*;
+import org.zoxweb.shared.annotation.EndPointProp;
+import org.zoxweb.shared.annotation.MappedProp;
+import org.zoxweb.shared.annotation.ParamProp;
+import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMediaType;
@@ -14,6 +17,11 @@ import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPServerConfig;
 import org.zoxweb.shared.util.*;
 
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -40,14 +48,20 @@ public class EndPointsManager {
         return epm;
     }
 
-    private void mapBean(Object bean, MappedProp mappedProp)
+    private void mapBean(Object bean, Object mappedProp)
     {
         if (mappedProp != null)
         {
             log.getLogger().info("MappedProp found: " + mappedProp);
-            beanMaps.put(mappedProp.name(), bean);
-            if(SUS.isNotEmpty(mappedProp.id()))
-                beanMaps.put(mappedProp.id(), bean);
+            if (mappedProp instanceof MappedProp) {
+                beanMaps.put(((MappedProp) mappedProp).name(), bean);
+                if (SUS.isNotEmpty(((MappedProp) mappedProp).id()))
+                    beanMaps.put(((MappedProp) mappedProp).id(), bean);
+            }
+            if(mappedProp instanceof ServerEndpoint)
+            {
+                beanMaps.put("ws-" + ((ServerEndpoint) mappedProp).value(), bean);
+            }
         }
 
         log.getLogger().info("class name " + bean.getClass().getName());
@@ -166,6 +180,35 @@ public class EndPointsManager {
         return inner;
     }
 
+
+    private  static boolean scanWebSocket(EndPointsManager epm, Class<?> beanClass)
+    {
+        // scan the annotation
+        ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass,
+                ServerEndpoint.class,
+                OnMessage.class,
+                OnOpen.class,
+                OnClose.class,
+                OnError.class,
+                SecurityProp.class);
+
+        if (classAnnotationMap != null )
+        {
+            log.getLogger().info("We have a websocket to process " + classAnnotationMap);
+            ServerEndpoint serverWS = classAnnotationMap.getMatchingClassAnnotation(ServerEndpoint.class);
+            if(serverWS != null)
+            {
+                // we have a server websocket class endpoint
+                String uri = serverWS.value();
+
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static boolean areAllParametersUniquelyAnnotatedParamProp(ReflectionUtil.MethodAnnotations ma)
     {
 
@@ -197,7 +240,7 @@ public class EndPointsManager {
     public static EndPointsManager scan(HTTPServerConfig serverConfig)
     {
         HTTPEndPoint[] allHEP = serverConfig.getEndPoints();
-        EndPointsManager ret = new EndPointsManager();
+        EndPointsManager epm = new EndPointsManager();
         for(HTTPEndPoint configHEP : allHEP)
         {
 
@@ -219,22 +262,22 @@ public class EndPointsManager {
                 }
 
                 if(log.isEnabled()) log.getLogger().info("bean:" + beanName);
-
+                if(!scanWebSocket(epm, beanClass))
                 {
                     if(log.isEnabled()) log.getLogger().info("Scan the class");
                     ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, MappedProp.class);
                     // --- Map the bean to the mapped id
                     if(classAnnotationMap != null && SUS.isNotEmpty(classAnnotationMap.getClassAnnotations()))
                     {
-                        ret.mapBean(beanInstance, (MappedProp)classAnnotationMap.getClassAnnotations()[0]);
+                        epm.mapBean(beanInstance, classAnnotationMap.getClassAnnotations()[0]);
                     }
                     else
                     {
-                        ret.mapBean(beanInstance, null);
+                        epm.mapBean(beanInstance, null);
                     }
                     // ---
 
-                    // -- process the rest of the annocation
+                    // -- process the rest of the annotations
                     classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, EndPointProp.class, SecurityProp.class, ParamProp.class);
 
 
@@ -254,7 +297,7 @@ public class EndPointsManager {
                         }
                         else
                         {
-                            if(log.isEnabled()) log.getLogger().info("" + classAnnotationMap.getAnnotatedClass() + "has no class annotations");
+                            if(log.isEnabled()) log.getLogger().info( classAnnotationMap.getAnnotatedClass() + " has no class annotations");
                         }
                         if (classAnnotationMap.getMethodsAnnotations().size() > 0)
                         {
@@ -274,7 +317,7 @@ public class EndPointsManager {
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
-                                        mapHEP(ret, methodHEP, new MethodHolder(beanInstance, methodAnnotations));
+                                        mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations));
 
                                     } else {
                                         if(log.isEnabled()) log.getLogger().info(methodAnnotations.method + " NOT-AN-ENDPOINT");
@@ -299,11 +342,11 @@ public class EndPointsManager {
         }
 
 
-        return ret;
+        return epm;
     }
 
 
-    private static void mapHEP(EndPointsManager endPointsManager,HTTPEndPoint hep, MethodHolder methodHolder)
+    private static void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder methodHolder)
     {
         for (String path : hep.getPaths())
         {
@@ -360,9 +403,9 @@ public class EndPointsManager {
 
 
         // need to parse the payload parameters
-        for(Parameter p : uriMapResult.result.methodHolder.getMethodAnnotations().method.getParameters())
+        for(Parameter p : uriMapResult.result.methodHolder.methodAnnotations.method.getParameters())
         {
-            Annotation pAnnotation  = uriMapResult.result.methodHolder.getMethodAnnotations().parametersAnnotations.get(p);
+            Annotation pAnnotation  = uriMapResult.result.methodHolder.methodAnnotations.parametersAnnotations.get(p);
             if(pAnnotation instanceof ParamProp)
             {
                 ParamProp pp = (ParamProp) pAnnotation;

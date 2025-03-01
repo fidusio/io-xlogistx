@@ -6,10 +6,12 @@ import io.xlogistx.common.http.*;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.BaseSessionCallback;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.NIOSocketHandlerFactory;
 import org.zoxweb.server.net.PlainSessionCallback;
@@ -72,7 +74,7 @@ public class NIOHTTPServer
     public class HTTPSession
         extends PlainSessionCallback
     {
-        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP);
+        protected final HTTPProtocolHandler<Subject> hph = new HTTPProtocolHandler<>(URIScheme.HTTP);
 
         @Override
         public void accept(ByteBuffer inBuffer)
@@ -85,7 +87,7 @@ public class NIOHTTPServer
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     hph.isBusy.set(true);
-                    incomingData(getEndPointsManager(), hph.setOutputStream(get()));
+                    incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
                     hph.isBusy.set(false);
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 }
@@ -109,7 +111,7 @@ public class NIOHTTPServer
     public class HTTPsSession
             extends SSLSessionCallback
     {
-        private final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS);
+        protected final HTTPProtocolHandler<Subject> hph = new HTTPProtocolHandler<>(URIScheme.HTTPS);
         @Override
         public void accept(ByteBuffer inBuffer)
         {
@@ -121,7 +123,7 @@ public class NIOHTTPServer
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     // we are processing a request
                     hph.isBusy.set(true);
-                    incomingData(getEndPointsManager(), hph.setOutputStream(get()));
+                    incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
                     // processing finished
                     hph.isBusy.set(false);
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
@@ -231,84 +233,95 @@ public class NIOHTTPServer
 
     }
 
-    private static void incomingData(EndPointsManager endPointsManager, HTTPProtocolHandler hph)
+    private static void incomingData(BaseSessionCallback<?> session, EndPointsManager endPointsManager, HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
-        try
+
+
+        switch(hph.getProtocol())
         {
-            if (logger.isEnabled())
-            {
-                logger.getLogger().info(hph.getRequest().getURI());
-                logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
-                logger.getLogger().info("" + hph.getRequest().getHeaders());
-            }
-
-            URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
-            if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
-
-            if (epm != null)
-            {
-                if (logger.isEnabled())
-                    logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
-                // validate if method supported
-                if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod())) {
-                    throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
-                            Arrays.toString(epm.result.httpEndPoint.getMethods()),
-                            HTTPStatusCode.METHOD_NOT_ALLOWED);
-                }
-
-
-                // security check
-                securityCheck(epm, hph);
-                // check if instance of HTTPSessionHandler
-                if (epm.result.methodHolder.getInstance() instanceof HTTPSessionHandler)
+            case HTTPS:
+            case HTTP:
+                // HTTP protocol processing
                 {
-                    ((HTTPSessionHandler) epm.result.methodHolder.getInstance()).handle(hph);
-                }
-                else
-                {
-                    if (logger.isEnabled()) {
-                        logger.getLogger().info("" + epm.result.methodHolder.getInstance());
-                        logger.getLogger().info("" + hph.getRequest());
-                        logger.getLogger().info(epm.path);
-                    }
+                    try {
+                        if (logger.isEnabled()) {
+                            logger.getLogger().info(hph.getRequest().getURI());
+                            logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
+                            logger.getLogger().info("" + hph.getRequest().getHeaders());
+                        }
 
-                    Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
-                    Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.getInstance(),
-                            epm.result.methodHolder.getMethodAnnotations(),
-                            parameters);
+                        URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+                        if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
-                    HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
-                                    HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
+                        if (epm != null) {
+                            if (logger.isEnabled())
+                                logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
+                            // validate if method supported
+                            if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod())) {
+                                throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
+                                        Arrays.toString(epm.result.httpEndPoint.getMethods()),
+                                        HTTPStatusCode.METHOD_NOT_ALLOWED);
+                            }
+
+
+                            // security check
+                            securityCheck(epm, hph);
+                            // check if instance of HTTPSessionHandler
+                            if (epm.result.methodHolder.instance instanceof HTTPSessionHandler) {
+                                ((HTTPSessionHandler) epm.result.methodHolder.instance).handle(hph);
+                            } else {
+                                if (logger.isEnabled()) {
+                                    logger.getLogger().info("" + epm.result.methodHolder.instance);
+                                    logger.getLogger().info("" + hph.getRequest());
+                                    logger.getLogger().info(epm.path);
+                                }
+
+                                Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
+                                Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
+                                        epm.result.methodHolder.methodAnnotations,
+                                        parameters);
+
+                                HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
+                                        HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
+                                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+
+                                HTTPUtil.formatResponse(hmci, hph.getResponseStream())
+                                        .writeTo(hph.getOutputStream());
+                                // message complete and sent to client
+                            }
+                        } else {
+                            // error status uri map not found
+                            SimpleMessage sm = new SimpleMessage();
+                            sm.setError(hph.getRequest().getURI() + " not found");
+                            sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
+
+
+                            HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(), sm, HTTPStatusCode.NOT_FOUND,
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                     HTTPConst.CommonHeader.EXPIRES_ZERO);
-
-                    HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                            .writeTo(hph.getOutputStream());
-                    // message complete and sent to client
+                            HTTPUtil.formatResponse(hmci, hph.getResponseStream())
+                                    .writeTo(hph.getOutputStream());
+                        }
+                        if (!hph.reset())
+                            IOUtil.close(hph);
+                    }
+                    finally
+                    {
+                        // very important check DO NOT REMOVE since the protocol can switch with HTTP get to
+                        // websocket
+                        if (hph.isHTTPProtocol())
+                            SecurityUtils.getSubject().logout();
+                    }
                 }
-            }
-            else
-            {
-                // error status uri map not found
-                SimpleMessage sm = new SimpleMessage();
-                sm.setError(hph.getRequest().getURI() + " not found");
-                sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
-
-
-                HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(),sm, HTTPStatusCode.NOT_FOUND,
-                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                        HTTPConst.CommonHeader.EXPIRES_ZERO);
-                HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                        .writeTo(hph.getOutputStream());
-            }
-            if(!hph.reset())
-                IOUtil.close(hph);
+                break;
+            case WSS:
+            case WS:
+                // web socket processing here
+                break;
         }
-        finally
-        {
-            SecurityUtils.getSubject().logout();
-        }
+
     }
 
 
@@ -383,6 +396,7 @@ public class NIOHTTPServer
                 }
             }
 
+            // keep alive configuration
             keepAliveConfig = config.getProperties().lookup("keep-alive");
             logger.getLogger().info("Keep-Alive Config: " + keepAliveConfig);
             if(keepAliveConfig != null)
@@ -395,9 +409,11 @@ public class NIOHTTPServer
                 }
             }
 
-
+            // scan endpoints
             endPointsManager = EndPointsManager.scan(getConfig());
             if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
+
+            // NISocket
             if(getNIOSocket() == null)
             {
                 if(getConfig().getThreadPoolSize() > 0)
@@ -408,6 +424,7 @@ public class NIOHTTPServer
 
 
             if(logger.isEnabled()) logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
+            // connection configuration
             for(ConnectionConfig cc : ccs)
             {
                 String[] schemes = cc.getSchemes();

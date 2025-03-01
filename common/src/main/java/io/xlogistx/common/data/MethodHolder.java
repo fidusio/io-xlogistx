@@ -5,8 +5,8 @@ import org.zoxweb.server.util.ReflectionUtil;
 
 
 public class MethodHolder {
-    private Object instance;
-    private ReflectionUtil.MethodAnnotations methodAnnotations;
+    public final Object instance;
+    public final ReflectionUtil.MethodAnnotations methodAnnotations;
 
     public MethodHolder(Object instance, ReflectionUtil.MethodAnnotations methodAnnotations)
     {
@@ -16,15 +16,15 @@ public class MethodHolder {
         this.methodAnnotations = methodAnnotations;
     }
 
-    public Object getInstance()
-    {
-        return instance;
-    }
+//    public Object getInstance()
+//    {
+//        return instance;
+//    }
 
-    public ReflectionUtil.MethodAnnotations getMethodAnnotations()
-    {
-        return methodAnnotations;
-    }
+//    public ReflectionUtil.MethodAnnotations getMethodAnnotations()
+//    {
+//        return methodAnnotations;
+//    }
 
 
 }

@@ -30,7 +30,7 @@ public class HTTPFileServiceHandler
 
     @Override
     @EndPointProp(methods = {HTTPMethod.GET}, name="files", uris="/")
-    public void handle(@ParamProp(name="filename", source=Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler protocolHandler)
+    public void handle(@ParamProp(name="file-info", source=Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler protocolHandler)
             throws IOException
     {
         String filename = protocolHandler.getRequest().getURI();

@@ -55,7 +55,7 @@ public class APISecurityManagerProvider
 	@Override
 	public final Object encryptValue(APIDataStore<?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
 			throws NullPointerException, IllegalArgumentException, AccessException {
-		SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvb);
+		SUS.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvb);
 		
 		
 		
@@ -135,7 +135,7 @@ public class APISecurityManagerProvider
 			return null;
 		}
 		
-		SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container);
+		SUS.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container);
 		for (NVBase<?> nvb : container.getAttributes().values().toArray( new NVBase[0]))
 		{
 			if (nvb instanceof NVPair)
@@ -177,9 +177,9 @@ public class APISecurityManagerProvider
 			{
 				return nvp != null ? nvp.getValue() : null;
 			}
-		
-		
-			SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvp);
+
+
+			SUS.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvp);
 			
 			if (nvp.getValue()!= null && (ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT_MASK)))
 			{
@@ -218,9 +218,9 @@ public class APISecurityManagerProvider
 			container.setValue(nvb.getName(), value);
 			return nvb.getValue();
 		}
-	
-	
-		SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvb);
+
+
+		SUS.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvb);
 		NVConfig nvc = ((NVConfigEntity)container.getNVConfig()).lookup(nvb.getName());
 		
 		if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
@@ -265,9 +265,9 @@ public class APISecurityManagerProvider
 			
 			return value;
 		}
-	
-	
-		SharedUtil.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container);
+
+
+		SUS.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container);
 		
 		if (value instanceof EncryptedData)
 		{
@@ -449,7 +449,7 @@ public class APISecurityManagerProvider
 	public final String checkNVEntityAccess(LogicalOperator lo, NVEntity nve, CRUD ...permissions)
 		throws NullPointerException, IllegalArgumentException, AccessException
 	{
-		SharedUtil.checkIfNulls("Null NVEntity", lo, nve);
+		SUS.checkIfNulls("Null NVEntity", lo, nve);
 		
 		if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO)
 		{
@@ -497,7 +497,7 @@ public class APISecurityManagerProvider
 
 	@Override
 	public final boolean isNVEntityAccessible(String nveRefID, String nveUserID, CRUD... permissions) {
-		SharedUtil.checkIfNulls("Null reference ID.", nveRefID);
+		SUS.checkIfNulls("Null reference ID.", nveRefID);
 		
 		String userID = currentUserID();
 		
@@ -534,7 +534,7 @@ public class APISecurityManagerProvider
 	public final void checkSubject(String subjectID)
 			throws NullPointerException, AccessException
 	{
-		SharedUtil.checkIfNulls("subjectID null", subjectID);
+		SUS.checkIfNulls("subjectID null", subjectID);
 		if(!SecurityUtils.getSubject().isAuthenticated() && !SecurityUtils.getSubject().getPrincipal().equals(subjectID))
 		{
 			throw new AccessException("Access denied");
@@ -547,7 +547,7 @@ public class APISecurityManagerProvider
 	public final String checkNVEntityAccess(String nveRefID, String nveUserID, CRUD ...permissions)
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
-		SharedUtil.checkIfNulls("Null reference ID.", nveRefID);
+		SUS.checkIfNulls("Null reference ID.", nveRefID);
 		
 		String userID = currentUserID();
 		
@@ -581,7 +581,7 @@ public class APISecurityManagerProvider
 	public final String checkNVEntityAccess(String nveRefID, CRUD ...permissions)
 		throws NullPointerException, IllegalArgumentException, AccessException
 	{
-		SharedUtil.checkIfNulls("Null reference ID.", nveRefID);
+		SUS.checkIfNulls("Null reference ID.", nveRefID);
 		
 		String userID = currentUserID();
 		
@@ -1052,7 +1052,7 @@ public class APISecurityManagerProvider
 	@Override
 	public void addShiroRule(ShiroAssociationRule sard) {
 		// TODO Auto-generated method stub
-		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sard, sard.getAssociationType());
+		SUS.checkIfNulls("Null ShiroAssociationRule", sard, sard.getAssociationType());
 		
 		switch(sard.getAssociationType())
 		{
@@ -1172,7 +1172,7 @@ public class APISecurityManagerProvider
 	public boolean isPermitted(NVEntity nve, String permission)
 			 throws NullPointerException, IllegalArgumentException
 	{
-		SharedUtil.checkIfNulls("Null parameters", nve, nve.getReferenceID(), permission);
+		SUS.checkIfNulls("Null parameters", nve, nve.getReferenceID(), permission);
 		boolean result = ShiroUtil.isPermitted(permission);
 		if (result)
 		{

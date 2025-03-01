@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class HTTPProtocolHandler
+public class HTTPProtocolHandler<S>
     implements Closeable, IsClosed
 {
 
@@ -28,15 +28,19 @@ public class HTTPProtocolHandler
     private HTTPMessageConfigInterface response = new HTTPMessageConfig();
     private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
-    private URIScheme protocolMode;
+    private volatile URIScheme protocolMode;
     private Lifetime keepAliveLifetime = null;
     private Appointment keepAliveAppointment = null;
+
+
+
+    private volatile Object endPointBean = null;
 
 
     public AtomicBoolean isBusy = new AtomicBoolean();
 
 
-
+    private volatile S subject = null;
     private volatile OutputStream outputStream;
 
     public HTTPProtocolHandler(URIScheme protocol)
@@ -61,7 +65,7 @@ public class HTTPProtocolHandler
                 this.protocolMode = protocol;
                 break;
             default:
-                throw new IllegalArgumentException("Unsupported protocol " + protocolMode);
+                throw new UnsupportedOperationException("Unsupported protocol " + protocolMode);
         }
         return this;
     }
@@ -190,7 +194,7 @@ public class HTTPProtocolHandler
     public synchronized boolean reset()
     {
 
-        if(!isKeepAliveExpired())
+        if(isHTTPProtocol() && !isKeepAliveExpired())
         {
             if (keepAliveAppointment.reset(true))
             {
@@ -202,8 +206,19 @@ public class HTTPProtocolHandler
             }
         }
 
-        return false;
+        return isWSProtocol();
     }
+
+
+    public boolean isHTTPProtocol()
+    {
+        return (protocolMode == URIScheme.HTTPS || protocolMode == URIScheme.HTTP);
+    }
+    public boolean isWSProtocol()
+    {
+        return (protocolMode == URIScheme.WSS || protocolMode == URIScheme.WS);
+    }
+
 
     public boolean isClosed()
     {
@@ -314,6 +329,27 @@ public class HTTPProtocolHandler
                     .build(new NVPair(HTTPHeader.KEEP_ALIVE, "timeout=" +  TimeUnit.SECONDS.convert(keepAliveLifetime.getDelayInMillis(),TimeUnit.MILLISECONDS) +
                             (keepAliveLifetime.getMaxUse() > 0 ? ", max=" + (keepAliveLifetime.getMaxUse() - keepAliveLifetime.getUsageCounter()) : "")));
         }
+    }
+
+
+    public <V> V  getEndPointBean() {
+        return (V) endPointBean;
+    }
+
+    public HTTPProtocolHandler setEndPointBean(Object endPointBean) {
+        this.endPointBean = endPointBean;
+        return this;
+    }
+
+    public S getSubject()
+    {
+        return subject;
+    }
+
+    public HTTPProtocolHandler<S> setSubject(S subject)
+    {
+        this.subject = subject;
+        return this;
     }
 
 }

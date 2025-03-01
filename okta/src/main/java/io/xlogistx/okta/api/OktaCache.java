@@ -40,7 +40,7 @@ public class OktaCache {
 
     public OktaCache addGroup(OktaGroup group)
     {
-        SharedUtil.checkIfNulls("Group or id null", group);
+        SUS.checkIfNulls("Group or id null", group);
 
         typedCache.addObject(CacheType.GROUP, group.getProfile().getName(), group);
         return this;
@@ -53,7 +53,7 @@ public class OktaCache {
     }
     public OktaGroup lookupGroup(String group)
     {
-        SharedUtil.checkIfNulls("Group or id null", group);
+        SUS.checkIfNulls("Group or id null", group);
         return typedCache.lookupObject(CacheType.GROUP, group);
     }
 

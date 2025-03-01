@@ -87,10 +87,10 @@
         <jsoup.version>RELEASE</jsoup.version>
         <snakeyaml.version>RELEASE</snakeyaml.version>
         <junit.version>RELEASE</junit.version>
-        <java-websocket.version>RELEASE</java-websocket.version>
+        <websocket.version>RELEASE</websocket.version>
         <jsch.version>RELEASE</jsch.version>
 
-        <websocket.version>1.1</websocket.version>
+
 
 
         <zoxweb-core.version>2.3.8</zoxweb-core.version>

@@ -28,7 +28,7 @@ public class HTTPUploadHandler
     @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name="upload-file", uris="/system-upload")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "upload:files")
     @Override
-    public void handle(@ParamProp(name="contents", source= Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler hph)
+    public void handle(@ParamProp(name="raw-content", source= Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler hph)
             throws IOException
     {
         HTTPMessageConfigInterface hmciRequest = hph.getRequest();

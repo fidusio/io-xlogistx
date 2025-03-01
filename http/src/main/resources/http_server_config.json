@@ -90,6 +90,9 @@
       "bean":  "io.xlogistx.http.services.HTTPUploadHandler"
     },
     {
+      "bean":  "io.xlogistx.http.services.EchoChat"
+    },
+    {
       "bean":  "io.xlogistx.http.services.SysCommand",
       "properties":{
         "reboot-command" : "reboot-command",
