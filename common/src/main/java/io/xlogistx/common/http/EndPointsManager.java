@@ -38,6 +38,12 @@ public class EndPointsManager {
     private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
 
     private final Map<String, Object> beanMaps = new LinkedHashMap<>();
+    private final InstanceFactory.ParamsInstanceCreator<?> pic;
+
+    public EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic)
+    {
+        this.pic = pic;
+    }
 
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh)
     {
@@ -181,7 +187,7 @@ public class EndPointsManager {
     }
 
 
-    private  static boolean scanWebSocket(EndPointsManager epm, Class<?> beanClass)
+    private  static boolean scanWebSocket(EndPointsManager epm, Class<?> beanClass, Object beanInstance)
     {
         // scan the annotation
         ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass,
@@ -192,15 +198,38 @@ public class EndPointsManager {
                 OnError.class,
                 SecurityProp.class);
 
-        if (classAnnotationMap != null )
+        if (classAnnotationMap != null)
         {
-            log.getLogger().info("We have a websocket to process " + classAnnotationMap);
             ServerEndpoint serverWS = classAnnotationMap.getMatchingClassAnnotation(ServerEndpoint.class);
             if(serverWS != null)
             {
-                // we have a server websocket class endpoint
+                SecurityProp sp = classAnnotationMap.getMatchingClassAnnotation(SecurityProp.class);
+                log.getLogger().info("WebSocket server end point " + classAnnotationMap);
                 String uri = serverWS.value();
+                Object wsBean = epm.pic.newInstance(uri, sp, beanInstance);
+                // we have a server websocket class endpoint
 
+                HTTPEndPoint classHEP = new HTTPEndPoint();
+                classHEP.setBean(wsBean.getClass().getName());
+                log.getLogger().info("Inner web socket " + wsBean.getClass() );
+                ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(),EndPointProp.class);
+                Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
+
+                epm.map(uri, classHEP, new MethodHolder(wsBean, map.values().iterator().next()));
+
+
+
+                log.getLogger().info("Inner websocket " + map);
+
+//                MethodHolder mh = new MethodHolder(wsBean, )
+//                epm.map(uri, classHEP, )
+
+
+
+
+
+
+                log.getLogger().info("______________________________________________________________________");
 
                 return true;
             }
@@ -237,10 +266,10 @@ public class EndPointsManager {
         return true;
     }
 
-    public static EndPointsManager scan(HTTPServerConfig serverConfig)
+    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsInstanceCreator<?>   pic)
     {
         HTTPEndPoint[] allHEP = serverConfig.getEndPoints();
-        EndPointsManager epm = new EndPointsManager();
+        EndPointsManager epm = new EndPointsManager(pic);
         for(HTTPEndPoint configHEP : allHEP)
         {
 
@@ -262,7 +291,7 @@ public class EndPointsManager {
                 }
 
                 if(log.isEnabled()) log.getLogger().info("bean:" + beanName);
-                if(!scanWebSocket(epm, beanClass))
+                if(!scanWebSocket(epm, beanClass, beanInstance))
                 {
                     if(log.isEnabled()) log.getLogger().info("Scan the class");
                     ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, MappedProp.class);
@@ -312,7 +341,7 @@ public class EndPointsManager {
 
                                         HTTPEndPoint methodHEP = scanAnnotations(serverConfig.getBaseURI(),
                                                 new HTTPEndPoint(),
-                                                methodAnnotations.methodAnnotations,
+                                                methodAnnotations.methodAnnotations(),
                                                 true);
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);

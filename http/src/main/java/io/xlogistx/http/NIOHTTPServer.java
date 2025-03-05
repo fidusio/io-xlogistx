@@ -3,6 +3,7 @@ package io.xlogistx.http;
 
 
 import io.xlogistx.common.http.*;
+import io.xlogistx.http.websocket.WSHandler;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
@@ -23,6 +24,7 @@ import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
@@ -48,6 +50,8 @@ import java.util.function.Function;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
+import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
+
 
 public class NIOHTTPServer
         implements DaemonController
@@ -63,7 +67,7 @@ public class NIOHTTPServer
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NOUFN")
             .lookupResource(ResourceManager.Resource.HTTP_SERVER);
-    private final InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
+    private final InstanceFactory.InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
 
@@ -186,6 +190,7 @@ public class NIOHTTPServer
     {
 
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
+        if(logger.isEnabled()) logger.getLogger().info("Authentication supported: " + Arrays.toString(resourceAuthTypes) );
 
         // for performance check
         // if the resource authentication is required
@@ -304,7 +309,7 @@ public class NIOHTTPServer
                             HTTPUtil.formatResponse(hmci, hph.getResponseStream())
                                     .writeTo(hph.getOutputStream());
                         }
-                        if (!hph.reset())
+                        if (!hph.reset() && hph.isHTTPProtocol())
                             IOUtil.close(hph);
                     }
                     finally
@@ -313,11 +318,18 @@ public class NIOHTTPServer
                         // websocket
                         if (hph.isHTTPProtocol())
                             SecurityUtils.getSubject().logout();
+                        else
+                            hph.setSubject(SecurityUtils.getSubject());
                     }
                 }
                 break;
             case WSS:
             case WS:
+            {
+                ((HTTPSessionHandler<Subject>)hph.getEndPointBean()).handle(hph);
+
+            }
+
                 // web socket processing here
                 break;
         }
@@ -410,7 +422,9 @@ public class NIOHTTPServer
             }
 
             // scan endpoints
-            endPointsManager = EndPointsManager.scan(getConfig());
+            endPointsManager = EndPointsManager.scan(getConfig(), (a)->{
+                return new WSHandler((String) a[0], (SecurityProp) a[1], a[2]);
+            });
             if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
 
             // NISocket

@@ -31,6 +31,7 @@ public class HTTPProtocolHandler<S>
     private volatile URIScheme protocolMode;
     private Lifetime keepAliveLifetime = null;
     private Appointment keepAliveAppointment = null;
+    private volatile int lastWSIndex = 0;
 
 
 
@@ -54,7 +55,7 @@ public class HTTPProtocolHandler<S>
         return protocolMode;
     }
 
-    public HTTPProtocolHandler switchProtocol(URIScheme protocol)
+    public HTTPProtocolHandler<S> switchProtocol(URIScheme protocol)
     {
         switch (protocol)
         {
@@ -92,6 +93,7 @@ public class HTTPProtocolHandler<S>
             case WS:
             case WSS:
                 // to be added here
+                return true;
             default:
                 throw new IllegalStateException("Unexpected value: " + protocolMode);
         }
@@ -176,7 +178,11 @@ public class HTTPProtocolHandler<S>
 
     public UByteArrayOutputStream getResponseStream()
     {
-        return isRequestComplete() ? responseStream : null;
+        return getResponseStream( false);
+    }
+    public UByteArrayOutputStream getResponseStream(boolean override)
+    {
+        return isRequestComplete() || override ? responseStream : null;
     }
 
     @Override
@@ -187,7 +193,7 @@ public class HTTPProtocolHandler<S>
             isBusy.set(false);
             IOUtil.close(keepAliveLifetime, keepAliveAppointment, getOutputStream());
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
-            if(log.isEnabled()) log.getLogger().info(keepAliveAppointment + " " + keepAliveLifetime);
+            if(log.isEnabled()) log.getLogger().info(keepAliveAppointment + " " + keepAliveLifetime + " " + protocolMode);
         }
     }
 
@@ -204,6 +210,13 @@ public class HTTPProtocolHandler<S>
                 keepAliveLifetime.incUsage();
                 return true;
             }
+        }
+        else if (isWSProtocol())
+        {
+            rawRequest.reset();
+            responseStream.reset();
+            setLastWSIndex(0);
+            keepAliveLifetime = null;
         }
 
         return isWSProtocol();
@@ -350,6 +363,16 @@ public class HTTPProtocolHandler<S>
     {
         this.subject = subject;
         return this;
+    }
+
+    public int getLastWSIndex()
+    {
+        return lastWSIndex;
+    }
+
+    public synchronized void setLastWSIndex(int index)
+    {
+        this.lastWSIndex = index;
     }
 
 }

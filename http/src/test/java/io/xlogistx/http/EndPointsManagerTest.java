@@ -18,6 +18,6 @@ public class EndPointsManagerTest {
         System.out.println("File:" + file);
         String json = IOUtil.inputStreamToString(new FileInputStream(file), true);
         HTTPServerConfig hsc = GSONUtil.fromJSON(json, HTTPServerConfig.class);
-        EndPointsManager.scan(hsc);
+        EndPointsManager.scan(hsc, null);
     }
 }
