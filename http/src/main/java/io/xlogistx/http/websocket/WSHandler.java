@@ -62,13 +62,13 @@ public class WSHandler
             NVGenericMap headers = hph.getRequest().getHeaders();
             if (log.isEnabled()) log.getLogger().info(hph.getRequest().getHeaders().toString());
             HTTPAuthorization authorization = hph.getRequest().getAuthorization();
-            System.out.println(""+ authorization);
-            System.out.println("" + headers.getValue(HTTPHeader.CONNECTION));
+            if (log.isEnabled()) log.getLogger().info(""+ authorization);
+            if (log.isEnabled()) log.getLogger().info("" + headers.getValue(HTTPHeader.CONNECTION));
             //System.out.println("" + headers.getValue(HTTPHeader.SEC_WEBSOCKET_ACCEPT));
-            System.out.println("" + headers.getValue(HTTPHeader.SEC_WEBSOCKET_VERSION));
-            System.out.println("WEB-SOCKET-Protocol: " + headers.getValue(HTTPHeader.SEC_WEBSOCKET_PROTOCOL));
-            System.out.println("" + headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY));
-            System.out.println("" + headers.getValue(HTTPHeader.UPGRADE));
+            if (log.isEnabled()) log.getLogger().info("" + headers.getValue(HTTPHeader.SEC_WEBSOCKET_VERSION));
+            if (log.isEnabled()) log.getLogger().info("WEB-SOCKET-Protocol: " + headers.getValue(HTTPHeader.SEC_WEBSOCKET_PROTOCOL));
+            if (log.isEnabled()) log.getLogger().info("" + headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY));
+            if (log.isEnabled()) log.getLogger().info("" + headers.getValue(HTTPHeader.UPGRADE));
             HTTPMessageConfigInterface resp = null;
             try {
                  resp = new HTTPMessageConfig();
@@ -93,9 +93,9 @@ public class WSHandler
                 hph.switchProtocol( hph.getProtocol() == URIScheme.HTTPS ? URIScheme.WSS : URIScheme.WS);
                 if (log.isEnabled()) log.getLogger().info("Protocol switched: " + hph.getProtocol());
 
-                System.out.println("Request Size() " + hph.getRawRequest().getDataStream().size());
+                if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
                 hph.reset();
-                System.out.println("Request Size() " + hph.getRawRequest().getDataStream().size());
+                if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
                 hph.setEndPointBean(this);
             }
 
