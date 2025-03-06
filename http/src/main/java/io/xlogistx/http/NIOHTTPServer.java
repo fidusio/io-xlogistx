@@ -186,7 +186,7 @@ public class NIOHTTPServer
         }
     }
 
-   private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
+   private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler<Subject> hph) throws IOException
     {
 
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();

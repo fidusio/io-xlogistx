@@ -180,9 +180,10 @@ public class HTTPProtocolHandler<S>
     {
         return getResponseStream( false);
     }
+
     public UByteArrayOutputStream getResponseStream(boolean override)
     {
-        return isRequestComplete() || override ? responseStream : null;
+        return override || isRequestComplete() ? responseStream : null;
     }
 
     @Override

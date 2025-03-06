@@ -118,9 +118,20 @@ public class WSHandler
                     switch (frame.opCode())
                     {
                         case TEXT:
-                            if (log.isEnabled()) log.getLogger().info("Data: " + frame.data().asString());
-                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + frame.data().asString())
+                            String text =  frame.data().asString();
+                            if (log.isEnabled()) log.getLogger().info("Data: " + text);
+
+
+                            if (text.equalsIgnoreCase("ping"))
+                            {
+                                HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
                                     .writeTo(hph.getOutputStream());
+
+                            }
+                            else
+                                HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
+                                    .writeTo(hph.getOutputStream());
+
                             break;
                         case BINARY:
                             break;
@@ -128,13 +139,26 @@ public class WSHandler
                             hph.close();
                             break;
                         case PING:
+                            HTTPWSProto.formatFrame(hph.getResponseStream(true),
+                                            true,
+                                            HTTPWSProto.OpCode.PONG,
+                                            null, // masking key always null since this is a server
+                                            frame.data() != null ? frame.data().asBytes() : null)
+                                    .writeTo(hph.getOutputStream());
                             break;
                         case PONG:
+                            if (log.isEnabled()) log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
                             break;
                     }
 
 
                     hph.reset();
+                }
+                else
+                {
+                    // we have to shift the buffer and extract the data
+                    // and update hph.setLastWSIndex
+                    // don't reset the request buffer
                 }
 
 

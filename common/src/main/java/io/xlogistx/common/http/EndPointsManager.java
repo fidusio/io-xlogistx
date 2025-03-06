@@ -103,14 +103,26 @@ public class EndPointsManager {
             String[] paths = hep.getPaths();
             for(int i = 0; i < paths.length; i++)
             {
-                paths[i] = SharedStringUtil.concat(baseURI, paths[i], "/");
+                paths[i] = updatePath(baseURI, paths[i]);
             }
             hep.setPaths(paths);
         }
         return hep;
     }
 
-    public static HTTPEndPoint scanAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck)
+    public static String updatePath(String baseURI, String path)
+    {
+        baseURI = SharedStringUtil.trimOrNull(baseURI);
+        if(baseURI != null)
+        {
+            path = SharedStringUtil.concat(baseURI, path, "/");
+        }
+        return path;
+    }
+
+
+
+    public static HTTPEndPoint applyAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck)
     {
         for (Annotation a : annotations) {
             if (a instanceof EndPointProp) {
@@ -130,20 +142,38 @@ public class EndPointsManager {
                 hep.setPaths(uris);
 
             } else if (a instanceof SecurityProp) {
-                SecurityProp sp = (SecurityProp) a;
-
-                String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-                String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
-                CryptoConst.AuthenticationType[] authTypes = sp.authentications();
-                String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-                hep.setPermissions(permissions);
-                hep.setRoles(roles);
-                hep.setAuthenticationTypes(authTypes);
-                hep.setRestrictions(restrictions);
-                hep.setProtocols(sp.protocols());
+//                SecurityProp sp = (SecurityProp) a;
+//
+//                String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
+//                String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
+//                CryptoConst.AuthenticationType[] authTypes = sp.authentications();
+//                String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
+//                hep.setPermissions(permissions);
+//                hep.setRoles(roles);
+//                hep.setAuthenticationTypes(authTypes);
+//                hep.setRestrictions(restrictions);
+//                hep.setProtocols(sp.protocols());
+                applySecurityProp(hep, (SecurityProp) a);
             }
         }
         return updatePaths(baseURI, hep);
+    }
+
+
+    public static void applySecurityProp(HTTPEndPoint hep, SecurityProp sp)
+    {
+        if (hep != null && sp != null)
+        {
+            String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
+            String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
+            CryptoConst.AuthenticationType[] authTypes = sp.authentications();
+            String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
+            hep.setPermissions(permissions);
+            hep.setRoles(roles);
+            hep.setAuthenticationTypes(authTypes);
+            hep.setRestrictions(restrictions);
+            hep.setProtocols(sp.protocols());
+        }
     }
 
     public static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride)
@@ -187,7 +217,7 @@ public class EndPointsManager {
     }
 
 
-    private  static boolean scanWebSocket(EndPointsManager epm, Class<?> beanClass, Object beanInstance)
+    private  static boolean scanWebSocket(String baseURI, EndPointsManager epm, Class<?> beanClass, Object beanInstance)
     {
         // scan the annotation
         ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass,
@@ -205,17 +235,20 @@ public class EndPointsManager {
             {
                 SecurityProp sp = classAnnotationMap.getMatchingClassAnnotation(SecurityProp.class);
                 log.getLogger().info("WebSocket server end point " + classAnnotationMap);
-                String uri = serverWS.value();
+                String uri = updatePath(baseURI, serverWS.value());
                 Object wsBean = epm.pic.newInstance(uri, sp, beanInstance);
                 // we have a server websocket class endpoint
 
-                HTTPEndPoint classHEP = new HTTPEndPoint();
-                classHEP.setBean(wsBean.getClass().getName());
+                HTTPEndPoint hep = new HTTPEndPoint();
+                hep.setBean(wsBean.getClass().getName());
+                applySecurityProp(hep, sp);
+                //classHEP = applyAnnotations(baseURI, classHEP, classAnnotationMap.getClassAnnotations(), false);
                 log.getLogger().info("Inner web socket " + wsBean.getClass() );
                 ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(),EndPointProp.class);
+
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
-                epm.map(uri, classHEP, new MethodHolder(wsBean, map.values().iterator().next()));
+                epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next()));
 
 
 
@@ -291,7 +324,7 @@ public class EndPointsManager {
                 }
 
                 if(log.isEnabled()) log.getLogger().info("bean:" + beanName);
-                if(!scanWebSocket(epm, beanClass, beanInstance))
+                if(!scanWebSocket(serverConfig.getBaseURI(), epm, beanClass, beanInstance))
                 {
                     if(log.isEnabled()) log.getLogger().info("Scan the class");
                     ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, MappedProp.class);
@@ -320,7 +353,7 @@ public class EndPointsManager {
                         {
                             classHEP = new HTTPEndPoint();
                             classHEP.setBean(beanName);
-                            classHEP = scanAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
+                            classHEP = applyAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
                             classHEP = mergeOuterIntoInner(configHEP, classHEP, false);
 
                         }
@@ -339,7 +372,7 @@ public class EndPointsManager {
                                     if (areAllParametersUniquelyAnnotatedParamProp(methodAnnotations))
                                     {
 
-                                        HTTPEndPoint methodHEP = scanAnnotations(serverConfig.getBaseURI(),
+                                        HTTPEndPoint methodHEP = applyAnnotations(serverConfig.getBaseURI(),
                                                 new HTTPEndPoint(),
                                                 methodAnnotations.methodAnnotations(),
                                                 true);
