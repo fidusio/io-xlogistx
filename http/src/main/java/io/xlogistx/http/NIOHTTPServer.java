@@ -8,6 +8,7 @@ import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -238,7 +239,7 @@ public class NIOHTTPServer
 
     }
 
-    private static void incomingData(BaseSessionCallback<?> session, EndPointsManager endPointsManager, HTTPProtocolHandler hph)
+    private static void incomingData(BaseSessionCallback<?> session, EndPointsManager endPointsManager, HTTPProtocolHandler<Subject> hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
 
@@ -249,7 +250,9 @@ public class NIOHTTPServer
             case HTTP:
                 // HTTP protocol processing
                 {
+
                     try {
+
                         if (logger.isEnabled()) {
                             logger.getLogger().info(hph.getRequest().getURI());
                             logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
@@ -319,7 +322,11 @@ public class NIOHTTPServer
                         if (hph.isHTTPProtocol())
                             SecurityUtils.getSubject().logout();
                         else
+                        {
                             hph.setSubject(SecurityUtils.getSubject());
+                            ThreadContext.unbindSubject();
+
+                        }
                     }
                 }
                 break;
