@@ -10,12 +10,15 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.Lifetime;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.protocol.HTTPWSFrame;
 import org.zoxweb.shared.util.*;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,6 +35,8 @@ public class HTTPProtocolHandler<S>
     private Lifetime keepAliveLifetime = null;
     private Appointment keepAliveAppointment = null;
     private volatile int lastWSIndex = 0;
+
+    public volatile List<HTTPWSFrame> pendingWSFrames = new ArrayList<HTTPWSFrame>();
 
 
 

@@ -112,56 +112,8 @@ public class WSHandler
                 ss = new SubjectSwap(hph.getSubject());
                 if (log.isEnabled()) log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
 
+                processWSMessage(hph);
 
-                HTTPWSFrame frame = new HTTPWSFrame(hph.getRawRequest().getDataStream(), hph.getLastWSIndex());
-                if (frame.frameSize() != -1) {
-                    if (log.isEnabled())
-                        log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
-
-
-                    if (frame.isFin()) {
-                        switch (frame.opCode()) {
-                            case TEXT:
-                                String text = frame.data().asString();
-                                if (log.isEnabled()) log.getLogger().info("Data: " + text);
-
-
-                                if (text.equalsIgnoreCase("ping")) {
-                                    HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
-                                            .writeTo(hph.getOutputStream());
-
-                                } else
-                                    HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
-                                            .writeTo(hph.getOutputStream());
-
-                                break;
-                            case BINARY:
-                                break;
-                            case CLOSE:
-                                hph.close();
-                                break;
-                            case PING:
-                                HTTPWSProto.formatFrame(hph.getResponseStream(true),
-                                                true,
-                                                HTTPWSProto.OpCode.PONG,
-                                                null, // masking key always null since this is a server
-                                                frame.data() != null ? frame.data().asBytes() : null)
-                                        .writeTo(hph.getOutputStream());
-                                break;
-                            case PONG:
-                                if (log.isEnabled())
-                                    log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
-                                break;
-                        }
-
-
-                        hph.reset();
-                    } else {
-                        // we have to shift the buffer and extract the data
-                        // and update hph.setLastWSIndex
-                        // don't reset the request buffer
-                    }
-                }
             }
             finally {
                 IOUtil.close(ss);
@@ -170,18 +122,92 @@ public class WSHandler
     }
 
 
-//    public void ping(byte[] data) throws IOException
-//    {
-//        if (data != null && data.length > 125)
-//        {
-//            throw new IllegalArgumentException("data length " + data.length + " > 125");
-//        }
+
+
+    private void processWSMessage(HTTPProtocolHandler<Subject> hph)
+            throws IOException
+    {
+        HTTPWSFrame frame;
+        while((frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getLastWSIndex())) != null)
+        {
+
+            if (log.isEnabled())
+                log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
+
+
+            if (frame.isFin())
+            {
+                HTTPWSProto.OpCode opCode = frame.opCode();
+                if (opCode == null)
+                {
+                    log.getLogger().info(""+ frame.rawOpCode());
+                }
+
+//                            if (frame.frameSize() < hph.getRawRequest().getDataStream().size())
+//                            {
+//                                log.getLogger().info("we have data to extract");
 //
-//        HTTPWSProto.formatFrame(hph.getResponseStream(true),
-//                        true,
-//                        HTTPWSProto.OpCode.PONG,
-//                        null, // masking key always null since this is a server
-//                        frame.data() != null ? frame.data().asBytes() : null)
-//                .writeTo(hph.getOutputStream());
-//    }
+//                            }
+
+                if (!hph.pendingWSFrames.isEmpty())
+                {
+                    log.getLogger().info("WE HAVE PENDING FRAMES\n" + hph.pendingWSFrames);
+                    System.exit(0);
+                }
+                ///hph.getRawRequest().getDataStream().shiftLeft(frame.data().offset, hph.getLastWSIndex());
+
+                switch (opCode) {
+                    case TEXT:
+                        String text = frame.data().asString();
+                        if (log.isEnabled()) log.getLogger().info("Data: " + text);
+
+
+                        if (text.equalsIgnoreCase("ping")) {
+                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
+                                    .writeTo(hph.getOutputStream());
+
+                        } else
+                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
+                                    .writeTo(hph.getOutputStream());
+
+                        break;
+                    case BINARY:
+                        break;
+                    case CLOSE:
+                        hph.close();
+                        return;
+                    case PING:
+                        HTTPWSProto.formatFrame(hph.getResponseStream(true),
+                                        true,
+                                        HTTPWSProto.OpCode.PONG,
+                                        null, // masking key always null since this is a server
+                                        frame.data() != null ? frame.data().asBytes() : null)
+                                .writeTo(hph.getOutputStream());
+                        break;
+                    case PONG:
+                        if (log.isEnabled())
+                            log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
+                        break;
+                }
+                if(hph.getRawRequest().getDataStream().size() != frame.frameSize())
+                    hph.getRawRequest().getDataStream().shiftLeft(hph.getLastWSIndex() + frame.frameSize(), 0);
+                else
+                    hph.getRawRequest().getDataStream().reset();
+                hph.setLastWSIndex(0);
+                hph.getResponseStream(true).reset();
+
+            } else
+            {
+                log.getLogger().info("********  Frame isFin " + frame.isFin() + " " + frame + " " +frame.rawOpCode() + "  " +frame.data().asString());
+
+                hph.pendingWSFrames.add(frame);
+                hph.setLastWSIndex(hph.getRawRequest().getDataStream().size());
+
+                // we have to shift the buffer and extract the data
+                // and update hph.setLastWSIndex
+                // don't reset the request buffer
+            }
+
+        }
+    }
 }
