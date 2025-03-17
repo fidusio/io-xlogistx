@@ -1,5 +1,11 @@
 package io.xlogistx.http.websocket;
 
+import io.xlogistx.common.http.HTTPProtocolHandler;
+import io.xlogistx.shiro.ShiroPrincipal;
+import org.apache.shiro.subject.Subject;
+import org.zoxweb.shared.http.URIScheme;
+import org.zoxweb.shared.util.Const;
+
 import javax.websocket.*;
 import java.io.IOException;
 import java.net.URI;
@@ -10,6 +16,17 @@ import java.util.Set;
 
 public class WSSession implements Session
 {
+    //private final HTTPProtocolHandler<Subject> hph;
+    private volatile long maxIdleTime;
+    private volatile ShiroPrincipal principal = null;
+    private final WSRE wsre;
+
+    public static final int MAX_MESSAGE_BUFFER_SIZE = (int)Const.SizeInBytes.K.SIZE*64;
+    public WSSession(HTTPProtocolHandler<Subject> protocolHandler)
+    {
+        wsre = WSRE.create(protocolHandler);
+    }
+
     /**
      * @return
      */
@@ -92,7 +109,7 @@ public class WSSession implements Session
      */
     @Override
     public boolean isSecure() {
-        return false;
+        return wsre.basic.hph.getProtocol() == URIScheme.WSS;
     }
 
     /**
@@ -100,7 +117,7 @@ public class WSSession implements Session
      */
     @Override
     public boolean isOpen() {
-        return false;
+        return !wsre.basic.hph.isClosed();
     }
 
     /**
@@ -108,15 +125,17 @@ public class WSSession implements Session
      */
     @Override
     public long getMaxIdleTimeout() {
-        return 0;
+        return maxIdleTime;
     }
 
     /**
-     * @param l
+     * @param l in millis
      */
     @Override
     public void setMaxIdleTimeout(long l) {
-
+        if(l < Const.TimeInMillis.MINUTE.MILLIS)
+            throw new IllegalArgumentException("Idle timeout too short " + l + " < minute (in millis)");
+        this.maxIdleTime = l;
     }
 
     /**
@@ -132,7 +151,7 @@ public class WSSession implements Session
      */
     @Override
     public int getMaxBinaryMessageBufferSize() {
-        return 0;
+        return MAX_MESSAGE_BUFFER_SIZE;
     }
 
     /**
@@ -148,7 +167,7 @@ public class WSSession implements Session
      */
     @Override
     public int getMaxTextMessageBufferSize() {
-        return 0;
+        return MAX_MESSAGE_BUFFER_SIZE;
     }
 
     /**
@@ -156,7 +175,7 @@ public class WSSession implements Session
      */
     @Override
     public RemoteEndpoint.Async getAsyncRemote() {
-        return null;
+        return wsre.async;
     }
 
     /**
@@ -164,7 +183,7 @@ public class WSSession implements Session
      */
     @Override
     public RemoteEndpoint.Basic getBasicRemote() {
-        return null;
+        return wsre.basic;
     }
 
     /**
@@ -172,7 +191,7 @@ public class WSSession implements Session
      */
     @Override
     public String getId() {
-        return "";
+        return wsre.basic.hph.getSubject().getSession().getId().toString();
     }
 
     /**
@@ -180,7 +199,7 @@ public class WSSession implements Session
      */
     @Override
     public void close() throws IOException {
-
+        wsre.basic.hph.close();
     }
 
     /**
@@ -189,7 +208,7 @@ public class WSSession implements Session
      */
     @Override
     public void close(CloseReason closeReason) throws IOException {
-
+        close();
     }
 
     /**
@@ -236,8 +255,20 @@ public class WSSession implements Session
      * @return
      */
     @Override
-    public Principal getUserPrincipal() {
-        return null;
+    public Principal getUserPrincipal()
+    {
+        if(wsre.basic.hph.getSubject() != null && principal == null)
+        {
+            synchronized (this)
+            {
+
+                if (principal == null)
+                {
+                    principal = new ShiroPrincipal(wsre.basic.hph.getSubject());
+                }
+            }
+        }
+        return principal;
     }
 
     /**

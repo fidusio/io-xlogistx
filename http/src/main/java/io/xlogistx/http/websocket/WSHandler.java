@@ -19,6 +19,7 @@ import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SUS;
 
+import javax.websocket.Session;
 import java.io.IOException;
 
 public class WSHandler
@@ -101,6 +102,13 @@ public class WSHandler
                 if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
                 hph.setEndPointBean(this);
 
+                // create the websocket session
+                if(hph.getExtraSession() == null)
+                {
+                    hph.setExtraSession(new WSSession(hph));
+                }
+
+
             }
 
         }
@@ -111,11 +119,10 @@ public class WSHandler
             {
                 ss = new SubjectSwap(hph.getSubject());
                 if (log.isEnabled()) log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
-
                 processWSMessage(hph);
-
             }
-            finally {
+            finally
+            {
                 IOUtil.close(ss);
             }
         }
@@ -128,6 +135,7 @@ public class WSHandler
             throws IOException
     {
         HTTPWSFrame frame;
+        Session session = hph.getExtraSession();
         while((frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getLastWSIndex())) != null)
         {
 
@@ -164,11 +172,11 @@ public class WSHandler
 
                         if (text.equalsIgnoreCase("ping")) {
                             HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
-                                    .writeTo(hph.getOutputStream());
+                                    .writeTo(session.getBasicRemote().getSendStream());
 
                         } else
                             HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
-                                    .writeTo(hph.getOutputStream());
+                                    .writeTo(session.getBasicRemote().getSendStream());
 
                         break;
                     case BINARY:
@@ -182,7 +190,7 @@ public class WSHandler
                                         HTTPWSProto.OpCode.PONG,
                                         null, // masking key always null since this is a server
                                         frame.data() != null ? frame.data().asBytes() : null)
-                                .writeTo(hph.getOutputStream());
+                                .writeTo(session.getBasicRemote().getSendStream());
                         break;
                     case PONG:
                         if (log.isEnabled())
@@ -196,7 +204,8 @@ public class WSHandler
                 hph.setLastWSIndex(0);
                 hph.getResponseStream(true).reset();
 
-            } else
+            }
+            else
             {
                 log.getLogger().info("********  Frame isFin " + frame.isFin() + " " + frame + " " +frame.rawOpCode() + "  " +frame.data().asString());
 

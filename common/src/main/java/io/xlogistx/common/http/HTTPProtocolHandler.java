@@ -35,6 +35,7 @@ public class HTTPProtocolHandler<S>
     private Lifetime keepAliveLifetime = null;
     private Appointment keepAliveAppointment = null;
     private volatile int lastWSIndex = 0;
+    private volatile Object extraSession;
 
     public volatile List<HTTPWSFrame> pendingWSFrames = new ArrayList<HTTPWSFrame>();
 
@@ -258,6 +259,16 @@ public class HTTPProtocolHandler<S>
     public synchronized boolean isKeepAliveExpired()
     {
         return keepAliveLifetime == null || keepAliveLifetime.isClosed() || keepAliveAppointment.isClosed();
+    }
+
+    public void setExtraSession(Object extraSession)
+    {
+        this.extraSession = extraSession;
+    }
+
+    public <V> V getExtraSession()
+    {
+        return (V)extraSession;
     }
 
 //    public synchronized HTTPMessageConfigInterface buildJSONResponse(Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
