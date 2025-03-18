@@ -2,8 +2,9 @@ package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import org.apache.shiro.subject.Subject;
-import org.zoxweb.server.net.BaseChannelOutputStream;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.server.io.ByteBufferUtil;
+import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.shared.protocol.HTTPWSProto;
 
 import javax.websocket.EncodeException;
 import javax.websocket.RemoteEndpoint;
@@ -17,6 +18,8 @@ import java.util.concurrent.Future;
 public abstract class WSRemoteEndPoint
 implements RemoteEndpoint
 {
+
+    public static final LogWrapper log = new LogWrapper(WSRemoteEndPoint.class).setEnabled(true);
 
 
     public final HTTPProtocolHandler<Subject> hph;
@@ -40,8 +43,9 @@ implements RemoteEndpoint
          * @throws IOException
          */
         @Override
-        public void sendText(String s) throws IOException {
-            getSendStream().write(SharedStringUtil.toBytes(s));
+        public void sendText(String s) throws IOException
+        {
+            sendText(s, true);
         }
 
         /**
@@ -50,27 +54,30 @@ implements RemoteEndpoint
          */
         @Override
         public void sendBinary(ByteBuffer byteBuffer) throws IOException {
-            ((BaseChannelOutputStream)hph.getOutputStream()).write(byteBuffer);
+            sendBinary(byteBuffer, true);
+
         }
 
         /**
          * @param s
-         * @param b
+         * @param isLast
          * @throws IOException
          */
         @Override
-        public void sendText(String s, boolean b) throws IOException {
-            sendText(s);
+        public void sendText(String s, boolean isLast) throws IOException {
+            HTTPWSProto.formatFrame(hph.getResponseStream(true), isLast, HTTPWSProto.OpCode.TEXT, null, s)
+                    .writeTo(hph.getOutputStream(), true);
         }
 
         /**
          * @param byteBuffer
-         * @param b
+         * @param isLast
          * @throws IOException
          */
         @Override
-        public void sendBinary(ByteBuffer byteBuffer, boolean b) throws IOException {
-            sendBinary(byteBuffer);
+        public void sendBinary(ByteBuffer byteBuffer, boolean isLast) throws IOException {
+            HTTPWSProto.formatFrame(hph.getResponseStream(true), isLast, HTTPWSProto.OpCode.BINARY, null, ByteBufferUtil.toBytes(byteBuffer, true))
+                    .writeTo(hph.getOutputStream(), true);
         }
 
         /**
@@ -216,7 +223,11 @@ implements RemoteEndpoint
      * @throws IllegalArgumentException
      */
     @Override
-    public void sendPing(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException {
+    public void sendPing(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException
+    {
+        if (log.isEnabled()) log.getLogger().info("sending " + byteBuffer);
+        HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, byteBuffer != null ?  ByteBufferUtil.toBytes(byteBuffer, true) : null)
+                .writeTo(hph.getOutputStream(), true );
 
     }
 
@@ -228,6 +239,9 @@ implements RemoteEndpoint
     @Override
     public void sendPong(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException
     {
+        if (log.isEnabled()) log.getLogger().info("sending " + byteBuffer);
+        HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PONG, null,  byteBuffer != null ?  ByteBufferUtil.toBytes(byteBuffer, true) : null)
+                .writeTo(hph.getOutputStream(), true);
     }
 
 }

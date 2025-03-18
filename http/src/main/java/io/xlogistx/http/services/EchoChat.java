@@ -1,8 +1,5 @@
 package io.xlogistx.http.services;
 
-import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
-
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
@@ -10,7 +7,7 @@ import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 @ServerEndpoint("/echo-chat")
-@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat")
+//@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat")
 public class EchoChat
 {
     public void onOpen(Session session) {
