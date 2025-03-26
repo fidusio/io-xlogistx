@@ -3,6 +3,7 @@ package io.xlogistx.http.websocket;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.shiro.ShiroPrincipal;
 import org.apache.shiro.subject.Subject;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.util.Const;
 
@@ -16,6 +17,10 @@ import java.util.Set;
 
 public class WSSession implements Session
 {
+
+
+
+    public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
     //private final HTTPProtocolHandler<Subject> hph;
     private volatile long maxIdleTime;
     private volatile ShiroPrincipal principal = null;
@@ -120,6 +125,7 @@ public class WSSession implements Session
         return !wsre.basic.hph.isClosed();
     }
 
+
     /**
      * @return
      */
@@ -198,8 +204,9 @@ public class WSSession implements Session
      * @throws IOException
      */
     @Override
-    public void close() throws IOException {
-        wsre.basic.hph.close();
+    public void close() throws IOException
+    {
+        close(null);
     }
 
     /**
@@ -208,7 +215,14 @@ public class WSSession implements Session
      */
     @Override
     public void close(CloseReason closeReason) throws IOException {
-        close();
+        wsre.basic.hph.close();
+
+        Subject subject = wsre.basic.hph.getSubject();
+        if(subject != null) {
+            subject.logout();
+            if(log.isEnabled()) log.getLogger().info("subject " + subject.isAuthenticated());
+        }
+
     }
 
     /**

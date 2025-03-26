@@ -32,11 +32,7 @@ public class EndPointsManager {
 
     public final static LogWrapper log = new LogWrapper(EndPointsManager.class).setEnabled(false);
 
-
-    //private Map<String, EndPointMeta> uriEndPointMeta = new LinkedHashMap<String, EndPointMeta>();
-
     private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
-
     private final Map<String, Object> beanMaps = new LinkedHashMap<>();
     private final InstanceFactory.ParamsInstanceCreator<?> pic;
 
@@ -235,8 +231,9 @@ public class EndPointsManager {
             {
                 SecurityProp sp = classAnnotationMap.getMatchingClassAnnotation(SecurityProp.class);
                 log.getLogger().info("WebSocket server end point " + classAnnotationMap);
+                log.getLogger().info("OnMessage: " + Arrays.toString(classAnnotationMap.matchingMethods(OnMessage.class)));
                 String uri = updatePath(baseURI, serverWS.value());
-                Object wsBean = epm.pic.newInstance(uri, sp, beanInstance);
+                Object wsBean = epm.pic.newInstance(uri, sp, WSMethodType.matchClassMethods(beanClass), beanInstance);
                 // we have a server websocket class endpoint
 
                 HTTPEndPoint hep = new HTTPEndPoint();
@@ -244,25 +241,24 @@ public class EndPointsManager {
                 applySecurityProp(hep, sp);
                 //classHEP = applyAnnotations(baseURI, classHEP, classAnnotationMap.getClassAnnotations(), false);
                 log.getLogger().info("Inner web socket " + wsBean.getClass() );
-                ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(),EndPointProp.class);
+                ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(), EndPointProp.class);
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
                 epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next()));
 
-
-
                 log.getLogger().info("Inner websocket " + map);
 
-//                MethodHolder mh = new MethodHolder(wsBean, )
-//                epm.map(uri, classHEP, )
 
 
+                log.getLogger().info("Method Annotations: " + classAnnotationMap.getMethodsAnnotations().values());
 
-
-
+                ///log.getLogger().info( "Mapped Methods: " + WSMethodType.matchClassMethods(beanClass));
 
                 log.getLogger().info("______________________________________________________________________");
+
+
+
 
                 return true;
             }

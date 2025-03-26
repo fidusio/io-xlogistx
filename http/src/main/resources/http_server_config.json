@@ -93,6 +93,9 @@
       "bean":  "io.xlogistx.http.services.EchoChat"
     },
     {
+      "bean":  "io.xlogistx.http.services.EchoChatTest"
+    },
+    {
       "bean":  "io.xlogistx.http.services.SysCommand",
       "properties":{
         "reboot-command" : "reboot-command",

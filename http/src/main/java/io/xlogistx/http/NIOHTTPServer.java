@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -111,6 +112,23 @@ public class NIOHTTPServer
             }
         }
 
+        /**
+         * Closes this stream and releases any system resources associated
+         * with it. If the stream is already closed then invoking this
+         * method has no effect.
+         *
+         * <p> As noted in {@link AutoCloseable#close()}, cases where the
+         * close may fail require careful attention. It is strongly advised
+         * to relinquish the underlying resources and to internally
+         * <em>mark</em> the {@code Closeable} as closed, prior to throwing
+         * the {@code IOException}.
+         *
+         * @throws IOException if an I/O error occurs
+         */
+        @Override
+        public void close() throws IOException {
+            IOUtil.close(hph);
+        }
     }
 
     public class HTTPsSession
@@ -152,6 +170,24 @@ public class NIOHTTPServer
         public void exception(Exception e)
         {
             if(logger.isEnabled()) logger.getLogger().info("" + e);
+        }
+
+        /**
+         * Closes this stream and releases any system resources associated
+         * with it. If the stream is already closed then invoking this
+         * method has no effect.
+         *
+         * <p> As noted in {@link AutoCloseable#close()}, cases where the
+         * close may fail require careful attention. It is strongly advised
+         * to relinquish the underlying resources and to internally
+         * <em>mark</em> the {@code Closeable} as closed, prior to throwing
+         * the {@code IOException}.
+         *
+         * @throws IOException if an I/O error occurs
+         */
+        @Override
+        public void close() throws IOException {
+            IOUtil.close(hph);
         }
     }
 
@@ -430,7 +466,7 @@ public class NIOHTTPServer
 
             // scan endpoints
             endPointsManager = EndPointsManager.scan(getConfig(), (a)->{
-                return new WSHandler((String) a[0], (SecurityProp) a[1], a[2]);
+                return new WSHandler((String) a[0], (SecurityProp) a[1], (Map<WSMethodType, Method>) a[2], a[3]);
             });
             if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
 

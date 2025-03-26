@@ -1,0 +1,102 @@
+{
+  "OnMessage": {
+    "annotation-type" : "javax.websocket.OnMessage",
+    "params":
+            [
+              {
+                "mandatory" : true,
+                "count": 1,
+                "types" :
+                        [
+                          "[B",
+                          "java.lang.String",
+                          "java.nio.ByteBuffer",
+                          "org.zoxweb.shared.util.BytesArray"
+                        ]
+              },
+              {
+                "mandatory" : false,
+                "count": 1,
+                "types" :
+                [
+                  "java.lang.Boolean"
+                ]
+              },
+              {
+                "mandatory" : false,
+                "count": 1,
+                "types" :
+                [
+                  "javax.websocket.Session"
+                ]
+              }
+
+            ]
+  },
+  "OnOpen": {
+    "annotation-type" : "javax.websocket.OnOpen",
+    "params":
+    [
+      {
+        "mandatory" : false,
+        "count": 1,
+        "types" :
+        [
+          "javax.websocket.Session"
+        ]
+      },
+      {
+        "mandatory" : false,
+        "count": 1,
+        "types" :
+        [
+          "javax.websocket.server.ServerEndpointConfig"
+        ]
+      }
+    ]
+  },
+  "OnError": {
+    "annotation-type" : "javax.websocket.OnError",
+    "params":
+    [
+      {
+        "mandatory" : true,
+        "count": 1,
+        "types" :
+        [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "mandatory" : false,
+        "count": 1,
+        "types" :
+        [
+          "javax.websocket.Session"
+        ]
+      }
+    ]
+  },
+  "OnClose": {
+    "annotation-type" : "javax.websocket.OnClose",
+    "params":
+    [
+      {
+        "mandatory" : false,
+        "count": 1,
+        "types" :
+        [
+          "javax.websocket.CloseReason"
+        ]
+      },
+      {
+        "mandatory" : false,
+        "count": 1,
+        "types" :
+        [
+          "javax.websocket.Session"
+        ]
+      }
+    ]
+  }
+}

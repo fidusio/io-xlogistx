@@ -2,6 +2,7 @@ package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPSessionHandler;
+import io.xlogistx.common.http.WSMethodType;
 import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
@@ -9,6 +10,7 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
+import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -18,26 +20,32 @@ import org.zoxweb.shared.protocol.HTTPWSProto;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedStringUtil;
 
 import javax.websocket.Session;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 public class WSHandler
         implements HTTPSessionHandler<Subject>
 {
+
     public static final LogWrapper log = new LogWrapper(WSHandler.class).setEnabled(false);
 
     private final String uri;
     private final Object bean;
     private final SecurityProp securityProp;
+    private final Map<WSMethodType, Method> methodMaps;
 
-    public WSHandler(String uri, SecurityProp securityProp, Object bean)
+
+
+    public WSHandler(String uri, SecurityProp securityProp,  Map<WSMethodType, Method> methodMaps, Object bean)
     {
         this.uri = uri;
         this.securityProp = securityProp;
         this.bean = bean;
+        this.methodMaps = methodMaps;
         if (log.isEnabled()) log.getLogger().info("URI: " + uri + " secProp: " + securityProp + " bean: " + bean);
     }
 
@@ -79,9 +87,12 @@ public class WSHandler
             try {
                  resp = new HTTPMessageConfig();
                  resp.setHTTPStatusCode(HTTPStatusCode.SWITCHING_PROTOCOLS);
+
+                 // Minimum negotiation
                  resp.getHeaders().build(headers.get(HTTPHeader.UPGRADE)).
                         build(HTTPHeader.CONNECTION.toHTTPHeader("upgrade")).
-                        build(HTTPHeader.SEC_WEBSOCKET_PROTOCOL.toHTTPHeader("chat")).
+                         // caused disconnection with chrome and edge
+                         //build(HTTPHeader.SEC_WEBSOCKET_PROTOCOL.toHTTPHeader("chat")).
                         build(HTTPHeader.SEC_WEBSOCKET_ACCEPT.toHTTPHeader(HashUtil.hashAsBase64("sha-1", headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY) + HTTPWSProto.WEB_SOCKET_UUID)));
 
             } catch (Exception e) {
@@ -100,6 +111,8 @@ public class WSHandler
                 if (log.isEnabled()) log.getLogger().info("Protocol switched: " + hph.getProtocol());
 
                 if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
+                if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().toString());
+
                 hph.reset();
                 if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
                 hph.setEndPointBean(this);
@@ -165,28 +178,47 @@ public class WSHandler
 
                 }
                 ///hph.getRawRequest().getDataStream().shiftLeft(frame.data().offset, hph.getLastWSIndex());
-
+                Method method = null;
                 switch (opCode) {
                     case TEXT:
-                        String text = frame.data().asString();
-                        if (log.isEnabled()) log.getLogger().info("Data: " + text);
 
-
-                        if (text.equalsIgnoreCase("ping"))
+                        Method toInvoke = methodMaps.get(WSMethodType.TEXT);
+                        if(toInvoke != null)
                         {
-                            session.getBasicRemote().sendPing(ByteBuffer.wrap(SharedStringUtil.getBytes(text)));
-//                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
-//                                    .writeTo(session.getBasicRemote().getSendStream());
+                            String text = frame.data().asString();
+                            try {
+                                ReflectionUtil.invokeMethod(false, getBean(), toInvoke, text, frame.isFin(), hph.getExtraSession());
+                            }
+                            catch (Exception e)
+                            {
+                                e.printStackTrace();
+                            }
 
-                        } else
-                            session.getBasicRemote().sendText("Reply-" + text);
-//                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
-//                                    .writeTo(session.getBasicRemote().getSendStream());
+                        }
+
+
+
+
+
+//                        if (log.isEnabled()) log.getLogger().info("Data: " + text);
+//
+//
+//                        if (text.equalsIgnoreCase("ping"))
+//                        {
+//                            session.getBasicRemote().sendPing(ByteBuffer.wrap(SharedStringUtil.getBytes(text)));
+////                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
+////                                    .writeTo(session.getBasicRemote().getSendStream());
+//
+//                        } else
+//                            session.getBasicRemote().sendText("Reply-" + text);
+////                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
+////                                    .writeTo(session.getBasicRemote().getSendStream());
 
                         break;
                     case BINARY:
                         break;
                     case CLOSE:
+                        log.getLogger().info("WE HAVE to close");
                         hph.close();
                         return;
                     case PING:
@@ -225,4 +257,8 @@ public class WSHandler
 
         }
     }
+
+
+
+
 }

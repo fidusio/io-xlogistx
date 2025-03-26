@@ -15,18 +15,17 @@
  */
 package io.xlogistx.http.servlet.filters;
 
-import org.zoxweb.shared.util.Const;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 import javax.servlet.*;
 import java.io.IOException;
-import java.util.logging.Logger;
 
 public class EncodingFilter
 	implements Filter
 {
 
-	private static final transient Logger log = Logger.getLogger(Const.LOGGER_NAME);
+	public static final LogWrapper log = new LogWrapper(EncodingFilter.class).setEnabled(true);
 	
 	private String encoding = SharedStringUtil.UTF_8;
 
@@ -47,7 +46,7 @@ public class EncodingFilter
 			encoding = encodingParam;
 		}
 
-		log.info("Encoding:" + encoding);
+		if(log.isEnabled()) log.getLogger().info("Encoding:" + encoding);
 	}
 
 	public void destroy()

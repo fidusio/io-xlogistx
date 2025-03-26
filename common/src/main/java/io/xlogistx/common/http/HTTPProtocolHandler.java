@@ -201,6 +201,9 @@ public class HTTPProtocolHandler<S>
             IOUtil.close(keepAliveLifetime, keepAliveAppointment, getOutputStream());
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
             if(log.isEnabled()) log.getLogger().info(keepAliveAppointment + " " + keepAliveLifetime + " " + protocolMode);
+
+            if(getExtraSession() instanceof AutoCloseable)
+                IOUtil.close((AutoCloseable) getExtraSession());
         }
     }
 
