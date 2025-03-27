@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EchoChatTest
 {
 
-    public static final LogWrapper log = new LogWrapper(EchoChatTest.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(EchoChatTest.class).setEnabled(false);
 
     private AtomicLong index = new AtomicLong(0);
     public void onOpen(Session session) {
@@ -31,15 +31,16 @@ public class EchoChatTest
     }
 
     @OnMessage
-    public void onMessage(BytesArray message, Session session) {
+    public void onMessage(BytesArray message, Session session) throws IOException {
         System.out.println("Received message: " + message);
+        message.writeTo(session.getBasicRemote().getSendStream(), true);
         // Process or broadcast the message
     }
 
 
     @OnClose
     public void onClose(Session session) {
-        System.out.println("Connection closed: " + session.getId());
+        log.getLogger().info("Connection closed: " + session.getId() + " " + session.isSecure());
     }
 
     @OnError

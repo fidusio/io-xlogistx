@@ -2,6 +2,7 @@ package io.xlogistx.common.http;
 
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.protocol.HTTPWSProto;
 import org.zoxweb.shared.util.BytesArray;
 
 import javax.websocket.*;
@@ -14,30 +15,38 @@ import java.util.Map;
 
 public enum WSMethodType
 {
-    TEXT(OnMessage.class, String.class, boolean.class, Session.class),
-    BINARY_BYTES(OnMessage.class, byte[].class, boolean.class, Session.class),
-    BINARY_BYTE_BUFFER(OnMessage.class, ByteBuffer.class, boolean.class, Session.class),
-    BINARY_ARRAY_BYTES(OnMessage.class, BytesArray.class, boolean.class, Session.class),
-    PONG(OnMessage.class, PongMessage.class, Session.class),
-    ERROR(OnError.class, Throwable.class, Session.class),
+    TEXT(HTTPWSProto.OpCode.TEXT, OnMessage.class, String.class, boolean.class, Session.class),
+    BINARY_BYTES(HTTPWSProto.OpCode.BINARY, OnMessage.class, byte[].class, boolean.class, Session.class),
+    BINARY_BYTE_BUFFER(HTTPWSProto.OpCode.BINARY, OnMessage.class, ByteBuffer.class, boolean.class, Session.class),
+    BINARY_BYTES_ARRAY(HTTPWSProto.OpCode.BINARY, OnMessage.class, BytesArray.class, boolean.class, Session.class),
+    PONG(HTTPWSProto.OpCode.PONG, OnMessage.class, PongMessage.class, Session.class),
+    ERROR(null, OnError.class, Throwable.class, Session.class),
     //OPEN(OnOpen.class),
-    OPEN(OnOpen.class, Session.class),
+    OPEN(null, OnOpen.class, Session.class),
     //CLOSE(OnClose.class),
-    CLOSE(OnClose.class, Session.class, CloseReason.class)
+    CLOSE(HTTPWSProto.OpCode.CLOSE, OnClose.class, Session.class, CloseReason.class),
     ;
 
     private final Class<? extends Annotation> annotationType;
     private final Class<?>[] parameterTypes;
-    WSMethodType(Class<? extends Annotation> aType, Class<?> ...parameterTypes)
+    private final HTTPWSProto.OpCode opCode;
+    WSMethodType(HTTPWSProto.OpCode opCode, Class<? extends Annotation> aType, Class<?> ...parameterTypes)
     {
         this.annotationType = aType;
         this.parameterTypes = parameterTypes;
+        this.opCode = opCode;
+    }
+
+    public HTTPWSProto.OpCode getOpCode()
+    {
+        return opCode;
     }
 
     public Class<?> getMandatoryParameterType()
     {
         return parameterTypes.length > 0 ? parameterTypes[0] : null;
     }
+
 
     public static Map<WSMethodType, Method> matchClassMethods(Class <?> c)
     {

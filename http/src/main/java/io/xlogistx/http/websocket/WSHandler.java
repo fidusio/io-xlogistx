@@ -7,6 +7,7 @@ import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.http.HTTPUtil;
+import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
@@ -21,11 +22,14 @@ import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SUS;
 
+import javax.websocket.PongMessage;
 import javax.websocket.Session;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WSHandler
         implements HTTPSessionHandler<Subject>
@@ -37,6 +41,10 @@ public class WSHandler
     private final Object bean;
     private final SecurityProp securityProp;
     private final Map<WSMethodType, Method> methodMaps;
+
+    private final Set<Session> sessionSet = ConcurrentHashMap.newKeySet();
+
+    private static final WSMethodType[] BINARY_TYPES = {WSMethodType.BINARY_BYTES_ARRAY, WSMethodType.BINARY_BYTES, WSMethodType.BINARY_BYTE_BUFFER};
 
 
 
@@ -120,7 +128,7 @@ public class WSHandler
                 // create the websocket session
                 if(hph.getExtraSession() == null)
                 {
-                    hph.setExtraSession(new WSSession(hph));
+                    hph.setExtraSession(new WSSession(hph, sessionSet));
                 }
 
 
@@ -166,71 +174,108 @@ public class WSHandler
                     log.getLogger().info(""+ frame.rawOpCode());
                 }
 
-//                            if (frame.frameSize() < hph.getRawRequest().getDataStream().size())
-//                            {
-//                                log.getLogger().info("we have data to extract");
-//
-//                            }
-
                 if (!hph.pendingWSFrames.isEmpty())
                 {
                     log.getLogger().info("WE HAVE PENDING FRAMES\n" + hph.pendingWSFrames);
 
                 }
-                ///hph.getRawRequest().getDataStream().shiftLeft(frame.data().offset, hph.getLastWSIndex());
-                Method method = null;
-                switch (opCode) {
-                    case TEXT:
 
-                        Method toInvoke = methodMaps.get(WSMethodType.TEXT);
+                Method toInvoke = null;
+                switch (opCode)
+                {
+                    case TEXT:
+                        toInvoke = methodMaps.get(WSMethodType.TEXT);
                         if(toInvoke != null)
                         {
-                            String text = frame.data().asString();
-                            try {
-                                ReflectionUtil.invokeMethod(false, getBean(), toInvoke, text, frame.isFin(), hph.getExtraSession());
+                            try
+                            {
+                                ReflectionUtil.invokeMethod(false, getBean(), toInvoke, frame.data().asString(), frame.isFin(), hph.getExtraSession());
                             }
                             catch (Exception e)
                             {
                                 e.printStackTrace();
                             }
-
                         }
-
-
-
-
-
-//                        if (log.isEnabled()) log.getLogger().info("Data: " + text);
-//
-//
-//                        if (text.equalsIgnoreCase("ping"))
-//                        {
-//                            session.getBasicRemote().sendPing(ByteBuffer.wrap(SharedStringUtil.getBytes(text)));
-////                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, text)
-////                                    .writeTo(session.getBasicRemote().getSendStream());
-//
-//                        } else
-//                            session.getBasicRemote().sendText("Reply-" + text);
-////                            HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.TEXT, null, "Reply-" + text)
-////                                    .writeTo(session.getBasicRemote().getSendStream());
 
                         break;
                     case BINARY:
+
+                        for(WSMethodType binaryMatch : BINARY_TYPES)
+                        {
+                            // find the appropriate method
+                            toInvoke = methodMaps.get(binaryMatch);
+
+                            if (toInvoke != null)
+                            {
+                                Object mainParameter = null;
+                                // covert first parameters
+                                switch (binaryMatch)
+                                {
+
+                                    case BINARY_BYTES:
+                                        mainParameter = frame.data().asBytes();
+                                        break;
+                                    case BINARY_BYTE_BUFFER:
+                                        mainParameter = ByteBufferUtil.toByteBuffer(frame.data());
+                                        break;
+                                    case BINARY_BYTES_ARRAY:
+                                        mainParameter = frame.data();
+                                        break;
+                                }
+                                // invoke method
+                                try
+                                {
+                                    ReflectionUtil.invokeMethod(false, getBean(), toInvoke, mainParameter, frame.isFin(), hph.getExtraSession());
+                                }
+                                catch (Exception e)
+                                {
+                                    e.printStackTrace();
+                                }
+                                // break the loop
+                                break;
+                            }
+                        }
+
                         break;
                     case CLOSE:
-                        log.getLogger().info("WE HAVE to close");
+                        toInvoke = methodMaps.get(WSMethodType.CLOSE);
+                        if(toInvoke != null)
+                        {
+                            try
+                            {
+                                // MN WARMING!!! DO NOT CHANGE new Object[]{...} error was generated by sending one object instead object[]
+                                // SPENT 2 hours 27-3-2025 after midnight
+                                ReflectionUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getExtraSession()});
+                            }
+                            catch (Exception e)
+                            {
+                                e.printStackTrace();
+
+                                log.getLogger().info(toInvoke + " " + getBean());
+                            }
+                        }
                         hph.close();
                         return;
                     case PING:
+                        // we received a ping message
                         session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
-//                        HTTPWSProto.formatFrame(hph.getResponseStream(true),
-//                                        true,
-//                                        HTTPWSProto.OpCode.PONG,
-//                                        null, // masking key always null since this is a server
-//                                        frame.data() != null ? frame.data().asBytes() : null)
-//                                .writeTo(session.getBasicRemote().getSendStream());
                         break;
                     case PONG:
+                        toInvoke = methodMaps.get(WSMethodType.PONG);
+                        if(toInvoke != null)
+                        {
+                            try
+                            {
+                                ByteBuffer pongData = ByteBufferUtil.toByteBuffer(frame.data());
+                                PongMessage message = ()->pongData;
+                                ReflectionUtil.invokeMethod(false, getBean(), toInvoke, message, hph.getExtraSession());
+                            }
+                            catch (Exception e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+
                         if (log.isEnabled())
                             log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
                         break;

@@ -14,6 +14,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WSSession implements Session
 {
@@ -26,10 +27,16 @@ public class WSSession implements Session
     private volatile ShiroPrincipal principal = null;
     private final WSRE wsre;
 
+    private AtomicBoolean closed = new AtomicBoolean(false);
+
     public static final int MAX_MESSAGE_BUFFER_SIZE = (int)Const.SizeInBytes.K.SIZE*64;
-    public WSSession(HTTPProtocolHandler<Subject> protocolHandler)
+    private final Set<Session> sessionsSet;
+    public WSSession(HTTPProtocolHandler<Subject> protocolHandler, Set<Session> sessionsSet)
     {
         wsre = WSRE.create(protocolHandler);
+        this.sessionsSet = sessionsSet;
+        this.sessionsSet.add(this);
+        log.getLogger().info("Current Sessions: " + sessionsSet.size());
     }
 
     /**
@@ -214,13 +221,19 @@ public class WSSession implements Session
      * @throws IOException
      */
     @Override
-    public void close(CloseReason closeReason) throws IOException {
-        wsre.basic.hph.close();
+    public void close(CloseReason closeReason) throws IOException
+    {
+        if(!closed.getAndSet(true))
+        {
+            wsre.basic.hph.close();
 
-        Subject subject = wsre.basic.hph.getSubject();
-        if(subject != null) {
-            subject.logout();
-            if(log.isEnabled()) log.getLogger().info("subject " + subject.isAuthenticated());
+            Subject subject = wsre.basic.hph.getSubject();
+            if (subject != null) {
+                subject.logout();
+                if (log.isEnabled()) log.getLogger().info("subject " + subject.isAuthenticated());
+            }
+            sessionsSet.remove(this);
+            log.getLogger().info("Pending sessions: " + sessionsSet.size());
         }
 
     }
@@ -289,7 +302,8 @@ public class WSSession implements Session
      * @return
      */
     @Override
-    public Set<Session> getOpenSessions() {
-        return null;
+    public Set<Session> getOpenSessions()
+    {
+        return sessionsSet;
     }
 }
