@@ -71,7 +71,7 @@ extends HttpServlet {
                 return;
             }
             log.getLogger().info("HTTPMethod:" + hm);
-            if (!hep.isMethodSupported(hm))
+            if (!hep.isHTTPMethodSupported(hm))
             {
                 size = HTTPServletUtil.sendJSON(req, res, HTTPStatusCode.SERVICE_UNAVAILABLE, (NVEntity) new APIError("Service not support"));
                 return;

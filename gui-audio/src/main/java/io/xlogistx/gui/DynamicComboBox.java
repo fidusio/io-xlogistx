@@ -39,20 +39,14 @@ public class DynamicComboBox extends JPanel {
         JButton addButton =new JButton(GUIUtil.ADD_SIGN);//new JButton("Add");
         JButton deleteButton = new JButton(GUIUtil.DELETE_SIGN);
         JButton updateButton = new JButton(GUIUtil.UPDATE_SIGN); // NOT USED for now
-
-        // Panel for controls (text field + buttons)
-        JPanel controlPanel = new JPanel();
-        controlPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        controlPanel.add(addButton);
-        controlPanel.add(deleteButton);
-        //controlPanel.add(updateButton);
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-
-
+        setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        add(addButton);
+        add(deleteButton);
+        //add(controlPanel);
         // Add components to the main panel
         add(comboBox);//, BorderLayout.CENTER);
         //add(textField);
-        add(controlPanel);//, BorderLayout.SOUTH);
+       //, BorderLayout.SOUTH);
 
         // Set preferred size (optional)
        // setPreferredSize(new Dimension(360, 100));
@@ -65,6 +59,8 @@ public class DynamicComboBox extends JPanel {
 
 
     }
+
+
 
     private void handleEditorUpdate() {
         // The edited text

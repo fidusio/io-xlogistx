@@ -469,7 +469,7 @@ public class HTTPServletUtil
 				WebServlet ws = (WebServlet) a;
 				hep.setName(ws.name());
 				hep.setPaths(ws.urlPatterns());
-				hep.setBean(clazz.getName());
+				hep.setBeanClassName(clazz.getName());
 			}
 		}
 
@@ -505,10 +505,10 @@ public class HTTPServletUtil
 		try
 		{
 
-			Class<?> c = Class.forName(hep.getBean());
+			Class<?> c = Class.forName(hep.getBeanClassName());
 			if (HttpServlet.class.isAssignableFrom(c)) {
 				HTTPEndPoint servletHep = servletToEndPoint(c);
-				if (hep.getName().equals(hep.getBean())) hep.setName(servletHep.getName());
+				if (hep.getName().equals(hep.getBeanClassName())) hep.setName(servletHep.getName());
 
 				if (!SUS.isNotEmpty(hep.getPaths())) hep.setPaths(servletHep.getPaths());
 

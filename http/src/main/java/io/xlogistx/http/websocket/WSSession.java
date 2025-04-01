@@ -19,8 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class WSSession implements Session
 {
 
-
-
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
     //private final HTTPProtocolHandler<Subject> hph;
     private volatile long maxIdleTime;

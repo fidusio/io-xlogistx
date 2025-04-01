@@ -33,6 +33,8 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.security.SecUtil;
+import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.http.HTTPAuthorizationBasic;
@@ -51,6 +53,8 @@ import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -59,6 +63,8 @@ public class ShiroUtil
 {
 	
 	public static final LogWrapper log = new LogWrapper(ShiroUtil.class);
+
+
 	
 	public static boolean login(String domain, String realm, String username, String password)
     {
@@ -453,6 +459,9 @@ public class ShiroUtil
 			}
 		}
 
+		if (rs == null)
+			return true;
+
 		return false;
 	}
 	
@@ -498,6 +507,13 @@ public class ShiroUtil
 //		}
 		
 		checkRoles(false, subject, roles);
+	}
+
+	public static Object invokeMethod(boolean strict, Object bean, Method method, Object ...parameters)
+			throws InvocationTargetException, IllegalAccessException
+	{
+		authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
+		return ReflectionUtil.invokeMethod(strict, bean, method, parameters);
 	}
 	
 	

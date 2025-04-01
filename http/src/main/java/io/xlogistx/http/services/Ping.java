@@ -21,12 +21,9 @@ import java.util.Date;
 public class Ping
     extends PropertyHolder
 {
-
-
-
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
     @EndPointProp(methods = {HTTPMethod.GET}, name="ping", uris="/ping/{detailed}")
-    @SecurityProp(authentications = {AuthenticationType.ALL}, permissions = "device:ping")
+    @SecurityProp(authentications = {AuthenticationType.ALL}, permissions = "system:ping")
     public NVGenericMap ping(@ParamProp(name="detailed", optional = true) boolean detailed)
     {
         NVGenericMap response = new NVGenericMap();

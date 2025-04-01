@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 @ServerEndpoint("/echo-chat")
-@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat")
+@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat:secure")
 public class EchoChat
 {
     public static final LogWrapper log = new LogWrapper(EchoChat.class).setEnabled(false);

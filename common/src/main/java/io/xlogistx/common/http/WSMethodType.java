@@ -1,5 +1,6 @@
 package io.xlogistx.common.http;
 
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.protocol.HTTPWSProto;
@@ -15,6 +16,10 @@ import java.util.Map;
 
 public enum WSMethodType
 {
+
+
+
+
     TEXT(HTTPWSProto.OpCode.TEXT, OnMessage.class, String.class, boolean.class, Session.class),
     BINARY_BYTES(HTTPWSProto.OpCode.BINARY, OnMessage.class, byte[].class, boolean.class, Session.class),
     BINARY_BYTE_BUFFER(HTTPWSProto.OpCode.BINARY, OnMessage.class, ByteBuffer.class, boolean.class, Session.class),
@@ -67,6 +72,8 @@ public enum WSMethodType
                 {
                     if (ReflectionUtil.doesMethodSupportParameters(false, m, wsmt.getMandatoryParameterType()))
                     {
+                        // cache the security profile of the method;
+                        SecUtil.SINGLETON.applyAndCacheSecurityProfile(m, null);
                         ret.put(wsmt, m);
                         break;
                     }

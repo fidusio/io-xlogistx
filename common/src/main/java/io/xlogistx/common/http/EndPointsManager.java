@@ -4,13 +4,13 @@ package io.xlogistx.common.http;
 import io.xlogistx.common.data.MethodHolder;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.MappedProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
@@ -125,7 +125,7 @@ public class EndPointsManager {
                 EndPointProp epp = (EndPointProp) a;
                 hep.setName(epp.name());
                 hep.setDescription(epp.description());
-                hep.setMethods(epp.methods());
+                hep.setHTTPMethods(epp.methods());
                 hep.setInputContentType(epp.requestContentType());
                 hep.setOutputContentType(epp.responseContentType());
 
@@ -149,35 +149,38 @@ public class EndPointsManager {
 //                hep.setAuthenticationTypes(authTypes);
 //                hep.setRestrictions(restrictions);
 //                hep.setProtocols(sp.protocols());
-                applySecurityProp(hep, (SecurityProp) a);
+                SecUtil.SINGLETON.applySecurityProp(hep, (SecurityProp) a);
             }
         }
         return updatePaths(baseURI, hep);
     }
 
 
-    public static void applySecurityProp(HTTPEndPoint hep, SecurityProp sp)
-    {
-        if (hep != null && sp != null)
-        {
-            String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-            String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
-            CryptoConst.AuthenticationType[] authTypes = sp.authentications();
-            String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-            hep.setPermissions(permissions);
-            hep.setRoles(roles);
-            hep.setAuthenticationTypes(authTypes);
-            hep.setRestrictions(restrictions);
-            hep.setProtocols(sp.protocols());
-        }
-    }
+
+
+
+//    public static void applySecurityProp(HTTPEndPoint hep, SecurityProp sp)
+//    {
+//        if (hep != null && sp != null)
+//        {
+//            String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
+//            String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
+//            CryptoConst.AuthenticationType[] authTypes = sp.authentications();
+//            String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
+//            hep.setPermissions(permissions);
+//            hep.setRoles(roles);
+//            hep.setAuthenticationTypes(authTypes);
+//            hep.setRestrictions(restrictions);
+//            hep.setProtocols(sp.protocols());
+//        }
+//    }
 
     public static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride)
     {
 
         if(outer != null) {
-            if (outer.getMethods() != null && outer.getMethods().length > 0)
-                inner.setMethods(outer.getMethods());
+            if (outer.getHTTPMethods() != null && outer.getHTTPMethods().length > 0)
+                inner.setHTTPMethods(outer.getHTTPMethods());
 
 //            if (pathOverride && outer.getPaths().length > 0)
 //                inner.setPaths(outer.getPaths());
@@ -237,15 +240,15 @@ public class EndPointsManager {
                 // we have a server websocket class endpoint
 
                 HTTPEndPoint hep = new HTTPEndPoint();
-                hep.setBean(wsBean.getClass().getName());
-                applySecurityProp(hep, sp);
+                hep.setBeanClassName(wsBean.getClass().getName());
+                SecUtil.SINGLETON.applySecurityProp(hep, sp);
                 //classHEP = applyAnnotations(baseURI, classHEP, classAnnotationMap.getClassAnnotations(), false);
                 log.getLogger().info("Inner web socket " + wsBean.getClass() );
                 ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(), EndPointProp.class);
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
-                epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next()));
+                epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next(), hep));
 
                 log.getLogger().info("Inner websocket " + map);
 
@@ -309,7 +312,7 @@ public class EndPointsManager {
             // need to recompile the code
             try
             {
-                String beanName = configHEP.getBean();
+                String beanName = configHEP.getBeanClassName();
                 Class<?> beanClass = Class.forName(beanName);
                 Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
                 if(log.isEnabled()) log.getLogger().info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
@@ -348,7 +351,7 @@ public class EndPointsManager {
                         if (classAnnotationMap.getClassAnnotations() != null)
                         {
                             classHEP = new HTTPEndPoint();
-                            classHEP.setBean(beanName);
+                            classHEP.setBeanClassName(beanName);
                             classHEP = applyAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
                             classHEP = mergeOuterIntoInner(configHEP, classHEP, false);
 
@@ -375,7 +378,7 @@ public class EndPointsManager {
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
-                                        mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations));
+                                        mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations, methodHEP));
 
                                     } else {
                                         if(log.isEnabled()) log.getLogger().info(methodAnnotations.method + " NOT-AN-ENDPOINT");

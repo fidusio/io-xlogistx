@@ -302,9 +302,9 @@ public class NIOHTTPServer
                             if (logger.isEnabled())
                                 logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
                             // validate if method supported
-                            if (!epm.result.httpEndPoint.isMethodSupported(hph.getRequest().getMethod())) {
+                            if (!epm.result.httpEndPoint.isHTTPMethodSupported(hph.getRequest().getMethod())) {
                                 throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
-                                        Arrays.toString(epm.result.httpEndPoint.getMethods()),
+                                        Arrays.toString(epm.result.httpEndPoint.getHTTPMethods()),
                                         HTTPStatusCode.METHOD_NOT_ALLOWED);
                             }
 
