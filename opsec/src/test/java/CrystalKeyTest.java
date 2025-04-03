@@ -5,6 +5,7 @@ import org.bouncycastle.pqc.jcajce.spec.KyberParameterSpec;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedBase64;
@@ -187,7 +188,7 @@ public class CrystalKeyTest {
 
         // Generate Dilithium key pair
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("Dilithium", "BCPQC");
-        kpg.initialize(DilithiumParameterSpec.dilithium2, CryptoUtil.defaultSecureRandom());
+        kpg.initialize(DilithiumParameterSpec.dilithium2, SecUtil.SINGLETON.defaultSecureRandom());
         KeyPair kp = kpg.generateKeyPair();
         PublicKey pub = kp.getPublic();
         PrivateKey priv = kp.getPrivate();

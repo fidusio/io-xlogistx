@@ -87,7 +87,10 @@
       "bean":  "io.xlogistx.http.services.SysConfig"
     },
     {
-      "bean":  "io.xlogistx.http.services.HTTPUploadHandler"
+      "bean":  "io.xlogistx.http.services.HTTPUploadHandler",
+      "properties": {
+        "base_folder": "/webs/test/apps"
+      }
     },
     {
       "bean":  "io.xlogistx.http.services.EchoChat"

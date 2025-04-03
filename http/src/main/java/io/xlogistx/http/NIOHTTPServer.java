@@ -20,7 +20,7 @@ import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
-import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
@@ -503,7 +503,7 @@ public class NIOHTTPServer
                                 String trustStorePassword = sslConfig.getValue("truststore_password");
                                 String trustStoreFilename = sslConfig.getValue("truststore_file");
                                 String protocol = sslConfig.getValue("protocol");
-                                SSLContext sslContext = CryptoUtil.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
+                                SSLContext sslContext = SecUtil.SINGLETON.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
                                         sslConfig.getValue("keystore_type"),
                                         ksPassword.toCharArray(),
                                         aliasPassword != null ?  aliasPassword.toCharArray() : null,

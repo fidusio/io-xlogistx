@@ -35,6 +35,7 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.zoxweb.server.security.CryptoUtil;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.*;
 
@@ -122,13 +123,13 @@ public class OPSecUtil
     public static KeyPair generateKeyPair(String keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException
     {
-        return CryptoUtil.generateKeyPair(keyType, provider, CryptoUtil.defaultSecureRandom());
+        return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
     }
 
     public static KeyPair generateKeyPair(CanonicalID keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException
     {
-        return CryptoUtil.generateKeyPair(keyType, provider, CryptoUtil.defaultSecureRandom());
+        return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
     }
 
     public static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, X500Name issuer, X500Name subject, String duration) throws Exception {
@@ -139,7 +140,7 @@ public class OPSecUtil
         Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration)); // 1 year
 
         // Create the certificate builder
-        BigInteger serial = new BigInteger(64, CryptoUtil.defaultSecureRandom());
+        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
                 issuer,
                 serial,
@@ -417,7 +418,7 @@ public class OPSecUtil
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
     {
         KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
-        keyGen.init(new KEMGenerateSpec(publicKey, "AES"), CryptoUtil.defaultSecureRandom());
+        keyGen.init(new KEMGenerateSpec(publicKey, "AES"), SecUtil.SINGLETON.defaultSecureRandom());
         return (SecretKeyWithEncapsulation) keyGen.generateKey();
     }
 
@@ -425,7 +426,7 @@ public class OPSecUtil
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
     {
         KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
-        keyGen.init(new KEMExtractSpec(privateKey, encapsulatedKey, "AES"), CryptoUtil.defaultSecureRandom());
+        keyGen.init(new KEMExtractSpec(privateKey, encapsulatedKey, "AES"), SecUtil.SINGLETON.defaultSecureRandom());
         return (SecretKeyWithEncapsulation)keyGen.generateKey();
     }
 
@@ -440,7 +441,7 @@ public class OPSecUtil
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException
     {
         Cipher kyberWrapCipher = Cipher.getInstance("Kyber", "BCPQC");
-        kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, CryptoUtil.defaultSecureRandom());
+        kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, SecUtil.SINGLETON.defaultSecureRandom());
         return kyberWrapCipher.wrap(aesKey);
     }
     public static Key decryptCKAESKey(PrivateKey  privateKey, byte[] wrappedAesKeyBytes)

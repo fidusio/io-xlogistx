@@ -86,9 +86,10 @@
         <javax-servlet.version>4.0.1</javax-servlet.version>
         <jsoup.version>RELEASE</jsoup.version>
         <snakeyaml.version>RELEASE</snakeyaml.version>
-        <junit.version>RELEASE</junit.version>
+        <junit.version>5.12.0</junit.version>
         <websocket.version>RELEASE</websocket.version>
         <jsch.version>RELEASE</jsch.version>
+
 
 
 
@@ -105,6 +106,7 @@
 
 
         <cron-util.version>RELEASE</cron-util.version>
+        <bc.version>1.80</bc.version>
   </properties>
 
   <build>
