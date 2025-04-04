@@ -23,8 +23,8 @@ public class PKIPemTest {
             String privateKeyPem = IOUtil.inputStreamToString(args[index++]);
             String publicKeyPem = IOUtil.inputStreamToString(args[index++]);
 
-            PrivateKey privateKey = OPSecUtil.convertPemToPrivateKey(privateKeyPem);
-            PublicKey publicKey = OPSecUtil.convertPemToPublicKey(publicKeyPem);
+            PrivateKey privateKey = OPSecUtil.SINGLETON.convertPemToPrivateKey(privateKeyPem);
+            PublicKey publicKey = OPSecUtil.SINGLETON.convertPemToPublicKey(publicKeyPem);
             System.out.println(privateKey.getFormat() + " " + privateKey.getAlgorithm());
 
             String cipherName = "ECIES";

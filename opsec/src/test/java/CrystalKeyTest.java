@@ -25,7 +25,8 @@ public class CrystalKeyTest {
     @BeforeAll
     public static void first()
     {
-        OPSecUtil.init();
+
+        System.out.println("********************************************************************************************************************************");
     }
 
     @Test
@@ -47,15 +48,15 @@ public class CrystalKeyTest {
 //            System.out.println("[" + i + "] Are keys equals: " + unwrappedAesKey.equals(aes));
 //        }
 
-        KeyPair kp = CryptoUtil.toKeyPair("kyber", "BCPQC", KYBER_PUB_KEY_B64, KYBER_PRIV_KEY_B64);
+        KeyPair kp = OPSecUtil.SINGLETON.toKeyPair("kyber", "BCPQC", KYBER_PUB_KEY_B64, KYBER_PRIV_KEY_B64);
         SecretKey aes = CryptoUtil.toSecretKey(SharedBase64.decode(AES_KEY_B64), "AES");
 
         for (int i = 0; i < 10; i++)
         {
-            byte[] wrappedAesKeyBytes = OPSecUtil.encryptCKAESKey(kp.getPublic(), aes);
+            byte[] wrappedAesKeyBytes = OPSecUtil.SINGLETON.encryptCKAESKey(kp.getPublic(), aes);
             System.out.println(wrappedAesKeyBytes.length + " Wrapped AES Key : " + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, wrappedAesKeyBytes));
             // 5. Unwrap the AES key using Kyber in UNWRAP_MODE
-            Key unwrappedAesKey = OPSecUtil.decryptCKAESKey(kp.getPrivate(), wrappedAesKeyBytes);
+            Key unwrappedAesKey = OPSecUtil.SINGLETON.decryptCKAESKey(kp.getPrivate(), wrappedAesKeyBytes);
             assert(SUS.equals(aes.getEncoded(), unwrappedAesKey.getEncoded()));
             System.out.println("[" + i + "] Are keys equals: " + aes.equals(unwrappedAesKey));
         }
@@ -114,14 +115,14 @@ public class CrystalKeyTest {
 //        kpg.initialize(KyberParameterSpec.kyber512, new SecureRandom());
 //        KeyPair kp = kpg.generateKeyPair();
 
-        KeyPair kp = CryptoUtil.generateKeyPair("Kyber", "BCPQC", KyberParameterSpec.kyber512, null);
+        KeyPair kp = OPSecUtil.SINGLETON.generateKeyPair("Kyber", "BCPQC", KyberParameterSpec.kyber512, null);
 
         PublicKey originalPublicKey = kp.getPublic();
         PrivateKey originalPrivateKey = kp.getPrivate();
-        SecretKeyWithEncapsulation skwe = OPSecUtil.generateCKEncryptionKey(originalPublicKey);
+        SecretKeyWithEncapsulation skwe = OPSecUtil.SINGLETON.generateCKEncryptionKey(originalPublicKey);
         System.out.println(SUS.toCanonicalID(',', skwe.getEncoded().length, skwe.getEncapsulation().length));
         byte[] aesKey = skwe.getEncoded();
-        SecretKeyWithEncapsulation regenSKWE = OPSecUtil.extractCKDecryptionKey(originalPrivateKey, skwe.getEncapsulation());
+        SecretKeyWithEncapsulation regenSKWE = OPSecUtil.SINGLETON.extractCKDecryptionKey(originalPrivateKey, skwe.getEncapsulation());
         assert SUS.equals(aesKey, regenSKWE.getEncoded());
         assert SUS.equals(skwe.getEncapsulation(), regenSKWE.getEncapsulation());
 
@@ -165,10 +166,12 @@ public class CrystalKeyTest {
 //        // 7. Re-generate (decode) the keys from the specs.
 //        PublicKey regeneratedPublicKey = kf.generatePublic(pubKeySpec);
 //        PrivateKey regeneratedPrivateKey = kf.generatePrivate(privKeySpec);
-        KeyPair regenKeyPair = CryptoUtil.toKeyPair("kyber", "BCPQC", pubKeyBase64, privKeyBase64);
+
+
+        KeyPair regenKeyPair = OPSecUtil.SINGLETON.toKeyPair("kyber", "BCPQC", pubKeyBase64, privKeyBase64);
 
         // 8. Check that the regenerated keys match the originals (by comparing encoded bytes).
-        boolean pubKeysMatch  = SUS.equals(originalPublicKey.getEncoded(), regenKeyPair.getPublic().getEncoded());
+        boolean pubKeysMatch = SUS.equals(originalPublicKey.getEncoded(), regenKeyPair.getPublic().getEncoded());
         boolean privKeysMatch = SUS.equals(originalPrivateKey.getEncoded(), regenKeyPair.getPrivate().getEncoded());
 
         System.out.println("\nRegenerated Public Key  (object): " + regenKeyPair.getPublic());
@@ -176,6 +179,10 @@ public class CrystalKeyTest {
 
         System.out.println("\nDo public keys match?  " + pubKeysMatch);
         System.out.println("Do private keys match? " + privKeysMatch);
+
+
+
+
 
         // In an actual application, you'd store these key strings securely
         // and retrieve them when you need to do encryption/decryption with Kyber.

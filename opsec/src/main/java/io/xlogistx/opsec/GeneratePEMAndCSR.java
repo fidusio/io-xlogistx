@@ -28,10 +28,10 @@ public class GeneratePEMAndCSR
             String altNames = params.stringValue("alt", true);
             String outDir = params.stringValue("out_dir", true);
             String attrs = params.stringValue("attrs");
-            KeyPair keyPair = OPSecUtil.generateKeyPair(keyType, "BC");
+            KeyPair keyPair = OPSecUtil.SINGLETON.generateKeyPair(keyType, "BC");
 
 
-            String filename = OPSecUtil.extractFilename(attrs);
+            String filename = OPSecUtil.SINGLETON.extractFilename(attrs);
 
 
 
@@ -74,12 +74,12 @@ public class GeneratePEMAndCSR
 
                 pemWriter.writeObject(keyPair.getPrivate());
                 pemWriter.close();
-                os = new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".key"));
+                os = new FileOutputStream(OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".key"));
                 keyBAOS.writeTo(os);
             }
 
             // Generate CSR
-            PKCS10CertificationRequest csr = OPSecUtil.generateCSR(keyPair, attrs, altNames);
+            PKCS10CertificationRequest csr = OPSecUtil.SINGLETON.generateCSR(keyPair, attrs, altNames);
 
             // Save CSR to PEM file
             UByteArrayOutputStream csrBAOS = new UByteArrayOutputStream();
@@ -88,7 +88,7 @@ public class GeneratePEMAndCSR
                 JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
                 pemWriter.writeObject(csr);
                 pemWriter.close();
-                os = new FileOutputStream(OPSecUtil.outputFilename(outDir, filename + ".csr"));
+                os = new FileOutputStream(OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".csr"));
                 csrBAOS.writeTo(os);
             }
             finally

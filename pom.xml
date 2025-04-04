@@ -106,7 +106,7 @@
 
 
         <cron-util.version>RELEASE</cron-util.version>
-        <bc.version>1.80</bc.version>
+        <bc.version>RELEASE</bc.version><!-- kyber crystal issue don't use RELEASE-->
   </properties>
 
   <build>
@@ -244,6 +244,7 @@
       <artifactId>jsoup</artifactId>
       <version>${jsoup.version}</version>
     </dependency>
+
 
       <dependency>
           <groupId>javax.cache</groupId>

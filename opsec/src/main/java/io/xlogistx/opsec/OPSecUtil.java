@@ -34,6 +34,7 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
@@ -47,35 +48,95 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 
-
 public class OPSecUtil
 {
-//    public static final String BEGIN_EC_PARAM="-----BEGIN EC PARAMETERS-----";
-//    public static final String END_EC_PARAM="-----END EC PARAMETERS-----";
-//    public static final String SECP_256_R1_EC_VAL="BggqhkjOPQMBBw==";
-//    public static final String SECP_384_R1_EC_VAL="BgUrgQQAIg==";
+    public static final LogWrapper log = new LogWrapper(OPSecUtil.class).setEnabled(false);
 
-    static
+
+    // this section always on the top
+//    static
+//    {
+//        SecUtil.SINGLETON.addProvider(new BouncyCastlePQCProvider());
+//        SecUtil.SINGLETON.addProvider(new BouncyCastleProvider());
+//
+//    }
+
+
+
+    public static final Provider BC_PROVIDER = new BouncyCastleProvider();
+    public static final Provider BC_CHRYSTAL_PROVIDER = new BouncyCastlePQCProvider();
+
+    public final static OPSecUtil SINGLETON = new OPSecUtil();
+
+
+    //private final static AtomicBoolean init = new AtomicBoolean(false);
+
+    private OPSecUtil()
     {
-        Security.addProvider(new BouncyCastleProvider());
-        Security.addProvider(new BouncyCastlePQCProvider());
+
+//        System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
+//
+//        // just wait after for the providers to propagate
+//        TaskUtil.sleep(Const.TimeInMillis.SECOND.MILLIS*3);
+//
+//        System.out.println("OPSecUtil ready");
+//        System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
+        // add any new provider
+        SecUtil.SINGLETON.addProvider(BC_PROVIDER);
+        SecUtil.SINGLETON.addProvider(BC_CHRYSTAL_PROVIDER);
+        BC_PROVIDER.getServices();
+        BC_CHRYSTAL_PROVIDER.getServices();
+        Provider[] all = Security.getProviders();
+        for (Provider prov : all)
+        {
+            if (prov.equals(BC_PROVIDER) || prov.equals(BC_CHRYSTAL_PROVIDER))
+                log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
+        }
+
     }
 
-    private OPSecUtil(){}
+
+//    public static OPSecUtil SINGLETON()
+//    {
+//        if (SINGLETON == null)
+//        {
+//            ServerUtil.LOCK.lock();
+//
+//            try
+//            {
+//                if (SINGLETON == null)
+//                {
+////                    Security.insertProviderAt(new BouncyCastlePQCProvider(), 1);
+////                    Security.insertProviderAt(new BouncyCastleProvider(), 2);
+//
+//
+//
+//
+//                    SecUtil.SINGLETON.addProvider(BC_PROVIDER);
+//                    SecUtil.SINGLETON.addProvider(BC_CHRYSTAL_PROVIDER);
+//
+////                    TaskUtil.sleep(Const.TimeInMillis.SECOND.MILLIS*5);
+////                    System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
+//                    SINGLETON = new OPSecUtil();
+//                }
+//            }
+//            finally
+//            {
+//                ServerUtil.LOCK.unlock();;
+//            }
+//        }
+//        return SINGLETON;
+//    }
 
 
-    public static void init()
-    {
-
-    }
-
-
-    public static X500Name createSubject(String attributes)
+    public X500Name createSubject(String attributes)
     {
         X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
 
@@ -120,19 +181,19 @@ public class OPSecUtil
     }
 
 
-    public static KeyPair generateKeyPair(String keyType, String provider)
+    public KeyPair generateKeyPair(String keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException
     {
         return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
     }
 
-    public static KeyPair generateKeyPair(CanonicalID keyType, String provider)
+    public KeyPair generateKeyPair(CanonicalID keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException
     {
         return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
     }
 
-    public static X509Certificate generateSelfSignedCertificate(KeyPair keyPair, X500Name issuer, X500Name subject, String duration) throws Exception {
+    public X509Certificate generateSelfSignedCertificate(KeyPair keyPair, X500Name issuer, X500Name subject, String duration) throws Exception {
         // Set the certificate's subject and issuer details
 
         // Validity period for the certificate
@@ -159,7 +220,14 @@ public class OPSecUtil
                 .getCertificate(certBuilder.build(signer));
     }
 
-    public static KeyStore createKeyStore(String alias, String keystorePassword,
+
+    public KeyPair toKeyPair(String type, String provider, String pubKeyBase64, String privKeyBase64)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException
+    {
+        return CryptoUtil.toKeyPair(type, provider, pubKeyBase64, privKeyBase64);
+    }
+
+    public KeyStore createKeyStore(String alias, String keystorePassword,
                                           PrivateKey privateKey, X509Certificate certificate) throws Exception {
         // Create a KeyStore object of type JKS
         KeyStore keyStore = KeyStore.getInstance(CryptoConst.PKCS12);
@@ -177,7 +245,7 @@ public class OPSecUtil
         return keyStore;
     }
 
-    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, String attr, String altNames) throws Exception {
+    public PKCS10CertificationRequest generateCSR(KeyPair keyPair, String attr, String altNames) throws Exception {
         X500Name subject = createSubject(attr);
         PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
 
@@ -222,7 +290,7 @@ public class OPSecUtil
     }
 
 
-    public static String convertPrivateKeyToPEM(PrivateKey privateKey) throws IOException {
+    public String convertPrivateKeyToPEM(PrivateKey privateKey) throws IOException {
         StringWriter stringWriter = new StringWriter();
         try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
             pemWriter.writeObject(privateKey);
@@ -231,7 +299,7 @@ public class OPSecUtil
     }
 
 
-    public static PrivateKey convertPemToPrivateKey(String pem) throws IOException {
+    public PrivateKey convertPemToPrivateKey(String pem) throws IOException {
         StringReader stringReader = new StringReader(pem);
         try (PEMParser pemParser = new PEMParser(stringReader)) {
             Object object = pemParser.readObject();
@@ -249,7 +317,7 @@ public class OPSecUtil
         }
     }
 
-    public static String convertPublicKeyToPEM(PublicKey publicKey) throws IOException {
+    public String convertPublicKeyToPEM(PublicKey publicKey) throws IOException {
         StringWriter stringWriter = new StringWriter();
         try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
             pemWriter.writeObject(publicKey);
@@ -257,7 +325,7 @@ public class OPSecUtil
         return stringWriter.toString();
     }
 
-    public static PublicKey convertPemToPublicKey(String pem) throws IOException {
+    public PublicKey convertPemToPublicKey(String pem) throws IOException {
         StringReader stringReader = new StringReader(pem);
         try (PEMParser pemParser = new PEMParser(stringReader)) {
             Object object = pemParser.readObject();
@@ -272,7 +340,7 @@ public class OPSecUtil
     }
 
 
-    public static X509Certificate convertPemToX509Certificate(String pemCert) throws IOException, CertificateException {
+    public X509Certificate convertPemToX509Certificate(String pemCert) throws IOException, CertificateException {
         // Read the PEM file content
 
         // Strip the headers and footers
@@ -290,7 +358,7 @@ public class OPSecUtil
         }
     }
 
-    public static Certificate convertBCCertificateToJcaCertificate(X509CertificateHolder bcCertificate)
+    public Certificate convertBCCertificateToJcaCertificate(X509CertificateHolder bcCertificate)
             throws IOException, CertificateException
     {
         // Get encoded form of the BouncyCastle Certificate
@@ -303,7 +371,7 @@ public class OPSecUtil
         return certificateFactory.generateCertificate(new ByteArrayInputStream(encodedCertificate));
     }
 
-    private static List<Object> readPermObject(PEMParser pemParser) throws IOException {
+    private List<Object> readPermObject(PEMParser pemParser) throws IOException {
         Object obj;
         List<Object> ret = new ArrayList<>();
         while ((obj = pemParser.readObject()) != null)
@@ -314,7 +382,7 @@ public class OPSecUtil
         return ret;
     }
 
-    public static KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword, String certAlias) throws CertificateException, IOException, PKCSException, OperatorCreationException, KeyStoreException, NoSuchAlgorithmException {
+    public KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword, String certAlias) throws CertificateException, IOException, PKCSException, OperatorCreationException, KeyStoreException, NoSuchAlgorithmException {
         // Load Certificate Chain
         CertificateFactory factory = CertificateFactory.getInstance("X.509");
         List<Certificate> chain = new ArrayList<>();
@@ -390,7 +458,7 @@ public class OPSecUtil
     }
 
 
-    public static String extractFilename(String attrs)
+    public String extractFilename(String attrs)
     {
         ParamUtil.ParamMap params = ParamUtil.parse("=", attrs.split(","));
         if (params.stringValue("CN", true) != null)
@@ -405,7 +473,7 @@ public class OPSecUtil
         throw new IllegalArgumentException(attrs + " no CN or E attribute found");
     }
 
-    public static String outputFilename(String outDir, String filename)
+    public String outputFilename(String outDir, String filename)
     {
 
         if(outDir != null)
@@ -414,7 +482,7 @@ public class OPSecUtil
         return filename;
     }
 
-    public static SecretKeyWithEncapsulation generateCKEncryptionKey(PublicKey publicKey)
+    public SecretKeyWithEncapsulation generateCKEncryptionKey(PublicKey publicKey)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
     {
         KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
@@ -422,7 +490,7 @@ public class OPSecUtil
         return (SecretKeyWithEncapsulation) keyGen.generateKey();
     }
 
-    public static SecretKeyWithEncapsulation extractCKDecryptionKey(PrivateKey privateKey, byte[] encapsulatedKey)
+    public SecretKeyWithEncapsulation extractCKDecryptionKey(PrivateKey privateKey, byte[] encapsulatedKey)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
     {
         KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
@@ -430,21 +498,21 @@ public class OPSecUtil
         return (SecretKeyWithEncapsulation)keyGen.generateKey();
     }
 
-    public static byte[] encryptCKAESKey(PublicKey publicKey, byte[] aesKey)
+    public byte[] encryptCKAESKey(PublicKey publicKey, byte[] aesKey)
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException {
         return encryptCKAESKey(publicKey, CryptoUtil.toSecretKey(aesKey, "AES"));
     }
 
 
 
-    public static byte[] encryptCKAESKey(PublicKey publicKey, SecretKey aesKey)
+    public byte[] encryptCKAESKey(PublicKey publicKey, SecretKey aesKey)
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException
     {
         Cipher kyberWrapCipher = Cipher.getInstance("Kyber", "BCPQC");
         kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, SecUtil.SINGLETON.defaultSecureRandom());
         return kyberWrapCipher.wrap(aesKey);
     }
-    public static Key decryptCKAESKey(PrivateKey  privateKey, byte[] wrappedAesKeyBytes)
+    public Key decryptCKAESKey(PrivateKey  privateKey, byte[] wrappedAesKeyBytes)
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException
     {
         Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", "BCPQC");
@@ -475,6 +543,15 @@ public class OPSecUtil
 //            return null;
 //        }
 //    }
+
+
+
+    public KeyPair generateKeyPair(String type, String provider, AlgorithmParameterSpec keySpec, SecureRandom random)
+            throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException
+    {
+        return CryptoUtil.generateKeyPair(type, provider, keySpec, random);
+    }
+
 
 
 }
