@@ -59,6 +59,14 @@ public class OPSecUtil
 {
     public static final LogWrapper log = new LogWrapper(OPSecUtil.class).setEnabled(false);
 
+    public static final String BC_PROVIDER = "BC";
+    public static final String BC_CKD_PROVIDER = "BCPQC";
+    public static final String CK_NAME = "KYBER";
+    public static final String CD_NAME = "DILITHIUM";
+
+
+
+
 
     // this section always on the top
 //    static
@@ -70,8 +78,8 @@ public class OPSecUtil
 
 
 
-    public static final Provider BC_PROVIDER = new BouncyCastleProvider();
-    public static final Provider BC_CHRYSTAL_PROVIDER = new BouncyCastlePQCProvider();
+//    private final static Provider BC_PROVIDER = new BouncyCastleProvider();
+//    private static Provider BC_CHRYSTAL_PROVIDER = new BouncyCastlePQCProvider();
 
     public final static OPSecUtil SINGLETON = new OPSecUtil();
 
@@ -89,16 +97,43 @@ public class OPSecUtil
 //        System.out.println("OPSecUtil ready");
 //        System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
         // add any new provider
-        SecUtil.SINGLETON.addProvider(BC_PROVIDER);
-        SecUtil.SINGLETON.addProvider(BC_CHRYSTAL_PROVIDER);
-        BC_PROVIDER.getServices();
-        BC_CHRYSTAL_PROVIDER.getServices();
-        Provider[] all = Security.getProviders();
-        for (Provider prov : all)
+//        SecUtil.SINGLETON.addProvider(BC_PROVIDER);
+//        SecUtil.SINGLETON.addProvider(BC_CHRYSTAL_PROVIDER);
+//        BC_PROVIDER.getServices();
+//        BC_CHRYSTAL_PROVIDER.getServices();
+//        for (Provider prov : Security.getProviders())
+//        {
+//            if (prov.equals(BC_PROVIDER) || prov.equals(BC_CHRYSTAL_PROVIDER))
+//                log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
+//        }
+
+        loadProviders();
+
+    }
+
+
+    public static  synchronized void reloadProviders()
+    {
+        Security.removeProvider(BC_CKD_PROVIDER);
+        Security.removeProvider(BC_PROVIDER);
+        loadProviders();
+    }
+
+    public static  synchronized void loadProviders()
+    {
+        if(Security.getProvider(BC_CKD_PROVIDER) == null)
         {
-            if (prov.equals(BC_PROVIDER) || prov.equals(BC_CHRYSTAL_PROVIDER))
-                log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
+            Provider prov = new BouncyCastlePQCProvider();
+            SecUtil.SINGLETON.addProvider(prov);
+            log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
         }
+        if(Security.getProvider(BC_PROVIDER) == null)
+        {
+            Provider prov = new BouncyCastleProvider();
+            SecUtil.SINGLETON.addProvider(prov);
+            log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
+        }
+
 
     }
 

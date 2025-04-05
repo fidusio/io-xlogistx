@@ -1,21 +1,23 @@
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import io.xlogistx.opsec.OPSecUtil;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.*;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 
 public class ECKeyEncryption {
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
+
 
     public static void main(String[] args) throws Exception {
         // Generate EC key pair
+        OPSecUtil.loadProviders();
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
         keyPairGenerator.initialize(new ECGenParameterSpec("secp256r1"));
         KeyPair keyPair = keyPairGenerator.generateKeyPair();

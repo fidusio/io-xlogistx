@@ -1,4 +1,4 @@
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import io.xlogistx.opsec.OPSecUtil;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.bouncycastle.math.ec.ECPoint;
@@ -16,7 +16,7 @@ import java.util.Base64;
 
 public class ECPrivateKeyToPublic {
     static {
-        Security.addProvider(new BouncyCastleProvider());
+        OPSecUtil.loadProviders();
     }
 
     public static void main(String[] args) throws Exception {

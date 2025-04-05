@@ -48,7 +48,7 @@ public class CrystalKeyTest {
 //            System.out.println("[" + i + "] Are keys equals: " + unwrappedAesKey.equals(aes));
 //        }
 
-        KeyPair kp = OPSecUtil.SINGLETON.toKeyPair("kyber", "BCPQC", KYBER_PUB_KEY_B64, KYBER_PRIV_KEY_B64);
+        KeyPair kp = OPSecUtil.SINGLETON.toKeyPair(OPSecUtil.CK_NAME, OPSecUtil.BC_CKD_PROVIDER, KYBER_PUB_KEY_B64, KYBER_PRIV_KEY_B64);
         SecretKey aes = CryptoUtil.toSecretKey(SharedBase64.decode(AES_KEY_B64), "AES");
 
         for (int i = 0; i < 10; i++)
@@ -73,7 +73,7 @@ public class CrystalKeyTest {
         System.out.println("Original AES Key " + SUS.toCanonicalID(',', originalAesKey.getAlgorithm(), originalAesKey.getFormat() )+ " : " + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, originalAesKeyBytes));
 
         // 3. Generate a Kyber key pair
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("Kyber", "BCPQC");
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
         // You can choose kyber512, kyber768, or kyber1024
         kpg.initialize(KyberParameterSpec.kyber512, new SecureRandom());
         KeyPair kyberKp = kpg.generateKeyPair();
@@ -81,12 +81,12 @@ public class CrystalKeyTest {
         PrivateKey kyberPriv = kyberKp.getPrivate();
 
         // 4. Wrap the AES key using Kyber in WRAP_MODE
-        Cipher kyberWrapCipher = Cipher.getInstance("Kyber", "BCPQC");
+        Cipher kyberWrapCipher = Cipher.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
         kyberWrapCipher.init(Cipher.WRAP_MODE, kyberPub, new SecureRandom());
         byte[] wrappedAesKeyBytes = kyberWrapCipher.wrap(originalAesKey);
         System.out.println( wrappedAesKeyBytes.length + " Wrapped AES Key : " + SharedStringUtil.bytesToHex(wrappedAesKeyBytes));
         // 5. Unwrap the AES key using Kyber in UNWRAP_MODE
-        Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", "BCPQC");
+        Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
         kyberUnwrapCipher.init(Cipher.UNWRAP_MODE, kyberPriv);
         Key unwrappedAesKey = kyberUnwrapCipher.unwrap(wrappedAesKeyBytes, "AES", Cipher.SECRET_KEY);
 
@@ -111,11 +111,11 @@ public class CrystalKeyTest {
 
         // 2. Generate a Kyber key pair.
         //    Available specs: kyber512, kyber768, or kyber1024.
-//        KeyPairGenerator kpg = KeyPairGenerator.getInstance("Kyber", "BCPQC");
+//        KeyPairGenerator kpg = KeyPairGenerator.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
 //        kpg.initialize(KyberParameterSpec.kyber512, new SecureRandom());
 //        KeyPair kp = kpg.generateKeyPair();
 
-        KeyPair kp = OPSecUtil.SINGLETON.generateKeyPair("Kyber", "BCPQC", KyberParameterSpec.kyber512, null);
+        KeyPair kp = OPSecUtil.SINGLETON.generateKeyPair("Kyber", OPSecUtil.BC_CKD_PROVIDER, KyberParameterSpec.kyber512, null);
 
         PublicKey originalPublicKey = kp.getPublic();
         PrivateKey originalPrivateKey = kp.getPrivate();
@@ -155,7 +155,7 @@ public class CrystalKeyTest {
 //        byte[] privKeyBytesReloaded = SharedBase64.decode(privKeyBase64);
 //
 //        // 5. Create KeyFactory for "Kyber", using the Bouncy Castle PQC provider.
-//        KeyFactory kf = KeyFactory.getInstance("Kyber", "BCPQC");
+//        KeyFactory kf = KeyFactory.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
 //
 //        // 6. Wrap those bytes into proper EncodedKeySpec objects.
 //        //    - Public key uses X509EncodedKeySpec
@@ -168,7 +168,18 @@ public class CrystalKeyTest {
 //        PrivateKey regeneratedPrivateKey = kf.generatePrivate(privKeySpec);
 
 
-        KeyPair regenKeyPair = OPSecUtil.SINGLETON.toKeyPair("kyber", "BCPQC", pubKeyBase64, privKeyBase64);
+        KeyPair regenKeyPair = null;
+        try
+        {
+            regenKeyPair = OPSecUtil.SINGLETON.toKeyPair(OPSecUtil.CK_NAME, OPSecUtil.BC_CKD_PROVIDER, pubKeyBase64, privKeyBase64);
+        }
+        catch (InvalidKeySpecException e)
+        {
+            e.printStackTrace();
+
+            OPSecUtil.SINGLETON.reloadProviders();
+            regenKeyPair = OPSecUtil.SINGLETON.toKeyPair(OPSecUtil.CK_NAME, OPSecUtil.BC_CKD_PROVIDER, pubKeyBase64, privKeyBase64);
+        }
 
         // 8. Check that the regenerated keys match the originals (by comparing encoded bytes).
         boolean pubKeysMatch = SUS.equals(originalPublicKey.getEncoded(), regenKeyPair.getPublic().getEncoded());
@@ -194,7 +205,7 @@ public class CrystalKeyTest {
 
 
         // Generate Dilithium key pair
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("Dilithium", "BCPQC");
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance(OPSecUtil.CD_NAME, OPSecUtil.BC_CKD_PROVIDER);
         kpg.initialize(DilithiumParameterSpec.dilithium2, SecUtil.SINGLETON.defaultSecureRandom());
         KeyPair kp = kpg.generateKeyPair();
         PublicKey pub = kp.getPublic();
@@ -204,7 +215,7 @@ public class CrystalKeyTest {
         byte[] message = "Hello from post-quantum world!".getBytes();
 
         // Sign the message
-        Signature signer = Signature.getInstance("Dilithium", "BCPQC");
+        Signature signer = Signature.getInstance(OPSecUtil.CD_NAME, OPSecUtil.BC_CKD_PROVIDER);
         signer.initSign(priv, new SecureRandom());
         signer.update(message);
         byte[] signature = signer.sign();
@@ -212,7 +223,7 @@ public class CrystalKeyTest {
         byte[] sign2 = CryptoUtil.sign(CryptoConst.SignatureAlgo.CRYSTALS_DILITHIUM, priv, message);
 
         // Verify the signature
-        Signature verifier = Signature.getInstance("Dilithium", "BCPQC");
+        Signature verifier = Signature.getInstance(OPSecUtil.CD_NAME, OPSecUtil.BC_CKD_PROVIDER);
         verifier.initVerify(pub);
         verifier.update(message);
         boolean isValid = verifier.verify(signature);

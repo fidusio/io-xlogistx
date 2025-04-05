@@ -1,6 +1,6 @@
+import io.xlogistx.opsec.OPSecUtil;
 import org.bouncycastle.asn1.x9.ECNamedCurveTable;
 import org.bouncycastle.asn1.x9.X9ECParameters;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.util.io.pem.PemGenerationException;
 import org.bouncycastle.util.io.pem.PemObject;
@@ -35,12 +35,12 @@ public class ECKeyWithParameters {
     }
 
 
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
+
 
     public static void main(String[] args) {
+
         try {
+            OPSecUtil.loadProviders();
             KeyPair keyPair = generateECKeyPair();
             String pemOutput = exportPrivateKeyToPEM(keyPair.getPrivate());
             System.out.println(pemOutput);
