@@ -3,10 +3,7 @@ package io.xlogistx.http.services;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.BytesArray;
 
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.Session;
+import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,13 +15,13 @@ public class EchoChatTest
 
     public static final LogWrapper log = new LogWrapper(EchoChatTest.class).setEnabled(false);
 
-    private AtomicLong index = new AtomicLong(0);
+    private final AtomicLong index = new AtomicLong(0);
     public void onOpen(Session session) {
         System.out.println("New connection opened: " + session.getId());
     }
 
     @OnMessage
-    public void onMessage(String message, Session session) throws IOException {
+    public void onMessage(String message, Session session, boolean isLast) throws IOException {
         if(log.isEnabled()) log.getLogger().info("Received message: " + message);
         // Process or broadcast the message
         session.getBasicRemote().sendText( index.incrementAndGet() + " reply " + message);
@@ -32,11 +29,17 @@ public class EchoChatTest
 
     @OnMessage
     public void onMessage(BytesArray message, Session session) throws IOException {
-        System.out.println("Received message: " + message);
+        System.out.println("Received message: " + message.asString());
         message.writeTo(session.getBasicRemote().getSendStream(), true);
+        //message.writeTo(session.getBasicRemote().getSendStream(), true);
         // Process or broadcast the message
     }
 
+    @OnMessage
+    public void pong (PongMessage message)
+    {
+
+    }
 
     @OnClose
     public void onClose(Session session) {

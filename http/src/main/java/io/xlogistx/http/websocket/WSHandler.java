@@ -2,7 +2,7 @@ package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPSessionHandler;
-import io.xlogistx.common.http.WSMethodType;
+import io.xlogistx.common.http.WSCache;
 import io.xlogistx.shiro.ShiroUtil;
 import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
@@ -27,7 +27,6 @@ import javax.websocket.Session;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,20 +39,20 @@ public class WSHandler
     private final String uri;
     private final Object bean;
     private final SecurityProp securityProp;
-    private final Map<WSMethodType, Method> methodMaps;
+    private final WSCache methodCache;
 
     private final Set<Session> sessionSet = ConcurrentHashMap.newKeySet();
 
-    private static final WSMethodType[] BINARY_TYPES = {WSMethodType.BINARY_BYTES_ARRAY, WSMethodType.BINARY_BYTES, WSMethodType.BINARY_BYTE_BUFFER};
+    //private static final  WSCache.WSMethodType[] BINARY_TYPES = { WSCache.WSMethodType.BINARY_BYTES_ARRAY,  WSCache.WSMethodType.BINARY_BYTES,  WSCache.WSMethodType.BINARY_BYTE_BUFFER};
 
 
 
-    public WSHandler(String uri, SecurityProp securityProp,  Map<WSMethodType, Method> methodMaps, Object bean)
+    public WSHandler(String uri, SecurityProp securityProp,  WSCache wsCache, Object bean)
     {
         this.uri = uri;
         this.securityProp = securityProp;
         this.bean = bean;
-        this.methodMaps = methodMaps;
+        this.methodCache = wsCache;
         if (log.isEnabled()) log.getLogger().info("URI: " + uri + " secProp: " + securityProp + " bean: " + bean);
     }
 
@@ -161,145 +160,101 @@ public class WSHandler
         Session session = hph.getExtraSession();
         while((frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getLastWSIndex())) != null)
         {
-
             if (log.isEnabled())
                 log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
 
-
-            if (frame.isFin())
+            HTTPWSProto.OpCode opCode = frame.opCode();
+            if (opCode == null)
             {
-                HTTPWSProto.OpCode opCode = frame.opCode();
-                if (opCode == null)
-                {
-                    log.getLogger().info(""+ frame.rawOpCode());
-                }
-
-                if (!hph.pendingWSFrames.isEmpty())
-                {
-                    log.getLogger().info("WE HAVE PENDING FRAMES\n" + hph.pendingWSFrames);
-
-                }
-
-                Method toInvoke = null;
-                switch (opCode)
-                {
-                    case TEXT:
-                        toInvoke = methodMaps.get(WSMethodType.TEXT);
-                        if(toInvoke != null)
-                        {
-                            try
-                            {
-                                ShiroUtil.invokeMethod(false, getBean(), toInvoke, frame.data().asString(), frame.isFin(), hph.getExtraSession());
-                            }
-                            catch (Exception e)
-                            {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        break;
-                    case BINARY:
-
-                        for(WSMethodType binaryMatch : BINARY_TYPES)
-                        {
-                            // find the appropriate method
-                            toInvoke = methodMaps.get(binaryMatch);
-
-                            if (toInvoke != null)
-                            {
-                                Object mainParameter = null;
-                                // covert first parameters
-                                switch (binaryMatch)
-                                {
-
-                                    case BINARY_BYTES:
-                                        mainParameter = frame.data().asBytes();
-                                        break;
-                                    case BINARY_BYTE_BUFFER:
-                                        mainParameter = ByteBufferUtil.toByteBuffer(frame.data());
-                                        break;
-                                    case BINARY_BYTES_ARRAY:
-                                        mainParameter = frame.data();
-                                        break;
-                                }
-                                // invoke method
-                                try
-                                {
-                                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, mainParameter, frame.isFin(), hph.getExtraSession());
-                                }
-                                catch (Exception e)
-                                {
-                                    e.printStackTrace();
-                                }
-                                // break the loop
-                                break;
-                            }
-                        }
-
-                        break;
-                    case CLOSE:
-                        toInvoke = methodMaps.get(WSMethodType.CLOSE);
-                        if(toInvoke != null)
-                        {
-                            try
-                            {
-                                // MN WARMING!!! DO NOT CHANGE new Object[]{...} error was generated by sending one object instead object[]
-                                // SPENT 2 hours 27-3-2025 after midnight
-                                ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getExtraSession()});
-                            }
-                            catch (Exception e)
-                            {
-                                e.printStackTrace();
-
-                                log.getLogger().info(toInvoke + " " + getBean());
-                            }
-                        }
-                        hph.close();
-                        return;
-                    case PING:
-                        // we received a ping message
-                        session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
-                        break;
-                    case PONG:
-                        toInvoke = methodMaps.get(WSMethodType.PONG);
-                        if(toInvoke != null)
-                        {
-                            try
-                            {
-                                ByteBuffer pongData = ByteBufferUtil.toByteBuffer(frame.data());
-                                PongMessage message = ()->pongData;
-                                ShiroUtil.invokeMethod(false, getBean(), toInvoke, message, hph.getExtraSession());
-                            }
-                            catch (Exception e)
-                            {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        if (log.isEnabled())
-                            log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
-                        break;
-                }
-                if(hph.getRawRequest().getDataStream().size() != frame.frameSize())
-                    hph.getRawRequest().getDataStream().shiftLeft(hph.getLastWSIndex() + frame.frameSize(), 0);
-                else
-                    hph.getRawRequest().getDataStream().reset();
-                hph.setLastWSIndex(0);
-                hph.getResponseStream(true).reset();
-
+                log.getLogger().info(""+ frame.rawOpCode());
             }
+
+            Method toInvoke;
+            switch (opCode)
+            {
+                case TEXT:
+                    toInvoke = methodCache.lookup(opCode, !frame.isFin());
+                    if(log.isEnabled())log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
+                    if(toInvoke != null)
+                    {
+                        try
+                        {
+                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, frame.data().asString(), frame.isFin(), hph.getExtraSession());
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                    break;
+                case BINARY:
+                    // find the appropriate method
+                    toInvoke = methodCache.lookup(opCode, !frame.isFin());
+
+                    if (toInvoke != null)
+                    {
+                        // invoke method
+                        try
+                        {
+                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, frame.data(), frame.isFin(), hph.getExtraSession());
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                    break;
+                case CLOSE:
+                    toInvoke = methodCache.lookup(opCode, false);
+                    if(toInvoke != null)
+                    {
+                        try
+                        {
+                            // MN WARMING!!! DO NOT CHANGE new Object[]{...} error was generated by sending one object instead object[]
+                            // SPENT 2 hours 27-3-2025 after midnight
+                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getExtraSession()});
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+
+                            log.getLogger().info(toInvoke + " " + getBean());
+                        }
+                    }
+                    hph.close();
+                    return;
+                case PING:
+                    // we received a ping message
+                    session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
+                    break;
+                case PONG:
+                    toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
+                    if(toInvoke != null)
+                    {
+                        try
+                        {
+                            ByteBuffer pongData = ByteBufferUtil.toByteBuffer(frame.data());
+                            PongMessage message = ()->pongData;
+                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, message, hph.getExtraSession());
+                        }
+                        catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if (log.isEnabled())
+                        log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
+                    break;
+            }
+
+            if (hph.getRawRequest().getDataStream().size() != frame.frameSize())
+                hph.getRawRequest().getDataStream().shiftLeft(hph.getLastWSIndex() + frame.frameSize(), 0);
             else
-            {
-                log.getLogger().info("********  Frame isFin " + frame.isFin() + " " + frame + " " +frame.rawOpCode() + "  " +frame.data().asString());
+                hph.getRawRequest().getDataStream().reset();
 
-                hph.pendingWSFrames.add(frame);
-                hph.setLastWSIndex(hph.getRawRequest().getDataStream().size());
-
-                // we have to shift the buffer and extract the data
-                // and update hph.setLastWSIndex
-                // don't reset the request buffer
-            }
-
+            hph.setLastWSIndex(0);
+            hph.getResponseStream(true).reset();
         }
     }
 

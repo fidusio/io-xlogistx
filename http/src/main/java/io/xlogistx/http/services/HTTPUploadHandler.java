@@ -150,9 +150,8 @@ public class HTTPUploadHandler
      */
     @Override
     protected void refreshProperties() {
-        System.out.println("base refresh");
+
         String baseFolderFilename = getProperties().getValue("base_folder");
-        System.out.println("base: " + baseFolderFilename);
         SharedStringUtil.trimOrNull(baseFolderFilename);
         if(baseFolderFilename != null)
         {

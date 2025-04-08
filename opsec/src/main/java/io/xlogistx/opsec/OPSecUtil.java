@@ -112,29 +112,40 @@ public class OPSecUtil
     }
 
 
-    public static  synchronized void reloadProviders()
+    public  synchronized void reloadProviders()
     {
-        Security.removeProvider(BC_CKD_PROVIDER);
-        Security.removeProvider(BC_PROVIDER);
+        boolean stat = SecUtil.SINGLETON.removeProvider(BC_CKD_PROVIDER);
+        log.getLogger().info("Provider " + BC_CKD_PROVIDER + " removed: " + stat);
+        stat = SecUtil.SINGLETON.removeProvider(BC_PROVIDER);
+        log.getLogger().info("Provider " + BC_PROVIDER + " removed: " + stat);
+
         loadProviders();
     }
 
-    public static  synchronized void loadProviders()
+    public synchronized void loadProviders()
     {
-        if(Security.getProvider(BC_CKD_PROVIDER) == null)
-        {
-            Provider prov = new BouncyCastlePQCProvider();
-            SecUtil.SINGLETON.addProvider(prov);
-            log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
-        }
-        if(Security.getProvider(BC_PROVIDER) == null)
+
+        if(SecUtil.SINGLETON.getProvider(BC_PROVIDER) == null)
         {
             Provider prov = new BouncyCastleProvider();
             SecUtil.SINGLETON.addProvider(prov);
-            log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
+            checkProviderExists(BC_PROVIDER);
         }
+        if(SecUtil.SINGLETON.getProvider(BC_CKD_PROVIDER) == null)
+        {
+            Provider prov = new BouncyCastlePQCProvider();
+            SecUtil.SINGLETON.addProvider(prov);
+            checkProviderExists(BC_CKD_PROVIDER);
+        }
+    }
 
-
+    private static void checkProviderExists(String providerName)
+    {
+        Provider provider = SecUtil.SINGLETON.getProvider(providerName);
+        if(provider != null)
+            log.getLogger().info("Provider Loaded: " + SUS.toCanonicalID('-', provider.getName(), provider.getVersion(), provider.getInfo()));
+        else
+            log.getLogger().info("**Warning**: Provider " + providerName +" NOT Loaded ");
     }
 
 
@@ -429,7 +440,7 @@ public class OPSecUtil
             chain.add(cert);
             if(cert instanceof X509Certificate)
             {
-                System.out.println(((X509Certificate) cert).getNotAfter());
+                log.getLogger().info("" + ((X509Certificate) cert).getNotAfter());
             }
         }
 
@@ -457,7 +468,7 @@ public class OPSecUtil
 
 
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-            //System.out.println(listObject);
+            //log.getLogger().info(listObject);
             for (Object object : listObject)
             {
                 if (object instanceof PKCS8EncryptedPrivateKeyInfo)
@@ -470,7 +481,7 @@ public class OPSecUtil
                 {
                     // Handling a key pair
                     PEMKeyPair keyPair = (PEMKeyPair) object;
-                    //System.out.println("private key info: " + keyPair.getPrivateKeyInfo() + " " + keyPair.getPrivateKeyInfo().getPrivateKeyAlgorithm());
+                    //log.getLogger().info("private key info: " + keyPair.getPrivateKeyInfo() + " " + keyPair.getPrivateKeyInfo().getPrivateKeyAlgorithm());
                     privateKey = converter.getPrivateKey(keyPair.getPrivateKeyInfo());
                 }
                 else if (object instanceof PrivateKeyInfo)
@@ -481,7 +492,7 @@ public class OPSecUtil
         }
 
 
-        System.out.println("Key Format:" +  privateKey.getFormat() + " " + privateKey.getAlgorithm());
+        log.getLogger().info("Key Format:" +  privateKey.getFormat() + " " + privateKey.getAlgorithm());
 
         // Create KeyStore
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);

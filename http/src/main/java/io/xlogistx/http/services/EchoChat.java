@@ -18,6 +18,7 @@ public class EchoChat
     public static final LogWrapper log = new LogWrapper(EchoChat.class).setEnabled(false);
 
     private AtomicLong index = new AtomicLong(0);
+    @OnOpen
     public void onOpen(Session session) {
         System.out.println("New connection opened: " + session.getId());
     }
@@ -29,6 +30,13 @@ public class EchoChat
         session.getBasicRemote().sendText( index.incrementAndGet() + "echo reply: " + message);
     }
 
+
+    @OnMessage
+    public void onMessage(String message, Session session,  boolean isLast) throws IOException {
+        //System.out.println("Received message: " + message);
+        // Process or broadcast the message
+        session.getBasicRemote().sendText( index.incrementAndGet() + " " +isLast + " echo reply: " + message);
+    }
 
 
     @OnMessage

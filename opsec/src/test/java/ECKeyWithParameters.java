@@ -40,7 +40,7 @@ public class ECKeyWithParameters {
     public static void main(String[] args) {
 
         try {
-            OPSecUtil.loadProviders();
+            OPSecUtil.SINGLETON.loadProviders();
             KeyPair keyPair = generateECKeyPair();
             String pemOutput = exportPrivateKeyToPEM(keyPair.getPrivate());
             System.out.println(pemOutput);

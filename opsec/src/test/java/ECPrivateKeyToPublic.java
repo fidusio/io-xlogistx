@@ -16,7 +16,7 @@ import java.util.Base64;
 
 public class ECPrivateKeyToPublic {
     static {
-        OPSecUtil.loadProviders();
+        OPSecUtil.SINGLETON.loadProviders();
     }
 
     public static void main(String[] args) throws Exception {

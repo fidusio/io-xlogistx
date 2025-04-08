@@ -17,7 +17,7 @@ public class ECKeyEncryption {
 
     public static void main(String[] args) throws Exception {
         // Generate EC key pair
-        OPSecUtil.loadProviders();
+        OPSecUtil.SINGLETON.loadProviders();
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
         keyPairGenerator.initialize(new ECGenParameterSpec("secp256r1"));
         KeyPair keyPair = keyPairGenerator.generateKeyPair();

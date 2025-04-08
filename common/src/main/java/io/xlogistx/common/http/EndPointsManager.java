@@ -236,7 +236,11 @@ public class EndPointsManager {
                 log.getLogger().info("WebSocket server end point " + classAnnotationMap);
                 log.getLogger().info("OnMessage: " + Arrays.toString(classAnnotationMap.matchingMethods(OnMessage.class)));
                 String uri = updatePath(baseURI, serverWS.value());
-                Object wsBean = epm.pic.newInstance(uri, sp, WSMethodType.matchClassMethods(beanClass), beanInstance);
+                WSCache wsCache = new WSCache(beanClass);
+                Object wsBean = epm.pic.newInstance(uri, sp, wsCache, beanInstance);
+
+
+                log.getLogger().info(beanClass.getName() + "\nBy Method-CanID: " +  WSCache.WSMethodType.matchClassMethodsByCanID(beanClass).keySet());
                 // we have a server websocket class endpoint
 
                 HTTPEndPoint hep = new HTTPEndPoint();
@@ -251,12 +255,8 @@ public class EndPointsManager {
                 epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next(), hep));
 
                 log.getLogger().info("Inner websocket " + map);
-
-
-
-                log.getLogger().info("Method Annotations: " + classAnnotationMap.getMethodsAnnotations().values());
-
-                ///log.getLogger().info( "Mapped Methods: " + WSMethodType.matchClassMethods(beanClass));
+                log.getLogger().info( "CACHED Mapped Methods: " + wsCache.getCache());
+                log.getLogger().info( "CACHED Types: " + wsCache.getCache().size() + " " +wsCache.getCache().keySet() );
 
                 log.getLogger().info("______________________________________________________________________");
 
@@ -543,7 +543,6 @@ public class EndPointsManager {
                     }
                     else
                     {
-                        System.out.println(contentType);
                         throw new IllegalArgumentException("Missing parameter " + pp.name());
                     }
                 }

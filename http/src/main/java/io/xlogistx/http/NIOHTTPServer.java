@@ -39,7 +39,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -465,9 +464,7 @@ public class NIOHTTPServer
             }
 
             // scan endpoints
-            endPointsManager = EndPointsManager.scan(getConfig(), (a)->{
-                return new WSHandler((String) a[0], (SecurityProp) a[1], (Map<WSMethodType, Method>) a[2], a[3]);
-            });
+            endPointsManager = EndPointsManager.scan(getConfig(), (a)-> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]));
             if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
 
             // NISocket

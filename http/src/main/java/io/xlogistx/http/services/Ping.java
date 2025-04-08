@@ -38,6 +38,8 @@ public class Ping
 
             response.build("subject-id", ShiroUtil.subjectUserID())
                     .build("jdk_version", System.getProperty("java.version"))
+                    .build("vm_name", System.getProperty("java.vm.name"))
+                    .build("vm_vendor_version", System.getProperty("java.vendor.version"))
                     .build("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS))
                     .build("current_thread", Thread.currentThread().getName())
                     .build("version", "1.1.1")
