@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class HTTPProtocolHandler<S>
+public class HTTPProtocolHandler
     implements Closeable, IsClosed
 {
 
@@ -44,7 +44,7 @@ public class HTTPProtocolHandler<S>
     public AtomicBoolean isBusy = new AtomicBoolean();
 
 
-    private volatile S subject = null;
+    //private volatile S subject = null;
     private volatile OutputStream outputStream;
 
     public HTTPProtocolHandler(URIScheme protocol)
@@ -58,7 +58,7 @@ public class HTTPProtocolHandler<S>
         return protocolMode;
     }
 
-    public HTTPProtocolHandler<S> switchProtocol(URIScheme protocol)
+    public HTTPProtocolHandler switchProtocol(URIScheme protocol)
     {
         switch (protocol)
         {
@@ -371,16 +371,16 @@ public class HTTPProtocolHandler<S>
         return this;
     }
 
-    public S getSubject()
-    {
-        return subject;
-    }
-
-    public HTTPProtocolHandler<S> setSubject(S subject)
-    {
-        this.subject = subject;
-        return this;
-    }
+//    public S getSubject()
+//    {
+//        return subject;
+//    }
+//
+//    public HTTPProtocolHandler<S> setSubject(S subject)
+//    {
+//        this.subject = subject;
+//        return this;
+//    }
 
     public int getLastWSIndex()
     {

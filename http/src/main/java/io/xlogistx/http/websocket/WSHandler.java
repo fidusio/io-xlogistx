@@ -6,7 +6,7 @@ import io.xlogistx.common.http.WSCache;
 import io.xlogistx.shiro.ShiroUtil;
 import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
@@ -27,11 +27,12 @@ import javax.websocket.Session;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WSHandler
-        implements HTTPSessionHandler<Subject>
+        implements HTTPSessionHandler
 {
 
     public static final LogWrapper log = new LogWrapper(WSHandler.class).setEnabled(false);
@@ -74,7 +75,7 @@ public class WSHandler
      */
     @EndPointProp(methods = {HTTPMethod.GET}, name="all-websocket", uris="/web-socket-overridden")
     @Override
-    public void handle(@ParamProp(name="WSProtocol", source= Const.ParamSource.RESOURCE) HTTPProtocolHandler<Subject> hph)
+    public void handle(@ParamProp(name="WSProtocol", source= Const.ParamSource.RESOURCE) HTTPProtocolHandler hph)
             throws IOException
     {
         if (log.isEnabled()) log.getLogger().info("Protocol " + hph.getProtocol());
@@ -90,56 +91,67 @@ public class WSHandler
             if (log.isEnabled()) log.getLogger().info("WEB-SOCKET-Protocol: " + headers.getValue(HTTPHeader.SEC_WEBSOCKET_PROTOCOL));
             if (log.isEnabled()) log.getLogger().info("" + headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY));
             if (log.isEnabled()) log.getLogger().info("" + headers.getValue(HTTPHeader.UPGRADE));
-            HTTPMessageConfigInterface resp = null;
-            try {
-                 resp = new HTTPMessageConfig();
-                 resp.setHTTPStatusCode(HTTPStatusCode.SWITCHING_PROTOCOLS);
+            HTTPMessageConfigInterface resp = new HTTPMessageConfig();
+
+            resp.setHTTPStatusCode(HTTPStatusCode.SWITCHING_PROTOCOLS);
 
                  // Minimum negotiation
-                 resp.getHeaders().build(headers.get(HTTPHeader.UPGRADE)).
-                        build(HTTPHeader.CONNECTION.toHTTPHeader("upgrade")).
-                         // caused disconnection with chrome and edge
-                         //build(HTTPHeader.SEC_WEBSOCKET_PROTOCOL.toHTTPHeader("chat")).
-                        build(HTTPHeader.SEC_WEBSOCKET_ACCEPT.toHTTPHeader(HashUtil.hashAsBase64("sha-1", headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY) + HTTPWSProto.WEB_SOCKET_UUID)));
-
-            } catch (Exception e) {
-               e.printStackTrace();
+            try
+            {
+                resp.getHeaders().build(headers.get(HTTPHeader.UPGRADE)).
+                       build(HTTPHeader.CONNECTION.toHTTPHeader("upgrade")).
+                        // caused disconnection with chrome and edge
+                        //build(HTTPHeader.SEC_WEBSOCKET_PROTOCOL.toHTTPHeader("chat")).
+                       build(HTTPHeader.SEC_WEBSOCKET_ACCEPT.toHTTPHeader(HashUtil.hashAsBase64("sha-1", headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY) + HTTPWSProto.WEB_SOCKET_UUID)));
+            } catch (NoSuchAlgorithmException e) {
+                throw new IOException(e);
             }
+
 
             if (log.isEnabled()) log.getLogger().info("Resp: " + resp);
 
-            if (resp !=  null)
-            {
-                HTTPUtil.formatResponse(resp, hph.getResponseStream())
+
+            HTTPUtil.formatResponse(resp, hph.getResponseStream())
                         .writeTo(hph.getOutputStream());
 
 
-                hph.switchProtocol( hph.getProtocol() == URIScheme.HTTPS ? URIScheme.WSS : URIScheme.WS);
-                if (log.isEnabled()) log.getLogger().info("Protocol switched: " + hph.getProtocol());
+            hph.switchProtocol( hph.getProtocol() == URIScheme.HTTPS ? URIScheme.WSS : URIScheme.WS);
+            if (log.isEnabled()) log.getLogger().info("Protocol switched: " + hph.getProtocol());
 
-                if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
-                if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().toString());
+            if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
+            if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().toString());
 
-                hph.reset();
-                if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
-                hph.setEndPointBean(this);
+            hph.reset();
+            if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
+            hph.setEndPointBean(this);
 
-                // create the websocket session
-                if(hph.getExtraSession() == null)
-                {
-                    hph.setExtraSession(new WSSession(hph, sessionSet));
-                }
-
-
+            // create the websocket session
+            if(hph.getExtraSession() == null)
+            {
+                hph.setExtraSession(new WSSession(hph, ShiroUtil.subject(), sessionSet));
             }
-
+            // set the subject
+            //hph.setSubject(SecurityUtils.getSubject());
+            // call OnOpen
+            Method toInvoke = methodCache.lookup(WSCache.WSMethodType.OPEN, false);
+            if(toInvoke != null)
+            {
+                try
+                {
+                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getExtraSession()});
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            ThreadContext.unbindSubject();
         }
         else if (hph.isWSProtocol())
         {
             SubjectSwap ss = null;
             try
             {
-                ss = new SubjectSwap(hph.getSubject());
+                WSSession currentSession = hph.getExtraSession();
+                ss = new SubjectSwap(currentSession.getSubject());
                 if (log.isEnabled()) log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
                 processWSMessage(hph);
             }
@@ -153,7 +165,7 @@ public class WSHandler
 
 
 
-    private void processWSMessage(HTTPProtocolHandler<Subject> hph)
+    private void processWSMessage(HTTPProtocolHandler hph)
             throws IOException
     {
         HTTPWSFrame frame;
@@ -164,97 +176,78 @@ public class WSHandler
                 log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
 
             HTTPWSProto.OpCode opCode = frame.opCode();
-            if (opCode == null)
+            if (opCode != null)
             {
-                log.getLogger().info(""+ frame.rawOpCode());
-            }
 
-            Method toInvoke;
-            switch (opCode)
-            {
-                case TEXT:
-                    toInvoke = methodCache.lookup(opCode, !frame.isFin());
-                    if(log.isEnabled())log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
-                    if(toInvoke != null)
-                    {
-                        try
-                        {
-                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, frame.data().asString(), frame.isFin(), hph.getExtraSession());
-                        }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
-                        }
-                    }
-                    break;
-                case BINARY:
-                    // find the appropriate method
-                    toInvoke = methodCache.lookup(opCode, !frame.isFin());
+                Method toInvoke = null;
+                Object[] parameters = null;
+                switch (opCode)
+                {
+                    case TEXT:
+                        toInvoke = methodCache.lookup(opCode, !frame.isFin());
 
-                    if (toInvoke != null)
-                    {
-                        // invoke method
-                        try
+                        if (toInvoke != null)
                         {
-                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, frame.data(), frame.isFin(), hph.getExtraSession());
+                            parameters = new Object[]{frame.data().asString(), frame.isFin(), hph.getExtraSession()};
                         }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
-                        }
-                    }
-                    break;
-                case CLOSE:
-                    toInvoke = methodCache.lookup(opCode, false);
-                    if(toInvoke != null)
-                    {
-                        try
-                        {
-                            // MN WARMING!!! DO NOT CHANGE new Object[]{...} error was generated by sending one object instead object[]
-                            // SPENT 2 hours 27-3-2025 after midnight
-                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getExtraSession()});
-                        }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
+                        break;
+                    case BINARY:
+                        // find the appropriate method
+                        toInvoke = methodCache.lookup(opCode, !frame.isFin());
 
-                            log.getLogger().info(toInvoke + " " + getBean());
+                        if (toInvoke != null)
+                        {
+                            parameters = new Object[]{frame.data(), frame.isFin(), hph.getExtraSession()};
                         }
-                    }
-                    hph.close();
-                    return;
-                case PING:
-                    // we received a ping message
-                    session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
-                    break;
-                case PONG:
-                    toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
-                    if(toInvoke != null)
-                    {
-                        try
+                        break;
+                    case CLOSE:
+                        toInvoke = methodCache.lookup(opCode, false);
+                        if (toInvoke != null)
+                        {
+                            parameters = new Object[]{hph.getExtraSession()};
+                        }
+                        break;
+                    case PING:
+                        // we received a ping message
+                        session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
+                        break;
+                    case PONG:
+                        toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
+                        if (toInvoke != null)
                         {
                             ByteBuffer pongData = ByteBufferUtil.toByteBuffer(frame.data());
-                            PongMessage message = ()->pongData;
-                            ShiroUtil.invokeMethod(false, getBean(), toInvoke, message, hph.getExtraSession());
+                            PongMessage message = () -> pongData;
+                            parameters = new Object[]{message, hph.getExtraSession()};
                         }
-                        catch (Exception e)
-                        {
-                            e.printStackTrace();
-                        }
-                    }
+                        break;
+                }
 
-                    if (log.isEnabled())
-                        log.getLogger().info("Data: " + frame.opCode() + " " + (frame.data() != null ? frame.data().asString() : ""));
-                    break;
+                // invoke method
+                if (toInvoke != null)
+                {
+                    if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
+                    try
+                    {
+                        ShiroUtil.invokeMethod(false, getBean(), toInvoke, parameters);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if(opCode == HTTPWSProto.OpCode.CLOSE)
+                    IOUtil.close(hph);
             }
 
-            if (hph.getRawRequest().getDataStream().size() != frame.frameSize())
-                hph.getRawRequest().getDataStream().shiftLeft(hph.getLastWSIndex() + frame.frameSize(), 0);
-            else
-                hph.getRawRequest().getDataStream().reset();
+            if(!hph.isClosed())
+            {
+                if (hph.getRawRequest().getDataStream().size() != frame.frameSize())
+                    hph.getRawRequest().getDataStream().shiftLeft(hph.getLastWSIndex() + frame.frameSize(), 0);
+                else
+                    hph.getRawRequest().getDataStream().reset();
 
-            hph.setLastWSIndex(0);
-            hph.getResponseStream(true).reset();
+                hph.setLastWSIndex(0);
+                hph.getResponseStream(true).reset();
+            }
         }
     }
 

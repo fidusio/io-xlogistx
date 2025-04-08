@@ -1,7 +1,9 @@
 package io.xlogistx.http.services;
 
+import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.util.SUS;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
@@ -16,8 +18,11 @@ public class EchoChatTest
     public static final LogWrapper log = new LogWrapper(EchoChatTest.class).setEnabled(false);
 
     private final AtomicLong index = new AtomicLong(0);
-    public void onOpen(Session session) {
-        System.out.println("New connection opened: " + session.getId());
+
+    @OnOpen
+    public void onOpen(Session session)
+    {
+        System.out.println("New session opened: " + SUS.toCanonicalID('.', ShiroUtil.subject().getPrincipal(), session.getId()));
     }
 
     @OnMessage

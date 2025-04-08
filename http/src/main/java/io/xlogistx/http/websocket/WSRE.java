@@ -1,7 +1,6 @@
 package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import org.apache.shiro.subject.Subject;
 
 public class WSRE {
     public final WSRemoteEndPoint.WSBasic basic;
@@ -15,7 +14,7 @@ public class WSRE {
     }
 
 
-    public static WSRE create(HTTPProtocolHandler<Subject> hph)
+    public static WSRE create(HTTPProtocolHandler hph)
     {
         return new WSRE(new WSRemoteEndPoint.WSBasic(hph), new WSRemoteEndPoint.WSAsync(hph));
     }

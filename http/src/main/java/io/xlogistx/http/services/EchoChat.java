@@ -1,10 +1,12 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.http.websocket.WSRemoteEndPoint;
+import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.util.SUS;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
@@ -20,7 +22,7 @@ public class EchoChat
     private AtomicLong index = new AtomicLong(0);
     @OnOpen
     public void onOpen(Session session) {
-        System.out.println("New connection opened: " + session.getId());
+        System.out.println("New session opened: " + SUS.toCanonicalID('.', ShiroUtil.subject().getPrincipal(), session.getId()));
     }
 
     @OnMessage

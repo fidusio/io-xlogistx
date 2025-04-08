@@ -22,18 +22,20 @@ public class WSSession implements Session
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
     //private final HTTPProtocolHandler<Subject> hph;
     private volatile long maxIdleTime;
-    private volatile ShiroPrincipal principal = null;
+    private final ShiroPrincipal principal;
     private final WSRE wsre;
 
-    private AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public static final int MAX_MESSAGE_BUFFER_SIZE = (int)Const.SizeInBytes.K.SIZE*64;
     private final Set<Session> sessionsSet;
-    public WSSession(HTTPProtocolHandler<Subject> protocolHandler, Set<Session> sessionsSet)
+    //private final Subject subject;
+    public WSSession(HTTPProtocolHandler protocolHandler, Subject subject, Set<Session> sessionsSet)
     {
         wsre = WSRE.create(protocolHandler);
         this.sessionsSet = sessionsSet;
         this.sessionsSet.add(this);
+        this.principal = new ShiroPrincipal(subject);
         log.getLogger().info("Current Sessions: " + sessionsSet.size());
     }
 
@@ -72,6 +74,11 @@ public class WSSession implements Session
     @Override
     public <T> void addMessageHandler(Class<T> aClass, MessageHandler.Partial<T> partial) {
 
+    }
+
+    public Subject getSubject()
+    {
+        return principal.getSubject();
     }
 
     /**
@@ -202,7 +209,10 @@ public class WSSession implements Session
      */
     @Override
     public String getId() {
-        return wsre.basic.hph.getSubject().getSession().getId().toString();
+        return getSubject().
+                getSession().
+                getId().
+                toString();
     }
 
     /**
@@ -225,7 +235,7 @@ public class WSSession implements Session
         {
             wsre.basic.hph.close();
 
-            Subject subject = wsre.basic.hph.getSubject();
+            Subject subject = getSubject();
             if (subject != null) {
                 subject.logout();
                 if (log.isEnabled()) log.getLogger().info("subject " + subject.isAuthenticated());
@@ -282,17 +292,6 @@ public class WSSession implements Session
     @Override
     public Principal getUserPrincipal()
     {
-        if(wsre.basic.hph.getSubject() != null && principal == null)
-        {
-            synchronized (this)
-            {
-
-                if (principal == null)
-                {
-                    principal = new ShiroPrincipal(wsre.basic.hph.getSubject());
-                }
-            }
-        }
         return principal;
     }
 

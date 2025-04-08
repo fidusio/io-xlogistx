@@ -2,6 +2,6 @@ package io.xlogistx.common.http;
 
 import java.io.IOException;
 
-public interface HTTPSessionHandler<V> {
-    void handle(HTTPProtocolHandler<V> protocolHandler) throws IOException;
+public interface HTTPSessionHandler {
+    void handle(HTTPProtocolHandler protocolHandler) throws IOException;
 }

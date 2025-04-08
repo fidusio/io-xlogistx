@@ -1,7 +1,6 @@
 package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.protocol.HTTPWSProto;
@@ -23,9 +22,9 @@ implements RemoteEndpoint
     public static final LogWrapper log = new LogWrapper(WSRemoteEndPoint.class).setEnabled(false);
 
 
-    public final HTTPProtocolHandler<Subject> hph;
+    public final HTTPProtocolHandler hph;
     //protected UByteArrayOutputStream baos = new UByteArrayOutputStream();
-    protected WSRemoteEndPoint(HTTPProtocolHandler<Subject> hph)
+    protected WSRemoteEndPoint(HTTPProtocolHandler hph)
     {
         this.hph = hph;
     }
@@ -36,7 +35,7 @@ implements RemoteEndpoint
     implements Basic
     {
 
-        protected WSBasic(HTTPProtocolHandler<Subject> hph)
+        protected WSBasic(HTTPProtocolHandler hph)
         {
             super(hph);
         }
@@ -129,7 +128,7 @@ implements RemoteEndpoint
     implements Async
     {
 
-        protected WSAsync(HTTPProtocolHandler<Subject> hph)
+        protected WSAsync(HTTPProtocolHandler hph)
         {
             super(hph);
         }

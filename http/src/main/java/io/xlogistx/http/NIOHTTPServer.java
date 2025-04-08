@@ -7,8 +7,6 @@ import io.xlogistx.http.websocket.WSHandler;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
-import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -79,7 +77,7 @@ public class NIOHTTPServer
     public class HTTPSession
         extends PlainSessionCallback
     {
-        protected final HTTPProtocolHandler<Subject> hph = new HTTPProtocolHandler<>(URIScheme.HTTP);
+        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP);
 
         @Override
         public void accept(ByteBuffer inBuffer)
@@ -133,7 +131,7 @@ public class NIOHTTPServer
     public class HTTPsSession
             extends SSLSessionCallback
     {
-        protected final HTTPProtocolHandler<Subject> hph = new HTTPProtocolHandler<>(URIScheme.HTTPS);
+        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS);
         @Override
         public void accept(ByteBuffer inBuffer)
         {
@@ -222,7 +220,7 @@ public class NIOHTTPServer
         }
     }
 
-   private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler<Subject> hph) throws IOException
+   private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
     {
 
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
@@ -274,7 +272,7 @@ public class NIOHTTPServer
 
     }
 
-    private static void incomingData(BaseSessionCallback<?> session, EndPointsManager endPointsManager, HTTPProtocolHandler<Subject> hph)
+    private static void incomingData(BaseSessionCallback<?> session, EndPointsManager endPointsManager, HTTPProtocolHandler hph)
             throws IOException, InvocationTargetException, IllegalAccessException
     {
 
@@ -356,19 +354,19 @@ public class NIOHTTPServer
                         // websocket
                         if (hph.isHTTPProtocol())
                             SecurityUtils.getSubject().logout();
-                        else
-                        {
-                            hph.setSubject(SecurityUtils.getSubject());
-                            ThreadContext.unbindSubject();
-
-                        }
+//                        else
+//                        {
+////                            hph.setSubject(SecurityUtils.getSubject());
+//                            ThreadContext.unbindSubject();
+//
+//                        }
                     }
                 }
                 break;
             case WSS:
             case WS:
             {
-                ((HTTPSessionHandler<Subject>)hph.getEndPointBean()).handle(hph);
+                ((HTTPSessionHandler)hph.getEndPointBean()).handle(hph);
 
             }
 
