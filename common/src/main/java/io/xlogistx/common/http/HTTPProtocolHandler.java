@@ -195,12 +195,15 @@ public class HTTPProtocolHandler
         if(!closed.getAndSet(true))
         {
             isBusy.set(false);
-            IOUtil.close(keepAliveLifetime, keepAliveAppointment, getOutputStream());
+            IOUtil.close(keepAliveLifetime, keepAliveAppointment);
+            if(getExtraSession() instanceof AutoCloseable)
+                IOUtil.close((AutoCloseable) getExtraSession(), getOutputStream());
+            else
+                IOUtil.close(getOutputStream());
+
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
             if(log.isEnabled()) log.getLogger().info(keepAliveAppointment + " " + keepAliveLifetime + " " + protocolMode);
 
-            if(getExtraSession() instanceof AutoCloseable)
-                IOUtil.close((AutoCloseable) getExtraSession());
         }
     }
 
@@ -242,6 +245,8 @@ public class HTTPProtocolHandler
 
     public boolean isClosed()
     {
+        if (getOutputStream() instanceof CloseableType)
+            return ((CloseableType) getOutputStream()).isClosed() || closed.get();
         return closed.get();
     }
 

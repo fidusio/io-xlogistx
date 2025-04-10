@@ -3,8 +3,9 @@ package io.xlogistx.http.websocket;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.protocol.HTTPWSProto;
+import org.zoxweb.shared.http.HTTPWSProto;
 import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.util.NotSupportedException;
 
 import javax.websocket.EncodeException;
 import javax.websocket.RemoteEndpoint;
@@ -61,13 +62,13 @@ implements RemoteEndpoint
         }
 
         /**
-         * @param s
+         * @param message
          * @param isLast
          * @throws IOException
          */
         @Override
-        public synchronized void sendText(String s, boolean isLast) throws IOException {
-            HTTPWSProto.formatFrame(hph.getResponseStream(true), isLast, HTTPWSProto.OpCode.TEXT, null, s)
+        public synchronized void sendText(String message, boolean isLast) throws IOException {
+            HTTPWSProto.formatFrame(hph.getResponseStream(true), isLast, HTTPWSProto.OpCode.TEXT, null, message)
                     .writeTo(getSendStream(), true);
 
         }
@@ -87,7 +88,7 @@ implements RemoteEndpoint
 
 
         public synchronized void sendBinary(BytesArray bytesArray, boolean isLast) throws IOException {
-            if (log.isEnabled()) log.getLogger().info( bytesArray.asString());
+            if (log.isEnabled()) log.getLogger().info(bytesArray.asString());
             HTTPWSProto.formatFrame(hph.getResponseStream(true), isLast, HTTPWSProto.OpCode.BINARY, null, bytesArray)
                     .writeTo(getSendStream(), true);
         }
@@ -117,6 +118,7 @@ implements RemoteEndpoint
          */
         @Override
         public void sendObject(Object o) throws IOException, EncodeException {
+            throw new NotSupportedException("sendObject");
 
         }
     }
@@ -239,7 +241,7 @@ implements RemoteEndpoint
     {
         if (log.isEnabled()) log.getLogger().info("sending " + byteBuffer);
         HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, byteBuffer != null ?  ByteBufferUtil.toBytes(byteBuffer, true) : null)
-                .writeTo(hph.getOutputStream(), true );
+                .writeTo(hph.getOutputStream(), true);
 
     }
 
@@ -255,5 +257,7 @@ implements RemoteEndpoint
         HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PONG, null,  byteBuffer != null ?  ByteBufferUtil.toBytes(byteBuffer, true) : null)
                 .writeTo(hph.getOutputStream(), true);
     }
+
+
 
 }

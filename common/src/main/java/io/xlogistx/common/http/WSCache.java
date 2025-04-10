@@ -3,7 +3,7 @@ package io.xlogistx.common.http;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.protocol.HTTPWSProto;
+import org.zoxweb.shared.http.HTTPWSProto;
 import org.zoxweb.shared.util.BytesArray;
 import org.zoxweb.shared.util.SharedUtil;
 

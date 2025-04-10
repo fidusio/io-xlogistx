@@ -4,6 +4,7 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
+import io.xlogistx.http.websocket.WSSession;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
@@ -103,7 +104,7 @@ public class NIOHTTPServer
             {
                 if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
-                IOUtil.close(hph);
+                IOUtil.close(this);
 
                 // we should close
             }
@@ -124,7 +125,16 @@ public class NIOHTTPServer
          */
         @Override
         public void close() throws IOException {
-            IOUtil.close(hph);
+            WSSession wsSession = hph.getExtraSession();
+            if (wsSession != null)
+                IOUtil.close(wsSession);
+            else
+                IOUtil.close(hph);
+
+        }
+        @Override
+        public boolean isClosed() {
+            return hph.isClosed();
         }
     }
 
@@ -157,10 +167,11 @@ public class NIOHTTPServer
             {
                 if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
-                IOUtil.close(hph);
+                IOUtil.close(this);
 
                 // we should close
             }
+
 
         }
 
@@ -183,34 +194,52 @@ public class NIOHTTPServer
          * @throws IOException if an I/O error occurs
          */
         @Override
-        public void close() throws IOException {
-            IOUtil.close(hph);
+        public void close() throws IOException
+        {
+            WSSession wsSession = hph.getExtraSession();
+            if (wsSession != null)
+                IOUtil.close(wsSession);
+            else
+                IOUtil.close(hph);
+        }
+
+        @Override
+        public boolean isClosed() {
+            return hph.isClosed();
         }
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
     {
         e.printStackTrace();
-        if(!hph.isClosed())
+        if(!hph.isClosed() && hph.isHTTPProtocol())
         {
-            if (e instanceof HTTPCallException) {
-
-                HTTPUtil.formatErrorResponse((HTTPCallException) e, hph.getResponseStream(),
-                        HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
-                        HTTPConst.CommonHeader.EXPIRES_ZERO);
-            } else if (e instanceof AuthenticationException) {
-                HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
-                        HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
-                        HTTPConst.CommonHeader.EXPIRES_ZERO);
-            } else {
-                HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse("" + e, HTTPStatusCode.BAD_REQUEST), hph.getResponseStream(),
-                        HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
-                        HTTPConst.CommonHeader.EXPIRES_ZERO);
-            }
             try {
-                //logger.getLogger().info(hph.getResponseStream().toString());
-                hph.getResponseStream().writeTo(os);
-            } catch (IOException ex) {
+
+
+                if (e instanceof HTTPCallException) {
+
+                    HTTPUtil.formatErrorResponse((HTTPCallException) e, hph.getResponseStream(),
+                            HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                } else if (e instanceof AuthenticationException) {
+                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
+                            HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                } else {
+                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse("" + e, HTTPStatusCode.BAD_REQUEST), hph.getResponseStream(),
+                            HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                }
+                try {
+                    //logger.getLogger().info(hph.getResponseStream().toString());
+                    hph.getResponseStream().writeTo(os);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            catch (Exception ex)
+            {
                 ex.printStackTrace();
             }
         }
@@ -218,6 +247,7 @@ public class NIOHTTPServer
         {
             if(logger.isEnabled()) logger.getLogger().info("Channel closed can't process exception " + e);
         }
+
     }
 
    private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
@@ -309,8 +339,8 @@ public class NIOHTTPServer
                             // security check
                             securityCheck(epm, hph);
                             // check if instance of HTTPSessionHandler
-                            if (epm.result.methodHolder.instance instanceof HTTPSessionHandler) {
-                                ((HTTPSessionHandler) epm.result.methodHolder.instance).handle(hph);
+                            if (epm.result.methodHolder.instance instanceof HTTPRawHandler) {
+                                ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
                             } else {
                                 if (logger.isEnabled()) {
                                     logger.getLogger().info("" + epm.result.methodHolder.instance);
@@ -353,20 +383,14 @@ public class NIOHTTPServer
                         // very important check DO NOT REMOVE since the protocol can switch with HTTP get to
                         // websocket
                         if (hph.isHTTPProtocol())
-                            SecurityUtils.getSubject().logout();
-//                        else
-//                        {
-////                            hph.setSubject(SecurityUtils.getSubject());
-//                            ThreadContext.unbindSubject();
-//
-//                        }
+                            ShiroUtil.subject().logout();
                     }
                 }
                 break;
             case WSS:
             case WS:
             {
-                ((HTTPSessionHandler)hph.getEndPointBean()).handle(hph);
+                ((HTTPRawHandler)hph.getEndPointBean()).handle(hph);
 
             }
 

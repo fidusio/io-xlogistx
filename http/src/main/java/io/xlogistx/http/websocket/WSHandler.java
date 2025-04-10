@@ -1,14 +1,13 @@
 package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.common.http.HTTPSessionHandler;
+import io.xlogistx.common.http.HTTPRawHandler;
 import io.xlogistx.common.http.WSCache;
 import io.xlogistx.shiro.ShiroUtil;
 import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
-import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
@@ -16,13 +15,10 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.protocol.HTTPWSFrame;
-import org.zoxweb.shared.protocol.HTTPWSProto;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SUS;
 
-import javax.websocket.PongMessage;
 import javax.websocket.Session;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -32,7 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WSHandler
-        implements HTTPSessionHandler
+        implements HTTPRawHandler
 {
 
     public static final LogWrapper log = new LogWrapper(WSHandler.class).setEnabled(false);
@@ -169,8 +165,8 @@ public class WSHandler
             throws IOException
     {
         HTTPWSFrame frame;
-        Session session = hph.getExtraSession();
-        while((frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getLastWSIndex())) != null)
+        WSSession session = hph.getExtraSession();
+        while(session.isOpen() && (frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getLastWSIndex())) != null)
         {
             if (log.isEnabled())
                 log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
@@ -205,8 +201,19 @@ public class WSHandler
                         if (toInvoke != null)
                         {
                             parameters = new Object[]{hph.getExtraSession()};
+
+
+                            if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
+                            try
+                            {
+                                ShiroUtil.invokeMethod(false, getBean(), toInvoke, parameters);
+                            }
+                            catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
-                        break;
+                        IOUtil.close(hph);
+                        return;
                     case PING:
                         // we received a ping message
                         session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
@@ -215,9 +222,7 @@ public class WSHandler
                         toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
                         if (toInvoke != null)
                         {
-                            ByteBuffer pongData = ByteBufferUtil.toByteBuffer(frame.data());
-                            PongMessage message = () -> pongData;
-                            parameters = new Object[]{message, hph.getExtraSession()};
+                            parameters = new Object[]{new WSPongMessage(frame.data()), hph.getExtraSession()};
                         }
                         break;
                 }
@@ -229,13 +234,14 @@ public class WSHandler
                     try
                     {
                         ShiroUtil.invokeMethod(false, getBean(), toInvoke, parameters);
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e)
+                    {
                         e.printStackTrace();
+                        log.getLogger().info(session.isOpen() + " " + frame.id() + " " + e);
+                       //
                     }
                 }
-
-                if(opCode == HTTPWSProto.OpCode.CLOSE)
-                    IOUtil.close(hph);
             }
 
             if(!hph.isClosed())
@@ -249,6 +255,7 @@ public class WSHandler
                 hph.getResponseStream(true).reset();
             }
         }
+
     }
 
 

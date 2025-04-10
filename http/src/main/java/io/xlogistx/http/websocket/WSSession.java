@@ -3,6 +3,7 @@ package io.xlogistx.http.websocket;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.shiro.ShiroPrincipal;
 import org.apache.shiro.subject.Subject;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.util.Const;
@@ -28,7 +29,7 @@ public class WSSession implements Session
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public static final int MAX_MESSAGE_BUFFER_SIZE = (int)Const.SizeInBytes.K.SIZE*64;
-    private final Set<Session> sessionsSet;
+    private volatile Set<Session> sessionsSet;
     //private final Subject subject;
     public WSSession(HTTPProtocolHandler protocolHandler, Subject subject, Set<Session> sessionsSet)
     {
@@ -231,17 +232,28 @@ public class WSSession implements Session
     @Override
     public void close(CloseReason closeReason) throws IOException
     {
+
         if(!closed.getAndSet(true))
         {
-            wsre.basic.hph.close();
-
-            Subject subject = getSubject();
-            if (subject != null) {
-                subject.logout();
-                if (log.isEnabled()) log.getLogger().info("subject " + subject.isAuthenticated());
-            }
             sessionsSet.remove(this);
-            log.getLogger().info("Pending sessions: " + sessionsSet.size());
+            log.getLogger().info("Pending WebSocket Sessions: " + sessionsSet.size());
+            try {
+
+                Subject subject = getSubject();
+
+                if (subject != null)
+                {
+                    Object subjectID  = subject.getPrincipal();
+                    subject.logout();
+                    if (log.isEnabled()) log.getLogger().info(subjectID + " is authenticated " + subject.isAuthenticated());
+                }
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+            IOUtil.close(wsre.basic.hph);
+
         }
 
     }

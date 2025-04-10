@@ -2,7 +2,7 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.common.http.HTTPSessionHandler;
+import io.xlogistx.common.http.HTTPRawHandler;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
@@ -20,7 +20,7 @@ import java.io.InputStream;
 
 public class HTTPUploadHandler
     extends PropertyHolder
-    implements HTTPSessionHandler
+    implements HTTPRawHandler
 {
 
 

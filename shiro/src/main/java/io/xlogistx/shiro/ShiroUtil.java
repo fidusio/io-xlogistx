@@ -52,6 +52,7 @@ import org.zoxweb.shared.util.NotFoundException;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -510,7 +511,7 @@ public class ShiroUtil
 	}
 
 	public static Object invokeMethod(boolean strict, Object bean, Method method, Object ...parameters)
-			throws InvocationTargetException, IllegalAccessException
+			throws InvocationTargetException, IllegalAccessException, IOException
 	{
 		authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
 		return ReflectionUtil.invokeMethod(strict, bean, method, parameters);

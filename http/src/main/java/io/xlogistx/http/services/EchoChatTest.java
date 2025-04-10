@@ -1,5 +1,7 @@
 package io.xlogistx.http.services;
 
+import io.xlogistx.http.websocket.WSPongMessage;
+import io.xlogistx.http.websocket.WSRemoteEndPoint;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.BytesArray;
@@ -34,16 +36,13 @@ public class EchoChatTest
 
     @OnMessage
     public void onMessage(BytesArray message, Session session) throws IOException {
-        System.out.println("Received message: " + message.asString());
-        message.writeTo(session.getBasicRemote().getSendStream(), true);
-        //message.writeTo(session.getBasicRemote().getSendStream(), true);
-        // Process or broadcast the message
+        ((WSRemoteEndPoint.WSBasic)session.getBasicRemote()).sendBinary(message, true);
     }
 
     @OnMessage
     public void pong (PongMessage message)
     {
-
+        System.out.println("Pong: " + ((WSPongMessage)message).data.asString());
     }
 
     @OnClose
