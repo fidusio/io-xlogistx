@@ -4,7 +4,6 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
-import io.xlogistx.http.websocket.WSSession;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
@@ -67,6 +66,7 @@ public class NIOHTTPServer
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NOUFN")
             .lookupResource(ResourceManager.Resource.HTTP_SERVER);
+    private volatile KAConfig kaConfig = null;
     private final InstanceFactory.InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
@@ -78,7 +78,7 @@ public class NIOHTTPServer
     public class HTTPSession
         extends PlainSessionCallback
     {
-        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP);
+        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP, kaConfig);
 
         @Override
         public void accept(ByteBuffer inBuffer)
@@ -90,9 +90,11 @@ public class NIOHTTPServer
                 {
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
-                    hph.isBusy.set(true);
+
                     incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
-                    hph.isBusy.set(false);
+                    if(hph.isExpired())
+                        IOUtil.close(this);
+
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 }
                 else
@@ -105,9 +107,9 @@ public class NIOHTTPServer
                 if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(this);
-
                 // we should close
             }
+
         }
 
         /**
@@ -125,11 +127,8 @@ public class NIOHTTPServer
          */
         @Override
         public void close() throws IOException {
-            WSSession wsSession = hph.getExtraSession();
-            if (wsSession != null)
-                IOUtil.close(wsSession);
-            else
-                IOUtil.close(hph);
+                IOUtil.close(hph, protocolHandler);
+
 
         }
         @Override
@@ -141,7 +140,7 @@ public class NIOHTTPServer
     public class HTTPsSession
             extends SSLSessionCallback
     {
-        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS);
+        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS, kaConfig);
         @Override
         public void accept(ByteBuffer inBuffer)
         {
@@ -152,10 +151,12 @@ public class NIOHTTPServer
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     // we are processing a request
-                    hph.isBusy.set(true);
+
                     incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
                     // processing finished
-                    hph.isBusy.set(false);
+                    if(hph.isExpired())
+                        IOUtil.close(this);
+
                     if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
                 }
                 else
@@ -168,9 +169,9 @@ public class NIOHTTPServer
                 if(logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(this);
-
                 // we should close
             }
+
 
 
         }
@@ -196,11 +197,7 @@ public class NIOHTTPServer
         @Override
         public void close() throws IOException
         {
-            WSSession wsSession = hph.getExtraSession();
-            if (wsSession != null)
-                IOUtil.close(wsSession);
-            else
-                IOUtil.close(hph);
+            IOUtil.close(hph, protocolHandler);
         }
 
         @Override
@@ -339,9 +336,12 @@ public class NIOHTTPServer
                             // security check
                             securityCheck(epm, hph);
                             // check if instance of HTTPSessionHandler
-                            if (epm.result.methodHolder.instance instanceof HTTPRawHandler) {
+                            if (epm.result.methodHolder.instance instanceof HTTPRawHandler)
+                            {
                                 ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
-                            } else {
+                            }
+                            else
+                            {
                                 if (logger.isEnabled()) {
                                     logger.getLogger().info("" + epm.result.methodHolder.instance);
                                     logger.getLogger().info("" + hph.getRequest());
@@ -362,7 +362,9 @@ public class NIOHTTPServer
                                         .writeTo(hph.getOutputStream());
                                 // message complete and sent to client
                             }
-                        } else {
+                        }
+                        else
+                        {
                             // error status uri map not found
                             SimpleMessage sm = new SimpleMessage();
                             sm.setError(hph.getRequest().getURI() + " not found");
@@ -375,8 +377,11 @@ public class NIOHTTPServer
                             HTTPUtil.formatResponse(hmci, hph.getResponseStream())
                                     .writeTo(hph.getOutputStream());
                         }
-                        if (!hph.reset() && hph.isHTTPProtocol())
-                            IOUtil.close(hph);
+
+
+//                        if (!hph.reset() && hph.isHTTPProtocol())
+//                            IOUtil.close(hph);
+                        hph.reset();
                     }
                     finally
                     {
@@ -389,11 +394,7 @@ public class NIOHTTPServer
                 break;
             case WSS:
             case WS:
-            {
                 ((HTTPRawHandler)hph.getEndPointBean()).handle(hph);
-
-            }
-
                 // web socket processing here
                 break;
         }
@@ -477,12 +478,16 @@ public class NIOHTTPServer
             logger.getLogger().info("Keep-Alive Config: " + keepAliveConfig);
             if(keepAliveConfig != null)
             {
-                GetNameValue<?> timeout = keepAliveConfig.lookup("time_out");
-                if (timeout.getValue() instanceof String)
+                GetNameValue<?> time_out = keepAliveConfig.lookup("time_out");
+                if (time_out.getValue() instanceof String)
                 {
-                    long timeoutInMillis = Const.TimeInMillis.toMillis((String)timeout.getValue());
+                    long timeoutInMillis = Const.TimeInMillis.toMillis((String)time_out.getValue());
                     keepAliveConfig.add(new NVLong("time_out", timeoutInMillis));
                 }
+                int max = keepAliveConfig.getValue("maximum");
+                long timeout = keepAliveConfig.getValue("time_out");
+                kaConfig = new KAConfig(max, timeout);
+                logger.getLogger().info("KAConfig: " + kaConfig);
             }
 
             // scan endpoints

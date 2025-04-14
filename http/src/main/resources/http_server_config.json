@@ -18,7 +18,7 @@
 
       }
     },
-    "keep-alive": { "time_out": "5s", "maximum" : 20}
+    "keep-alive": { "time_out": "20s", "maximum" : 20}
   },
 
   "connections":
@@ -46,7 +46,7 @@
         "name": "SSLCONFIG",
         "keystore_file": "web.ec.xlogistx.io.jks",
 
-        "simple_state_machine": false,
+        "simple_state_machine": true,
 
         "keystore_type": "pkcs12",
         "keystore_password": "password",
