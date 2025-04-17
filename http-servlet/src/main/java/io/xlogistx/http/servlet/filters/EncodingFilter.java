@@ -16,7 +16,7 @@
 package io.xlogistx.http.servlet.filters;
 
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.Const;
 
 import javax.servlet.*;
 import java.io.IOException;
@@ -27,7 +27,7 @@ public class EncodingFilter
 
 	public static final LogWrapper log = new LogWrapper(EncodingFilter.class).setEnabled(true);
 	
-	private String encoding = SharedStringUtil.UTF_8;
+	private String encoding = Const.UTF_8;
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
         throws IOException, ServletException
@@ -37,7 +37,6 @@ public class EncodingFilter
 	}
 
 	public void init(FilterConfig filterConfig)
-        throws ServletException
 	{
 		String encodingParam = filterConfig.getInitParameter("encoding");
 

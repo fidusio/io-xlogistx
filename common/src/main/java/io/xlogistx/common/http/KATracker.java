@@ -37,7 +37,7 @@ implements UsageTracker
             throw new UnsupportedOperationException("max=" +  (kaConfig != null ? kaConfig.max : " KAConfig null ") + " reached");
 
         lastUpdateTS = System.currentTimeMillis();
-        return ++counter;
+        return counter++;
     }
 
     @Override

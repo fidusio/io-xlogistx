@@ -5,7 +5,6 @@ import org.zoxweb.server.http.HTTPHeaderParser;
 import org.zoxweb.server.http.OkHTTPCall;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.NamedValue;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,30 +16,55 @@ public class HTTPKeepAliveTest {
     {
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit("https://localhost:6443/timestamp", null, HTTPMethod.GET, false);
         hmci.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE);
-        int max;
+        int max = 0;
+        int count = 0;
         do
         {
             HTTPResponseData hrd = OkHTTPCall.send(hmci);
-            List<String> kaVals = hrd.headerValues("Keep-Alive");
+            List<String> kaVals = hrd.headerValues(HTTPHeader.KEEP_ALIVE);
             if(kaVals != null)
             {
-                NVGenericMap nvgm = null;
 
-                for (String str : kaVals){
-                    nvgm = HTTPHeaderParser.parseHeaderValue(nvgm, str);
-                    NamedValue nv = HTTPHeaderParser.parseHeader("Keep-Alive: " + str);
-                    System.out.println("NamedValue: " + nv);
-
+                if(kaVals.size() == 1)
+                {
+                    NVGenericMap nvgm  = HTTPHeaderParser.parseHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
+                    System.out.println("NamedValue: " + nvgm);
+                    max = (int)nvgm.getValueAsLong("max");
                 }
-                max = (int) nvgm.getValueAsLong("max");
-
             }
-            else
+
+            System.out.println("max = " + max +", " + hrd.headerValues("Connection"));
+
+
+            count++;
+
+        }while (max > 1 );
+
+        System.out.println(OkHTTPCall.OK_HTTP_CALLS);
+        System.out.println("count " + count);
+    }
+
+    @Test
+    public void testNoKeepAlive() throws IOException
+    {
+        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit("https://localhost:6443/timestamp", null, HTTPMethod.GET, false);
+        hmci.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);
+        int max = 0;
+        do
+        {
+            HTTPResponseData hrd = OkHTTPCall.send(hmci);
+            List<String> kaVals = hrd.headerValues("Connection");
+            if(kaVals != null)
             {
-                max = 0;
+
+
+                    NVGenericMap nvm  = HTTPHeaderParser.parseHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
+                    System.out.println("NamedValue: " + nvm);
+
 
 
             }
+
 
             System.out.println("max = " + max +", " + hrd.headerValues("Connection"));
 

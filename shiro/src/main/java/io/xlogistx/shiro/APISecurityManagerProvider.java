@@ -32,7 +32,6 @@ import org.zoxweb.shared.util.Const.LogicalOperator;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -188,14 +187,14 @@ public class APISecurityManagerProvider
 				try
 				{
 					EncryptedData ed = EncryptedData.fromCanonicalID(nvp.getValue());
-					byte data[] = CryptoUtil.decryptEncryptedData(ed, dataKey);
+					byte[] data= CryptoUtil.decryptEncryptedData(ed, dataKey);
 					
-					nvp.setValue( new String(data, SharedStringUtil.UTF_8));
+					nvp.setValue(SharedStringUtil.toString(data));
 					return nvp.getValue();
 					
 					
-				} catch (NullPointerException
-						| IllegalArgumentException | UnsupportedEncodingException | InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | SignatureException e)
+				} catch (NullPointerException | IllegalArgumentException | InvalidKeyException | NoSuchAlgorithmException
+						 | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | SignatureException e)
 				{
 					// TODO Auto-generated catch block
 					throw new AccessException(e.getMessage());

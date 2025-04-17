@@ -1,7 +1,6 @@
 package io.xlogistx.http.services;
 
 
-import io.xlogistx.common.data.PropertyHolder;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.JMod;
@@ -20,7 +19,7 @@ import org.zoxweb.shared.util.NVGenericMap;
 
 
 public class AppCommand
-extends PropertyHolder
+//extends PropertyHolder
 {
 
 
@@ -56,7 +55,7 @@ extends PropertyHolder
 
     }
 
-    protected void refreshProperties()
-    {
-    }
+//    protected void refreshProperties()
+//    {
+//    }
 }

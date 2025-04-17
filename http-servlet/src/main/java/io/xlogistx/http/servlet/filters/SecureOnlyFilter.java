@@ -4,7 +4,7 @@ import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO.ApplicationDefaultParam;
 import org.zoxweb.shared.http.HTTPHeader;
 import org.zoxweb.shared.http.URIScheme;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.Const;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -66,7 +66,7 @@ implements Filter
 				String originalURL = uriScheme + "://" + req.getServerName() + uri;
 				// Set response content type
 				res.setContentType("text/html");
-				res.setCharacterEncoding(SharedStringUtil.UTF_8);
+				res.setCharacterEncoding(Const.UTF_8);
 				 
 				// New location to be redirected
 				String httpsPath = redirectScheme + "://" + hostname + uri;

@@ -19,7 +19,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.ApplicationConfigManager;
 import org.zoxweb.shared.data.ApplicationConfigDAO.ApplicationDefaultParam;
 import org.zoxweb.shared.http.HTTPMediaType;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.Const;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -52,7 +52,7 @@ public class HTTPAppVersionServlet
 		log.getLogger().info(version.get());
 		
 		resp.setContentType(HTTPMediaType.APPLICATION_JSON.getValue());
-		resp.setCharacterEncoding(SharedStringUtil.UTF_8);
+		resp.setCharacterEncoding(Const.UTF_8);
 		resp.addHeader("Access-Control-Allow-Origin", "*");
 		resp.getWriter().write(version.get());
 		

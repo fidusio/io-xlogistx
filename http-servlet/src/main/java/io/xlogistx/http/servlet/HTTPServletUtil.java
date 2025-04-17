@@ -126,7 +126,7 @@ public class HTTPServletUtil
 			try
 			{
 				ServletFileUpload upload = new ServletFileUpload(dfif);
-				upload.setHeaderEncoding(SharedStringUtil.UTF_8);
+				upload.setHeaderEncoding(Const.UTF_8);
 				items = upload.parseRequest(req);
 			}
 			catch ( FileUploadException e )
@@ -355,7 +355,7 @@ public class HTTPServletUtil
 	{
 		resp.setStatus(code.CODE);
 		resp.setContentType(HTTPMediaType.APPLICATION_JSON.getValue());
-		resp.setCharacterEncoding(SharedStringUtil.UTF_8);
+		resp.setCharacterEncoding(Const.UTF_8);
 		resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
 		resp.setHeader("Pragma", "no-cache"); // HTTP 1.0.
 		//resp.setHeader("Access-Control-Allow-Origin", "*");
