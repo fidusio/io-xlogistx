@@ -20,7 +20,7 @@ implements RealmController<AuthorizationInfo, PrincipalCollection>
 
 {
 
-    private volatile APIDataStore<?> dataStore;
+    private volatile APIDataStore<?, ?> dataStore;
     private volatile KeyMaker keyMaker;
 
     /**
@@ -450,7 +450,7 @@ implements RealmController<AuthorizationInfo, PrincipalCollection>
         return null;
     }
 
-    public APIDataStore<?> getDataStore()
+    public APIDataStore<?, ?> getDataStore()
     {
         if(dataStore == null)
             throw new NullPointerException("data store not set.");
@@ -458,7 +458,7 @@ implements RealmController<AuthorizationInfo, PrincipalCollection>
         return dataStore;
     }
 
-    public void setDataStore(APIDataStore<?> dataStore)
+    public void setDataStore(APIDataStore<?, ?> dataStore)
     {
         this.dataStore = dataStore;
     }

@@ -52,7 +52,7 @@ public class APISecurityManagerProvider
 	
 
 	@Override
-	public final Object encryptValue(APIDataStore<?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
+	public final Object encryptValue(APIDataStore<?,?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
 			throws NullPointerException, IllegalArgumentException, AccessException {
 		SUS.checkIfNulls("Null parameters", container != null ? container.getReferenceID() : container, nvb);
 		
@@ -125,7 +125,7 @@ public class APISecurityManagerProvider
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public final NVEntity decryptValues(APIDataStore<?> dataStore, NVEntity container, byte msKey[])
+	public final NVEntity decryptValues(APIDataStore<?, ?> dataStore, NVEntity container, byte msKey[])
 		throws NullPointerException, IllegalArgumentException, AccessException
 	{
 		
@@ -168,7 +168,7 @@ public class APISecurityManagerProvider
 	}
 	
 	@Override
-	public final String decryptValue(APIDataStore<?> dataStore, NVEntity container, NVPair nvp, byte msKey[])
+	public final String decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVPair nvp, byte msKey[])
 			throws NullPointerException, IllegalArgumentException, AccessException
 		{
 		
@@ -208,7 +208,7 @@ public class APISecurityManagerProvider
 	
 	
 	@Override
-	public final Object decryptValue(APIDataStore<?> dataStore, NVEntity container, NVBase<?> nvb, Object value, byte msKey[])
+	public final Object decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVBase<?> nvb, Object value, byte msKey[])
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
 	
@@ -255,7 +255,7 @@ public class APISecurityManagerProvider
 	}
 	
 	@Override
-	public final Object decryptValue(String userID, APIDataStore<?> dataStore, NVEntity container, Object value, byte msKey[])
+	public final Object decryptValue(String userID, APIDataStore<?, ?> dataStore, NVEntity container, Object value, byte msKey[])
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
 	

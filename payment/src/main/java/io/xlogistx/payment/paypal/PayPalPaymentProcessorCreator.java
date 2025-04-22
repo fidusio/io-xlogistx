@@ -57,7 +57,7 @@ public class PayPalPaymentProcessorCreator
     }
 
     @Override
-    public PayPalPaymentProcessor createAPI(APIDataStore<?> dataStore, APIConfigInfo apiConfig)
+    public PayPalPaymentProcessor createAPI(APIDataStore<?, ?> dataStore, APIConfigInfo apiConfig)
             throws APIException {
         PayPalPaymentProcessor payPalPaymentProcessor = new PayPalPaymentProcessor(apiConfig);
 

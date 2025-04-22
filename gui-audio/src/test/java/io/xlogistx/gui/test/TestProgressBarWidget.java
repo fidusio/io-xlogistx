@@ -18,7 +18,7 @@ public class TestProgressBarWidget {
 
 
         frame.add(progressBar);
-        frame.setSize(150,75);
+        frame.setSize(250,100);
         frame.setLocationRelativeTo(null);
         SwingUtilities.invokeLater(()-> frame.setVisible(true));
 

@@ -440,7 +440,7 @@ public abstract class ShiroBaseRealm
 		return null;
 	}
 	
-	public abstract APIDataStore<?> getAPIDataStore();
+	public abstract APIDataStore<?, ?> getAPIDataStore();
 	
 	public AuthorizationInfo lookupAuthorizationInfo(PrincipalCollection principals)
 	{

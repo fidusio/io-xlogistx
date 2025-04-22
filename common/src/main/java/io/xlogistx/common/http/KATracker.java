@@ -41,6 +41,17 @@ implements UsageTracker
     }
 
     @Override
+    public synchronized long updateUsage(long usage)
+    {
+        if(isExpired())
+            throw new UnsupportedOperationException("max=" +  (kaConfig != null ? kaConfig.max : " KAConfig null ") + " reached");
+
+        lastUpdateTS = System.currentTimeMillis();
+        return counter++;
+    }
+
+
+    @Override
     public synchronized  void expire()
     {
         expired = true;

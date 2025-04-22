@@ -19,7 +19,7 @@ import java.io.IOException;
 
 @SuppressWarnings("serial")
 public class PayPalPaymentProcessor
-    implements APIPaymentProcessor<APITokenDAO> {
+    implements APIPaymentProcessor<APITokenDAO, APITokenDAO> {
 
     private static final String URL = "https://api.paypal.com";
 
