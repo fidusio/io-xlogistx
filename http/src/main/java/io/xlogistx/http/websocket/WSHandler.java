@@ -122,9 +122,9 @@ public class WSHandler
             hph.setEndPointBean(this);
 
             // create the websocket session
-            if(hph.getExtraSession() == null)
+            if(hph.getSession() == null)
             {
-                hph.setExtraSession(new WSSession(hph, ShiroUtil.subject(), sessionSet));
+                hph.setSession(new WSSession(hph, ShiroUtil.subject(), sessionSet));
             }
             // set the subject
             //hph.setSubject(SecurityUtils.getSubject());
@@ -134,7 +134,7 @@ public class WSHandler
             {
                 try
                 {
-                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getExtraSession()});
+                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getSession()});
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -146,7 +146,7 @@ public class WSHandler
             SubjectSwap ss = null;
             try
             {
-                WSSession currentSession = hph.getExtraSession();
+                WSSession currentSession = hph.getSession();
                 ss = new SubjectSwap(currentSession.getSubject());
                 if (log.isEnabled()) log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
                 processWSMessage(hph);
@@ -165,8 +165,8 @@ public class WSHandler
             throws IOException
     {
         HTTPWSFrame frame;
-        WSSession session = hph.getExtraSession();
-        while(session.isOpen() && (frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getLastWSIndex())) != null)
+        WSSession session = hph.getSession();
+        while(session.isOpen() && (frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getMarkerIndex())) != null)
         {
             if (log.isEnabled())
                 log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
@@ -184,7 +184,7 @@ public class WSHandler
 
                         if (toInvoke != null)
                         {
-                            parameters = new Object[]{frame.data().asString(), frame.isFin(), hph.getExtraSession()};
+                            parameters = new Object[]{frame.data().asString(), frame.isFin(), hph.getSession()};
                         }
                         break;
                     case BINARY:
@@ -193,14 +193,14 @@ public class WSHandler
 
                         if (toInvoke != null)
                         {
-                            parameters = new Object[]{frame.data(), frame.isFin(), hph.getExtraSession()};
+                            parameters = new Object[]{frame.data(), frame.isFin(), hph.getSession()};
                         }
                         break;
                     case CLOSE:
                         toInvoke = methodCache.lookup(opCode, false);
                         if (toInvoke != null)
                         {
-                            parameters = new Object[]{hph.getExtraSession()};
+                            parameters = new Object[]{hph.getSession()};
 
 
                             if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
@@ -222,7 +222,7 @@ public class WSHandler
                         toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
                         if (toInvoke != null)
                         {
-                            parameters = new Object[]{new WSPongMessage(frame.data()), hph.getExtraSession()};
+                            parameters = new Object[]{new WSPongMessage(frame.data()), hph.getSession()};
                         }
                         break;
                 }
@@ -247,11 +247,11 @@ public class WSHandler
             if(!hph.isClosed())
             {
                 if (hph.getRawRequest().getDataStream().size() != frame.frameSize())
-                    hph.getRawRequest().getDataStream().shiftLeft(hph.getLastWSIndex() + frame.frameSize(), 0);
+                    hph.getRawRequest().getDataStream().shiftLeft(hph.getMarkerIndex() + frame.frameSize(), 0);
                 else
                     hph.getRawRequest().getDataStream().reset();
 
-                hph.setLastWSIndex(0);
+                hph.setMarkerIndex(0);
                 hph.getResponseStream(true).reset();
             }
         }

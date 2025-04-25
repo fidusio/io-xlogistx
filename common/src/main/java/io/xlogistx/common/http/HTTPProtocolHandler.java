@@ -28,7 +28,7 @@ public class HTTPProtocolHandler
     private volatile URIScheme protocolMode;
     //private volatile Lifetime keepAliveLifetime = null;
     //private Appointment keepAliveAppointment = null;
-    private volatile int lastWSIndex = 0;
+    private volatile int markerIndex = 0;
     private volatile Object extraSession;
     private final KATracker kaTracker;
 
@@ -191,8 +191,8 @@ public class HTTPProtocolHandler
 //            isBusy.set(false);
             //IOUtil.close(keepAliveLifetime, keepAliveAppointment);
 
-            if(getExtraSession() instanceof AutoCloseable)
-                IOUtil.close((AutoCloseable) getExtraSession(), getOutputStream());
+            if(getSession() instanceof AutoCloseable)
+                IOUtil.close((AutoCloseable) getSession(), getOutputStream());
             else
                 IOUtil.close(getOutputStream());
 
@@ -217,7 +217,7 @@ public class HTTPProtocolHandler
             {
                 rawRequest.reset();
                 responseStream.reset();
-                setLastWSIndex(0);
+                setMarkerIndex(0);
             }
             return true;
         }
@@ -265,12 +265,12 @@ public class HTTPProtocolHandler
         kaTracker.expire();
     }
 
-    public void setExtraSession(Object extraSession)
+    public void setSession(Object extraSession)
     {
         this.extraSession = extraSession;
     }
 
-    public <V> V getExtraSession()
+    public <V> V getSession()
     {
         return (V)extraSession;
     }
@@ -398,14 +398,14 @@ public class HTTPProtocolHandler
 //        return this;
 //    }
 
-    public int getLastWSIndex()
+    public int getMarkerIndex()
     {
-        return lastWSIndex;
+        return markerIndex;
     }
 
-    public synchronized void setLastWSIndex(int index)
+    public synchronized void setMarkerIndex(int index)
     {
-        this.lastWSIndex = index;
+        this.markerIndex = index;
     }
 
 }
