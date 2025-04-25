@@ -49,8 +49,7 @@ public class Ping
                     .build(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()))
                     .build(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())))
             //response.getProperties().add("version", )
-                    .build(TaskUtil.defaultTaskScheduler().getProperties())
-                    .build(TaskUtil.defaultTaskProcessor().getProperties())
+                    .build(TaskUtil.info())
                     .build(RuntimeUtil.vmSnapshot(sib))
                     .build((NVGenericMap)ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO))
                     .build((NVGenericMap)ResourceManager.lookupResource("keep-alive-config"));
