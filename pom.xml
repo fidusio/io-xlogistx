@@ -50,7 +50,7 @@
       <module>payment</module>
       <module>http-servlet</module>
       <module>http-servlet-shiro</module>
-      <module>okta</module>
+      <!-- <module>okta</module> -->
       <module>opsec</module>
       <module>assembly</module>
       <module>gui-audio</module>

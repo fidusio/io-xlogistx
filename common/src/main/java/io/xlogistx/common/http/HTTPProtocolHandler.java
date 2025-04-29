@@ -83,7 +83,7 @@ public class HTTPProtocolHandler
         {
             case HTTP:
             case HTTPS:
-                rawRequest.parse(true);
+                rawRequest.parse();
                 boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
                 if (log.isEnabled()) log.getLogger().info("Protocol Mode: " + protocolMode + " message complete " + ret);
                 return ret;
@@ -210,12 +210,12 @@ public class HTTPProtocolHandler
             if (isHTTPProtocol())
             {
                 response = new HTTPMessageConfig();
-                rawRequest.reset();
+                rawRequest.reset(true);
                 responseStream.reset();
             }
             else if (isWSProtocol())
             {
-                rawRequest.reset();
+                rawRequest.reset(false);
                 responseStream.reset();
                 setMarkerIndex(0);
             }
