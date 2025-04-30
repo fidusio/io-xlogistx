@@ -47,10 +47,7 @@ import org.zoxweb.shared.security.shiro.RealmController;
 import org.zoxweb.shared.security.shiro.RealmControllerHolder;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
-import org.zoxweb.shared.util.GetValue;
-import org.zoxweb.shared.util.NotFoundException;
-import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -469,7 +466,7 @@ public class ShiroUtil
 	public static void checkPermission(Subject subject, String permission, ShiroTokenReplacement str)
 		throws NullPointerException, AccessException
     {
-		SharedUtil.checkIfNulls("Null parameters not allowed", subject, permission, str);
+		SUS.checkIfNulls("Null parameters not allowed", subject, permission, str);
 
 		permission = str.replace(permission, (String) subject.getPrincipal());
 		{
@@ -493,7 +490,7 @@ public class ShiroUtil
 	public static void checkRoles(Subject subject, String... roles)
         throws NullPointerException, AccessException
     {
-//		SharedUtil.checkIfNulls("Null parameters not allowed", subject, roles);
+//		SUS.checkIfNulls("Null parameters not allowed", subject, roles);
 //
 //		for (String role : roles)
 //		{
@@ -521,7 +518,7 @@ public class ShiroUtil
 	public static void checkRoles(boolean partial, Subject subject, String... roles)
 	        throws NullPointerException, AccessException
     {
-		SharedUtil.checkIfNulls("Null parameters not allowed", subject, roles);
+		SUS.checkIfNulls("Null parameters not allowed", subject, roles);
 		int failureCount = 0;
 		for (String role : roles)
 		{
@@ -553,7 +550,7 @@ public class ShiroUtil
 	public static void checkPermissions(Subject subject, String...permissions)
         throws NullPointerException, AccessException
     {
-//		SharedUtil.checkIfNulls("Null parameters not allowed", subject, permissions);
+//		SUS.checkIfNulls("Null parameters not allowed", subject, permissions);
 //
 //		for (String permission : permissions)
 //		{
@@ -572,7 +569,7 @@ public class ShiroUtil
 	public static void checkPermissions(boolean partial, Subject subject, String...permissions)
 	        throws NullPointerException, AccessException
     {
-		SharedUtil.checkIfNulls("Null parameters not allowed", subject, permissions);
+		SUS.checkIfNulls("Null parameters not allowed", subject, permissions);
 
 		int failureCount = 0;
 		for (String permission : permissions)
@@ -607,7 +604,7 @@ public class ShiroUtil
 	public static boolean isPermitted(Subject subject, String permission)
 		throws NullPointerException, AccessException
     {
-		SharedUtil.checkIfNulls("Null parameters not allowed", subject, permission);
+		SUS.checkIfNulls("Null parameters not allowed", subject, permission);
 		if (SecurityModel.PERM_RESOURCE_ANY.equals(permission))
 			return true;
 		return subject.isPermitted(SharedStringUtil.toLowerCase(permission));
@@ -616,7 +613,7 @@ public class ShiroUtil
 	public static boolean isPermitted(GetValue<String> gv)
 			throws NullPointerException, AccessException
 	{
-		SharedUtil.checkIfNulls("Null parameters not allowed", gv, gv.getValue());
+		SUS.checkIfNulls("Null parameters not allowed", gv, gv.getValue());
 		return isPermitted(gv.getValue());
 	}
 	

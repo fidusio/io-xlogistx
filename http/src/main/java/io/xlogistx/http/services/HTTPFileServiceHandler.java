@@ -70,6 +70,7 @@ public class HTTPFileServiceHandler
 
         if(mime != null)
             hmci.setContentType(mime.getValue());
+
         hmci.setContentLength((int)file.length());
 
 //        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
@@ -86,7 +87,7 @@ public class HTTPFileServiceHandler
     public HTTPFileServiceHandler setBaseFolder(String baseFolder) throws IllegalArgumentException
     {
         baseFolder = SharedStringUtil.trimOrNull(baseFolder);
-        SharedUtil.checkIfNulls("Null baseDir ", baseFolder);
+        SUS.checkIfNulls("Null baseDir ", baseFolder);
         File folder = new File(baseFolder);
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())
             throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath());

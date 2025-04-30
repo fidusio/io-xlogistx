@@ -5,6 +5,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.RateCounter;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedUtil;
 
 import javax.sound.sampled.*;
@@ -352,7 +353,7 @@ public class AudioUtil
 
     public static Clip loadClip(InputStream audioIS) throws LineUnavailableException, IOException, UnsupportedAudioFileException {
 
-        SharedUtil.checkIfNulls("Null input stream", audioIS);
+        SUS.checkIfNulls("Null input stream", audioIS);
         Clip clip;
         try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioIS)) {
             clip = AudioSystem.getClip();

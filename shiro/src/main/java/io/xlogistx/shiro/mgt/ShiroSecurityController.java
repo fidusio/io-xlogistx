@@ -46,7 +46,7 @@ public class ShiroSecurityController
     public final Object encryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
             throws NullPointerException, IllegalArgumentException, AccessException
     {
-        SharedUtil.checkIfNulls("Null parameters", container.getGUID(), nvb);
+        SUS.checkIfNulls("Null parameters", container.getGUID(), nvb);
 
 
 
@@ -103,7 +103,7 @@ public class ShiroSecurityController
             return null;
         }
 
-        SharedUtil.checkIfNulls("Null parameters", container.getGUID());
+        SUS.checkIfNulls("Null parameters", container.getGUID());
         for (NVBase<?> nvb : container.getAttributes().values().toArray( new NVBase[0]))
         {
             if (nvb instanceof NVPair)
@@ -147,7 +147,7 @@ public class ShiroSecurityController
         }
 
 
-        SharedUtil.checkIfNulls("Null parameters", container.getGUID(), nvp);
+        SUS.checkIfNulls("Null parameters", container.getGUID(), nvp);
 
         if (nvp.getValue()!= null && (ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT_MASK)))
         {
@@ -190,7 +190,7 @@ public class ShiroSecurityController
         }
 
 
-        SharedUtil.checkIfNulls("Null parameters", container.getGUID(), nvb);
+        SUS.checkIfNulls("Null parameters", container.getGUID(), nvb);
         NVConfig nvc = ((NVConfigEntity)container.getNVConfig()).lookup(nvb.getName());
 
         if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
@@ -236,7 +236,7 @@ public class ShiroSecurityController
         }
 
 
-        SharedUtil.checkIfNulls("Null parameters", container.getGUID());
+        SUS.checkIfNulls("Null parameters", container.getGUID());
 
         if (value instanceof EncryptedData)
         {
@@ -356,7 +356,7 @@ public class ShiroSecurityController
     public final String checkNVEntityAccess(Const.LogicalOperator lo, NVEntity nve, CRUD ...permissions)
             throws NullPointerException, IllegalArgumentException, AccessException
     {
-        SharedUtil.checkIfNulls("Null NVEntity", lo, nve);
+        SUS.checkIfNulls("Null NVEntity", lo, nve);
 
         if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO)
         {
@@ -404,7 +404,7 @@ public class ShiroSecurityController
 
     @Override
     public final boolean isNVEntityAccessible(String nveRefID, String nveUserID, CRUD... permissions) {
-        SharedUtil.checkIfNulls("Null reference ID.", nveRefID);
+        SUS.checkIfNulls("Null reference ID.", nveRefID);
 
         String userID = currentSubjectID();
 

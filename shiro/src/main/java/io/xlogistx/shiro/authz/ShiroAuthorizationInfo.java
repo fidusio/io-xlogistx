@@ -6,7 +6,7 @@ import org.apache.shiro.authz.Permission;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.security.shiro.ShiroAssociationRule;
 import org.zoxweb.shared.util.NVPair;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.util.*;
 
@@ -50,7 +50,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	
 	public synchronized void addShiroAssociationRule(ShiroAssociationRule sard, NVPair...nvps)
 	{
-		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sard);
+		SUS.checkIfNulls("Null ShiroAssociationRule", sard);
 		
 		Date date = sard.getExpiration();
 		
@@ -66,7 +66,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	
 	public synchronized void addDynamicShiroAssociationRule(ShiroAssociationRule sard)
 	{
-		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sard);
+		SUS.checkIfNulls("Null ShiroAssociationRule", sard);
 		
 		Date date = sard.getExpiration();
 		
@@ -197,7 +197,7 @@ public class ShiroAuthorizationInfo implements AuthorizationInfo
 	
 	public synchronized void addShiroAssociationRule(Collection<ShiroAssociationRule> sards, NVPair ...nvps)
 	{
-		SharedUtil.checkIfNulls("Null ShiroAssociationRule", sards);
+		SUS.checkIfNulls("Null ShiroAssociationRule", sards);
 		
 		for(ShiroAssociationRule sard : sards)
 		{

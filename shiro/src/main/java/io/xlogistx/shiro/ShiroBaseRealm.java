@@ -393,7 +393,7 @@ public abstract class ShiroBaseRealm
 	public ShiroPermission lookupPermission(String permissionID)
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
-		SharedUtil.checkIfNulls("Null permission id", permissionID);
+		SUS.checkIfNulls("Null permission id", permissionID);
 			
 		List<ShiroPermission> ret = null;
 		if (getAPIDataStore().isValidReferenceID(permissionID))
@@ -417,7 +417,7 @@ public abstract class ShiroBaseRealm
 	public ShiroRole lookupRole(String roleID)
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
-		SharedUtil.checkIfNulls("Null permission id", roleID);
+		SUS.checkIfNulls("Null permission id", roleID);
 		if(log.isEnabled()) log.getLogger().info("RoleID:" + roleID);
 		
 		List<ShiroRole> ret = null;
@@ -456,7 +456,7 @@ public abstract class ShiroBaseRealm
 	public  UserIDDAO lookupUserID(GetValue<String> subjectID, String...params)
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
-		SharedUtil.checkIfNulls("DB or user ID null", subjectID, subjectID.getValue());
+		SUS.checkIfNulls("DB or user ID null", subjectID, subjectID.getValue());
 		return lookupUserID(subjectID.getValue(), params);
 	}
 

@@ -19,8 +19,10 @@ import org.zoxweb.shared.util.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.List;
 
 public class HTTPUploadHandler
     extends PropertyHolder
@@ -51,16 +53,13 @@ public class HTTPUploadHandler
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
 
-        InputStream is = null;
-
-
         NVGenericMap parameters = hmciRequest.getParameters();
 
-        NamedValue<InputStream> fileData = parameters.getNV("file");
+        NamedValue<List<BytesArray>> fileData = parameters.getNV("file");
         String fileLocation = parameters.getValue("file-location");
 
 
-        File file = null;
+        File file;
         if (SUS.isNotEmpty(fileLocation))
         {
             File fileDir = new File(getBaseFolder(), fileLocation);
@@ -82,10 +81,24 @@ public class HTTPUploadHandler
             throw new HTTPCallException("Invalid storage location ", HTTPStatusCode.FORBIDDEN);
 
 
+        MessageDigest md;
+        try
+        {
+             md = MessageDigest.getInstance(CryptoConst.HASHType.SHA_256.getName());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
+        long totalCopied = 0;
+        try(FileOutputStream fos = new FileOutputStream(file))
+        {
+            for (BytesArray ba : fileData.getValue()) {
+                totalCopied += IOUtil.relayStreams(md, ba.toInputStream(), fos);
+            }
+        }
 
 
-
-        HashResult hr = IOUtil.relayStreams(CryptoConst.HASHType.SHA_256, fileData.getValue(), new FileOutputStream(file), true);
+        HashResult hr = new HashResult(CryptoConst.HASHType.SHA_256, md.digest(), totalCopied);
 
 
 
@@ -119,7 +132,7 @@ public class HTTPUploadHandler
     protected void refreshProperties() {
 
         String baseFolderFilename = getProperties().getValue("base_folder");
-        SharedStringUtil.trimOrNull(baseFolderFilename);
+        baseFolderFilename = SharedStringUtil.trimOrNull(baseFolderFilename);
         if(baseFolderFilename != null)
         {
             File folder = new File(baseFolderFilename);

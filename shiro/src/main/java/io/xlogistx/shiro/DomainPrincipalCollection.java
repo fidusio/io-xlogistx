@@ -16,10 +16,7 @@
 package io.xlogistx.shiro;
 
 import org.apache.shiro.subject.SimplePrincipalCollection;
-import org.zoxweb.shared.util.AppID;
-import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
-import org.zoxweb.shared.util.SubjectID;
+import org.zoxweb.shared.util.*;
 
 @SuppressWarnings("serial")
 public class DomainPrincipalCollection
@@ -43,7 +40,7 @@ public class DomainPrincipalCollection
 	public DomainPrincipalCollection(Object principal, String subjectGUID, String realmName, String domainID, String applicationID, String jwtSubjectID)
     {
 		super(principal, realmName);
-		SharedUtil.checkIfNulls("Subject GID can't be null", subjectGUID);
+		SUS.checkIfNulls("Subject GID can't be null", subjectGUID);
 		domain_id = SharedStringUtil.toLowerCase(domainID);
 		application_id = SharedStringUtil.toLowerCase(applicationID);
 		this.subject_guid = subjectGUID;

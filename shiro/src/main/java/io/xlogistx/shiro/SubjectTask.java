@@ -17,7 +17,7 @@ package io.xlogistx.shiro;
 
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 
 public  class SubjectTask
@@ -39,7 +39,7 @@ public  class SubjectTask
 
     public static SubjectTask create(Runnable runnableBySubject, Subject subject)
     {
-        SharedUtil.checkIfNulls("Runnable or Subject can't be null", runnableBySubject, subject);
+        SUS.checkIfNulls("Runnable or Subject can't be null", runnableBySubject, subject);
         return new SubjectTask(runnableBySubject, subject);
     }
 

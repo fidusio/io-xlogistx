@@ -421,7 +421,7 @@ implements RealmController<AuthorizationInfo, PrincipalCollection>
     public ResourceSecurity subjectResourceSecurity(String subject, String domainID, String appID)
     {
         SubjectIdentifier subjectID = lookupSubjectIdentifier(subject);
-        SharedUtil.checkIfNulls("SubjectIdentifier null for " + subject, subjectID);
+        SUS.checkIfNulls("SubjectIdentifier null for " + subject, subjectID);
         SecurityProfile sp = new SecurityProfile();
         sp.setSubjectGUID(subjectID.getSubjectGUID());
         sp.setGUID(subjectID.getGUID());

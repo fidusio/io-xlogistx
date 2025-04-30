@@ -259,7 +259,7 @@ public class HTTPServletUtil
 	
 	public static byte[] compress(String zipMode, byte[] content) throws NullPointerException, IllegalArgumentException, IOException
 	{
-		SharedUtil.checkIfNulls("null value", zipMode, content);
+		SUS.checkIfNulls("null value", zipMode, content);
 		zipMode = zipMode.toLowerCase();
 		switch(zipMode)
 		{

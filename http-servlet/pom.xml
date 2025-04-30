@@ -32,7 +32,6 @@
         <dependency>
             <groupId>org.zoxweb</groupId>
             <artifactId>zoxweb-core</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

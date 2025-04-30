@@ -1,8 +1,8 @@
 package io.xlogistx.common.crypto;
 
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -41,7 +41,7 @@ public class DigestAppender
      * @param appenderName custom name
      */
     public DigestAppender(MessageDigest md, String appenderName){
-        SharedUtil.checkIfNulls("Message digest null.", md);
+        SUS.checkIfNulls("Message digest null.", md);
         this.md = md;
         this.name = appenderName;
     }

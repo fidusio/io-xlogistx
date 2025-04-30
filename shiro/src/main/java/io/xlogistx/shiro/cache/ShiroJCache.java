@@ -3,7 +3,7 @@ package io.xlogistx.shiro.cache;
 import org.apache.shiro.cache.Cache;
 import org.apache.shiro.cache.CacheException;
 import org.zoxweb.server.util.cache.JCacheListener;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 import javax.cache.Cache.Entry;
 import java.util.*;
@@ -23,7 +23,7 @@ public class ShiroJCache<K, V> implements Cache<K, V> {
 	
 	public ShiroJCache(javax.cache.Cache<K,V>  cache)
 	{
-		SharedUtil.checkIfNulls("Null cache", cache);
+		SUS.checkIfNulls("Null cache", cache);
 		this.cache = cache;
 		cache.registerCacheEntryListener(JCacheListener.toConfiguration(cacheListener));
 	}
@@ -42,7 +42,7 @@ public class ShiroJCache<K, V> implements Cache<K, V> {
 
 	@Override
 	public V put(K key, V value) throws CacheException {
-		SharedUtil.checkIfNulls("Null key or value", key, value);
+		SUS.checkIfNulls("Null key or value", key, value);
 		// TODO Auto-generated method stub
 		 //log.info(key.getClass()+":key:" + key + " " +value.getClass() + ":value:" + value);
 		return cache.getAndPut(key, value);
@@ -51,7 +51,7 @@ public class ShiroJCache<K, V> implements Cache<K, V> {
 	@Override
 	public  V remove(K key) throws CacheException {
 		// TODO Auto-generated method stub
-		SharedUtil.checkIfNulls("Null key", key);
+		SUS.checkIfNulls("Null key", key);
 		return cache.getAndRemove(key);
 	}
 		

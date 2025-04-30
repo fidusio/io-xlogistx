@@ -12,7 +12,7 @@ import org.zoxweb.shared.api.APITokenDAO;
 import org.zoxweb.shared.data.AddressDAO;
 import org.zoxweb.shared.data.CreditCardDAO;
 import org.zoxweb.shared.util.GetName;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.io.IOException;
 
@@ -157,7 +157,7 @@ public class PayPalPaymentProcessor
 
     @Override
     public FinancialTransactionDAO createTransaction(FinancialTransactionDAO financialTransactionDAO) {
-        SharedUtil.checkIfNulls("Transaction is null.", financialTransactionDAO);
+        SUS.checkIfNulls("Transaction is null.", financialTransactionDAO);
 
         OrderTransactionDAO orderTransactionDAO = null;
 
@@ -165,7 +165,7 @@ public class PayPalPaymentProcessor
             orderTransactionDAO = (OrderTransactionDAO) financialTransactionDAO.getReferencedNVE();
         }
 
-        SharedUtil.checkIfNulls("OrderTransactionDAO is missing.", orderTransactionDAO);
+        SUS.checkIfNulls("OrderTransactionDAO is missing.", orderTransactionDAO);
 
         CreditCardDAO creditCardDAO = orderTransactionDAO.getPaymentInfo().getCreditCard();
         AddressDAO addressDAO = orderTransactionDAO.getPaymentInfo().getBillingAddress();
@@ -246,9 +246,9 @@ public class PayPalPaymentProcessor
 
     @Override
     public FinancialTransactionDAO refundTransaction(FinancialTransactionDAO financialTransactionDAO) {
-        SharedUtil.checkIfNulls("Transaction is null.", financialTransactionDAO);
-        SharedUtil.checkIfNulls("External reference is null.", financialTransactionDAO.getExternalReference());
-        SharedUtil.checkIfNulls("Amount is null.", financialTransactionDAO.getAmount());
+        SUS.checkIfNulls("Transaction is null.", financialTransactionDAO);
+        SUS.checkIfNulls("External reference is null.", financialTransactionDAO.getExternalReference());
+        SUS.checkIfNulls("Amount is null.", financialTransactionDAO.getAmount());
 
         PPRefundDAO refund = null;
 

@@ -414,7 +414,7 @@ public class NIOHTTPServer
     }
     public NIOHTTPServer(HTTPServerConfig config, NIOSocket nioSocket)
     {
-        SharedUtil.checkIfNulls("HTTPServerConfig null", config);
+        SUS.checkIfNulls("HTTPServerConfig null", config);
         this.config = config;
         this.nioSocket = nioSocket;
     }

@@ -4,7 +4,7 @@ import org.apache.shiro.authc.HostAuthenticationToken;
 import org.apache.shiro.authc.RememberMeAuthenticationToken;
 import org.zoxweb.shared.security.JWTToken;
 import org.zoxweb.shared.util.AppID;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SubjectID;
 
 @SuppressWarnings("serial")
@@ -37,7 +37,7 @@ implements AppID<String>, HostAuthenticationToken, RememberMeAuthenticationToken
 	
 	public JWTAuthenticationToken(JWTToken jwtToken, String host, boolean rememberMe)
 	{
-		SharedUtil.checkIfNulls("JWTToken can not be null", jwtToken, jwtToken.getJWT(), jwtToken.getToken(), jwtToken.getJWT().getPayload(), jwtToken.getJWT().getPayload().getSubjectID());
+		SUS.checkIfNulls("JWTToken can not be null", jwtToken, jwtToken.getJWT(), jwtToken.getToken(), jwtToken.getJWT().getPayload(), jwtToken.getJWT().getPayload().getSubjectID());
 		this.jwtToken = jwtToken;
 		this.host = host;
 		this.rememberMe = rememberMe;

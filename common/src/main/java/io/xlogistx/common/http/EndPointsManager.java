@@ -44,7 +44,7 @@ public class EndPointsManager {
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh)
     {
         uri = SharedStringUtil.toTrimmedLowerCase(uri);
-        SharedUtil.checkIfNulls("Mapping parameters can't be null", uri, hep);
+        SUS.checkIfNulls("Mapping parameters can't be null", uri, hep);
         EndPointMeta epm = new EndPointMeta(hep, mh);
         uriEndPointMeta.put(uri, epm);
         return epm;

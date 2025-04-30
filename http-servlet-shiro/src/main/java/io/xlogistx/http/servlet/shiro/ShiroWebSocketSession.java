@@ -16,7 +16,7 @@
 package io.xlogistx.http.servlet.shiro;
 
 import org.apache.shiro.subject.Subject;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 import javax.websocket.Session;
 
@@ -27,7 +27,7 @@ public class ShiroWebSocketSession
 	
 	public ShiroWebSocketSession(Session session, Subject subject)
     {
-		SharedUtil.checkIfNulls("Null Parameter", session, subject);
+		SUS.checkIfNulls("Null Parameter", session, subject);
 		this.session = session;
 		this.subject = subject;
 	

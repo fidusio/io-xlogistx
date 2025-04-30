@@ -42,7 +42,7 @@ public class ExecTask {
 
 
     public NVGenericMap execTasks(String command, String token, File dir, String ff, long delay) throws IOException, InterruptedException {
-        SharedUtil.checkIfNulls("null command of dir", command, dir);
+        SUS.checkIfNulls("null command of dir", command, dir);
 
 
 
