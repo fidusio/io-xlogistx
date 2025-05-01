@@ -233,11 +233,7 @@
     </dependency>
 
 
-    <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>${javax-servlet.version}</version>
-    </dependency>
+
 
     <dependency>
       <groupId>org.jsoup</groupId>
@@ -258,11 +254,7 @@
           <version>${gson.version}</version>
       </dependency>
 
-    <dependency>
-      <groupId>commons-fileupload</groupId>
-      <artifactId>commons-fileupload</artifactId>
-      <version>${commons-fileupload.version}</version>
-    </dependency>
+
 
     <dependency>
         <groupId>com.sun.mail</groupId>
@@ -270,19 +262,12 @@
       <version>${jakarta-mail.version}</version>
     </dependency>
 
-
-
 	<dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
       <version>${snakeyaml.version}</version>
 	</dependency>
 
-      <dependency>
-          <groupId>com.jcraft</groupId>
-          <artifactId>jsch</artifactId>
-          <version>${jsch.version}</version>
-      </dependency>
 
 
 

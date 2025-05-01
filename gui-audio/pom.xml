@@ -43,17 +43,7 @@
     </build>
 
     <dependencies>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
-        </dependency>
 
-        <dependency>
-            <groupId>org.zoxweb</groupId>
-            <artifactId>zoxweb-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-core</artifactId>
@@ -61,23 +51,10 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-
-
-        <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-common</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.xlogistx</groupId>
-            <artifactId>xlogistx-shiro</artifactId>
-            <version>${xlogistx.version}</version>
-        </dependency>
-
-
 
 
 

@@ -6,7 +6,9 @@ import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.URIScheme;
+import org.zoxweb.shared.protocol.ProtocolSession;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVGenericMap;
 
 import javax.websocket.*;
 import java.io.IOException;
@@ -17,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class WSSession implements Session
+public class WSSession implements Session, ProtocolSession<Session>
 {
 
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
@@ -314,5 +316,38 @@ public class WSSession implements Session
     public Set<Session> getOpenSessions()
     {
         return sessionsSet;
+    }
+
+    /**
+     * @return the actual session associated with the implementation
+     */
+    @Override
+    public Session getSession() {
+        return this;
+    }
+
+    /**
+     * @return true is the session is closed or the implementation allows it, it is not mandatory to obied by the response the caller can invoke close regardless
+     */
+    @Override
+    public boolean canClose()
+    {
+        return true;
+    }
+
+    @Override
+    public NVGenericMap getProperties() {
+        return null;
+    }
+
+    /**
+     * Checks if closed.
+     *
+     * @return true if closed
+     */
+    @Override
+    public boolean isClosed()
+    {
+        return closed.get();
     }
 }

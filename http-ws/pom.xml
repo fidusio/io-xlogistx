@@ -14,35 +14,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.zoxweb</groupId>
-            <artifactId>zoxweb-core</artifactId>
-            <version>${zoxweb-core.version}</version>
-        </dependency>
-
-        <!--<dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>${jsoup.version}</version>
-        </dependency> -->
-        <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-http</artifactId>
-            <version>${xlogistx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.xlogistx</groupId>
-            <artifactId>xlogistx-common</artifactId>
-            <version>${xlogistx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.xlogistx</groupId>
-            <artifactId>xlogistx-core</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
         <dependency>
@@ -50,9 +23,6 @@
             <artifactId>xlogistx-opsec</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
-
-
-
     </dependencies>
 
 

@@ -62,21 +62,11 @@
             <version>${xlogistx.version}</version>
         </dependency>
 
-        <!--<dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-
-
-            <dependency>
-            <groupId>org.zoxweb</groupId>
-            <artifactId>zoxweb-core</artifactId>
-        </dependency>
-
-        </dependency>-->
 
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>
+            <version>${jsch.version}</version>
         </dependency>
 
 
@@ -86,11 +76,6 @@
             <version>${bc.version}</version>
         </dependency>
 
-        <!-- <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpqc-jdk8on</artifactId>
-            <version>${bc.version}</version>
-        </dependency> -->
 
         <dependency>
             <groupId>org.bouncycastle</groupId>

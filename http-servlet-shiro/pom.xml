@@ -12,9 +12,6 @@
     <name>xlogistx-http-servlet-shiro</name>
     <artifactId>xlogistx-http-servlet-shiro</artifactId>
     <properties>
-        <websocket.version>1.1</websocket.version>
-        <javax-servlet.version>4.0.1</javax-servlet.version>
-        <commons-fileupload.version>1.4</commons-fileupload.version>
     </properties>
 
     <dependencies>
@@ -22,14 +19,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
 
-        </dependency>
-
-
-
-        <dependency>
-            <groupId>org.zoxweb</groupId>
-            <artifactId>zoxweb-core</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -48,17 +37,6 @@
             <artifactId>xlogistx-http-servlet</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
-
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-
-
-
-
-
 
 
 

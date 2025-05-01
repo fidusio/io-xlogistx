@@ -8,6 +8,7 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.protocol.ProtocolSession;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
@@ -29,7 +30,7 @@ public class HTTPProtocolHandler
     //private volatile Lifetime keepAliveLifetime = null;
     //private Appointment keepAliveAppointment = null;
     private volatile int markerIndex = 0;
-    private volatile Object extraSession;
+    private volatile ProtocolSession<?> protocolSession;
     private final KATracker kaTracker;
 
     //public volatile List<HTTPWSFrame> pendingWSFrames = new ArrayList<HTTPWSFrame>();
@@ -191,8 +192,8 @@ public class HTTPProtocolHandler
 //            isBusy.set(false);
             //IOUtil.close(keepAliveLifetime, keepAliveAppointment);
 
-            if(getSession() instanceof AutoCloseable)
-                IOUtil.close((AutoCloseable) getSession(), getOutputStream());
+            if(getProtocolSession() instanceof AutoCloseable)
+                IOUtil.close((AutoCloseable) getProtocolSession(), getOutputStream());
             else
                 IOUtil.close(getOutputStream());
 
@@ -265,14 +266,14 @@ public class HTTPProtocolHandler
         kaTracker.expire();
     }
 
-    public void setSession(Object extraSession)
+    public void setProtocolSession(ProtocolSession<?> extraSession)
     {
-        this.extraSession = extraSession;
+        this.protocolSession = extraSession;
     }
 
-    public <V> V getSession()
+    public <V> V getProtocolSession()
     {
-        return (V)extraSession;
+        return (V) protocolSession;
     }
 
 //    public synchronized HTTPMessageConfigInterface buildJSONResponse(Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
