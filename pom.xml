@@ -235,24 +235,24 @@
 
 
 
-    <dependency>
-      <groupId>org.jsoup</groupId>
-      <artifactId>jsoup</artifactId>
-      <version>${jsoup.version}</version>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>org.jsoup</groupId>-->
+<!--      <artifactId>jsoup</artifactId>-->
+<!--      <version>${jsoup.version}</version>-->
+<!--    </dependency>-->
 
 
-      <dependency>
-          <groupId>javax.cache</groupId>
-          <artifactId>cache-api</artifactId>
-          <version>${javax-cache.version}</version>
-      </dependency>
+<!--      <dependency>-->
+<!--          <groupId>javax.cache</groupId>-->
+<!--          <artifactId>cache-api</artifactId>-->
+<!--          <version>${javax-cache.version}</version>-->
+<!--      </dependency>-->
 
-      <dependency>
-          <groupId>com.google.code.gson</groupId>
-          <artifactId>gson</artifactId>
-          <version>${gson.version}</version>
-      </dependency>
+<!--      <dependency>-->
+<!--          <groupId>com.google.code.gson</groupId>-->
+<!--          <artifactId>gson</artifactId>-->
+<!--          <version>${gson.version}</version>-->
+<!--      </dependency>-->
 
 
 

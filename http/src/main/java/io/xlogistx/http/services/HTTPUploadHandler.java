@@ -19,10 +19,10 @@ import org.zoxweb.shared.util.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
-import java.util.List;
 
 public class HTTPUploadHandler
     extends PropertyHolder
@@ -55,7 +55,7 @@ public class HTTPUploadHandler
 
         NVGenericMap parameters = hmciRequest.getParameters();
 
-        NamedValue<List<BytesArray>> fileData = parameters.getNV("file");
+        NamedValue<InputStream> fileData = parameters.getNV("file");
         String fileLocation = parameters.getValue("file-location");
 
 
@@ -92,9 +92,7 @@ public class HTTPUploadHandler
         long totalCopied = 0;
         try(FileOutputStream fos = new FileOutputStream(file))
         {
-            for (BytesArray ba : fileData.getValue()) {
-                totalCopied += IOUtil.relayStreams(md, ba.toInputStream(), fos);
-            }
+            totalCopied += IOUtil.relayStreams(md, fileData.getValue(), fos);
         }
 
 
@@ -109,8 +107,7 @@ public class HTTPUploadHandler
         responseData.build("filename", file.getName())
                 .build(new NVLong("length", hr.dataLength))
                 .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
-                .build("hash_type", hr.hashType.getName())
-                .build("hash", SharedStringUtil.bytesToHex(hr.hash.asBytes()));
+                .build(hr.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hr.hash.asBytes()));
 
         hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));
 

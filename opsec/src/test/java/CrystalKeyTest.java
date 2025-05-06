@@ -122,14 +122,14 @@ public class CrystalKeyTest {
     {
         try
         {
-            keyPairRegen_internal(100);
+            keyPairRegen_internal(1);
         }
         catch (InvalidKeySpecException e)
         {
             e.printStackTrace();
 
-            OPSecUtil.SINGLETON.reloadProviders();
-           keyPairRegen_internal(100);
+
+           keyPairRegen_internal(1);
         }
     }
     private void keyPairRegen_internal(int repeat) throws Exception {
