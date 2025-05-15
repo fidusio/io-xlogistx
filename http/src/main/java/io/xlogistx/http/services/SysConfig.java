@@ -14,21 +14,19 @@ import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVPair;
 
 public class SysConfig
-        extends PropertyHolder
-{
+        extends PropertyHolder {
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name="gson-enum-format", uris="/gson/simple/format/{format}")
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "gson-enum-format", uris = "/gson/simple/format/{format}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "gson:" + SecurityModel.PERM_ACCESS)
-    public SimpleMessage gsonEnumFormat(@ParamProp(name = "format") boolean format)
-    {
+    public SimpleMessage gsonEnumFormat(@ParamProp(name = "format") boolean format) {
         GSONUtil.SIMPLE_FORMAT = format;
         SimpleMessage ret = new SimpleMessage("GSON enum format", HTTPStatusCode.OK.CODE);
         ret.getProperties().build(new NVPair("simple_format", GSONUtil.SIMPLE_FORMAT ? Const.Bool.ENABLED.getName() : Const.Bool.DISABLED.getName()));
         return ret;
     }
+
     @Override
-    protected void refreshProperties()
-    {
+    protected void refreshProperties() {
 
     }
 }

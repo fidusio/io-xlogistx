@@ -15,11 +15,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @ServerEndpoint("/echo-chat")
 @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat:secure")
-public class EchoChat
-{
+public class EchoChat {
     public static final LogWrapper log = new LogWrapper(EchoChat.class).setEnabled(false);
 
     private AtomicLong index = new AtomicLong(0);
+
     @OnOpen
     public void onOpen(Session session) {
         System.out.println("New session opened: " + SUS.toCanonicalID('.', ShiroUtil.subject().getPrincipal(), session.getId()));
@@ -29,23 +29,23 @@ public class EchoChat
     public void onMessage(Session session, String message) throws IOException {
         //System.out.println("Received message: " + message);
         // Process or broadcast the message
-        session.getBasicRemote().sendText( index.incrementAndGet() + "echo reply: " + message);
+        session.getBasicRemote().sendText(index.incrementAndGet() + "echo reply: " + message);
     }
 
 
     @OnMessage
-    public void onMessage(String message, Session session,  boolean isLast) throws IOException {
+    public void onMessage(String message, Session session, boolean isLast) throws IOException {
         //System.out.println("Received message: " + message);
         // Process or broadcast the message
-        session.getBasicRemote().sendText( index.incrementAndGet() + " " +isLast + " echo reply: " + message);
+        session.getBasicRemote().sendText(index.incrementAndGet() + " " + isLast + " echo reply: " + message);
     }
 
 
     @OnMessage
     public void onMessage(BytesArray message, boolean isLast, Session session) throws IOException {
-        if(log.isEnabled()) log.getLogger().info( isLast + " " + message.asString());
+        if (log.isEnabled()) log.getLogger().info(isLast + " " + message.asString());
 
-        ((WSRemoteEndPoint.WSBasic)session.getBasicRemote()).sendBinary(message, isLast);
+        ((WSRemoteEndPoint.WSBasic) session.getBasicRemote()).sendBinary(message, isLast);
         // Process or broadcast the message
     }
 

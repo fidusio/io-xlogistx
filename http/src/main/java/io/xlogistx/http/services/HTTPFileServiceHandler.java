@@ -16,9 +16,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 public class HTTPFileServiceHandler
-    extends PropertyHolder
-    implements HTTPRawHandler
-{
+        extends PropertyHolder
+        implements HTTPRawHandler {
     public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);
 
     private File baseFolder;
@@ -29,22 +28,19 @@ public class HTTPFileServiceHandler
     }
 
     @Override
-    @EndPointProp(methods = {HTTPMethod.GET}, name="files", uris="/")
-    public void handle(@ParamProp(name="file-info", source=Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler protocolHandler)
-            throws IOException
-    {
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "files", uris = "/")
+    public void handle(@ParamProp(name = "file-info", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler protocolHandler)
+            throws IOException {
         String filename = protocolHandler.getRequest().getURI();
 
-        if (SUS.isEmpty(filename) || filename.equals("/"))
-        {
+        if (SUS.isEmpty(filename) || filename.equals("/")) {
             String override = getProperties().getValue("default_file");
-            if(override != null)
-            {
+            if (override != null) {
                 filename = override;
             }
         }
         HTTPMediaType mime = HTTPMediaType.lookupByExtension(filename);
-        if(log.isEnabled()) {
+        if (log.isEnabled()) {
 
             log.getLogger().info("file to load: " + filename);
 
@@ -52,26 +48,23 @@ public class HTTPFileServiceHandler
         }
 
         File file = new File(getBaseFolder(), filename);
-        if (!file.exists() || !file.isFile() || !file.canRead())
-        {
-            if(log.isEnabled())
+        if (!file.exists() || !file.isFile() || !file.canRead()) {
+            if (log.isEnabled())
                 log.getLogger().info("File Not Found:" + file.getName());
             throw new HTTPCallException(file.getName() + " not found", HTTPStatusCode.NOT_FOUND);
         }
-
-
 
 
         FileInputStream fileIS = new FileInputStream(file);
 
 
         HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
-                HTTPHeader.SERVER.toHTTPHeader((String)ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+                HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
 
-        if(mime != null)
+        if (mime != null)
             hmci.setContentType(mime.getValue());
 
-        hmci.setContentLength((int)file.length());
+        hmci.setContentLength((int) file.length());
 
 //        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
 //        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
@@ -79,13 +72,12 @@ public class HTTPFileServiceHandler
                 .writeTo(protocolHandler.getOutputStream());
 
         IOUtil.relayStreams(fileIS, protocolHandler.getOutputStream(), true, false);
-        if(log.isEnabled()) log.getLogger().info("filename: " + filename);
+        if (log.isEnabled()) log.getLogger().info("filename: " + filename);
 
     }
 
 
-    public HTTPFileServiceHandler setBaseFolder(String baseFolder) throws IllegalArgumentException
-    {
+    public HTTPFileServiceHandler setBaseFolder(String baseFolder) throws IllegalArgumentException {
         baseFolder = SharedStringUtil.trimOrNull(baseFolder);
         SUS.checkIfNulls("Null baseDir ", baseFolder);
         File folder = new File(baseFolder);
@@ -96,5 +88,7 @@ public class HTTPFileServiceHandler
         return this;
     }
 
-    public File getBaseFolder(){return baseFolder;}
+    public File getBaseFolder() {
+        return baseFolder;
+    }
 }

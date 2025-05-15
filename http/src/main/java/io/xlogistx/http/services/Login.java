@@ -11,25 +11,20 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.shiro.ShiroSessionData;
 
-public class Login
-{
+public class Login {
     public static final LogWrapper log = new LogWrapper(Login.class).setEnabled(true);
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name="subject-login", uris="/subject/login/{appID}")
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "subject-login", uris = "/subject/login/{appID}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL})
-    public ShiroSessionData login(@ParamProp(name="appID", optional = true) String appID)
-
-    {
-        if(log.isEnabled()) log.getLogger().info("appID: " + appID);
+    public ShiroSessionData login(@ParamProp(name = "appID", optional = true) String appID) {
+        if (log.isEnabled()) log.getLogger().info("appID: " + appID);
         AuthorizationInfo ai = ShiroUtil.lookupAuthorizationInfo(ShiroUtil.subject());
 
         ShiroSessionData ssd = new ShiroSessionData();
         ssd.setSubjectID((String) ShiroUtil.subject().getPrincipal());
-        if(ai != null)
-        {
+        if (ai != null) {
 
-            for(Permission permission : ai.getObjectPermissions())
-            {
+            for (Permission permission : ai.getObjectPermissions()) {
                 //this is very bad just temp
                 ssd.addPermissions(permission.toString());
             }

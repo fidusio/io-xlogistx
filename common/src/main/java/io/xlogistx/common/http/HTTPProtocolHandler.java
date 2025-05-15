@@ -18,8 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HTTPProtocolHandler
-    implements CloseableType, IsExpired
-{
+        implements CloseableType, IsExpired {
 
     public final LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(false);
     private final UByteArrayOutputStream responseStream = ByteBufferUtil.allocateUBAOS(256);//new UByteArrayOutputStream(256);
@@ -36,7 +35,6 @@ public class HTTPProtocolHandler
     //public volatile List<HTTPWSFrame> pendingWSFrames = new ArrayList<HTTPWSFrame>();
 
 
-
     private volatile Object endPointBean = null;
 
 
@@ -46,22 +44,18 @@ public class HTTPProtocolHandler
     //private volatile S subject = null;
     private volatile OutputStream outputStream;
 
-    public HTTPProtocolHandler(URIScheme protocol, KAConfig kaConfig)
-    {
+    public HTTPProtocolHandler(URIScheme protocol, KAConfig kaConfig) {
         switchProtocol(protocol);
         this.kaTracker = new KATracker(kaConfig, this);
     }
 
 
-    public URIScheme getProtocol()
-    {
+    public URIScheme getProtocol() {
         return protocolMode;
     }
 
-    public HTTPProtocolHandler switchProtocol(URIScheme protocol)
-    {
-        switch (protocol)
-        {
+    public HTTPProtocolHandler switchProtocol(URIScheme protocol) {
+        switch (protocol) {
             case HTTPS:
             case HTTP:
             case WSS:
@@ -75,18 +69,16 @@ public class HTTPProtocolHandler
     }
 
 
-
-    public boolean parseRequest(ByteBuffer inBuffer) throws IOException
-    {
+    public boolean parseRequest(ByteBuffer inBuffer) throws IOException {
 
         ByteBufferUtil.write(inBuffer, rawRequest.getDataStream(), true);
-        switch(protocolMode)
-        {
+        switch (protocolMode) {
             case HTTP:
             case HTTPS:
                 rawRequest.parse();
                 boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
-                if (log.isEnabled()) log.getLogger().info("Protocol Mode: " + protocolMode + " message complete " + ret);
+                if (log.isEnabled())
+                    log.getLogger().info("Protocol Mode: " + protocolMode + " message complete " + ret);
                 return ret;
             case WS:
             case WSS:
@@ -98,11 +90,9 @@ public class HTTPProtocolHandler
     }
 
 
-    public HTTPRawMessage getRawRequest()
-    {
+    public HTTPRawMessage getRawRequest() {
         return rawRequest;
     }
-
 
 
 //    private void checkKeepAlive()
@@ -123,33 +113,34 @@ public class HTTPProtocolHandler
 //                        int maxUse = keepAliveConfig.getValue("maximum");
 //                        long timeOut = keepAliveConfig.getValue("time_out");
 //                        keepAliveLifetime = new Lifetime(System.currentTimeMillis(), maxUse, null, timeOut);
-////                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), ()->{
-////                            if (!isClosed())
-////                            {
-////                                if(log.isEnabled()) log.getLogger().info(SharedUtil.toCanonicalID(',',  "complete:"+isRequestComplete(), "busy:"+isBusy.get(), rawRequest.getDataStream().size(), keepAliveLifetime));
-////                                try
-////                                {
-////                                    if(!isBusy.get())
-////                                        close();
-////                                    else
-////                                    {
-////                                        synchronized (HTTPProtocolHandler.this)
-////                                        {
-////                                            // situation could occur if the request processing of the client
-////                                            // taking longer than expected and we need to close
-////                                            // and the keep timeout and keep alive is active
-////                                            // very very rare case not sure if it will ever occur
-////                                            IOUtil.close(keepAliveAppointment, keepAliveLifetime);
-////                                            if(log.isEnabled()) log.getLogger().info("//****************** Very rare case to happen!!!  ******************\\\\");
-////                                        }
-////                                    }
-////                                }
-////                                catch (Exception e)
-////                                {
-////                                    e.printStackTrace();
-////                                }
-////                            }
-////                        });
+
+    /// /                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), ()->{
+    /// /                            if (!isClosed())
+    /// /                            {
+    /// /                                if(log.isEnabled()) log.getLogger().info(SharedUtil.toCanonicalID(',',  "complete:"+isRequestComplete(), "busy:"+isBusy.get(), rawRequest.getDataStream().size(), keepAliveLifetime));
+    /// /                                try
+    /// /                                {
+    /// /                                    if(!isBusy.get())
+    /// /                                        close();
+    /// /                                    else
+    /// /                                    {
+    /// /                                        synchronized (HTTPProtocolHandler.this)
+    /// /                                        {
+    /// /                                            // situation could occur if the request processing of the client
+    /// /                                            // taking longer than expected and we need to close
+    /// /                                            // and the keep timeout and keep alive is active
+    /// /                                            // very very rare case not sure if it will ever occur
+    /// /                                            IOUtil.close(keepAliveAppointment, keepAliveLifetime);
+    /// /                                            if(log.isEnabled()) log.getLogger().info("//****************** Very rare case to happen!!!  ******************\\\\");
+    /// /                                        }
+    /// /                                    }
+    /// /                                }
+    /// /                                catch (Exception e)
+    /// /                                {
+    /// /                                    e.printStackTrace();
+    /// /                                }
+    /// /                            }
+    /// /                        });
 //                    }
 //                }
 //            }
@@ -162,37 +153,29 @@ public class HTTPProtocolHandler
 //
 //
 //    }
-
-
-    public boolean isRequestComplete()
-    {
+    public boolean isRequestComplete() {
         return rawRequest.isMessageComplete();
     }
 
-    public HTTPMessageConfigInterface getRequest()
-    {
+    public HTTPMessageConfigInterface getRequest() {
         return isRequestComplete() ? rawRequest.getHTTPMessageConfig() : null;
     }
 
-    public UByteArrayOutputStream getResponseStream()
-    {
-        return getResponseStream( false);
+    public UByteArrayOutputStream getResponseStream() {
+        return getResponseStream(false);
     }
 
-    public UByteArrayOutputStream getResponseStream(boolean override)
-    {
+    public UByteArrayOutputStream getResponseStream(boolean override) {
         return override || isRequestComplete() ? responseStream : null;
     }
 
     @Override
-    public synchronized void close() throws IOException
-    {
-        if(!closed.getAndSet(true))
-        {
+    public synchronized void close() throws IOException {
+        if (!closed.getAndSet(true)) {
 //            isBusy.set(false);
             //IOUtil.close(keepAliveLifetime, keepAliveAppointment);
 
-            if(getProtocolSession() instanceof AutoCloseable)
+            if (getProtocolSession() instanceof AutoCloseable)
                 IOUtil.close((AutoCloseable) getProtocolSession(), getOutputStream());
             else
                 IOUtil.close(getOutputStream());
@@ -204,18 +187,13 @@ public class HTTPProtocolHandler
         }
     }
 
-    public synchronized boolean reset()
-    {
-        if(!isExpired())
-        {
-            if (isHTTPProtocol())
-            {
+    public synchronized boolean reset() {
+        if (!isExpired()) {
+            if (isHTTPProtocol()) {
                 response = new HTTPMessageConfig();
                 rawRequest.reset(true);
                 responseStream.reset();
-            }
-            else if (isWSProtocol())
-            {
+            } else if (isWSProtocol()) {
                 rawRequest.reset(false);
                 responseStream.reset();
                 setMarkerIndex(0);
@@ -227,52 +205,45 @@ public class HTTPProtocolHandler
     }
 
 
-    public boolean isHTTPProtocol()
-    {
+    public boolean isHTTPProtocol() {
         return (protocolMode == URIScheme.HTTPS || protocolMode == URIScheme.HTTP);
     }
-    public boolean isWSProtocol()
-    {
+
+    public boolean isWSProtocol() {
         return (protocolMode == URIScheme.WSS || protocolMode == URIScheme.WS);
     }
 
 
-    public boolean isClosed()
-    {
+    public boolean isClosed() {
         if (getOutputStream() instanceof CloseableType)
             return ((CloseableType) getOutputStream()).isClosed() || closed.get();
         return closed.get();
     }
 
-    public OutputStream getOutputStream()
-    {
+    public OutputStream getOutputStream() {
         return outputStream;
     }
 
-    public HTTPProtocolHandler setOutputStream(OutputStream os)
-    {
+    public HTTPProtocolHandler setOutputStream(OutputStream os) {
         this.outputStream = os;
         return this;
     }
 
     @Override
-    public synchronized boolean isExpired()
-    {
+    public synchronized boolean isExpired() {
         return kaTracker.isExpired();
     }
+
     @Override
-    public void expire()
-    {
+    public void expire() {
         kaTracker.expire();
     }
 
-    public void setProtocolSession(ProtocolSession<?> extraSession)
-    {
+    public void setProtocolSession(ProtocolSession<?> extraSession) {
         this.protocolSession = extraSession;
     }
 
-    public <V> V getProtocolSession()
-    {
+    public <V> V getProtocolSession() {
         return (V) protocolSession;
     }
 
@@ -287,32 +258,25 @@ public class HTTPProtocolHandler
 //    }
 
 
-    public synchronized HTTPMessageConfigInterface buildResponse(String contentType, Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
-    {
+    public synchronized HTTPMessageConfigInterface buildResponse(String contentType, Object result, HTTPStatusCode statusCode, GetNameValue<?>... headersToAdd) {
         if (!isRequestComplete())
             throw new IllegalStateException("HTTP request not complete yet");
 
         response.setContentType(contentType);
         // json response
-        if(SharedStringUtil.contains(contentType, "application/json", true))
+        if (SharedStringUtil.contains(contentType, "application/json", true))
             HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
-        else
-        {
+        else {
             if (result instanceof String) {
                 HTTPUtil.buildResponse(response, statusCode, headersToAdd);
                 response.setContent((String) result);
-            }
-            else if (result instanceof byte[]) {
+            } else if (result instanceof byte[]) {
                 HTTPUtil.buildResponse(response, statusCode, headersToAdd);
                 response.setContent((byte[]) result);
-            }
-            else if (result != null)
-            {
+            } else if (result != null) {
                 // look for encoder for the time being stick with json
                 HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
-            }
-            else
-            {
+            } else {
                 HTTPUtil.buildResponse(response, statusCode, headersToAdd);
             }
 
@@ -323,9 +287,7 @@ public class HTTPProtocolHandler
     }
 
 
-
-    public synchronized HTTPMessageConfigInterface buildResponse(HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)
-    {
+    public synchronized HTTPMessageConfigInterface buildResponse(HTTPStatusCode statusCode, GetNameValue<?>... headersToAdd) {
         if (!isRequestComplete())
             throw new IllegalStateException("HTTP request not complete yet");
 
@@ -334,10 +296,9 @@ public class HTTPProtocolHandler
 
         NVGenericMap respHeaders = response.getHeaders();
 
-        if (headersToAdd != null)
-        {
-            for(GetNameValue<?> header : headersToAdd)
-                if(header != null)
+        if (headersToAdd != null) {
+            for (GetNameValue<?> header : headersToAdd)
+                if (header != null)
                     respHeaders.add(header);
         }
 
@@ -347,39 +308,33 @@ public class HTTPProtocolHandler
     }
 
 
-    private  void validateKeepAlive()
-    {
+    private void validateKeepAlive() {
 
-        if (log.isEnabled()) log.getLogger().info( kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
-        if (isExpired() || response.getHTTPStatusCode().CODE >= HTTPStatusCode.BAD_REQUEST.CODE)
-        {
+        if (log.isEnabled()) log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
+        if (isExpired() || response.getHTTPStatusCode().CODE >= HTTPStatusCode.BAD_REQUEST.CODE) {
             //we close the connection
             response.getHeaders().add(HTTPConst.CommonHeader.CONNECTION_CLOSE);
-        }
-        else
-        {
+        } else {
             if (kaTracker.isExpired() ||
-                    (isHTTPProtocol() && getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()) == null))
-            {
-                if (log.isEnabled()) log.getLogger().info(""  + getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()));
+                    (isHTTPProtocol() && getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()) == null)) {
+                if (log.isEnabled())
+                    log.getLogger().info("" + getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()));
                 expire();
                 response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE).remove(HTTPHeader.KEEP_ALIVE);
 
-            }
-            else
-            {
+            } else {
 
                 // keep not expired
                 response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE)
                         .build(new NVPair(HTTPHeader.KEEP_ALIVE, "timeout=" + TimeUnit.SECONDS.convert(kaTracker.kaConfig.time_out, TimeUnit.MILLISECONDS) +
                                 (kaTracker.kaConfig.max > 0 ? ", max=" + (kaTracker.kaConfig.max - kaTracker.updateUsage()) : "")));
-                if (log.isEnabled()) log.getLogger().info( kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
+                if (log.isEnabled()) log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
             }
         }
     }
 
 
-    public <V> V  getEndPointBean() {
+    public <V> V getEndPointBean() {
         return (V) endPointBean;
     }
 
@@ -399,13 +354,11 @@ public class HTTPProtocolHandler
 //        return this;
 //    }
 
-    public int getMarkerIndex()
-    {
+    public int getMarkerIndex() {
         return markerIndex;
     }
 
-    public synchronized void setMarkerIndex(int index)
-    {
+    public synchronized void setMarkerIndex(int index) {
         this.markerIndex = index;
     }
 

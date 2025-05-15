@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.zoxweb.server.http.HTTPHeaderParser;
 import org.zoxweb.server.http.OkHTTPCall;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.util.NVGenericMap;
+import org.zoxweb.shared.util.NamedValue;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,9 +27,12 @@ public class HTTPKeepAliveTest {
 
                 if(kaVals.size() == 1)
                 {
-                    NVGenericMap nvgm  = HTTPHeaderParser.parseHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
-                    System.out.println("NamedValue: " + nvgm);
-                    max = (int)nvgm.getValueAsLong("max");
+                    NamedValue<?> nv  = HTTPHeaderParser.parseHTTPHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
+                    System.out.println("NamedValue: " + nv);
+                    //System.out.println(nv.getProperties().getValue("max") +" " + nv.getProperties().getValue("timeout"));
+
+
+                    max = (int)nv.getProperties().getValueAsLong("max");
                 }
             }
 
@@ -58,7 +61,7 @@ public class HTTPKeepAliveTest {
             {
 
 
-                    NVGenericMap nvm  = HTTPHeaderParser.parseHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
+                    NamedValue<String> nvm  = (NamedValue<String>) HTTPHeaderParser.parseHTTPHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
                     System.out.println("NamedValue: " + nvm);
 
 

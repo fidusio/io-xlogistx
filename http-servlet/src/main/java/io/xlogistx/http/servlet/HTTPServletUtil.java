@@ -56,7 +56,7 @@ public class HTTPServletUtil
 	public static GSONWrapper GSON_WRAPPER = new GSONWrapper(Base64Type.DEFAULT);
 	public static boolean ACAO = true;
 	
-	private static final transient Logger log = Logger.getLogger(HTTPServletUtil.class.getName());
+	private static final Logger log = Logger.getLogger(HTTPServletUtil.class.getName());
 
 	private HTTPServletUtil()
 	{

@@ -7,23 +7,20 @@ import javax.websocket.PongMessage;
 import java.nio.ByteBuffer;
 
 public class WSPongMessage
-    implements PongMessage
-{
+        implements PongMessage {
 
     public final BytesArray data;
-    WSPongMessage(BytesArray data)
-    {
+
+    WSPongMessage(BytesArray data) {
         this.data = data;
     }
 
     @Override
-    public ByteBuffer getApplicationData()
-    {
+    public ByteBuffer getApplicationData() {
         return ByteBufferUtil.toByteBuffer(data);
     }
 
-    public String toString()
-    {
+    public String toString() {
         return data.asString();
     }
 

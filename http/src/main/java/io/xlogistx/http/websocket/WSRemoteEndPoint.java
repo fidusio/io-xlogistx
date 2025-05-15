@@ -17,27 +17,24 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 
 public abstract class WSRemoteEndPoint
-implements RemoteEndpoint
-{
+        implements RemoteEndpoint {
 
     public static final LogWrapper log = new LogWrapper(WSRemoteEndPoint.class).setEnabled(false);
 
 
     public final HTTPProtocolHandler hph;
+
     //protected UByteArrayOutputStream baos = new UByteArrayOutputStream();
-    protected WSRemoteEndPoint(HTTPProtocolHandler hph)
-    {
+    protected WSRemoteEndPoint(HTTPProtocolHandler hph) {
         this.hph = hph;
     }
 
 
     public static class WSBasic
-    extends WSRemoteEndPoint
-    implements Basic
-    {
+            extends WSRemoteEndPoint
+            implements Basic {
 
-        protected WSBasic(HTTPProtocolHandler hph)
-        {
+        protected WSBasic(HTTPProtocolHandler hph) {
             super(hph);
         }
 
@@ -46,8 +43,7 @@ implements RemoteEndpoint
          * @throws IOException
          */
         @Override
-        public synchronized void sendText(String s) throws IOException
-        {
+        public synchronized void sendText(String s) throws IOException {
             sendText(s, true);
         }
 
@@ -81,7 +77,7 @@ implements RemoteEndpoint
         @Override
         public synchronized void sendBinary(ByteBuffer byteBuffer, boolean isLast) throws IOException {
             byte[] data = ByteBufferUtil.toBytes(byteBuffer, false);
-            if (log.isEnabled()) log.getLogger().info( new String(data));
+            if (log.isEnabled()) log.getLogger().info(new String(data));
             HTTPWSProto.formatFrame(hph.getResponseStream(true), isLast, HTTPWSProto.OpCode.BINARY, null, data)
                     .writeTo(getSendStream(), true);
         }
@@ -126,12 +122,10 @@ implements RemoteEndpoint
     /******************************************************************************************************/
 
     public static class WSAsync
-    extends WSRemoteEndPoint
-    implements Async
-    {
+            extends WSRemoteEndPoint
+            implements Async {
 
-        protected WSAsync(HTTPProtocolHandler hph)
-        {
+        protected WSAsync(HTTPProtocolHandler hph) {
             super(hph);
         }
 
@@ -237,10 +231,9 @@ implements RemoteEndpoint
      * @throws IllegalArgumentException
      */
     @Override
-    public void sendPing(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException
-    {
+    public void sendPing(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException {
         if (log.isEnabled()) log.getLogger().info("sending " + byteBuffer);
-        HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, byteBuffer != null ?  ByteBufferUtil.toBytes(byteBuffer, true) : null)
+        HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PING, null, byteBuffer != null ? ByteBufferUtil.toBytes(byteBuffer, true) : null)
                 .writeTo(hph.getOutputStream(), true);
 
     }
@@ -251,13 +244,11 @@ implements RemoteEndpoint
      * @throws IllegalArgumentException
      */
     @Override
-    public void sendPong(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException
-    {
+    public void sendPong(ByteBuffer byteBuffer) throws IOException, IllegalArgumentException {
         if (log.isEnabled()) log.getLogger().info("sending " + byteBuffer);
-        HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PONG, null,  byteBuffer != null ?  ByteBufferUtil.toBytes(byteBuffer, true) : null)
+        HTTPWSProto.formatFrame(hph.getResponseStream(true), true, HTTPWSProto.OpCode.PONG, null, byteBuffer != null ? ByteBufferUtil.toBytes(byteBuffer, true) : null)
                 .writeTo(hph.getOutputStream(), true);
     }
-
 
 
 }

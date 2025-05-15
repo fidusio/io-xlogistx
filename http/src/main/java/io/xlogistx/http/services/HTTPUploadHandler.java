@@ -25,24 +25,22 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 public class HTTPUploadHandler
-    extends PropertyHolder
-    implements HTTPRawHandler
-{
+        extends PropertyHolder
+        implements HTTPRawHandler {
 
 
     public final static LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(true);
     private File baseFolder;
+
     /**
      * @param hph
      * @throws IOException
      */
-    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name="upload-file", uris="/system-upload")
+    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:upload:files")
     @Override
-    public void handle(@ParamProp(name="raw-content", source= Const.ParamSource.RESOURCE, optional=true)HTTPProtocolHandler hph)
-            throws IOException
-    {
-
+    public void handle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
+            throws IOException {
 
 
         if (getBaseFolder() == null)
@@ -60,8 +58,7 @@ public class HTTPUploadHandler
 
 
         File file;
-        if (SUS.isNotEmpty(fileLocation))
-        {
+        if (SUS.isNotEmpty(fileLocation)) {
             File fileDir = new File(getBaseFolder(), fileLocation);
 
             if (fileDir.isDirectory())
@@ -69,35 +66,30 @@ public class HTTPUploadHandler
             else
                 throw new HTTPCallException("file location " + fileLocation + " is not a folder", HTTPStatusCode.NOT_FOUND);
 
-        }
-        else
+        } else
             file = new File(getBaseFolder(), fileData.getProperties().getValue("filename"));
-
 
 
         if (file.isDirectory() && IOUtil.isFileInDirectory(getBaseFolder(), file))
             file = new File(fileLocation, fileData.getProperties().getValue("filename"));
-         else if (!IOUtil.isFileInDirectory(getBaseFolder(), file))
+        else if (!IOUtil.isFileInDirectory(getBaseFolder(), file))
             throw new HTTPCallException("Invalid storage location ", HTTPStatusCode.FORBIDDEN);
 
 
         MessageDigest md;
-        try
-        {
-             md = MessageDigest.getInstance(CryptoConst.HASHType.SHA_256.getName());
+        try {
+            md = MessageDigest.getInstance(CryptoConst.HASHType.SHA_256.getName());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
 
         long totalCopied = 0;
-        try(FileOutputStream fos = new FileOutputStream(file))
-        {
+        try (FileOutputStream fos = new FileOutputStream(file)) {
             totalCopied += IOUtil.relayStreams(md, fileData.getValue(), fos);
         }
 
 
         HashResult hr = new HashResult(CryptoConst.HASHType.SHA_256, md.digest(), totalCopied);
-
 
 
         HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
@@ -130,16 +122,14 @@ public class HTTPUploadHandler
 
         String baseFolderFilename = getProperties().getValue("base_folder");
         baseFolderFilename = SharedStringUtil.trimOrNull(baseFolderFilename);
-        if(baseFolderFilename != null)
-        {
+        if (baseFolderFilename != null) {
             File folder = new File(baseFolderFilename);
             if (folder.exists() && folder.isDirectory() && folder.canRead())
                 this.baseFolder = folder;
         }
     }
 
-    public File getBaseFolder()
-    {
+    public File getBaseFolder() {
         return baseFolder;
     }
 }

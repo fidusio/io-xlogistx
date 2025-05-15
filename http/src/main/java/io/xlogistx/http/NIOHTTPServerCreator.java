@@ -10,8 +10,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 public class NIOHTTPServerCreator
-extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig>
-{
+        extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig> {
     public static final String RESOURCE_NAME = "WebServer";
 
 
@@ -19,11 +18,9 @@ extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig>
 
     @Override
     public synchronized NIOHTTPServer createApp() throws NullPointerException, IllegalArgumentException, IOException {
-        if (server == null)
-        {
+        if (server == null) {
             server = new NIOHTTPServer(getAppConfig());
-            try
-            {
+            try {
                 server.start();
             } catch (GeneralSecurityException e) {
 
@@ -45,8 +42,7 @@ extends AppCreatorDefault<NIOHTTPServer, HTTPServerConfig>
         IOUtil.close(server);
     }
 
-    public NIOSocket getNIOSocket()
-    {
+    public NIOSocket getNIOSocket() {
 
         return server != null ? server.getNIOSocket() : null;
     }

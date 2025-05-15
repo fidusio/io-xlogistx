@@ -14,35 +14,32 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @ServerEndpoint("/echo-chat-test")
 //@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat")
-public class EchoChatTest
-{
+public class EchoChatTest {
 
     public static final LogWrapper log = new LogWrapper(EchoChatTest.class).setEnabled(false);
 
     private final AtomicLong index = new AtomicLong(0);
 
     @OnOpen
-    public void onOpen(Session session)
-    {
+    public void onOpen(Session session) {
         System.out.println("New session opened: " + SUS.toCanonicalID('.', ShiroUtil.subject().getPrincipal(), session.getId()));
     }
 
     @OnMessage
     public void onMessage(String message, Session session, boolean isLast) throws IOException {
-        if(log.isEnabled()) log.getLogger().info("Received message: " + message);
+        if (log.isEnabled()) log.getLogger().info("Received message: " + message);
         // Process or broadcast the message
-        session.getBasicRemote().sendText( index.incrementAndGet() + " reply " + message);
+        session.getBasicRemote().sendText(index.incrementAndGet() + " reply " + message);
     }
 
     @OnMessage
     public void onMessage(BytesArray message, Session session) throws IOException {
-        ((WSRemoteEndPoint.WSBasic)session.getBasicRemote()).sendBinary(message, true);
+        ((WSRemoteEndPoint.WSBasic) session.getBasicRemote()).sendBinary(message, true);
     }
 
     @OnMessage
-    public void pong (PongMessage message)
-    {
-        System.out.println("Pong: " + ((WSPongMessage)message).data.asString());
+    public void pong(PongMessage message) {
+        System.out.println("Pong: " + ((WSPongMessage) message).data.asString());
     }
 
     @OnClose

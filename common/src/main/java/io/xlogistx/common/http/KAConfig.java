@@ -6,8 +6,7 @@ public class KAConfig {
     public final long time_out;
 
 
-    public KAConfig(int max, long timeout)
-    {
+    public KAConfig(int max, long timeout) {
         this.max = max;
         this.time_out = timeout;
     }

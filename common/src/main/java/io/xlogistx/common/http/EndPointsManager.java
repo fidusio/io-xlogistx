@@ -36,13 +36,11 @@ public class EndPointsManager {
     private final Map<String, Object> beanMaps = new LinkedHashMap<>();
     private final InstanceFactory.ParamsInstanceCreator<?> pic;
 
-    public EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic)
-    {
+    public EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic) {
         this.pic = pic;
     }
 
-    public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh)
-    {
+    public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh) {
         uri = SharedStringUtil.toTrimmedLowerCase(uri);
         SUS.checkIfNulls("Mapping parameters can't be null", uri, hep);
         EndPointMeta epm = new EndPointMeta(hep, mh);
@@ -50,18 +48,15 @@ public class EndPointsManager {
         return epm;
     }
 
-    private void mapBean(Object bean, Object mappedProp)
-    {
-        if (mappedProp != null)
-        {
+    private void mapBean(Object bean, Object mappedProp) {
+        if (mappedProp != null) {
             log.getLogger().info("MappedProp found: " + mappedProp);
             if (mappedProp instanceof MappedProp) {
                 beanMaps.put(((MappedProp) mappedProp).name(), bean);
                 if (SUS.isNotEmpty(((MappedProp) mappedProp).id()))
                     beanMaps.put(((MappedProp) mappedProp).id(), bean);
             }
-            if(mappedProp instanceof ServerEndpoint)
-            {
+            if (mappedProp instanceof ServerEndpoint) {
                 beanMaps.put("ws-" + ((ServerEndpoint) mappedProp).value(), bean);
             }
         }
@@ -70,35 +65,28 @@ public class EndPointsManager {
         beanMaps.put(bean.getClass().getName(), bean);
     }
 
-    public synchronized <B> B lookupBean(String beanID)
-    {
-        return (B)beanMaps.get(beanID);
+    public synchronized <B> B lookupBean(String beanID) {
+        return (B) beanMaps.get(beanID);
     }
 
 
-    public EndPointMeta unmap(String uri)
-    {
+    public EndPointMeta unmap(String uri) {
         return uriEndPointMeta.remove(uri);
     }
 
-    public EndPointMeta lookup(String uri)
-    {
+    public EndPointMeta lookup(String uri) {
         return uriEndPointMeta.lookup(uri);
     }
 
-    public  URIMap.URIMapResult<EndPointMeta> lookupWithPath(String uri)
-    {
+    public URIMap.URIMapResult<EndPointMeta> lookupWithPath(String uri) {
         return uriEndPointMeta.lookupWithPath(uri);
     }
 
-    public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep)
-    {
+    public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep) {
         baseURI = SharedStringUtil.trimOrNull(baseURI);
-        if(baseURI != null)
-        {
+        if (baseURI != null) {
             String[] paths = hep.getPaths();
-            for(int i = 0; i < paths.length; i++)
-            {
+            for (int i = 0; i < paths.length; i++) {
                 paths[i] = updatePath(baseURI, paths[i]);
             }
             hep.setPaths(paths);
@@ -106,20 +94,16 @@ public class EndPointsManager {
         return hep;
     }
 
-    public static String updatePath(String baseURI, String path)
-    {
+    public static String updatePath(String baseURI, String path) {
         baseURI = SharedStringUtil.trimOrNull(baseURI);
-        if(baseURI != null)
-        {
+        if (baseURI != null) {
             path = SharedStringUtil.concat(baseURI, path, "/");
         }
         return path;
     }
 
 
-
-    public static HTTPEndPoint applyAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck)
-    {
+    public static HTTPEndPoint applyAnnotations(String baseURI, HTTPEndPoint hep, Annotation[] annotations, boolean methodCheck) {
         for (Annotation a : annotations) {
             if (a instanceof EndPointProp) {
                 EndPointProp epp = (EndPointProp) a;
@@ -129,11 +113,10 @@ public class EndPointsManager {
                 hep.setInputContentType(epp.requestContentType());
                 hep.setOutputContentType(epp.responseContentType());
 
-                String [] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
-                if(methodCheck)
-                {
-                    if(uris.length != 1)
-                        throw  new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
+                String[] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
+                if (methodCheck) {
+                    if (uris.length != 1)
+                        throw new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
                 }
                 hep.setPaths(uris);
 
@@ -156,9 +139,6 @@ public class EndPointsManager {
     }
 
 
-
-
-
 //    public static void applySecurityProp(HTTPEndPoint hep, SecurityProp sp)
 //    {
 //        if (hep != null && sp != null)
@@ -175,10 +155,9 @@ public class EndPointsManager {
 //        }
 //    }
 
-    public static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride)
-    {
+    public static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride) {
 
-        if(outer != null) {
+        if (outer != null) {
             if (outer.getHTTPMethods() != null && outer.getHTTPMethods().length > 0)
                 inner.setHTTPMethods(outer.getHTTPMethods());
 
@@ -216,8 +195,7 @@ public class EndPointsManager {
     }
 
 
-    private  static boolean scanWebSocket(String baseURI, EndPointsManager epm, Class<?> beanClass, Object beanInstance)
-    {
+    private static boolean scanWebSocket(String baseURI, EndPointsManager epm, Class<?> beanClass, Object beanInstance) {
         // scan the annotation
         ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass,
                 ServerEndpoint.class,
@@ -227,11 +205,9 @@ public class EndPointsManager {
                 OnError.class,
                 SecurityProp.class);
 
-        if (classAnnotationMap != null)
-        {
+        if (classAnnotationMap != null) {
             ServerEndpoint serverWS = classAnnotationMap.getMatchingClassAnnotation(ServerEndpoint.class);
-            if(serverWS != null)
-            {
+            if (serverWS != null) {
                 SecurityProp sp = classAnnotationMap.getMatchingClassAnnotation(SecurityProp.class);
                 log.getLogger().info("WebSocket server end point " + classAnnotationMap);
                 log.getLogger().info("OnMessage: " + Arrays.toString(classAnnotationMap.matchingMethods(OnMessage.class)));
@@ -240,14 +216,14 @@ public class EndPointsManager {
                 Object wsBean = epm.pic.newInstance(uri, sp, wsCache, beanInstance);
 
 
-                log.getLogger().info(beanClass.getName() + "\nBy Method-CanID: " +  WSCache.WSMethodType.matchClassMethodsByCanID(beanClass).keySet());
+                log.getLogger().info(beanClass.getName() + "\nBy Method-CanID: " + WSCache.WSMethodType.matchClassMethodsByCanID(beanClass).keySet());
                 // we have a server websocket class endpoint
 
                 HTTPEndPoint hep = new HTTPEndPoint();
                 hep.setBeanClassName(wsBean.getClass().getName());
                 SecUtil.SINGLETON.applySecurityProp(hep, sp);
                 //classHEP = applyAnnotations(baseURI, classHEP, classAnnotationMap.getClassAnnotations(), false);
-                log.getLogger().info("Inner web socket " + wsBean.getClass() );
+                log.getLogger().info("Inner web socket " + wsBean.getClass());
                 ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(), EndPointProp.class);
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
@@ -255,12 +231,10 @@ public class EndPointsManager {
                 epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next(), hep));
 
                 log.getLogger().info("Inner websocket " + map);
-                log.getLogger().info( "CACHED Mapped Methods: " + wsCache.getCache());
-                log.getLogger().info( "CACHED Types: " + wsCache.getCache().size() + " " +wsCache.getCache().keySet() );
+                log.getLogger().info("CACHED Mapped Methods: " + wsCache.getCache());
+                log.getLogger().info("CACHED Types: " + wsCache.getCache().size() + " " + wsCache.getCache().keySet());
 
                 log.getLogger().info("______________________________________________________________________");
-
-
 
 
                 return true;
@@ -270,27 +244,24 @@ public class EndPointsManager {
         return false;
     }
 
-    public static boolean areAllParametersUniquelyAnnotatedParamProp(ReflectionUtil.MethodAnnotations ma)
-    {
+    public static boolean areAllParametersUniquelyAnnotatedParamProp(ReflectionUtil.MethodAnnotations ma) {
 
         // check if the parameter count == parametersAnnotations.size()
         int parameterCount = ma.method.getParameterCount();
         int annotationCount = ma.parametersAnnotations != null ? ma.parametersAnnotations.size() : 0;
-        if(parameterCount != annotationCount)
+        if (parameterCount != annotationCount)
             throw new IllegalArgumentException("Annotated parameters not equals to actual parameters" + ma.method);
 
-        if(annotationCount > 0)
-        {
+        if (annotationCount > 0) {
             // check that the annotation are of the type anotClass and uniquely named
             Set<String> annotParamNames = new HashSet<String>();
-            for(Annotation a : ma.parametersAnnotations.values())
-            {
-                if(a == null || !ReflectionUtil.isTypeMatchingAnyAnnotation(ParamProp.class, a))
+            for (Annotation a : ma.parametersAnnotations.values()) {
+                if (a == null || !ReflectionUtil.isTypeMatchingAnyAnnotation(ParamProp.class, a))
                     throw new IllegalArgumentException("Parameter not annotated as " + ParamProp.class.getName());
-                annotParamNames.add(((ParamProp)a).name());
+                annotParamNames.add(((ParamProp) a).name());
             }
 
-            if(annotationCount != annotParamNames.size())
+            if (annotationCount != annotParamNames.size())
                 throw new IllegalArgumentException("Mismatch between annotations and parameters count could be repeated parameter name: " + ma.method);
         }
 
@@ -298,42 +269,35 @@ public class EndPointsManager {
         return true;
     }
 
-    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsInstanceCreator<?>   pic)
-    {
+    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsInstanceCreator<?> pic) {
         HTTPEndPoint[] allHEP = serverConfig.getEndPoints();
         EndPointsManager epm = new EndPointsManager(pic);
-        for(HTTPEndPoint configHEP : allHEP)
-        {
+        for (HTTPEndPoint configHEP : allHEP) {
 
             // annotation override
             // If there is a conflict with annotation
             // the json config file will override the code defined one
             // this technique will allow configuration to be updated on the fly without the
             // need to recompile the code
-            try
-            {
+            try {
                 String beanName = configHEP.getBeanClassName();
                 Class<?> beanClass = Class.forName(beanName);
                 Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
-                if(log.isEnabled()) log.getLogger().info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
+                if (log.isEnabled())
+                    log.getLogger().info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
 
-                if(beanInstance instanceof SetNVProperties)
-                {
+                if (beanInstance instanceof SetNVProperties) {
                     ((SetNVProperties) beanInstance).setProperties(configHEP.getProperties());
                 }
 
-                if(log.isEnabled()) log.getLogger().info("bean:" + beanName);
-                if(!scanWebSocket(serverConfig.getBaseURI(), epm, beanClass, beanInstance))
-                {
-                    if(log.isEnabled()) log.getLogger().info("Scan the class");
+                if (log.isEnabled()) log.getLogger().info("bean:" + beanName);
+                if (!scanWebSocket(serverConfig.getBaseURI(), epm, beanClass, beanInstance)) {
+                    if (log.isEnabled()) log.getLogger().info("Scan the class");
                     ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, MappedProp.class);
                     // --- Map the bean to the mapped id
-                    if(classAnnotationMap != null && SUS.isNotEmpty(classAnnotationMap.getClassAnnotations()))
-                    {
+                    if (classAnnotationMap != null && SUS.isNotEmpty(classAnnotationMap.getClassAnnotations())) {
                         epm.mapBean(beanInstance, classAnnotationMap.getClassAnnotations()[0]);
-                    }
-                    else
-                    {
+                    } else {
                         epm.mapBean(beanInstance, null);
                     }
                     // ---
@@ -343,33 +307,27 @@ public class EndPointsManager {
 
 
                     //if(log.isEnabled()) log.getLogger().info("Class Annotation:" + classAM);
-                    if (classAnnotationMap != null)
-                    {
+                    if (classAnnotationMap != null) {
                         HTTPEndPoint classHEP = null;
 
 
-                        if (classAnnotationMap.getClassAnnotations() != null)
-                        {
+                        if (classAnnotationMap.getClassAnnotations() != null) {
                             classHEP = new HTTPEndPoint();
                             classHEP.setBeanClassName(beanName);
                             classHEP = applyAnnotations(serverConfig.getBaseURI(), classHEP, classAnnotationMap.getClassAnnotations(), false);
                             classHEP = mergeOuterIntoInner(configHEP, classHEP, false);
 
+                        } else {
+                            if (log.isEnabled())
+                                log.getLogger().info(classAnnotationMap.getAnnotatedClass() + " has no class annotations");
                         }
-                        else
-                        {
-                            if(log.isEnabled()) log.getLogger().info( classAnnotationMap.getAnnotatedClass() + " has no class annotations");
-                        }
-                        if (classAnnotationMap.getMethodsAnnotations().size() > 0)
-                        {
-                            for (Method method : classAnnotationMap.getMethodsAnnotations().keySet().toArray(new Method[0]))
-                            {
+                        if (classAnnotationMap.getMethodsAnnotations().size() > 0) {
+                            for (Method method : classAnnotationMap.getMethodsAnnotations().keySet().toArray(new Method[0])) {
 
                                 ReflectionUtil.MethodAnnotations methodAnnotations = classAnnotationMap.getMethodsAnnotations().get(method);
                                 try {
                                     //if (ReflectionUtil.isMethodAnnotatedAs(method, EndPointProp.class))
-                                    if (areAllParametersUniquelyAnnotatedParamProp(methodAnnotations))
-                                    {
+                                    if (areAllParametersUniquelyAnnotatedParamProp(methodAnnotations)) {
 
                                         HTTPEndPoint methodHEP = applyAnnotations(serverConfig.getBaseURI(),
                                                 new HTTPEndPoint(),
@@ -381,13 +339,13 @@ public class EndPointsManager {
                                         mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations, methodHEP));
 
                                     } else {
-                                        if(log.isEnabled()) log.getLogger().info(methodAnnotations.method + " NOT-AN-ENDPOINT");
+                                        if (log.isEnabled())
+                                            log.getLogger().info(methodAnnotations.method + " NOT-AN-ENDPOINT");
                                     }
-                                }
-                                catch(Exception e)
-                                {
+                                } catch (Exception e) {
                                     e.printStackTrace();
-                                    if(log.isEnabled()) log.getLogger().info("Method:" + method + " failed to configure");
+                                    if (log.isEnabled())
+                                        log.getLogger().info("Method:" + method + " failed to configure");
                                 }
                             }
                         }
@@ -395,9 +353,7 @@ public class EndPointsManager {
 
                 }
 
-            }
-            catch(Exception e)
-            {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -407,18 +363,16 @@ public class EndPointsManager {
     }
 
 
-    private static void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder methodHolder)
-    {
-        for (String path : hep.getPaths())
-        {
+    private static void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder methodHolder) {
+        for (String path : hep.getPaths()) {
             String pathToBeAdded = HTTPUtil.basePath(path, true);
             endPointsManager.map(pathToBeAdded, hep, methodHolder);
-            if(log.isEnabled()) log.getLogger().info(pathToBeAdded  + ":"+ hep);
+            if (log.isEnabled()) log.getLogger().info(pathToBeAdded + ":" + hep);
         }
     }
 
 
-    public static Map<String, Object> buildParameters(URIMap.URIMapResult<EndPointMeta>uriMapResult, HTTPMessageConfigInterface hmci) throws IOException {
+    public static Map<String, Object> buildParameters(URIMap.URIMapResult<EndPointMeta> uriMapResult, HTTPMessageConfigInterface hmci) throws IOException {
 
         HTTPEndPoint hep = uriMapResult.result.httpEndPoint;
 
@@ -430,15 +384,12 @@ public class EndPointsManager {
         // parse the path parameters
         Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], hmci.getURI(), false);
 
-        if(hmci.getParameters().size() > 0)
-        {
+        if (hmci.getParameters().size() > 0) {
             GetNameValue<?>[] gnValues = hmci.getParameters().values();
-            for (GetNameValue<?> gnv :  hmci.getParameters().values())
-            {
+            for (GetNameValue<?> gnv : hmci.getParameters().values()) {
                 parameters.put(gnv.getName(), gnv.getValue());
             }
         }
-
 
 
         HTTPMediaType contentType = HTTPMediaType.lookup(hmci.getContentType());
@@ -464,27 +415,21 @@ public class EndPointsManager {
 
 
         // need to parse the payload parameters
-        for(Parameter p : uriMapResult.result.methodHolder.methodAnnotations.method.getParameters())
-        {
-            Annotation pAnnotation  = uriMapResult.result.methodHolder.methodAnnotations.parametersAnnotations.get(p);
-            if(pAnnotation instanceof ParamProp)
-            {
+        for (Parameter p : uriMapResult.result.methodHolder.methodAnnotations.method.getParameters()) {
+            Annotation pAnnotation = uriMapResult.result.methodHolder.methodAnnotations.parametersAnnotations.get(p);
+            if (pAnnotation instanceof ParamProp) {
                 ParamProp pp = (ParamProp) pAnnotation;
-                if (pp.source() == Const.ParamSource.PAYLOAD)
-                {
+                if (pp.source() == Const.ParamSource.PAYLOAD) {
                     Class<?> pClassType = p.getType();
-                    if (contentType != null)
-                    {
+                    if (contentType != null) {
 
-                        switch (contentType)
-                        {
+                        switch (contentType) {
 
                             case APPLICATION_WWW_URL_ENC:
                                 // this case is impossible to happen
                                 break;
                             case APPLICATION_JSON:
-                                if(log.isEnabled())
-                                {
+                                if (log.isEnabled()) {
                                     log.getLogger().info("" + hmci);
                                     log.getLogger().info("" + pClassType);
                                 }
@@ -540,16 +485,13 @@ public class EndPointsManager {
                             parameters.put(pp.name(), paramValue != null ? paramValue.getValue() : null);
                         }
                         continue;
-                    }
-                    else
-                    {
+                    } else {
                         throw new IllegalArgumentException("Missing parameter " + pp.name());
                     }
                 }
 
-                if(SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType()))
-                {
-                    parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String)currentValue).getValue());
+                if (SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType())) {
+                    parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String) currentValue).getValue());
                 }
             }
         }

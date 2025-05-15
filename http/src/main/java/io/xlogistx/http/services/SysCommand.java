@@ -16,24 +16,18 @@ import org.zoxweb.shared.util.Const;
 import java.io.IOException;
 
 
-
 public class SysCommand
-extends PropertyHolder
-{
+        extends PropertyHolder {
 
 
-
-
-    @EndPointProp(methods = {HTTPMethod.GET}, name="system-reboot", uris="/system/reboot")
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "system-reboot", uris = "/system/reboot")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:reboot")
-    public SimpleMessage systemReboot()
-    {
+    public SimpleMessage systemReboot() {
         if (getProperties() != null) {
             String command = getProperties().getValue("reboot-command");
             Long delay = getProperties().getValue("reboot-delay");
-            if (command == null || delay == null)
-            {
-                return new SimpleMessage("Reboot: command or delay missing from config",  HTTPStatusCode.BAD_REQUEST.CODE);
+            if (command == null || delay == null) {
+                return new SimpleMessage("Reboot: command or delay missing from config", HTTPStatusCode.BAD_REQUEST.CODE);
             }
             TaskUtil.defaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
                 @Override
@@ -50,23 +44,20 @@ extends PropertyHolder
                 }
             });
             return new SimpleMessage("System will reboot in " + Const.TimeInMillis.toString(delay), HTTPStatusCode.OK.CODE);
-        }
-        else
-        {
+        } else {
             return new SimpleMessage("reboot miss configured", HTTPStatusCode.BAD_REQUEST.CODE, "reconfigure endpoint");
         }
 
     }
-    @EndPointProp(methods = {HTTPMethod.GET}, name="system-shutdown", uris="/system/shutdown")
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "system-shutdown", uris = "/system/shutdown")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:shutdown")
-    public SimpleMessage systemShutdown()
-    {
+    public SimpleMessage systemShutdown() {
         if (getProperties() != null) {
             String command = getProperties().getValue("shutdown-command");
             Long delay = getProperties().getValue("shutdown-delay");
-            if (command == null || delay == null)
-            {
-                return new SimpleMessage("Shutdown: command or delay missing from config",  HTTPStatusCode.BAD_REQUEST.CODE);
+            if (command == null || delay == null) {
+                return new SimpleMessage("Shutdown: command or delay missing from config", HTTPStatusCode.BAD_REQUEST.CODE);
             }
             TaskUtil.defaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
                 @Override
@@ -83,15 +74,12 @@ extends PropertyHolder
                 }
             });
             return new SimpleMessage("System will shutdown in " + Const.TimeInMillis.toString(delay), HTTPStatusCode.OK.CODE);
-        }
-        else
-        {
+        } else {
             return new SimpleMessage("shutdown miss configured", HTTPStatusCode.BAD_REQUEST.CODE, "reconfigure endpoint");
         }
     }
 
 
-    protected void refreshProperties()
-    {
+    protected void refreshProperties() {
     }
 }

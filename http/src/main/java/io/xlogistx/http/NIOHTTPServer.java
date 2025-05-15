@@ -53,8 +53,7 @@ import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
 
 
 public class NIOHTTPServer
-        implements DaemonController
-{
+        implements DaemonController {
 
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
@@ -72,39 +71,29 @@ public class NIOHTTPServer
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
 
 
-
-
-
     public class HTTPSession
-        extends PlainSessionCallback
-    {
+            extends PlainSessionCallback {
         protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP, kaConfig);
 
         @Override
-        public void accept(ByteBuffer inBuffer)
-        {
+        public void accept(ByteBuffer inBuffer) {
 
-            try
-            {
-                if(hph.parseRequest(inBuffer))
-                {
+            try {
+                if (hph.parseRequest(inBuffer)) {
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
 
                     incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
-                    if(hph.isExpired())
+                    if (hph.isExpired())
                         IOUtil.close(this);
 
-                    if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
-                }
-                else
-                {
+                    if (logger.isEnabled())
+                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
+                } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
-            }
-            catch (Exception e)
-            {
-                if(logger.isEnabled()) e.printStackTrace();
+            } catch (Exception e) {
+                if (logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(this);
                 // we should close
@@ -127,10 +116,11 @@ public class NIOHTTPServer
          */
         @Override
         public void close() throws IOException {
-                IOUtil.close(hph, protocolHandler);
+            IOUtil.close(hph, protocolHandler);
 
 
         }
+
         @Override
         public boolean isClosed() {
             return hph.isClosed();
@@ -138,47 +128,39 @@ public class NIOHTTPServer
     }
 
     public class HTTPsSession
-            extends SSLSessionCallback
-    {
+            extends SSLSessionCallback {
         protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS, kaConfig);
+
         @Override
-        public void accept(ByteBuffer inBuffer)
-        {
-            try
-            {
-                if(hph.parseRequest(inBuffer))
-                {
+        public void accept(ByteBuffer inBuffer) {
+            try {
+                if (hph.parseRequest(inBuffer)) {
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     // we are processing a request
 
                     incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
                     // processing finished
-                    if(hph.isExpired())
+                    if (hph.isExpired())
                         IOUtil.close(this);
 
-                    if (logger.isEnabled()) logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
-                }
-                else
-                {
+                    if (logger.isEnabled())
+                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
+                } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
-            }
-            catch (Exception e)
-            {
-                if(logger.isEnabled()) e.printStackTrace();
+            } catch (Exception e) {
+                if (logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 IOUtil.close(this);
                 // we should close
             }
 
 
-
         }
 
-        public void exception(Exception e)
-        {
-            if(logger.isEnabled()) logger.getLogger().info("" + e);
+        public void exception(Exception e) {
+            if (logger.isEnabled()) logger.getLogger().info("" + e);
         }
 
         /**
@@ -195,8 +177,7 @@ public class NIOHTTPServer
          * @throws IOException if an I/O error occurs
          */
         @Override
-        public void close() throws IOException
-        {
+        public void close() throws IOException {
             IOUtil.close(hph, protocolHandler);
         }
 
@@ -206,11 +187,9 @@ public class NIOHTTPServer
         }
     }
 
-    private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e)
-    {
+    private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e) {
         e.printStackTrace();
-        if(!hph.isClosed() && hph.isHTTPProtocol())
-        {
+        if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
 
 
@@ -234,24 +213,20 @@ public class NIOHTTPServer
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
-        }
-        else
-        {
-            if(logger.isEnabled()) logger.getLogger().info("Channel closed can't process exception " + e);
+        } else {
+            if (logger.isEnabled()) logger.getLogger().info("Channel closed can't process exception " + e);
         }
 
     }
 
-   private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm,  HTTPProtocolHandler hph) throws IOException
-    {
+    private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm, HTTPProtocolHandler hph) throws IOException {
 
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
-        if(logger.isEnabled()) logger.getLogger().info("Authentication supported: " + Arrays.toString(resourceAuthTypes) );
+        if (logger.isEnabled())
+            logger.getLogger().info("Authentication supported: " + Arrays.toString(resourceAuthTypes));
 
         // for performance check
         // if the resource authentication is required
@@ -274,9 +249,7 @@ public class NIOHTTPServer
 
                 throw new HTTPCallException("authentication missing", hmci);
 
-            }
-            else
-            {
+            } else {
                 if (httpAuthorization instanceof HTTPAuthorizationBasic &&
                         (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
                                 SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
@@ -300,101 +273,92 @@ public class NIOHTTPServer
     }
 
     private static void incomingData(BaseSessionCallback<?> session, EndPointsManager endPointsManager, HTTPProtocolHandler hph)
-            throws IOException, InvocationTargetException, IllegalAccessException
-    {
+            throws IOException, InvocationTargetException, IllegalAccessException {
 
 
-        switch(hph.getProtocol())
-        {
+        switch (hph.getProtocol()) {
             case HTTPS:
             case HTTP:
                 // HTTP protocol processing
-                {
+            {
 
-                    try {
+                try {
 
-                        if (logger.isEnabled()) {
-                            logger.getLogger().info(hph.getRequest().getURI());
-                            logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
-                            logger.getLogger().info("" + hph.getRequest().getHeaders());
+                    if (logger.isEnabled()) {
+                        logger.getLogger().info(hph.getRequest().getURI());
+                        logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
+                        logger.getLogger().info("" + hph.getRequest().getHeaders());
+                    }
+
+                    URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+                    if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
+
+                    if (epm != null) {
+                        if (logger.isEnabled())
+                            logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
+                        // validate if method supported
+                        if (!epm.result.httpEndPoint.isHTTPMethodSupported(hph.getRequest().getMethod())) {
+                            throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
+                                    Arrays.toString(epm.result.httpEndPoint.getHTTPMethods()),
+                                    HTTPStatusCode.METHOD_NOT_ALLOWED);
                         }
 
-                        URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
-                        if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
-                        if (epm != null) {
-                            if (logger.isEnabled())
-                                logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
-                            // validate if method supported
-                            if (!epm.result.httpEndPoint.isHTTPMethodSupported(hph.getRequest().getMethod())) {
-                                throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
-                                        Arrays.toString(epm.result.httpEndPoint.getHTTPMethods()),
-                                        HTTPStatusCode.METHOD_NOT_ALLOWED);
+                        // security check
+                        securityCheck(epm, hph);
+                        // check if instance of HTTPSessionHandler
+                        if (epm.result.methodHolder.instance instanceof HTTPRawHandler) {
+                            ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
+                        } else {
+                            if (logger.isEnabled()) {
+                                logger.getLogger().info("" + epm.result.methodHolder.instance);
+                                logger.getLogger().info("" + hph.getRequest());
+                                logger.getLogger().info(epm.path);
                             }
 
+                            Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
+                            Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
+                                    epm.result.methodHolder.methodAnnotations,
+                                    parameters);
 
-                            // security check
-                            securityCheck(epm, hph);
-                            // check if instance of HTTPSessionHandler
-                            if (epm.result.methodHolder.instance instanceof HTTPRawHandler)
-                            {
-                                ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
-                            }
-                            else
-                            {
-                                if (logger.isEnabled()) {
-                                    logger.getLogger().info("" + epm.result.methodHolder.instance);
-                                    logger.getLogger().info("" + hph.getRequest());
-                                    logger.getLogger().info(epm.path);
-                                }
-
-                                Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
-                                Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
-                                        epm.result.methodHolder.methodAnnotations,
-                                        parameters);
-
-                                HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
-                                        HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
-                                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                                        HTTPConst.CommonHeader.EXPIRES_ZERO);
-
-                                HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                                        .writeTo(hph.getOutputStream());
-                                // message complete and sent to client
-                            }
-                        }
-                        else
-                        {
-                            // error status uri map not found
-                            SimpleMessage sm = new SimpleMessage();
-                            sm.setError(hph.getRequest().getURI() + " not found");
-                            sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
-
-
-                            HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(), sm, HTTPStatusCode.NOT_FOUND,
+                            HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
+                                    HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                     HTTPConst.CommonHeader.EXPIRES_ZERO);
+
                             HTTPUtil.formatResponse(hmci, hph.getResponseStream())
                                     .writeTo(hph.getOutputStream());
+                            // message complete and sent to client
                         }
+                    } else {
+                        // error status uri map not found
+                        SimpleMessage sm = new SimpleMessage();
+                        sm.setError(hph.getRequest().getURI() + " not found");
+                        sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
+
+
+                        HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(), sm, HTTPStatusCode.NOT_FOUND,
+                                HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                                HTTPConst.CommonHeader.EXPIRES_ZERO);
+                        HTTPUtil.formatResponse(hmci, hph.getResponseStream())
+                                .writeTo(hph.getOutputStream());
+                    }
 
 
 //                        if (!hph.reset() && hph.isHTTPProtocol())
 //                            IOUtil.close(hph);
-                        hph.reset();
-                    }
-                    finally
-                    {
-                        // very important check DO NOT REMOVE since the protocol can switch with HTTP get to
-                        // websocket
-                        if (hph.isHTTPProtocol())
-                            ShiroUtil.subject().logout();
-                    }
+                    hph.reset();
+                } finally {
+                    // very important check DO NOT REMOVE since the protocol can switch with HTTP get to
+                    // websocket
+                    if (hph.isHTTPProtocol())
+                        ShiroUtil.subject().logout();
                 }
-                break;
+            }
+            break;
             case WSS:
             case WS:
-                ((HTTPRawHandler)hph.getEndPointBean()).handle(hph);
+                ((HTTPRawHandler) hph.getEndPointBean()).handle(hph);
                 // web socket processing here
                 break;
         }
@@ -402,30 +366,21 @@ public class NIOHTTPServer
     }
 
 
-
-
-
-
-
-
-    public NIOHTTPServer(HTTPServerConfig config)
-    {
-        this(config,null);
+    public NIOHTTPServer(HTTPServerConfig config) {
+        this(config, null);
     }
-    public NIOHTTPServer(HTTPServerConfig config, NIOSocket nioSocket)
-    {
+
+    public NIOHTTPServer(HTTPServerConfig config, NIOSocket nioSocket) {
         SUS.checkIfNulls("HTTPServerConfig null", config);
         this.config = config;
         this.nioSocket = nioSocket;
     }
 
-    public NIOSocket getNIOSocket()
-    {
+    public NIOSocket getNIOSocket() {
         return nioSocket;
     }
 
-    public HTTPServerConfig getConfig()
-    {
+    public HTTPServerConfig getConfig() {
         return config;
     }
 
@@ -439,6 +394,7 @@ public class NIOHTTPServer
     public void close() throws IOException {
         nioSocket.close();
     }
+
     public void start() throws IOException, GeneralSecurityException {
         // very crucial step must be executed first
         TaskUtil.registerMainThread();
@@ -452,10 +408,8 @@ public class NIOHTTPServer
 
             String shiroConfig = config.getProperties().lookupValue("shiro.config");
             // shiro registration
-            if(shiroConfig != null)
-            {
-                try
-                {
+            if (shiroConfig != null) {
+                try {
                     SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
 
 //                    IniRealm iniRealm = ShiroUtil.getRealm(IniRealm.class);
@@ -466,9 +420,7 @@ public class NIOHTTPServer
 //                    }
                     logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
                     securityManagerEnabled = true;
-                }
-                catch(Exception e)
-                {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -476,12 +428,10 @@ public class NIOHTTPServer
             // keep alive configuration
             keepAliveConfig = config.getProperties().lookup("keep-alive");
             logger.getLogger().info("Keep-Alive Config: " + keepAliveConfig);
-            if(keepAliveConfig != null)
-            {
+            if (keepAliveConfig != null) {
                 GetNameValue<?> time_out = keepAliveConfig.lookup("time_out");
-                if (time_out.getValue() instanceof String)
-                {
-                    long timeoutInMillis = Const.TimeInMillis.toMillis((String)time_out.getValue());
+                if (time_out.getValue() instanceof String) {
+                    long timeoutInMillis = Const.TimeInMillis.toMillis((String) time_out.getValue());
                     keepAliveConfig.add(new NVLong("time_out", timeoutInMillis));
                 }
                 int max = keepAliveConfig.getValue("maximum");
@@ -491,31 +441,27 @@ public class NIOHTTPServer
             }
 
             // scan endpoints
-            endPointsManager = EndPointsManager.scan(getConfig(), (a)-> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]));
-            if(logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
+            endPointsManager = EndPointsManager.scan(getConfig(), (a) -> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]));
+            if (logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
 
             // NISocket
-            if(getNIOSocket() == null)
-            {
-                if(getConfig().getThreadPoolSize() > 0)
+            if (getNIOSocket() == null) {
+                if (getConfig().getThreadPoolSize() > 0)
                     TaskUtil.setTaskProcessorThreadCount(getConfig().getThreadPoolSize());
                 nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
             }
             ConnectionConfig[] ccs = getConfig().getConnectionConfigs();
 
 
-            if(logger.isEnabled()) logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
+            if (logger.isEnabled()) logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
             // connection configuration
-            for(ConnectionConfig cc : ccs)
-            {
+            for (ConnectionConfig cc : ccs) {
                 String[] schemes = cc.getSchemes();
                 for (String scheme : schemes) {
                     URIScheme uriScheme = SharedUtil.lookupEnum(scheme, URIScheme.values());
-                    if (uriScheme != null)
-                    {
+                    if (uriScheme != null) {
                         IPAddress serverAddress;
-                        switch (uriScheme)
-                        {
+                        switch (uriScheme) {
                             case HTTPS:
                                 // we need to create a https server
                                 logger.getLogger().info("we need to create an https server");
@@ -530,27 +476,23 @@ public class NIOHTTPServer
                                 SSLContext sslContext = SecUtil.SINGLETON.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
                                         sslConfig.getValue("keystore_type"),
                                         ksPassword.toCharArray(),
-                                        aliasPassword != null ?  aliasPassword.toCharArray() : null,
+                                        aliasPassword != null ? aliasPassword.toCharArray() : null,
                                         trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
-                                        trustStorePassword != null ?  trustStorePassword.toCharArray() : null);
-                                NVStringList protocols =((NVStringList)sslConfig.get(PROTOCOLS));
-                                NVStringList ciphers =((NVStringList)sslConfig.get(CIPHERS));
+                                        trustStorePassword != null ? trustStorePassword.toCharArray() : null);
+                                NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));
+                                NVStringList ciphers = ((NVStringList) sslConfig.get(CIPHERS));
                                 SSLNIOSocketHandlerFactory sslnioSocketHandlerFactory = new SSLNIOSocketHandlerFactory(new SSLContextInfo(sslContext,
                                         protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
                                         ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null),
                                         httpsIC);
-                                if (sslConfig.get("simple_state_machine") != null)
-                                {
+                                if (sslConfig.get("simple_state_machine") != null) {
                                     NVBoolean ssm = (NVBoolean) sslConfig.get("simple_state_machine");
                                     sslnioSocketHandlerFactory.getProperties().add(ssm);
                                     logger.getLogger().info("" + ssm);
                                     NVGenericMap sysInfo = ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO);
-                                    if(ssm.getValue())
-                                    {
+                                    if (ssm.getValue()) {
                                         sysInfo.add("ssl_state_machine_type", "CustomSSLStateMachine");
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         sysInfo.add("ssl_state_machine_type", "SSLStateMachine");
                                     }
                                 }
@@ -582,22 +524,18 @@ public class NIOHTTPServer
         }
 
 
-
-        if(!SUS.isEmpty(msg))
-            logger.getLogger().info("Services started"+msg);
-
-
+        if (!SUS.isEmpty(msg))
+            logger.getLogger().info("Services started" + msg);
 
 
         ResourceManager.SINGLETON.register("nio-http-server", this);
-        if(keepAliveConfig != null)
+        if (keepAliveConfig != null)
             ResourceManager.SINGLETON.register("keep-alive-config", keepAliveConfig);
 
 
     }
 
-    public EndPointsManager getEndPointsManager()
-    {
+    public EndPointsManager getEndPointsManager() {
         return endPointsManager;
     }
 
@@ -620,27 +558,25 @@ public class NIOHTTPServer
             HTTPServerConfig hsc = null;
 
 
-            if(file != null)
+            if (file != null)
                 hsc = GSONUtil.fromJSON(IOUtil.inputStreamToString(file), HTTPServerConfig.class);
 
-            if(hsc == null)
+            if (hsc == null)
                 throw new IllegalArgumentException("No configuration file was defined");
 
             if (logger.isEnabled()) logger.getLogger().info("" + hsc);
             if (logger.isEnabled()) logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
-            if(hsc.getThreadPoolSize() > 0)
+            if (hsc.getThreadPoolSize() > 0)
                 TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
 
             Executor exec = null;
-            if(execPool != null)
-            {
-                switch (execPool)
-                {
+            if (execPool != null) {
+                switch (execPool) {
 
                     case DEFAULT:
-                         exec = TaskUtil.defaultTaskProcessor();
+                        exec = TaskUtil.defaultTaskProcessor();
 
-                         break;
+                        break;
                     case JAVA:
                         exec = Executors.newFixedThreadPool(64);
 
@@ -652,8 +588,7 @@ public class NIOHTTPServer
             NIOHTTPServer niohttpServer = new NIOHTTPServer(hsc, nioSocket);
             niohttpServer.start();
 
-            if (proxyPort > 0)
-            {
+            if (proxyPort > 0) {
                 // set up the proxy
                 nioSocket.addServerSocket(proxyPort, 256, new NIOProxyProtocol.NIOProxyProtocolFactory());
                 logger.getLogger().info("HTTP proxy started @" + proxyPort);
@@ -668,7 +603,6 @@ public class NIOHTTPServer
         startTS = System.currentTimeMillis() - startTS;
 
         logger.getLogger().info("Start up time " + Const.TimeInMillis.toString(startTS) + " Use executor : " + execPool);
-
 
 
     }

@@ -19,8 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class WSSession implements Session, ProtocolSession<Session>
-{
+public class WSSession implements Session, ProtocolSession<Session> {
 
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
     //private final HTTPProtocolHandler<Subject> hph;
@@ -30,11 +29,11 @@ public class WSSession implements Session, ProtocolSession<Session>
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public static final int MAX_MESSAGE_BUFFER_SIZE = (int)Const.SizeInBytes.K.SIZE*64;
+    public static final int MAX_MESSAGE_BUFFER_SIZE = (int) Const.SizeInBytes.K.SIZE * 64;
     private volatile Set<Session> sessionsSet;
+
     //private final Subject subject;
-    public WSSession(HTTPProtocolHandler protocolHandler, Subject subject, Set<Session> sessionsSet)
-    {
+    public WSSession(HTTPProtocolHandler protocolHandler, Subject subject, Set<Session> sessionsSet) {
         wsre = WSRE.create(protocolHandler);
         this.sessionsSet = sessionsSet;
         this.sessionsSet.add(this);
@@ -79,8 +78,7 @@ public class WSSession implements Session, ProtocolSession<Session>
 
     }
 
-    public Subject getSubject()
-    {
+    public Subject getSubject() {
         return principal.getSubject();
     }
 
@@ -154,7 +152,7 @@ public class WSSession implements Session, ProtocolSession<Session>
      */
     @Override
     public void setMaxIdleTimeout(long l) {
-        if(l < Const.TimeInMillis.MINUTE.MILLIS)
+        if (l < Const.TimeInMillis.MINUTE.MILLIS)
             throw new IllegalArgumentException("Idle timeout too short " + l + " < minute (in millis)");
         this.maxIdleTime = l;
     }
@@ -222,8 +220,7 @@ public class WSSession implements Session, ProtocolSession<Session>
      * @throws IOException
      */
     @Override
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         close(null);
     }
 
@@ -232,26 +229,22 @@ public class WSSession implements Session, ProtocolSession<Session>
      * @throws IOException
      */
     @Override
-    public void close(CloseReason closeReason) throws IOException
-    {
+    public void close(CloseReason closeReason) throws IOException {
 
-        if(!closed.getAndSet(true))
-        {
+        if (!closed.getAndSet(true)) {
             sessionsSet.remove(this);
             log.getLogger().info("Pending WebSocket Sessions: " + sessionsSet.size());
             try {
 
                 Subject subject = getSubject();
 
-                if (subject != null)
-                {
-                    Object subjectID  = subject.getPrincipal();
+                if (subject != null) {
+                    Object subjectID = subject.getPrincipal();
                     subject.logout();
-                    if (log.isEnabled()) log.getLogger().info(subjectID + " is authenticated " + subject.isAuthenticated());
+                    if (log.isEnabled())
+                        log.getLogger().info(subjectID + " is authenticated " + subject.isAuthenticated());
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             IOUtil.close(wsre.basic.hph);
@@ -304,8 +297,7 @@ public class WSSession implements Session, ProtocolSession<Session>
      * @return
      */
     @Override
-    public Principal getUserPrincipal()
-    {
+    public Principal getUserPrincipal() {
         return principal;
     }
 
@@ -313,8 +305,7 @@ public class WSSession implements Session, ProtocolSession<Session>
      * @return
      */
     @Override
-    public Set<Session> getOpenSessions()
-    {
+    public Set<Session> getOpenSessions() {
         return sessionsSet;
     }
 
@@ -330,8 +321,7 @@ public class WSSession implements Session, ProtocolSession<Session>
      * @return true is the session is closed or the implementation allows it, it is not mandatory to obied by the response the caller can invoke close regardless
      */
     @Override
-    public boolean canClose()
-    {
+    public boolean canClose() {
         return true;
     }
 
@@ -346,8 +336,7 @@ public class WSSession implements Session, ProtocolSession<Session>
      * @return true if closed
      */
     @Override
-    public boolean isClosed()
-    {
+    public boolean isClosed() {
         return closed.get();
     }
 }
