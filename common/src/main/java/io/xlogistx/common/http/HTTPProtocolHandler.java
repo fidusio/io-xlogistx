@@ -8,7 +8,7 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.protocol.ProtocolSession;
+import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ public class HTTPProtocolHandler
     //private volatile Lifetime keepAliveLifetime = null;
     //private Appointment keepAliveAppointment = null;
     private volatile int markerIndex = 0;
-    private volatile ProtocolSession<?> protocolSession;
+    private volatile ProtoSession<?, ?> protocolSession;
     private final KATracker kaTracker;
 
     //public volatile List<HTTPWSFrame> pendingWSFrames = new ArrayList<HTTPWSFrame>();
@@ -75,8 +75,11 @@ public class HTTPProtocolHandler
         switch (protocolMode) {
             case HTTP:
             case HTTPS:
-                rawRequest.parse();
+                HTTPMessageConfigInterface hmci = rawRequest.parse();
                 boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
+                if(!ret && rawRequest.areHeadersParsed() && hmci.isTransferChunked()) {
+                        ret = true;
+                }
                 if (log.isEnabled())
                     log.getLogger().info("Protocol Mode: " + protocolMode + " message complete " + ret);
                 return ret;
@@ -239,7 +242,7 @@ public class HTTPProtocolHandler
         kaTracker.expire();
     }
 
-    public void setProtocolSession(ProtocolSession<?> extraSession) {
+    public void setProtocolSession(ProtoSession<?, ?> extraSession) {
         this.protocolSession = extraSession;
     }
 

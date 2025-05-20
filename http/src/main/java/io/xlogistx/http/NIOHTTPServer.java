@@ -4,9 +4,12 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
+import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -29,6 +32,7 @@ import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.IPAddress;
+import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
 
@@ -210,7 +214,7 @@ public class NIOHTTPServer
                 try {
                     //logger.getLogger().info(hph.getResponseStream().toString());
                     hph.getResponseStream().writeTo(os);
-                } catch (IOException ex) {
+                } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             } catch (Exception ex) {
@@ -223,6 +227,7 @@ public class NIOHTTPServer
     }
 
     private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm, HTTPProtocolHandler hph) throws IOException {
+
 
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
         if (logger.isEnabled())
@@ -247,6 +252,8 @@ public class NIOHTTPServer
                         SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
                     hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
 
+
+                if(logger.isEnabled()) logger.getLogger().info("Error response: " + hmci + "\n" + HTTPConst.CommonHeader.WWW_AUTHENTICATE);
                 throw new HTTPCallException("authentication missing", hmci);
 
             } else {
@@ -254,9 +261,21 @@ public class NIOHTTPServer
                         (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
                                 SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
 
-                    SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
-                    if (logger.isEnabled())
-                        logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                    // need to check session HERE
+                    ProtoSession<?, Subject> protoSession = hph.getProtocolSession();
+                    if(protoSession != null)
+                    {
+                        if (protoSession.getSubjectID().isAuthenticated()) {
+                            // we need to swap subject here
+                            ThreadContext.bind(protoSession.getSubjectID());
+                        }
+                    }
+
+                    if (!ShiroUtil.subject().isAuthenticated()) {
+                        SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+                        if (logger.isEnabled())
+                            logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                    }
 
                     if (!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint)) {
 //                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
@@ -264,6 +283,16 @@ public class NIOHTTPServer
 //                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
                         throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
                     }
+
+                    if(hph.getRequest().isTransferChunked() && protoSession == null)
+                    {
+
+                        protoSession = new ShiroSession(ShiroUtil.subject(), hph::isRequestComplete);
+                        hph.setProtocolSession(protoSession);
+                        logger.getLogger().info("TRANSFER-CHUNKED subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                    }
+
+                    // need to add session here
                 } else {
                     if (logger.isEnabled()) logger.getLogger().info("*********** NO LOGIN **********");
                 }
@@ -347,12 +376,34 @@ public class NIOHTTPServer
 
 //                        if (!hph.reset() && hph.isHTTPProtocol())
 //                            IOUtil.close(hph);
-                    hph.reset();
+//                        if (hph.getRequest().isTransferChunked())
+//                            if (hph.isRequestComplete())
+//                                hph.reset();
+//                        else
+//                            hph.reset();
+
+                        if (hph.isRequestComplete() && hph.getProtocolSession() == null)
+                            hph.reset();
                 } finally {
-                    // very important check DO NOT REMOVE since the protocol can switch with HTTP get to
+                    // very important check DO NOT REMOVE since the protocol can switch from HTTP get to
                     // websocket
-                    if (hph.isHTTPProtocol())
-                        ShiroUtil.subject().logout();
+                    if (hph.isHTTPProtocol()) {
+
+                        ProtoSession<?, ?> protoSession = hph.getProtocolSession();
+                        if (protoSession != null) {
+
+
+                            if (protoSession.canClose()) {
+                                protoSession.close();
+                                hph.reset();
+                            }
+                            ThreadContext.unbindSubject();
+
+                        } else {
+                            ShiroUtil.subject().logout();
+                        }
+
+                    }
                 }
             }
             break;

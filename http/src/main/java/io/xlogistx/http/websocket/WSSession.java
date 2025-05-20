@@ -6,7 +6,7 @@ import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.URIScheme;
-import org.zoxweb.shared.protocol.ProtocolSession;
+import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 
@@ -19,12 +19,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class WSSession implements Session, ProtocolSession<Session> {
+public class WSSession implements Session, ProtoSession<Session, Subject> {
 
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
     //private final HTTPProtocolHandler<Subject> hph;
     private volatile long maxIdleTime;
     private final ShiroPrincipal principal;
+    private volatile Subject subject;
     private final WSRE wsre;
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -38,6 +39,8 @@ public class WSSession implements Session, ProtocolSession<Session> {
         this.sessionsSet = sessionsSet;
         this.sessionsSet.add(this);
         this.principal = new ShiroPrincipal(subject);
+        this.subject = subject;
+        setSubjectID(subject);
         log.getLogger().info("Current Sessions: " + sessionsSet.size());
     }
 
@@ -78,9 +81,9 @@ public class WSSession implements Session, ProtocolSession<Session> {
 
     }
 
-    public Subject getSubject() {
-        return principal.getSubject();
-    }
+//    public Subject getSubject() {
+//        return principal.getSubject();
+//    }
 
     /**
      * @return
@@ -210,7 +213,7 @@ public class WSSession implements Session, ProtocolSession<Session> {
      */
     @Override
     public String getId() {
-        return getSubject().
+        return getSubjectID().
                 getSession().
                 getId().
                 toString();
@@ -236,7 +239,7 @@ public class WSSession implements Session, ProtocolSession<Session> {
             log.getLogger().info("Pending WebSocket Sessions: " + sessionsSet.size());
             try {
 
-                Subject subject = getSubject();
+                Subject subject = getSubjectID();
 
                 if (subject != null) {
                     Object subjectID = subject.getPrincipal();
@@ -322,7 +325,7 @@ public class WSSession implements Session, ProtocolSession<Session> {
      */
     @Override
     public boolean canClose() {
-        return true;
+        return !subject.isAuthenticated();
     }
 
     @Override
@@ -338,5 +341,26 @@ public class WSSession implements Session, ProtocolSession<Session> {
     @Override
     public boolean isClosed() {
         return closed.get();
+    }
+
+    /**
+     * Sets the subject ID.
+     *
+     * @param id
+     */
+    @Override
+    public void setSubjectID(Subject id) {
+        this.subject = id;
+        //throw new IllegalArgumentException("Operation not allowed");
+    }
+
+    /**
+     * Returns the subject ID.
+     *
+     * @return
+     */
+    @Override
+    public Subject getSubjectID() {
+        return subject;
     }
 }

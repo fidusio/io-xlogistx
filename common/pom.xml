@@ -70,6 +70,8 @@
       <artifactId>metadata-extractor</artifactId>
       <version>${metadata-exctractor.verion}</version>
     </dependency>
+
+
   </dependencies>
 
 

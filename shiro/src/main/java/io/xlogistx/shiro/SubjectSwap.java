@@ -12,6 +12,7 @@ import org.apache.shiro.subject.support.SubjectThreadState;
 public class SubjectSwap
         implements AutoCloseable
 {
+    public static final String SUBJECT_SWAP = "subject-swap";
 
     private SubjectThreadState subjectThreadState;
 

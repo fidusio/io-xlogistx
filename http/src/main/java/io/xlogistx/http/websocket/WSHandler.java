@@ -4,7 +4,7 @@ import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPRawHandler;
 import io.xlogistx.common.http.WSCache;
 import io.xlogistx.shiro.ShiroUtil;
-import io.xlogistx.shiro.SubjectSwap;
+//import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
@@ -131,15 +131,17 @@ public class WSHandler
             }
             ThreadContext.unbindSubject();
         } else if (hph.isWSProtocol()) {
-            SubjectSwap ss = null;
+//            SubjectSwap ss = null;
             try {
                 WSSession currentSession = hph.getProtocolSession();
-                ss = new SubjectSwap(currentSession.getSubject());
+                ThreadContext.bind(currentSession.getSubjectID());
+//                ss = new SubjectSwap(currentSession.getSubjectID());
                 if (log.isEnabled())
                     log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
                 processWSMessage(hph);
             } finally {
-                IOUtil.close(ss);
+//                IOUtil.close(ss);
+                ThreadContext.unbindSubject();
             }
         }
     }
