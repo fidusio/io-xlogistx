@@ -11,9 +11,11 @@ import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 
 import javax.websocket.*;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.security.Principal;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +33,8 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public static final int MAX_MESSAGE_BUFFER_SIZE = (int) Const.SizeInBytes.K.SIZE * 64;
-    private volatile Set<Session> sessionsSet;
+    private final Set<Session> sessionsSet;
+    private final Set<AutoCloseable> associated = new HashSet<>();
 
     //private final Subject subject;
     public WSSession(HTTPProtocolHandler protocolHandler, Subject subject, Set<Session> sessionsSet) {
@@ -251,6 +254,8 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
                 e.printStackTrace();
             }
             IOUtil.close(wsre.basic.hph);
+            IOUtil.close(associated.toArray(new Closeable[0]));
+
 
         }
 
@@ -326,6 +331,11 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
     @Override
     public boolean canClose() {
         return !subject.isAuthenticated();
+    }
+
+    @Override
+    public Set<AutoCloseable> getAssociated() {
+        return associated;
     }
 
     @Override

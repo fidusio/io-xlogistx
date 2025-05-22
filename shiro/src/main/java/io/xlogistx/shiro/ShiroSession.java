@@ -2,12 +2,16 @@ package io.xlogistx.shiro;
 
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.CloseableTypeHolder;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NamedValue;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class ShiroSession
@@ -18,6 +22,7 @@ public class ShiroSession
     private final NVGenericMap properties = new NVGenericMap("properties");
     private final CloseableTypeHolder cth;
     private final Supplier<Boolean> canCloseDecisionMaker;
+    private final Set<AutoCloseable> associated = new HashSet<>();
 
     public ShiroSession(Subject subject) {
         this(subject, null);
@@ -32,6 +37,7 @@ public class ShiroSession
                 ss.getValue().close();
             session.stop();
             subject.logout();
+            IOUtil.close(associated.toArray(new Closeable[0]));
          });
         this.canCloseDecisionMaker = canCloseDecisionMaker;
 
@@ -55,6 +61,11 @@ public class ShiroSession
         return true;
     }
 
+    @Override
+    public Set<AutoCloseable> getAssociated() {
+        return associated;
+    }
+
     /**
      * Closes this stream and releases any system resources associated
      * with it. If the stream is already closed then invoking this
@@ -76,7 +87,7 @@ public class ShiroSession
     /**
      * Returns the subject ID.
      *
-     * @return
+     * @return the subject of the session
      */
     @Override
     public Subject getSubjectID() {
@@ -101,10 +112,10 @@ public class ShiroSession
     /**
      * Sets the subject ID.
      *
-     * @param id
+     * @param subject the subject of hte session
      */
     @Override
-    public void setSubjectID(Subject id) {
+    public void setSubjectID(Subject subject) {
         throw new IllegalArgumentException("Method not allowed");
     }
 }

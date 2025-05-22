@@ -92,7 +92,7 @@ public class NIOHTTPServer
                         IOUtil.close(this);
 
                     if (logger.isEnabled())
-                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
+                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
                 } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
@@ -149,7 +149,7 @@ public class NIOHTTPServer
                         IOUtil.close(this);
 
                     if (logger.isEnabled())
-                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest() != null ? hph.getRequest().getURI() : ""));
+                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
                 } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
@@ -238,12 +238,12 @@ public class NIOHTTPServer
         // if the resource permission  is PERM_RESOURCE_ANY
         if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
                 !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
-            HTTPAuthorization httpAuthorization = hph.getRequest().getAuthorization();
+            HTTPAuthorization httpAuthorization = hph.getRequest(true).getAuthorization();
             if (logger.isEnabled())
                 logger.getLogger().info("Authorization header: " + httpAuthorization);
 
             if (httpAuthorization == null) {
-                HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
+                HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest(true).getURI(), hph.getRequest(true).getMethod());
                 hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
                 hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
 
@@ -253,7 +253,8 @@ public class NIOHTTPServer
                     hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
 
 
-                if(logger.isEnabled()) logger.getLogger().info("Error response: " + hmci + "\n" + HTTPConst.CommonHeader.WWW_AUTHENTICATE);
+                if (logger.isEnabled())
+                    logger.getLogger().info("Error response: " + hmci + "\n" + HTTPConst.CommonHeader.WWW_AUTHENTICATE);
                 throw new HTTPCallException("authentication missing", hmci);
 
             } else {
@@ -263,8 +264,7 @@ public class NIOHTTPServer
 
                     // need to check session HERE
                     ProtoSession<?, Subject> protoSession = hph.getProtocolSession();
-                    if(protoSession != null)
-                    {
+                    if (protoSession != null) {
                         if (protoSession.getSubjectID().isAuthenticated()) {
                             // we need to swap subject here
                             ThreadContext.bind(protoSession.getSubjectID());
@@ -284,8 +284,7 @@ public class NIOHTTPServer
                         throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
                     }
 
-                    if(hph.getRequest().isTransferChunked() && protoSession == null)
-                    {
+                    if (hph.getRequest(true).isTransferChunked() && protoSession == null) {
 
                         protoSession = new ShiroSession(ShiroUtil.subject(), hph::isRequestComplete);
                         hph.setProtocolSession(protoSession);
@@ -314,20 +313,23 @@ public class NIOHTTPServer
                 try {
 
                     if (logger.isEnabled()) {
-                        logger.getLogger().info(hph.getRequest().getURI());
-                        logger.getLogger().info("HTTP status code: " + hph.getRequest().getHTTPStatusCode());
-                        logger.getLogger().info("" + hph.getRequest().getHeaders());
+                        logger.getLogger().info(hph.getRequest(true).getURI());
+                        logger.getLogger().info("HTTP status code: " + hph.getRequest(true).getHTTPStatusCode());
+                        logger.getLogger().info("" + hph.getRequest(true).getHeaders());
                     }
 
-                    URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph.getRequest().getURI());
+                    URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph
+                            .getRequest(true)
+                            .getURI());
                     if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
 
                     if (epm != null) {
                         if (logger.isEnabled())
                             logger.getLogger().info("emp:" + epm + " " + epm.path + " " + epm.result);
                         // validate if method supported
-                        if (!epm.result.httpEndPoint.isHTTPMethodSupported(hph.getRequest().getMethod())) {
-                            throw new HTTPCallException(hph.getRequest().getMethod() + " not supported use " +
+                        HTTPMethod toCheck = hph.getRequest(true).getMethod();
+                        if (!epm.result.httpEndPoint.isHTTPMethodSupported(toCheck)) {
+                            throw new HTTPCallException(toCheck + " not supported use " +
                                     Arrays.toString(epm.result.httpEndPoint.getHTTPMethods()),
                                     HTTPStatusCode.METHOD_NOT_ALLOWED);
                         }
@@ -338,7 +340,7 @@ public class NIOHTTPServer
                         // check if instance of HTTPSessionHandler
                         if (epm.result.methodHolder.instance instanceof HTTPRawHandler) {
                             ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
-                        } else {
+                        } else if (hph.isRequestComplete()) {
                             if (logger.isEnabled()) {
                                 logger.getLogger().info("" + epm.result.methodHolder.instance);
                                 logger.getLogger().info("" + hph.getRequest());
@@ -362,7 +364,7 @@ public class NIOHTTPServer
                     } else {
                         // error status uri map not found
                         SimpleMessage sm = new SimpleMessage();
-                        sm.setError(hph.getRequest().getURI() + " not found");
+                        sm.setError(hph.getRequest(true).getURI() + " not found");
                         sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
 
 
@@ -382,8 +384,10 @@ public class NIOHTTPServer
 //                        else
 //                            hph.reset();
 
-                        if (hph.isRequestComplete() && hph.getProtocolSession() == null)
-                            hph.reset();
+                    if (hph.isRequestComplete() && hph.getProtocolSession() == null) {
+                        hph.reset();
+                        if (logger.isEnabled()) logger.getLogger().info("hph reset invoked");
+                    }
                 } finally {
                     // very important check DO NOT REMOVE since the protocol can switch from HTTP get to
                     // websocket

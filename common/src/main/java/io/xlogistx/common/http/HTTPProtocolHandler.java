@@ -77,8 +77,8 @@ public class HTTPProtocolHandler
             case HTTPS:
                 HTTPMessageConfigInterface hmci = rawRequest.parse();
                 boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
-                if(!ret && rawRequest.areHeadersParsed() && hmci.isTransferChunked()) {
-                        ret = true;
+                if (!ret && rawRequest.areHeadersParsed() && hmci.isTransferChunked()) {
+                    ret = true;
                 }
                 if (log.isEnabled())
                     log.getLogger().info("Protocol Mode: " + protocolMode + " message complete " + ret);
@@ -160,6 +160,10 @@ public class HTTPProtocolHandler
         return rawRequest.isMessageComplete();
     }
 
+    public HTTPMessageConfigInterface getRequest(boolean withIncompleteContent) {
+        return withIncompleteContent ? (rawRequest.areHeadersParsed() ? rawRequest.getHTTPMessageConfig() : null) : getRequest();
+    }
+
     public HTTPMessageConfigInterface getRequest() {
         return isRequestComplete() ? rawRequest.getHTTPMessageConfig() : null;
     }
@@ -175,18 +179,9 @@ public class HTTPProtocolHandler
     @Override
     public synchronized void close() throws IOException {
         if (!closed.getAndSet(true)) {
-//            isBusy.set(false);
-            //IOUtil.close(keepAliveLifetime, keepAliveAppointment);
-
-            if (getProtocolSession() instanceof AutoCloseable)
-                IOUtil.close((AutoCloseable) getProtocolSession(), getOutputStream());
-            else
-                IOUtil.close(getOutputStream());
-
+            IOUtil.close(getProtocolSession(), getOutputStream());
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
             expire();
-            //if(log.isEnabled()) log.getLogger().info(keepAliveAppointment + " " + keepAliveLifetime + " " + protocolMode);
-
         }
     }
 

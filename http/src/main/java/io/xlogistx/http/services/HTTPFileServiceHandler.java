@@ -31,7 +31,7 @@ public class HTTPFileServiceHandler
     @EndPointProp(methods = {HTTPMethod.GET}, name = "files", uris = "/")
     public void handle(@ParamProp(name = "file-info", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler protocolHandler)
             throws IOException {
-        String filename = protocolHandler.getRequest().getURI();
+        String filename = protocolHandler.getRequest(true).getURI();
 
         if (SUS.isEmpty(filename) || filename.equals("/")) {
             String override = getProperties().getValue("default_file");
