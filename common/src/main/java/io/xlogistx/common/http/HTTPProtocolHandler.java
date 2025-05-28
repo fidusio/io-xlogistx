@@ -26,22 +26,10 @@ public class HTTPProtocolHandler
     private final HTTPRawMessage rawRequest = new HTTPRawMessage(ByteBufferUtil.allocateUBAOS(256));
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile URIScheme protocolMode;
-    //private volatile Lifetime keepAliveLifetime = null;
-    //private Appointment keepAliveAppointment = null;
     private volatile int markerIndex = 0;
-    private volatile ProtoSession<?, ?> protocolSession;
+    private volatile ProtoSession<?, ?> connectionSession;
     private final KATracker kaTracker;
-
-    //public volatile List<HTTPWSFrame> pendingWSFrames = new ArrayList<HTTPWSFrame>();
-
-
     private volatile Object endPointBean = null;
-
-
-    //public AtomicBoolean isBusy = new AtomicBoolean();
-
-
-    //private volatile S subject = null;
     private volatile OutputStream outputStream;
 
     public HTTPProtocolHandler(URIScheme protocol, KAConfig kaConfig) {
@@ -98,64 +86,6 @@ public class HTTPProtocolHandler
     }
 
 
-//    private void checkKeepAlive()
-//    {
-//        // check if we have keep alive configured by the server then
-//        // if the incoming request wants it
-//        if (!kaTracker.isExpired() &&
-//                rawRequest.getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, "keep-alive") != null)
-//        {
-//            if (keepAliveLifetime == null)
-//            {
-//                // reason for double lock check is speed baby
-//                synchronized (this)
-//                {
-//                    if (keepAliveLifetime == null)
-//                    {
-//                        NVGenericMap keepAliveConfig = ResourceManager.lookupResource("keep-alive-config");
-//                        int maxUse = keepAliveConfig.getValue("maximum");
-//                        long timeOut = keepAliveConfig.getValue("time_out");
-//                        keepAliveLifetime = new Lifetime(System.currentTimeMillis(), maxUse, null, timeOut);
-
-    /// /                        keepAliveAppointment = TaskUtil.defaultTaskScheduler().queue(keepAliveLifetime.nextWait(), ()->{
-    /// /                            if (!isClosed())
-    /// /                            {
-    /// /                                if(log.isEnabled()) log.getLogger().info(SharedUtil.toCanonicalID(',',  "complete:"+isRequestComplete(), "busy:"+isBusy.get(), rawRequest.getDataStream().size(), keepAliveLifetime));
-    /// /                                try
-    /// /                                {
-    /// /                                    if(!isBusy.get())
-    /// /                                        close();
-    /// /                                    else
-    /// /                                    {
-    /// /                                        synchronized (HTTPProtocolHandler.this)
-    /// /                                        {
-    /// /                                            // situation could occur if the request processing of the client
-    /// /                                            // taking longer than expected and we need to close
-    /// /                                            // and the keep timeout and keep alive is active
-    /// /                                            // very very rare case not sure if it will ever occur
-    /// /                                            IOUtil.close(keepAliveAppointment, keepAliveLifetime);
-    /// /                                            if(log.isEnabled()) log.getLogger().info("//****************** Very rare case to happen!!!  ******************\\\\");
-    /// /                                        }
-    /// /                                    }
-    /// /                                }
-    /// /                                catch (Exception e)
-    /// /                                {
-    /// /                                    e.printStackTrace();
-    /// /                                }
-    /// /                            }
-    /// /                        });
-//                    }
-//                }
-//            }
-//
-//            if (!keepAliveLifetime.isClosed())
-//                keepAliveAppointment.cancel();
-//        }
-//        else if (keepAliveLifetime != null)
-//           IOUtil.close(keepAliveAppointment, keepAliveLifetime);
-//
-//
-//    }
     public boolean isRequestComplete() {
         return rawRequest.isMessageComplete();
     }
@@ -179,7 +109,7 @@ public class HTTPProtocolHandler
     @Override
     public synchronized void close() throws IOException {
         if (!closed.getAndSet(true)) {
-            IOUtil.close(getProtocolSession(), getOutputStream());
+            IOUtil.close(getConnectionSession(), getOutputStream());
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
             expire();
         }
@@ -237,12 +167,14 @@ public class HTTPProtocolHandler
         kaTracker.expire();
     }
 
-    public void setProtocolSession(ProtoSession<?, ?> extraSession) {
-        this.protocolSession = extraSession;
+    public synchronized void setConnectionSession(ProtoSession<?, ?> session) {
+        this.connectionSession = session;
+        if(session != null)
+            session.getAutoCloseables().add(this);
     }
 
-    public <V> V getProtocolSession() {
-        return (V) protocolSession;
+    public <V> V getConnectionSession() {
+        return (V) connectionSession;
     }
 
 //    public synchronized HTTPMessageConfigInterface buildJSONResponse(Object result, HTTPStatusCode statusCode, GetNameValue<?> ...headersToAdd)

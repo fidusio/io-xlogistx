@@ -2,42 +2,55 @@ package io.xlogistx.shiro;
 
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.CloseableTypeHolder;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NamedValue;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public class ShiroSession
+public class ShiroSession<V>
         implements ProtoSession<Session, Subject> {
 
-    private final Session session;
+    public final static String ASSOCIATED_SESSION = "associated-session";
+    public final static String SHIRO_SESSION = "shiro-session-self";
+
     private final Subject subject;
     private final NVGenericMap properties = new NVGenericMap("properties");
     private final CloseableTypeHolder cth;
     private final Supplier<Boolean> canCloseDecisionMaker;
-    private final Set<AutoCloseable> associated = new HashSet<>();
+    private final Set<AutoCloseable> autoCloseables = new LinkedHashSet<>();
+
+
 
     public ShiroSession(Subject subject) {
-        this(subject, null);
+        this(subject, null, null);
     }
 
-    public ShiroSession(Subject subject, Supplier<Boolean> canCloseDecisionMaker) {
+
+    public ShiroSession(Subject subject, V associatedSession) {
+        this(subject, associatedSession, null);
+    }
+
+    public ShiroSession(Subject subject, V associatedSession, Supplier<Boolean> canCloseDecisionMaker) {
         this.subject = subject;
-        session = subject.getSession();
+        if(associatedSession != null)
+            this.subject.getSession().setAttribute(ASSOCIATED_SESSION, associatedSession);
+
+        this.subject.getSession().setAttribute(SHIRO_SESSION, this);
+
         cth = new CloseableTypeHolder((Runnable) ()-> {
             NamedValue<SubjectSwap> ss = getProperties().getNV(SubjectSwap.SUBJECT_SWAP);
             if(ss != null && ss.getValue() != null)
                 ss.getValue().close();
-            session.stop();
             subject.logout();
-            IOUtil.close(associated.toArray(new Closeable[0]));
+            AutoCloseable[] toClose = autoCloseables.toArray(new AutoCloseable[0]);
+            IOUtil.close(toClose);
          });
         this.canCloseDecisionMaker = canCloseDecisionMaker;
 
@@ -48,7 +61,7 @@ public class ShiroSession
      */
     @Override
     public Session getSession() {
-        return session;
+        return subject.getSession();
     }
 
     /**
@@ -62,8 +75,29 @@ public class ShiroSession
     }
 
     @Override
-    public Set<AutoCloseable> getAssociated() {
-        return associated;
+    public Set<AutoCloseable> getAutoCloseables() {
+        return autoCloseables;
+    }
+
+    /**
+     * Attach the session to the current context like a thread or something else
+     *
+     * @return true if the session was attached successfully
+     */
+    @Override
+    public boolean attach() {
+        ThreadContext.bind(subject);
+        return subject != null;
+    }
+
+    /**
+     * Detach the session from the current context
+     *
+     * @return true if the session was detached successfully
+     */
+    @Override
+    public boolean detach() {
+        return ThreadContext.unbindSubject() != null;
     }
 
     /**
@@ -109,13 +143,9 @@ public class ShiroSession
         return cth.isClosed();
     }
 
-    /**
-     * Sets the subject ID.
-     *
-     * @param subject the subject of hte session
-     */
-    @Override
-    public void setSubjectID(Subject subject) {
-        throw new IllegalArgumentException("Method not allowed");
+    public V getAssociatedSession()
+    {
+        return (V) getSession().getAttribute(ASSOCIATED_SESSION);
     }
+
 }

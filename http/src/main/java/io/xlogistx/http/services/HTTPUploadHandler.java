@@ -160,11 +160,13 @@ public class HTTPUploadHandler
                     throw new HTTPCallException("Invalid storage location ", HTTPStatusCode.FORBIDDEN);
 
                 fos = new FileOutputStream(file);
-                ProtoSession<?, ?> ps = hph.getProtocolSession();
-                ps.getAssociated().add(fos);
-                fileData.getProperties().build(new NamedValue<OutputStream>("fos", fos));
+                ProtoSession<?, ?> ps = hph.getConnectionSession();
+                ps.getAutoCloseables().add(fos);
+                fileData.getProperties().build(new NamedValue<>("fos", fos));
 
-                fileData.getProperties().build(new NamedValue<File>("file", file));
+                fileData.getProperties().build(new NamedValue<>("file", file));
+                fileData.getProperties().build(new NVLong("start-ts", System.currentTimeMillis()));
+
 
             }
 
@@ -173,7 +175,7 @@ public class HTTPUploadHandler
             if (md == null) {
                 try {
                     md = MessageDigest.getInstance(CryptoConst.HASHType.SHA_256.getName());
-                    fileData.getProperties().build(new NamedValue<MessageDigest>("md", md));
+                    fileData.getProperties().build(new NamedValue<>("md", md));
                 } catch (NoSuchAlgorithmException e) {
                     throw new RuntimeException(e);
                 }
@@ -184,13 +186,15 @@ public class HTTPUploadHandler
             int chunkSize = fileData.getValue().available();
             totalCopied += IOUtil.relayStreams(md, fileData.getValue(), fos);
             fileData.getProperties().build(new NVLong("total-copied", totalCopied));
-            if (log.isEnabled())
-                log.getLogger().info("Total copied fo far " + totalCopied + " chunkSize: " + chunkSize + " " + fileData.getProperties().getNV(ProtoMarker.LAST_CHUNK) +
-                        " Request data buffer size: " + hph.getRawRequest().getDataStream().size() + " request complete: " + hph.isRequestComplete());
             IOUtil.close(fileData.getValue());
+
+            if (log.isEnabled())
+                log.getLogger().info("Total copied so far " + totalCopied + " chunkSize: " + chunkSize + " " + fileData.getProperties().getNV(ProtoMarker.LAST_CHUNK) +
+                        " Request data buffer size: " + hph.getRawRequest().getDataStream().size() + " request complete: " + hph.isRequestComplete());
 
 
             if ((boolean) fileData.getProperties().getValue(ProtoMarker.LAST_CHUNK)) {
+                long delta = System.currentTimeMillis() - (long) fileData.getProperties().getValue("start-ts");
 
 
                 log.getLogger().info("last remaining raw data: " + hph.getRawRequest().getDataStream().size());
@@ -208,6 +212,7 @@ public class HTTPUploadHandler
                 responseData.build("filename", file.getName())
                         .build(new NVLong("length", hashResult.dataLength))
                         .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
+                        .build("duration", Const.TimeInMillis.toString(delta))
                         .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
 
                 hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));

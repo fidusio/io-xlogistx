@@ -3,6 +3,7 @@ package io.xlogistx.http.websocket;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPRawHandler;
 import io.xlogistx.common.http.WSCache;
+import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
 //import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
@@ -115,30 +116,31 @@ public class WSHandler
             hph.setEndPointBean(this);
 
 
-            WSSession wsSession = null;
+            WSSession webSocketSession = null;
             // create the websocket session
-            if (hph.getProtocolSession() == null) {
-                wsSession = new WSSession(hph, ShiroUtil.subject(), sessionSet);
-                hph.setProtocolSession(wsSession);
+            if (hph.getConnectionSession() == null) {
+                webSocketSession = new WSSession(hph, ShiroUtil.subject(), sessionSet);
+                hph.setConnectionSession(webSocketSession.getShiroSession());
             }
             // call OnOpen
             Method toInvoke = methodCache.lookup(WSCache.WSMethodType.OPEN, false);
             if (toInvoke != null) {
                 try {
-                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{hph.getProtocolSession()});
+                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{webSocketSession});
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
 
-            if(wsSession != null)
-                wsSession.detach();
+            if (webSocketSession != null)
+                webSocketSession.getShiroSession().detach();
             else
                 ThreadContext.unbindSubject();
 
         } else if (hph.isWSProtocol()) {
+
 //            SubjectSwap ss = null;
-            WSSession currentSession = hph.getProtocolSession();
+            ShiroSession<?> currentSession = hph.getConnectionSession();
             try {
 
                 currentSession.attach();
@@ -156,13 +158,15 @@ public class WSHandler
     private void processWSMessage(HTTPProtocolHandler hph)
             throws IOException {
         HTTPWSFrame frame;
-        WSSession session = hph.getProtocolSession();
-        while (session.isOpen() && (frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getMarkerIndex())) != null) {
+        ShiroSession<WSSession> shiroSession = hph.getConnectionSession();
+        WSSession webSocketSession = shiroSession.getAssociatedSession();
+        while (webSocketSession.isOpen() && (frame = HTTPWSFrame.parse(hph.getRawRequest().getDataStream(), hph.getMarkerIndex())) != null) {
             if (log.isEnabled())
                 log.getLogger().info("We have a web socket frame " + SUS.toCanonicalID(',', frame.opCode(), frame.isFin(), frame.isMasked(), frame.status(), frame.dataLength()));
 
             HTTPWSProto.OpCode opCode = frame.opCode();
             if (opCode != null) {
+
 
                 Method toInvoke = null;
                 Object[] parameters = null;
@@ -171,7 +175,7 @@ public class WSHandler
                         toInvoke = methodCache.lookup(opCode, !frame.isFin());
 
                         if (toInvoke != null) {
-                            parameters = new Object[]{frame.data().asString(), frame.isFin(), hph.getProtocolSession()};
+                            parameters = new Object[]{frame.data().asString(), frame.isFin(), webSocketSession};
                         }
                         break;
                     case BINARY:
@@ -179,13 +183,13 @@ public class WSHandler
                         toInvoke = methodCache.lookup(opCode, !frame.isFin());
 
                         if (toInvoke != null) {
-                            parameters = new Object[]{frame.data(), frame.isFin(), hph.getProtocolSession()};
+                            parameters = new Object[]{frame.data(), frame.isFin(), webSocketSession};
                         }
                         break;
                     case CLOSE:
                         toInvoke = methodCache.lookup(opCode, false);
                         if (toInvoke != null) {
-                            parameters = new Object[]{hph.getProtocolSession()};
+                            parameters = new Object[]{webSocketSession};
 
 
                             if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
@@ -199,24 +203,26 @@ public class WSHandler
                         return;
                     case PING:
                         // we received a ping message
-                        session.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
+
+                        webSocketSession.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
                         break;
                     case PONG:
                         toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
                         if (toInvoke != null) {
-                            parameters = new Object[]{new WSPongMessage(frame.data()), hph.getProtocolSession()};
+                            parameters = new Object[]{new WSPongMessage(frame.data()), webSocketSession};
                         }
                         break;
                 }
 
                 // invoke method
                 if (toInvoke != null) {
-                    if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
+                    if (log.isEnabled())
+                        log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
                     try {
                         ShiroUtil.invokeMethod(false, getBean(), toInvoke, parameters);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        log.getLogger().info(session.isOpen() + " " + frame.id() + " " + e);
+                        log.getLogger().info(webSocketSession.isOpen() + " " + frame.id() + " " + e);
                         //
                     }
                 }

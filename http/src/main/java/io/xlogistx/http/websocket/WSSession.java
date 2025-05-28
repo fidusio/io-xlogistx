@@ -2,8 +2,9 @@ package io.xlogistx.http.websocket;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.shiro.ShiroPrincipal;
+import io.xlogistx.shiro.ShiroSession;
 import org.apache.shiro.subject.Subject;
-import org.zoxweb.server.io.IOUtil;
+import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.protocol.ProtoSession;
@@ -11,39 +12,56 @@ import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 
 import javax.websocket.*;
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.security.Principal;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WSSession implements Session, ProtoSession<Session, Subject> {
 
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
-    //private final HTTPProtocolHandler<Subject> hph;
+
     private volatile long maxIdleTime;
     private final ShiroPrincipal principal;
-    private volatile Subject subject;
-    private final WSRE wsre;
 
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final WSRE wsre;
 
     public static final int MAX_MESSAGE_BUFFER_SIZE = (int) Const.SizeInBytes.K.SIZE * 64;
     private final Set<Session> sessionsSet;
-    private final Set<AutoCloseable> associated = new HashSet<>();
+    private final ShiroSession<WSSession> shiroSession;
 
-    //private final Subject subject;
     public WSSession(HTTPProtocolHandler protocolHandler, Subject subject, Set<Session> sessionsSet) {
         wsre = WSRE.create(protocolHandler);
         this.sessionsSet = sessionsSet;
         this.sessionsSet.add(this);
         this.principal = new ShiroPrincipal(subject);
-        this.subject = subject;
-        setSubjectID(subject);
+        shiroSession = new ShiroSession<WSSession>(subject, this);
+
+        shiroSession.getAutoCloseables().add(() -> {
+            try {
+                this.sessionsSet.remove(this);
+                log.getLogger().info("Pending WebSocket Sessions: " + this.sessionsSet.size());
+//                try {
+//
+//
+//                    if (subject != null) {
+//                        Object subjectID = subject.getPrincipal();
+//                        subject.logout();
+//                        if (log.isEnabled())
+//                            log.getLogger().info(subjectID + " is authenticated " + subject.isAuthenticated());
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                IOUtil.close(wsre.basic.hph);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+
         log.getLogger().info("Current Sessions: " + sessionsSet.size());
     }
 
@@ -72,6 +90,11 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
     @Override
     public <T> void addMessageHandler(Class<T> aClass, MessageHandler.Whole<T> whole) {
 
+    }
+
+    public ShiroSession<WSSession> getShiroSession()
+    {
+        return shiroSession;
     }
 
     /**
@@ -236,29 +259,7 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
      */
     @Override
     public void close(CloseReason closeReason) throws IOException {
-
-        if (!closed.getAndSet(true)) {
-            sessionsSet.remove(this);
-            log.getLogger().info("Pending WebSocket Sessions: " + sessionsSet.size());
-            try {
-
-                Subject subject = getSubjectID();
-
-                if (subject != null) {
-                    Object subjectID = subject.getPrincipal();
-                    subject.logout();
-                    if (log.isEnabled())
-                        log.getLogger().info(subjectID + " is authenticated " + subject.isAuthenticated());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            IOUtil.close(wsre.basic.hph);
-            IOUtil.close(associated.toArray(new Closeable[0]));
-
-
-        }
-
+        shiroSession.close();
     }
 
     /**
@@ -330,12 +331,12 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
      */
     @Override
     public boolean canClose() {
-        return !subject.isAuthenticated();
+        return !shiroSession.getSubjectID().isAuthenticated();
     }
 
     @Override
-    public Set<AutoCloseable> getAssociated() {
-        return associated;
+    public Set<AutoCloseable> getAutoCloseables() {
+        return shiroSession.getAutoCloseables();
     }
 
     @Override
@@ -350,18 +351,7 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
      */
     @Override
     public boolean isClosed() {
-        return closed.get();
-    }
-
-    /**
-     * Sets the subject ID.
-     *
-     * @param id
-     */
-    @Override
-    public void setSubjectID(Subject id) {
-        this.subject = id;
-        //throw new IllegalArgumentException("Operation not allowed");
+        return shiroSession.isClosed();
     }
 
     /**
@@ -371,6 +361,16 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
      */
     @Override
     public Subject getSubjectID() {
-        return subject;
+        return shiroSession.getSubjectID();
+    }
+
+
+    public boolean attach() {
+        ThreadContext.bind(getSubjectID());
+        return getSubjectID() != null;
+    }
+
+    public boolean detach() {
+        return ThreadContext.unbindSubject() != null;
     }
 }

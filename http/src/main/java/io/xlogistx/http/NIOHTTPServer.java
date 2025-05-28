@@ -263,11 +263,12 @@ public class NIOHTTPServer
                                 SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
 
                     // need to check session HERE
-                    ProtoSession<?, Subject> protoSession = hph.getProtocolSession();
+                    ProtoSession<?, Subject> protoSession = hph.getConnectionSession();
                     if (protoSession != null) {
                         if (protoSession.getSubjectID().isAuthenticated()) {
                             // we need to swap subject here
-                            ThreadContext.bind(protoSession.getSubjectID());
+                            //ThreadContext.bind(protoSession.getSubjectID());
+                            protoSession.attach();
                         }
                     }
 
@@ -286,8 +287,9 @@ public class NIOHTTPServer
 
                     if (hph.getRequest(true).isTransferChunked() && protoSession == null) {
 
-                        protoSession = new ShiroSession(ShiroUtil.subject(), hph::isRequestComplete);
-                        hph.setProtocolSession(protoSession);
+//                        Subject currentSubject = ShiroUtil.subject();
+//                        protoSession = new ShiroSession(currentSubject, null, hph::isRequestComplete);
+                        hph.setConnectionSession(new ShiroSession<>(ShiroUtil.subject(), null, hph::isRequestComplete));
                         logger.getLogger().info("TRANSFER-CHUNKED subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
                     }
 
@@ -384,7 +386,7 @@ public class NIOHTTPServer
 //                        else
 //                            hph.reset();
 
-                    if (hph.isRequestComplete() && hph.getProtocolSession() == null) {
+                    if (hph.isRequestComplete() && hph.getConnectionSession() == null) {
                         hph.reset();
                         if (logger.isEnabled()) logger.getLogger().info("hph reset invoked");
                     }
@@ -393,7 +395,7 @@ public class NIOHTTPServer
                     // websocket
                     if (hph.isHTTPProtocol()) {
 
-                        ProtoSession<?, ?> protoSession = hph.getProtocolSession();
+                        ProtoSession<?, ?> protoSession = hph.getConnectionSession();
                         if (protoSession != null) {
 
 
@@ -451,7 +453,7 @@ public class NIOHTTPServer
     }
 
     public void start() throws IOException, GeneralSecurityException {
-        // very crucial step must be executed first
+
         TaskUtil.registerMainThread();
         String msg = "";
         NVGenericMap keepAliveConfig = null;
