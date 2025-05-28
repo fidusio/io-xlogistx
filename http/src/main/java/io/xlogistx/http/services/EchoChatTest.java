@@ -22,7 +22,7 @@ public class EchoChatTest {
 
     @OnOpen
     public void onOpen(Session session) {
-        System.out.println("New session opened: " + SUS.toCanonicalID('.', ShiroUtil.subject().getPrincipal(), session.getId()));
+        System.out.println("New session opened: " + SUS.toCanonicalID(true, '.', ShiroUtil.subject().getPrincipal(), session.getId()));
     }
 
     @OnMessage

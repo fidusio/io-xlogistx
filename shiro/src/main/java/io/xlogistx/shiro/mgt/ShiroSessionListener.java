@@ -9,7 +9,7 @@ import org.zoxweb.server.logging.LogWrapper;
 public class ShiroSessionListener implements SessionListener {
 
 
-    public static final LogWrapper log = new LogWrapper(ShiroSessionListener.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(ShiroSessionListener.class).setEnabled(false);
 
     @Override
     public void onStart(Session session)

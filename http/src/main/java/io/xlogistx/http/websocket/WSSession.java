@@ -4,12 +4,9 @@ import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.shiro.ShiroPrincipal;
 import io.xlogistx.shiro.ShiroSession;
 import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.URIScheme;
-import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.NVGenericMap;
 
 import javax.websocket.*;
 import java.io.IOException;
@@ -19,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class WSSession implements Session, ProtoSession<Session, Subject> {
+public class WSSession implements Session {
 
     public static LogWrapper log = new LogWrapper(WSSession.class).setEnabled(true);
 
@@ -40,22 +37,10 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
         shiroSession = new ShiroSession<WSSession>(subject, this);
 
         shiroSession.getAutoCloseables().add(() -> {
-            try {
+            try
+            {
                 this.sessionsSet.remove(this);
                 log.getLogger().info("Pending WebSocket Sessions: " + this.sessionsSet.size());
-//                try {
-//
-//
-//                    if (subject != null) {
-//                        Object subjectID = subject.getPrincipal();
-//                        subject.logout();
-//                        if (log.isEnabled())
-//                            log.getLogger().info(subjectID + " is authenticated " + subject.isAuthenticated());
-//                    }
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//                IOUtil.close(wsre.basic.hph);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -164,7 +149,7 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
      */
     @Override
     public boolean isOpen() {
-        return !wsre.basic.hph.isClosed();
+        return !shiroSession.isClosed();
     }
 
 
@@ -239,10 +224,7 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
      */
     @Override
     public String getId() {
-        return getSubjectID().
-                getSession().
-                getId().
-                toString();
+        return shiroSession.getSession().getId().toString();
     }
 
     /**
@@ -318,59 +300,59 @@ public class WSSession implements Session, ProtoSession<Session, Subject> {
         return sessionsSet;
     }
 
-    /**
-     * @return the actual session associated with the implementation
-     */
-    @Override
-    public Session getSession() {
-        return this;
-    }
+//    /**
+//     * @return the actual session associated with the implementation
+//     */
+//    @Override
+//    public Session getSession() {
+//        return this;
+//    }
 
     /**
      * @return true is the session is closed or the implementation allows it, it is not mandatory to obied by the response the caller can invoke close regardless
      */
-    @Override
-    public boolean canClose() {
-        return !shiroSession.getSubjectID().isAuthenticated();
-    }
+//    @Override
+//    public boolean canClose() {
+//        return !shiroSession.getSubjectID().isAuthenticated();
+//    }
 
-    @Override
-    public Set<AutoCloseable> getAutoCloseables() {
-        return shiroSession.getAutoCloseables();
-    }
+//    @Override
+//    public Set<AutoCloseable> getAutoCloseables() {
+//        return shiroSession.getAutoCloseables();
+//    }
 
-    @Override
-    public NVGenericMap getProperties() {
-        return null;
-    }
+//    @Override
+//    public NVGenericMap getProperties() {
+//        return null;
+//    }
 
-    /**
-     * Checks if closed.
-     *
-     * @return true if closed
-     */
-    @Override
-    public boolean isClosed() {
-        return shiroSession.isClosed();
-    }
+//    /**
+//     * Checks if closed.
+//     *
+//     * @return true if closed
+//     */
+//    @Override
+//    public boolean isClosed() {
+//        return shiroSession.isClosed();
+//    }
 
-    /**
-     * Returns the subject ID.
-     *
-     * @return
-     */
-    @Override
-    public Subject getSubjectID() {
-        return shiroSession.getSubjectID();
-    }
+//    /**
+//     * Returns the subject ID.
+//     *
+//     * @return
+//     */
+//    @Override
+//    public Subject getSubjectID() {
+//        return shiroSession.getSubjectID();
+//    }
 
 
-    public boolean attach() {
-        ThreadContext.bind(getSubjectID());
-        return getSubjectID() != null;
-    }
+//    public boolean attach() {
+//        ThreadContext.bind(getSubjectID());
+//        return getSubjectID() != null;
+//    }
 
-    public boolean detach() {
-        return ThreadContext.unbindSubject() != null;
-    }
+//    public boolean detach() {
+//        return ThreadContext.unbindSubject() != null;
+//    }
 }
