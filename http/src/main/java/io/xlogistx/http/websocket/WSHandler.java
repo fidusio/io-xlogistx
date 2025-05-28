@@ -114,12 +114,13 @@ public class WSHandler
             if (log.isEnabled()) log.getLogger().info("Request Size() " + hph.getRawRequest().getDataStream().size());
             hph.setEndPointBean(this);
 
+
+            WSSession wsSession = null;
             // create the websocket session
             if (hph.getProtocolSession() == null) {
-                hph.setProtocolSession(new WSSession(hph, ShiroUtil.subject(), sessionSet));
+                wsSession = new WSSession(hph, ShiroUtil.subject(), sessionSet);
+                hph.setProtocolSession(wsSession);
             }
-            // set the subject
-            //hph.setSubject(SecurityUtils.getSubject());
             // call OnOpen
             Method toInvoke = methodCache.lookup(WSCache.WSMethodType.OPEN, false);
             if (toInvoke != null) {
@@ -129,19 +130,24 @@ public class WSHandler
                     e.printStackTrace();
                 }
             }
-            ThreadContext.unbindSubject();
+
+            if(wsSession != null)
+                wsSession.detach();
+            else
+                ThreadContext.unbindSubject();
+
         } else if (hph.isWSProtocol()) {
 //            SubjectSwap ss = null;
+            WSSession currentSession = hph.getProtocolSession();
             try {
-                WSSession currentSession = hph.getProtocolSession();
-                ThreadContext.bind(currentSession.getSubjectID());
-//                ss = new SubjectSwap(currentSession.getSubjectID());
+
+                currentSession.attach();
                 if (log.isEnabled())
                     log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
                 processWSMessage(hph);
             } finally {
-//                IOUtil.close(ss);
-                ThreadContext.unbindSubject();
+
+                currentSession.detach();
             }
         }
     }
