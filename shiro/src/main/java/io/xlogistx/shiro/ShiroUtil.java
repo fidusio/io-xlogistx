@@ -29,6 +29,7 @@ import org.apache.shiro.mgt.RealmSecurityManager;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.session.Session;
+import org.apache.shiro.session.mgt.DefaultSessionKey;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
@@ -49,7 +50,6 @@ import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
 import org.zoxweb.shared.util.*;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -422,7 +422,7 @@ public class ShiroUtil {
     }
 
     public static Object invokeMethod(boolean strict, Object bean, Method method, Object... parameters)
-            throws InvocationTargetException, IllegalAccessException, IOException {
+            throws InvocationTargetException, IllegalAccessException {
         authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
         return ReflectionUtil.invokeMethod(strict, bean, method, parameters);
     }
@@ -445,6 +445,59 @@ public class ShiroUtil {
         if (failureCount == roles.length) {
             throw new AccessException("All roles failed");
         }
+    }
+
+    /**
+     * @param session that might have a ShiroSession
+     * @param <V>     session type
+     * @return the ShiroSession or null
+     */
+    public static <V> ShiroSession<V> getShiroSession(Session session) {
+        if (session != null)
+            return (ShiroSession<V>) session.getAttribute(ShiroSession.SHIRO_SESSION);
+
+        return null;
+    }
+
+    public static boolean areSessionsEquals(Session session1, Session session2) {
+        if (session1 == null || session2 == null)
+            return false;
+        return session1.getId().equals(session2.getId());
+    }
+
+    public static Session lookupSessionByID(String id)
+            throws AccessException {
+        try {
+            return SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(id));
+
+        } catch (ShiroException e) {
+            throw new AccessException(e.getMessage());
+        }
+    }
+
+    /**
+     * @param session that might have an associates session
+     * @param <V>     associated session type
+     * @return the associated session or null
+     */
+    public static <V> V getAssociatedSession(Session session) {
+        if (session != null) {
+            touchSession(session);
+            return (V) session.getAttribute(ShiroSession.ASSOCIATED_SESSION);
+        }
+
+        return null;
+    }
+
+    public static boolean touchSession(Session session) {
+        if (session != null)
+            try {
+                session.touch();
+                return true;
+            } catch (Exception e) {
+            }
+
+        return false;
     }
 
 

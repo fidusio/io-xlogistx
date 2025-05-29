@@ -1,6 +1,5 @@
 package io.xlogistx.common.cron;
 
-import org.jetbrains.annotations.NotNull;
 import org.zoxweb.shared.util.WaitTime;
 
 import java.util.concurrent.TimeUnit;
@@ -35,7 +34,7 @@ implements WaitTime<MillisWaitTime>
      * that the delay has already elapsed
      */
     @Override
-    public long getDelay(@NotNull TimeUnit unit) {
+    public long getDelay(TimeUnit unit) {
         return unit.convert(expiryTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     }
 }

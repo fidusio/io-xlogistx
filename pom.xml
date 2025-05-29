@@ -47,7 +47,6 @@
       <module>shiro</module>
       <module>http-ws</module>
       <module>core</module>
-      <module>payment</module>
       <module>http-servlet</module>
       <module>http-servlet-shiro</module>
       <!-- <module>okta</module> -->
@@ -98,7 +97,7 @@
 
         <xlogistx.version>1.0.0</xlogistx.version>
         <java-xt-core.version>RELEASE</java-xt-core.version>
-        <squareup.version>RELEASE</squareup.version>
+
 
 
         <slf4j.version>RELEASE</slf4j.version>

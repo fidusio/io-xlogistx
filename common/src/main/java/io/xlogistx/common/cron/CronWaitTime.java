@@ -2,7 +2,6 @@ package io.xlogistx.common.cron;
 
 import com.cronutils.model.Cron;
 import com.cronutils.model.time.ExecutionTime;
-import org.jetbrains.annotations.NotNull;
 import org.zoxweb.shared.util.WaitTime;
 
 import java.time.ZonedDateTime;
@@ -40,7 +39,7 @@ implements WaitTime<Cron>
      * that the delay has already elapsed
      */
     @Override
-    public long getDelay(@NotNull TimeUnit unit) {
+    public long getDelay(TimeUnit unit) {
         return unit.convert(nextWait(), TimeUnit.MILLISECONDS);
     }
 }

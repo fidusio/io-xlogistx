@@ -87,6 +87,8 @@ public class ShiroSession<V>
     @Override
     public boolean attach() {
         ThreadContext.bind(subject);
+        if(subject != null)
+            subject.getSession().touch();
         return subject != null;
     }
 
@@ -143,9 +145,13 @@ public class ShiroSession<V>
         return cth.isClosed();
     }
 
+    /**
+     *
+     * @return associated app specific session
+     */
     public V getAssociatedSession()
     {
-        return (V) getSession().getAttribute(ASSOCIATED_SESSION);
+        return ShiroUtil.getAssociatedSession(getSession());
     }
 
 }

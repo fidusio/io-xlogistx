@@ -192,7 +192,6 @@ public class NIOHTTPServer
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e) {
-        e.printStackTrace();
         if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
 
@@ -337,8 +336,10 @@ public class NIOHTTPServer
                         }
 
 
-                        // security check
+                        // +++ Security check +++++++++++++++++++++
                         securityCheck(epm, hph);
+                        //_________________________________________
+
                         // check if instance of HTTPSessionHandler
                         if (epm.result.methodHolder.instance instanceof HTTPRawHandler) {
                             ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
