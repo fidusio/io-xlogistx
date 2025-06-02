@@ -6,25 +6,61 @@ import io.xlogistx.common.http.HTTPRawHandler;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.util.JarTool;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.ResourceManager;
+import org.zoxweb.shared.util.SUS;
+import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.zip.ZipInputStream;
 
 public class HTTPFileServiceHandler
         extends PropertyHolder
         implements HTTPRawHandler {
     public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);
 
-    private File baseFolder;
+    private Path baseFolder;
 
     @Override
     protected void refreshProperties() {
-        setBaseFolder(getProperties().getValue("base_folder"));
+        String htmlURI = getProperties().getValue("html_uri");
+        FileSystem fileSystem = ResourceManager.lookupResource(ResourceManager.Resource.FILE_SYSTEM);
+        if(log.isEnabled()) log.getLogger().info("We have a file system: " + fileSystem);
+
+        if (htmlURI != null && fileSystem != null && fileSystem != FileSystems.getDefault()) {
+            // need to copy the jar content to FileSystem
+            if(log.isEnabled()) log.getLogger().info("htmt_uri: " + htmlURI);
+
+            try {
+                URI uri = new URI(htmlURI);
+                InputStream is = uri.toURL().openStream();
+                ZipInputStream zis = JarTool.convertToZipIS(is);
+                Path pathHtmlURI = fileSystem.getPath("/html_content");
+                Files.createDirectory(pathHtmlURI);
+                if(log.isEnabled()) log.getLogger().info("pathHtmlURI: " + pathHtmlURI);
+                JarTool.zipISToOutputPath(zis, pathHtmlURI);
+                if(log.isEnabled()) log.getLogger().info(IOUtil.toStringFileSystem(fileSystem));
+                baseFolder = pathHtmlURI;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if(log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
+
+        } else
+            setBaseFolder(getProperties().getValue("base_folder"));
+
+
     }
 
     @Override
@@ -47,15 +83,19 @@ public class HTTPFileServiceHandler
             log.getLogger().info("mime: " + mime);
         }
 
-        File file = new File(getBaseFolder(), filename);
-        if (!file.exists() || !file.isFile() || !file.canRead()) {
+        if (filename.startsWith("/"))
+            filename = filename.substring(1);
+
+        Path filePath = getBaseFolder().resolve(filename);
+        //File file = new File(getBaseFolder(), filename);
+        if (!Files.exists(filePath) || !Files.isRegularFile(filePath) || !Files.isReadable(filePath)) {
             if (log.isEnabled())
-                log.getLogger().info("File Not Found:" + file.getName());
-            throw new HTTPCallException(file.getName() + " not found", HTTPStatusCode.NOT_FOUND);
+                log.getLogger().info("File Not Found:" + filename);
+            throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
         }
 
 
-        FileInputStream fileIS = new FileInputStream(file);
+        InputStream fileIS = Files.newInputStream(filePath);
 
 
         HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
@@ -64,7 +104,7 @@ public class HTTPFileServiceHandler
         if (mime != null)
             hmci.setContentType(mime.getValue());
 
-        hmci.setContentLength((int) file.length());
+        hmci.setContentLength((int) fileIS.available());
 
 //        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
 //        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
@@ -83,12 +123,12 @@ public class HTTPFileServiceHandler
         File folder = new File(baseFolder);
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())
             throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath());
-        this.baseFolder = folder;
+        this.baseFolder = folder.toPath();
         ResourceManager.SINGLETON.register("base-folder", getBaseFolder());
         return this;
     }
 
-    public File getBaseFolder() {
+    public Path getBaseFolder() {
         return baseFolder;
     }
 }

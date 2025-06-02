@@ -5,6 +5,7 @@
   "thread_pool_size" : 64,
   "thread_pool_java_type" : false,
   "base_uri": "",
+  "tls_only": true,
 
 
   "properties":
@@ -124,6 +125,7 @@
       "protocols": ["HTTP", "HTTPS"],
       "properties": {
         "base_folder": "/webs/test",
+#        "html_uri": "file:///webs/xlogistx.io/xlogistx.html.jar",
         "default_file": "index.html",
         "caching": true
       }

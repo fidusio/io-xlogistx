@@ -15,6 +15,7 @@ import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.util.*;
 
+import java.nio.file.FileSystem;
 import java.util.Date;
 
 @MappedProp(name = "ping", id = "ping-class")
@@ -28,6 +29,8 @@ public class Ping
         NVGenericMap response = new NVGenericMap();
         response.add("message", "App server is up and running.");
         response.add("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date()));
+        FileSystem fs = ResourceManager.lookupResource(ResourceManager.Resource.FILE_SYSTEM);
+
         if (getProperties().get("server_name") != null)
             response.add(getProperties().get("server_name"));
         if (getProperties().get("version") != null)
@@ -46,6 +49,7 @@ public class Ping
                     .build(new NVInt("byte_buffer_cache", ByteBufferUtil.cacheCount()))
                     .build(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()))
                     .build(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())))
+                    .build("file-system", fs != null ? fs.toString() : "UNKNOWN")
                     //response.getProperties().add("version", )
                     .build(TaskUtil.info())
                     .build(RuntimeUtil.vmSnapshot(sib))
