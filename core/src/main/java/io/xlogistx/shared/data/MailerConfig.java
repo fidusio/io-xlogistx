@@ -14,7 +14,7 @@ public class MailerConfig
         SMTP_CONFIG(NVConfigManager
                 .createNVConfigEntity("smtp_config", "User", "User", true, true, SMTPConfig.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
         DOCUMENT_TEMPLATE(NVConfigManager
-                .createNVConfigEntity("template", "Password", "Password", true, true, DocumentTemplate.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
+                .createNVConfigEntity("template", "Template", "Template", true, true, DocumentTemplate.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
         FROM(NVConfigManager
                 .createNVConfig("from", "Sender email", "From", true, true, false, String.class, FilterType.EMAIL)),
         RECIPIENTS(NVConfigManager

@@ -169,7 +169,7 @@ public class HTTPProtocolHandler
 
     public synchronized void setConnectionSession(ProtoSession<?, ?> session) {
         this.connectionSession = session;
-        if(session != null)
+        if (session != null)
             session.getAutoCloseables().add(this);
     }
 
@@ -192,9 +192,10 @@ public class HTTPProtocolHandler
         if (!isRequestComplete())
             throw new IllegalStateException("HTTP request not complete yet");
 
-        response.setContentType(contentType);
-        // json response
-        if (SharedStringUtil.contains(contentType, "application/json", true))
+        if (result instanceof HTTPMessageConfigInterface)
+            response = (HTTPMessageConfigInterface) result;
+            // json response
+        else if (SharedStringUtil.contains(contentType, "application/json", true))
             HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
         else {
             if (result instanceof String) {
@@ -211,7 +212,8 @@ public class HTTPProtocolHandler
             }
 
         }
-
+        if(response.getContentType() == null)
+            response.setContentType(contentType);
         validateKeepAlive();
         return response;
     }

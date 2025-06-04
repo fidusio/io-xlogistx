@@ -212,7 +212,7 @@ public class NIOHTTPServer
                 }
                 try {
                     //logger.getLogger().info(hph.getResponseStream().toString());
-                    hph.getResponseStream().writeTo(os);
+                    hph.getResponseStream(true).writeTo(os);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }

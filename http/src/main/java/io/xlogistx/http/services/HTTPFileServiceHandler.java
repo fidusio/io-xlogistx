@@ -50,7 +50,7 @@ public class HTTPFileServiceHandler
                 Files.createDirectory(pathHtmlURI);
                 if(log.isEnabled()) log.getLogger().info("pathHtmlURI: " + pathHtmlURI);
                 JarTool.zipISToOutputPath(zis, pathHtmlURI);
-                if(log.isEnabled()) log.getLogger().info(IOUtil.toStringFileSystem(fileSystem));
+                log.getLogger().info(IOUtil.toStringFileSystem(fileSystem));
                 baseFolder = pathHtmlURI;
             } catch (Exception e) {
                 e.printStackTrace();
