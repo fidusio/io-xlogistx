@@ -32,7 +32,7 @@ public class EmailWebForm
                                                 @ParamProp(name = "message", source = Const.ParamSource.QUERY) String message,
                                                 @ParamProp(name = "redirect_url", source = Const.ParamSource.QUERY) String redirectURL,
                                                 @ParamProp(name = "captcha-id", source = Const.ParamSource.QUERY) String captchaID,
-                                                @ParamProp(name = "captcha", source = Const.ParamSource.QUERY) int captchaValue)
+                                                @ParamProp(name = "captcha", source = Const.ParamSource.QUERY) long captchaValue)
             throws IOException, MessagingException {
         HTTPMessageConfigInterface ret = new HTTPMessageConfig();
         if (log.isEnabled())

@@ -114,9 +114,9 @@
           "class_type": "io.xlogistx.shared.data.MailerConfig",
           "smtp_config": {
             "class_type": "io.xlogistx.shared.data.SMTPConfig",
-            "user": "notify@xlogistx.io",
+            "user": "user@webmail.com",
             "password": "password",
-            "host": "xlogistx.com",
+            "host": "webmail.com",
             "port": 465
           },
           "template": {
@@ -133,7 +133,7 @@
             "post_tag": "$$",
             "title": "FormEmail"
           },
-          "recipients": "ops@xlogistx.io",
+          "recipients": "batata@webmail.com",
           "subject" : "Contact Form"
         }
       }
