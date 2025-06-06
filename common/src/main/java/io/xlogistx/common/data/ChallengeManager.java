@@ -83,6 +83,22 @@ public class ChallengeManager {
     }
 
 
+    public synchronized boolean validate(String id, String result)
+    {
+        boolean validation = false;
+        Challenge challenge = lookupChallenge(id);
+        if (challenge != null)
+        {
+            removeChallenge(id);
+            // cancel the appointment
+            IOUtil.close(challenge.getAppointment());
+            validation = ("" + challenge.getResult()).equalsIgnoreCase(result);
+            log.info(challenge.getId() + " validation status " + validation);
+        }
+
+        return validation;
+    }
+
     public synchronized boolean validate(Challenge ch, long result)
     {
         if(ch != null)

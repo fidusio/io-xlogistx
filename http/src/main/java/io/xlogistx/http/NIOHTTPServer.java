@@ -360,8 +360,18 @@ public class NIOHTTPServer
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                     HTTPConst.CommonHeader.EXPIRES_ZERO);
 
-                            HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                                    .writeTo(hph.getOutputStream());
+                            HTTPUtil.writeHTTPResponse(hmci, hph.getOutputStream());
+//                            UByteArrayOutputStream ubaos = HTTPUtil.formatResponse(hmci, hph.getResponseStream());
+//                            ubaos.writeTo(hph.getOutputStream());
+//
+//                            // temp fix
+//                            if (hmci.getContent() == null)
+//                            {
+//                                if (logger.isEnabled())logger.getLogger().info("ubaos : " + ubaos);
+//                                InputStream contentIS = hmci.getContentAsIS();
+//                                if(contentIS != null)
+//                                    IOUtil.relayStreams(contentIS, hph.getOutputStream(), true, false);
+//                            }
                             // message complete and sent to client
                         }
                     } else {
@@ -376,6 +386,7 @@ public class NIOHTTPServer
                                 HTTPConst.CommonHeader.EXPIRES_ZERO);
                         HTTPUtil.formatResponse(hmci, hph.getResponseStream())
                                 .writeTo(hph.getOutputStream());
+
                     }
 
 

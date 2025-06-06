@@ -1,6 +1,7 @@
 package io.xlogistx.common.smtp;
 
 
+import io.xlogistx.shared.data.SMTPConfig;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -15,6 +16,7 @@ public class SMTPMailTest {
         String from = args[index++]; // replace
         String password = args[index++];// replace
         String to = args[index++];
+
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
 //        props.put("mail.smtp.starttls.enable", "true");
@@ -39,6 +41,20 @@ public class SMTPMailTest {
         message.setText("Hello, this is a test email from Jakarta Mail!");
 
         Transport.send(message);
+
+        SMTPConfig smtpConfig = new SMTPConfig();
+        smtpConfig.setHost(smtpHost);
+        smtpConfig.setPort(smtpPort);
+        smtpConfig.setUser(from);
+        smtpConfig.setPassword(password);
+        smtpConfig.setTrusted(true);
+
+        SMTPMessage smtpMessage = new SMTPMessage();
+        smtpMessage.setSubject("Testing email");
+        smtpMessage.addRecipient(EmailRecipient.Type.TO, to);
+        smtpMessage.setContent("Simple Test content.");
+        System.out.println(SMTPSender.sendEmail(smtpConfig, smtpMessage));
+
         System.out.println("Email sent!");
     }
 }

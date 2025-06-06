@@ -2,7 +2,6 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyHolder;
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.common.http.HTTPRawHandler;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
@@ -27,7 +26,8 @@ import java.util.zip.ZipInputStream;
 
 public class HTTPFileServiceHandler
         extends PropertyHolder
-        implements HTTPRawHandler {
+//        implements HTTPRawHandler
+{
     public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);
 
     private Path baseFolder;
@@ -63,8 +63,71 @@ public class HTTPFileServiceHandler
 
     }
 
-    @Override
     @EndPointProp(methods = {HTTPMethod.GET}, name = "files", uris = "/")
+    public HTTPMessageConfigInterface loadFile(@ParamProp(name = "file-info", source = Const.ParamSource.RESOURCE, optional = true, uri = true) String filename)
+            throws IOException {
+        //String filename = protocolHandler.getRequest(true).getURI();
+
+        if (SUS.isEmpty(filename) || filename.equals("/")) {
+            String override = getProperties().getValue("default_file");
+            if (override != null) {
+                filename = override;
+            }
+        }
+        HTTPMediaType mime = HTTPMediaType.lookupByExtension(filename);
+        if (log.isEnabled()) {
+
+            log.getLogger().info("file to load: " + filename);
+
+            log.getLogger().info("mime: " + mime);
+        }
+
+        if (filename.startsWith("/"))
+            filename = filename.substring(1);
+
+        Path filePath = getBaseFolder().resolve(filename);
+        //File file = new File(getBaseFolder(), filename);
+        if (!Files.exists(filePath) || !Files.isRegularFile(filePath) || !Files.isReadable(filePath)) {
+            if (log.isEnabled())
+                log.getLogger().info("File Not Found:" + filename);
+            throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
+        }
+
+
+        InputStream fileIS = Files.newInputStream(filePath);
+        //UByteArrayOutputStream ubaos = new UByteArrayOutputStream();
+        //IOUtil.relayStreams(fileIS, ubaos, true, false);
+
+        HTTPMessageConfigInterface response = new HTTPMessageConfig();
+        response.setHTTPStatusCode(HTTPStatusCode.OK);
+        response.getHeaders().build(HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+        if (mime != null)
+            response.setContentType(mime.getValue());
+        response.setContentAsIS(fileIS);
+
+        return response;
+
+//        HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
+//                HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+////                HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN.toHTTPHeader("*"));
+//
+//        if (mime != null)
+//            hmci.setContentType(mime.getValue());
+//
+//        hmci.setContentLength((int) fileIS.available());
+//
+////        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
+////        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
+//        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream())
+//                .writeTo(protocolHandler.getOutputStream());
+//
+//        IOUtil.relayStreams(fileIS, protocolHandler.getOutputStream(), true, false);
+//        if (log.isEnabled()) log.getLogger().info("filename: " + filename);
+
+    }
+
+//    @Override
+//    @EndPointProp(methods = {HTTPMethod.GET}, name = "files", uris = "/")
     public void handle(@ParamProp(name = "file-info", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler protocolHandler)
             throws IOException {
         String filename = protocolHandler.getRequest(true).getURI();
@@ -100,6 +163,7 @@ public class HTTPFileServiceHandler
 
         HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
                 HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+//                HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN.toHTTPHeader("*"));
 
         if (mime != null)
             hmci.setContentType(mime.getValue());

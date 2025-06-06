@@ -419,6 +419,12 @@ public class EndPointsManager {
             Annotation pAnnotation = uriMapResult.result.methodHolder.methodAnnotations.parametersAnnotations.get(p);
             if (pAnnotation instanceof ParamProp) {
                 ParamProp pp = (ParamProp) pAnnotation;
+                if (pp.uri()) {
+                    parameters.put(pp.name(), hmci.getURI());
+                    if (log.isEnabled()) log.getLogger().info("we have a uri " + pp.name() + " " + parameters);
+                    continue;
+                }
+
                 if (pp.source() == Const.ParamSource.PAYLOAD) {
                     Class<?> pClassType = p.getType();
                     if (contentType != null) {

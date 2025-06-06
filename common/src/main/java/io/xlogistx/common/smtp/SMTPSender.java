@@ -7,7 +7,7 @@ import jakarta.mail.*;
 
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-
+import org.zoxweb.shared.util.SUS;
 
 
 import java.util.LinkedHashSet;
@@ -42,7 +42,8 @@ public class SMTPSender
 //        props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 //        props.put("mail.smtp.socketFactory.fallback", "true");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.ssl.trust", cfg.getHost());
+        if(cfg.isTrusted())
+            props.put("mail.smtp.ssl.trust", cfg.getHost());
         //props.put("mail.debug", "true");
 
         //get Session
@@ -56,7 +57,10 @@ public class SMTPSender
         //compose message
 
         MimeMessage message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(smtpMessage.getFrom()));
+        String from = smtpMessage.getFrom();
+        if(SUS.isEmpty(from))
+            from = cfg.getUser();
+        message.setFrom(new InternetAddress(from));
 
 
         setRecipients(EmailRecipient.Type.TO, message, smtpMessage.getTo());

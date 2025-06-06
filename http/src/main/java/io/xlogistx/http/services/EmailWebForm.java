@@ -25,21 +25,30 @@ public class EmailWebForm
     @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail", uris = "/form/mailer/{domain}/{source}")
     public HTTPMessageConfigInterface webMailer(@ParamProp(name = "domain") String domain,
                                                 @ParamProp(name = "source") String source,
-                                                @ParamProp(name = "contact-name", source = Const.ParamSource.QUERY) String contactName,
-                                                @ParamProp(name = "contact-phone", source = Const.ParamSource.QUERY) String contactPhone,
-                                                @ParamProp(name = "company-name", source = Const.ParamSource.QUERY) String companyName,
+                                                @ParamProp(name = "contact-name", source = Const.ParamSource.QUERY, optional = true) String contactName,
+                                                @ParamProp(name = "contact-phone", source = Const.ParamSource.QUERY, optional = true) String contactPhone,
+                                                @ParamProp(name = "company-name", source = Const.ParamSource.QUERY, optional = true) String companyName,
                                                 @ParamProp(name = "email", source = Const.ParamSource.QUERY) String email,
                                                 @ParamProp(name = "message", source = Const.ParamSource.QUERY) String message,
                                                 @ParamProp(name = "redirect_url", source = Const.ParamSource.QUERY) String redirectURL,
                                                 @ParamProp(name = "captcha-id", source = Const.ParamSource.QUERY) String captchaID,
-                                                @ParamProp(name = "captcha", source = Const.ParamSource.QUERY) long captchaValue)
+                                                @ParamProp(name = "captcha", source = Const.ParamSource.QUERY) String captchaValue)
             throws IOException, MessagingException {
         HTTPMessageConfigInterface ret = new HTTPMessageConfig();
         if (log.isEnabled())
             log.getLogger().info("data: " + SUS.toCanonicalID(',', domain, source, contactName, contactPhone, companyName, email, message, redirectURL, captchaID, captchaValue));
 
-        if (!ChallengeManager.SINGLETON.validate(captchaID, captchaValue))
-            throw new HTTPCallException("Invalid captcha " + captchaValue);
+
+        if (!ChallengeManager.SINGLETON.validate(captchaID, captchaValue)) {
+//            throw new HTTPCallException("Invalid captcha " + captchaValue);
+
+            ret.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+            ret.setContentType("text/html");
+            ret.setContent("Captcha Validation Failed " + captchaValue);
+            ret.getHeaders().build("Access-Control-Allow-Origin", "*");
+            ret.getHeaders().build("Cache-Control", "no-cache, no-store, must-revalidate");
+            return ret;
+        }
 
 
         try {
@@ -71,7 +80,6 @@ public class EmailWebForm
             smtpMessage.addRecipients(EmailRecipient.toRecipients(mailerConfig.getRecipients()));
 
 
-
             SMTPSender.sendEmail(sc, smtpMessage);
         } catch (Exception e) {
             e.printStackTrace();
@@ -79,10 +87,10 @@ public class EmailWebForm
 
         ret.setHTTPStatusCode(HTTPStatusCode.FOUND);
         ret.setContentType("text/html");
-        ret.setContentLength(0);
+        ret.setContent(Const.EMPTY_BYTE_ARRAY);
         ret.getHeaders().build(HTTPHeader.LOCATION, redirectURL);
-//        ret.getHeaders().build("Access-Control-Allow-Origin", "*");
-//        ret.getHeaders().build("Cache-Control", "no-cache, no-store, must-revalidate");
+        ret.getHeaders().build(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        ret.getHeaders().build(HTTPHeader.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 
 
         return ret;

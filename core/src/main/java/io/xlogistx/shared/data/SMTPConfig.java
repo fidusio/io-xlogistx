@@ -7,12 +7,13 @@ import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.util.*;
 
 public class SMTPConfig
-        extends SetNameDescriptionDAO
-{
+        extends SetNameDescriptionDAO {
 
     public enum Param
             implements GetNVConfig {
 
+        TOKEN(NVConfigManager
+                .createNVConfig("token", "Email token", "Token", false, true, String.class)),
         USER(NVConfigManager
                 .createNVConfig("user", "User", "User", true, true, String.class)),
         PASSWORD(NVConfigManager
@@ -20,7 +21,9 @@ public class SMTPConfig
         HOST(NVConfigManager
                 .createNVConfig("host", "Hostname", "Hostname", true, true, String.class)),
         PORT(NVConfigManager
-                .createNVConfig("port", "Port", "port", true, true, int.class)),
+                .createNVConfig("port", "Port", "Port", true, true, int.class)),
+        TRUST(NVConfigManager
+                .createNVConfig("trust", "Trust this host", "Trust", false, true, boolean.class)),
 
         ;
 
@@ -51,13 +54,11 @@ public class SMTPConfig
             SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
     );
 
-    public SMTPConfig()
-    {
+    public SMTPConfig() {
         super(NVC_SMTP_CONFIG);
     }
 
-    public SMTPConfig(String host, int port, String user, String password)
-    {
+    public SMTPConfig(String host, int port, String user, String password) {
         this();
         setHost(host);
         setPort(port);
@@ -66,45 +67,53 @@ public class SMTPConfig
 
     }
 
-    public void setHost(String host)
-    {
+    public void setHost(String host) {
         setValue(Param.HOST, host);
     }
 
-    public String getHost()
-    {
+    public String getHost() {
         return lookupValue(Param.HOST);
     }
 
-    public void setPort(int port)
-    {
+    public void setPort(int port) {
         setValue(Param.PORT, port);
     }
 
-    public int getPort()
-    {
+    public int getPort() {
         return lookupValue(Param.PORT);
     }
 
 
-    public void setUser(String user)
-    {
+    public void setUser(String user) {
         setValue(Param.USER, user);
     }
 
-    public String getUser()
-    {
+    public String getUser() {
         return lookupValue(Param.USER);
     }
 
-    public void setPassword(String password)
-    {
+    public void setPassword(String password) {
         setValue(Param.PASSWORD, password);
     }
 
-    public String getPassword()
-    {
+    public String getPassword() {
         return lookupValue(Param.PASSWORD);
+    }
+
+    public boolean isTrusted() {
+        return lookupValue(Param.TRUST);
+    }
+
+    public void setTrusted(boolean trust) {
+        setValue(Param.TRUST, trust);
+    }
+
+    public String getToken() {
+        return lookupValue(Param.TOKEN);
+    }
+
+    public void setToken(String token) {
+        setValue(Param.TOKEN, token);
     }
 
 
