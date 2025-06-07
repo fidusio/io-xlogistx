@@ -360,19 +360,8 @@ public class NIOHTTPServer
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                     HTTPConst.CommonHeader.EXPIRES_ZERO);
 
-                            HTTPUtil.writeHTTPResponse(hmci, hph.getOutputStream());
-//                            UByteArrayOutputStream ubaos = HTTPUtil.formatResponse(hmci, hph.getResponseStream());
-//                            ubaos.writeTo(hph.getOutputStream());
-//
-//                            // temp fix
-//                            if (hmci.getContent() == null)
-//                            {
-//                                if (logger.isEnabled())logger.getLogger().info("ubaos : " + ubaos);
-//                                InputStream contentIS = hmci.getContentAsIS();
-//                                if(contentIS != null)
-//                                    IOUtil.relayStreams(contentIS, hph.getOutputStream(), true, false);
-//                            }
-                            // message complete and sent to client
+
+                            sendResponse(hmci, hph);
                         }
                     } else {
                         // error status uri map not found
@@ -384,9 +373,8 @@ public class NIOHTTPServer
                         HTTPMessageConfigInterface hmci = hph.buildResponse(HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8.getValue(), sm, HTTPStatusCode.NOT_FOUND,
                                 HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                 HTTPConst.CommonHeader.EXPIRES_ZERO);
-                        HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                                .writeTo(hph.getOutputStream());
 
+                        sendResponse(hmci, hph);
                     }
 
 
@@ -434,6 +422,15 @@ public class NIOHTTPServer
 
     }
 
+
+    private static void sendResponse(HTTPMessageConfigInterface hmci,  HTTPProtocolHandler hph) throws IOException {
+        if(hmci.getContent() != null)
+            HTTPUtil.formatResponse(hmci, hph.getResponseStream(true))
+                    .writeTo(hph.getOutputStream());
+        else
+            HTTPUtil.writeHTTPResponse(hmci, hph.getOutputStream());
+
+    }
 
     public NIOHTTPServer(HTTPServerConfig config) {
         this(config, null);
