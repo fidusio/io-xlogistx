@@ -43,7 +43,7 @@ public class Ping
                     .build("vm_vendor_version", System.getProperty("java.vendor.version"))
                     .build("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS))
                     .build("current_thread", Thread.currentThread().getName())
-                    .build("version", "1.1.1")
+                    .build("version", NIOHTTPServer.VERSION)
                     .build("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
                             + "," + System.getProperty("os.arch"))
                     .build(new NVInt("byte_buffer_cache", ByteBufferUtil.cacheCount()))
