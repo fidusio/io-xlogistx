@@ -47,8 +47,8 @@
         <module>shiro</module>
         <module>http-ws</module>
         <module>core</module>
-        <module>http-servlet</module>
-        <module>http-servlet-shiro</module>
+<!--        <module>http-servlet</module>-->
+<!--        <module>http-servlet-shiro</module>-->
         <!-- <module>okta</module> -->
         <module>opsec</module>
         <module>assembly</module>

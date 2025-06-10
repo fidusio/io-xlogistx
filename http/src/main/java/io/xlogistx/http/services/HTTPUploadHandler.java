@@ -167,6 +167,10 @@ public class HTTPUploadHandler
                 fileData.getProperties().build(new NamedValue<>("file", file));
                 fileData.getProperties().build(new NVLong("start-ts", System.currentTimeMillis()));
 
+                GetNameValue<String> location = fileData.getProperties().getNV(HTTPHeader.LOCATION);
+                if (location != null)
+                    log.getLogger().info("We have location override " + location);
+
 
             }
 
