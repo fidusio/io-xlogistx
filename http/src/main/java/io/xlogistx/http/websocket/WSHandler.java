@@ -139,7 +139,6 @@ public class WSHandler
 
         } else if (hph.isWSProtocol()) {
 
-//            SubjectSwap ss = null;
             ShiroSession<?> currentSession = hph.getConnectionSession();
             try {
 
@@ -148,7 +147,6 @@ public class WSHandler
                     log.getLogger().info("We need to start processing " + hph.getProtocol() + " " + SecurityUtils.getSubject());
                 processWSMessage(hph);
             } finally {
-
                 currentSession.detach();
             }
         }

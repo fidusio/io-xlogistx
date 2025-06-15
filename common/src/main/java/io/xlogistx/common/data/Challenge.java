@@ -77,17 +77,17 @@ public final class Challenge {
                 num1 = Math.abs(SR.nextLong() % (long) Math.pow(10, power));
                 num2 = Math.abs(SR.nextLong() % (long) Math.pow(10, power));
                 result = num1 + num2;
-                ret = new Challenge("Resolve Captcha " + num1 + " + " + num2 + " ", type, result, id);
+                ret = new Challenge("Resolve Captcha Addition: " + num1 + " + " + num2 + " ", type, result, id);
                 break;
             case SUBTRACTION:
                 num1 = Math.abs(SR.nextLong() % (long) Math.pow(10, power));
                 num2 = Math.abs(SR.nextLong() % (long) Math.pow(10, power));
                 result = num1 - num2;
-                ret = new Challenge("Resolve Captcha " + num1 + " - " + num2 + " ", type,result, id);
+                ret = new Challenge("Resolve Captcha Substraction: " + num1 + " - " + num2 + " ", type,result, id);
                 break;
             case CAPTCHA:
                 result = Math.abs(SR.nextLong() % (long) Math.pow(10, power));
-                ret = new Challenge("Enter Captcha " + result + " ", type,result, id);
+                ret = new Challenge("Enter Captcha Value: " + result + " ", type,result, id);
                 break;
         }
 

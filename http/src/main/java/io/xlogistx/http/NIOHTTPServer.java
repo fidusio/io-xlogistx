@@ -58,7 +58,7 @@ import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
 
 public class NIOHTTPServer
         implements DaemonController {
-    public static final String VERSION = "1.1.4";
+    public static final String VERSION = "1.1.6";
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
@@ -360,8 +360,7 @@ public class NIOHTTPServer
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                     HTTPConst.CommonHeader.EXPIRES_ZERO);
 
-
-                            sendResponse(hmci, hph);
+                            HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hmci, hph.getOutputStream());
                         }
                     } else {
                         // error status uri map not found
@@ -374,7 +373,7 @@ public class NIOHTTPServer
                                 HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                 HTTPConst.CommonHeader.EXPIRES_ZERO);
 
-                        sendResponse(hmci, hph);
+                        HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hmci, hph.getOutputStream());
                     }
 
 
@@ -422,18 +421,6 @@ public class NIOHTTPServer
 
     }
 
-
-    private static void sendResponse(HTTPMessageConfigInterface hmci,  HTTPProtocolHandler hph) throws IOException {
-        final byte[] content = hmci.getContent();
-
-        //  content < 16kb do memory processing
-        if(content != null && content.length <= Const.SizeInBytes.K.SIZE*16)
-            HTTPUtil.formatResponse(hmci, hph.getResponseStream())
-                    .writeTo(hph.getOutputStream());
-        else
-            HTTPUtil.writeHTTPResponse(hmci, hph.getOutputStream());
-
-    }
 
     public NIOHTTPServer(HTTPServerConfig config) {
         this(config, null);
