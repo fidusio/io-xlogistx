@@ -34,24 +34,24 @@ public class WSSession implements Session {
         this.sessionsSet = sessionsSet;
         this.sessionsSet.add(this);
         this.principal = new ShiroPrincipal(subject);
-        shiroSession = new ShiroSession<WSSession>(subject, this);
+        shiroSession = new ShiroSession<>(subject, this);
 
         shiroSession.getAutoCloseables().add(() -> {
             try
             {
                 this.sessionsSet.remove(this);
-                log.getLogger().info("Pending WebSocket Sessions: " + this.sessionsSet.size());
+                if(log.isEnabled()) log.getLogger().info("Pending WebSocket Sessions: " + this.sessionsSet.size());
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
 
 
-        log.getLogger().info("Current Sessions: " + sessionsSet.size());
+        if(log.isEnabled()) log.getLogger().info("Current Sessions: " + sessionsSet.size());
     }
 
     /**
-     * @return
+     * @return the container now null
      */
     @Override
     public WebSocketContainer getContainer() {
@@ -59,8 +59,8 @@ public class WSSession implements Session {
     }
 
     /**
-     * @param messageHandler
-     * @throws IllegalStateException
+     * @param messageHandler to be used for now NO OP
+     * @throws IllegalStateException in case of an eror
      */
     @Override
     public void addMessageHandler(MessageHandler messageHandler) throws IllegalStateException {

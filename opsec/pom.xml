@@ -18,6 +18,7 @@
         <maven.compiler.target>8</maven.compiler.target>
         <jdk.version>8</jdk.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <password4j.version>1.8.3</password4j.version>
     </properties>
 
     <build>
@@ -98,6 +99,14 @@
             <artifactId>xlogistx-shiro</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.password4j</groupId>
+            <artifactId>password4j</artifactId>
+            <version>${password4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
 
 
     </dependencies>

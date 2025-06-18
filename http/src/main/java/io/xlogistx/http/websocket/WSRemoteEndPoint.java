@@ -24,7 +24,6 @@ public abstract class WSRemoteEndPoint
 
     public final HTTPProtocolHandler hph;
 
-    //protected UByteArrayOutputStream baos = new UByteArrayOutputStream();
     protected WSRemoteEndPoint(HTTPProtocolHandler hph) {
         this.hph = hph;
     }

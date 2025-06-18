@@ -5,7 +5,6 @@ import io.xlogistx.common.http.HTTPRawHandler;
 import io.xlogistx.common.http.WSCache;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
-//import io.xlogistx.shiro.SubjectSwap;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
@@ -23,7 +22,6 @@ import org.zoxweb.shared.util.SUS;
 import javax.websocket.Session;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -202,7 +200,7 @@ public class WSHandler
                     case PING:
                         // we received a ping message
 
-                        webSocketSession.getBasicRemote().sendPong(frame.data() != null ? ByteBuffer.wrap(frame.data().asBytes()) : null);
+                        webSocketSession.getBasicRemote().sendPong(frame.data() != null ? frame.data().wrap() : null);
                         break;
                     case PONG:
                         toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);
