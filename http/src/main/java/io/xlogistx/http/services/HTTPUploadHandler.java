@@ -81,7 +81,7 @@ public class HTTPUploadHandler
 
         MessageDigest md;
         try {
-            md = MessageDigest.getInstance(CryptoConst.HASHType.SHA_256.getName());
+            md = MessageDigest.getInstance(CryptoConst.HashType.SHA_256.getName());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -92,7 +92,7 @@ public class HTTPUploadHandler
         }
 
 
-        HashResult hr = new HashResult(CryptoConst.HASHType.SHA_256, md.digest(), totalCopied);
+        HashResult hr = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
 
 
         HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
@@ -178,7 +178,7 @@ public class HTTPUploadHandler
             MessageDigest md = fileData.getProperties().getValue("md");
             if (md == null) {
                 try {
-                    md = MessageDigest.getInstance(CryptoConst.HASHType.SHA_256.getName());
+                    md = MessageDigest.getInstance(CryptoConst.HashType.SHA_256.getName());
                     fileData.getProperties().build(new NamedValue<>("md", md));
                 } catch (NoSuchAlgorithmException e) {
                     throw new RuntimeException(e);
@@ -205,7 +205,7 @@ public class HTTPUploadHandler
                 IOUtil.close(fos);
 
 
-                HashResult hashResult = new HashResult(CryptoConst.HASHType.SHA_256, md.digest(), totalCopied);
+                HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
 
 
                 HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,

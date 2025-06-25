@@ -52,10 +52,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 
 public class OPSecUtil {
@@ -96,13 +93,8 @@ public class OPSecUtil {
 
         public static NVGenericMap hashPassword(byte[] password) {
 
-            byte[] salt = new byte[SALT_LEN.VAL];
-            try {
-                SecUtil.SINGLETON.defaultSecureRandom().nextBytes(salt);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-            byte[] hash = argon2idHash(password, salt, ITERATIONS.VAL, MEMORY.VAL, PARALLELISM.VAL, HASH_LEN.VAL);
+            byte[] salt = SecUtil.SINGLETON.generateRandomBytes(SALT_LEN.VAL);
+            byte[] hash = argon2idHash(password, HASH_LEN.VAL, salt, MEMORY.VAL, ITERATIONS.VAL, PARALLELISM.VAL);
             return new NVGenericMap()
                     .build(new NVBlob(HASH, hash))
                     .build(new NVBlob(SALT, salt))
@@ -115,13 +107,34 @@ public class OPSecUtil {
         public static boolean validate(String password, NVGenericMap hashInfo) {
             byte[] storedHash = hashInfo.getValue(HASH);
             byte[] passwordHash = argon2idHash(password,
-                    hashInfo.getValue(SALT),
-                    hashInfo.getValue(ITERATIONS),
-                    hashInfo.getValue(MEMORY),
-                    hashInfo.getValue(PARALLELISM),
-                    storedHash.length);
+                    storedHash.length,  (byte[]) hashInfo.getValue(SALT), hashInfo.getValue(MEMORY), hashInfo.getValue(ITERATIONS), hashInfo.getValue(PARALLELISM)
+            );
 
             return Arrays.equals(passwordHash, storedHash);
+        }
+
+
+        public static String argon2idCanID(String password)
+        {
+           return argon2idCanID(SharedStringUtil.getBytes(password));
+        }
+
+        public static String argon2idCanID(byte[] password)
+        {
+            byte[] salt = SecUtil.SINGLETON.generateRandomBytes(16);
+            byte[] hash = argon2idHash(password, 32, salt, Const.SizeInBytes.K.mult(15), 2, 1);
+            return argonToCanID("argon2id", 19, hash, salt, Const.SizeInBytes.K.mult(15), 2, 1);
+        }
+
+
+        public static String argonToCanID(String alg, int version,  byte[] hash, byte[] salt, int memory, int iterations, int parallelism) {
+//            String base64Salt = Base64.getEncoder().withoutPadding().encodeToString(salt);
+//            String base64Hash = Base64.getEncoder().withoutPadding().encodeToString(hash);
+
+            String base64Salt = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, salt);
+            String base64Hash = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, hash);
+            return String.format("$%s$v=%d$m=%d,t=%d,p=%d$%s$%s",
+                    alg, version, memory, iterations, parallelism, base64Salt, base64Hash);
         }
     }
 
@@ -558,11 +571,24 @@ public class OPSecUtil {
     }
 
 
-    public static byte[] argon2idHash(String password, byte[] salt, int iterations, int memory, int parallelism, int hashLength) {
-        return argon2idHash(SharedStringUtil.getBytes(password), salt, iterations, memory, parallelism, hashLength);
+    public static byte[] argon2idHash(String password, int hashLength, int saltLength, int memory, int iterations, int parallelism) {
+        return argon2idHash(SharedStringUtil.getBytes(password), hashLength, saltLength, memory, iterations, parallelism);
     }
 
-    public static byte[] argon2idHash(byte[] password, byte[] salt, int iterations, int memory, int parallelism, int hashLength) {
+    public static byte[] argon2idHash(byte[] password, int hashLength, int saltLength, int memory, int iterations, int parallelism) {
+
+
+        return argon2idHash(password, hashLength, SecUtil.SINGLETON.generateRandomBytes(saltLength), memory, iterations, parallelism);
+    }
+
+    public static byte[] argon2idHash(String password, int hashLength, byte[] salt, int memory, int iterations, int parallelism) {
+        return argon2idHash(SharedStringUtil.getBytes(password), hashLength, salt, memory, iterations, parallelism);
+    }
+
+    public static byte[] argon2idHash(byte[] password, int hashLength, byte[] salt, int memory, int iterations, int parallelism) {
+
+
+
         Argon2Parameters.Builder builder = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
                 .withSalt(salt)
                 .withIterations(iterations)
@@ -576,6 +602,11 @@ public class OPSecUtil {
         generator.generateBytes(password, hash);
         return hash;
     }
+
+
+
+
+
 
 
 //    public static PrivateKey extractKCPrivateKeyFromEncoded(byte[] encodedKey) {

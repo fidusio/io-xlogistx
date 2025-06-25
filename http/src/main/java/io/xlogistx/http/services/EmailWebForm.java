@@ -89,7 +89,7 @@ public class EmailWebForm
         ret.setContentType("text/html");
         ret.setContent(Const.EMPTY_BYTE_ARRAY);
         ret.getHeaders().build(HTTPHeader.LOCATION, redirectURL);
-        ret.getHeaders().build(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+//        ret.getHeaders().build(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         ret.getHeaders().build(HTTPHeader.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 
 

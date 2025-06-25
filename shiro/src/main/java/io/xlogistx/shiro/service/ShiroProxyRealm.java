@@ -40,7 +40,7 @@ implements SetNVProperties
     private final KVMapStore<String, AuthenticationInfo> kvAuthcInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
-    private CredentialHasher<CIPassword> credentialHasher = new CIPasswordHasher().setHashType(CryptoConst.HASHType.SHA_256).setIteration(64);
+    private CredentialHasher<CIPassword> credentialHasher = new CIPasswordHasher("", CryptoConst.HashType.SHA_256, 64);
 
 
 
@@ -206,12 +206,12 @@ implements SetNVProperties
             if (log.isEnabled()) log.getLogger().info("credential-hasher: " + passwordHashConfig);
             if (passwordHashConfig != null) {
                 try {
-                    CIPasswordHasher passwordHasher = new CIPasswordHasher();
-                    passwordHasher.setHashType(CryptoConst.HASHType.lookup(passwordHashConfig.getValue("hash_type")))
-                            .setIteration(passwordHashConfig.getValue("iteration"));
+                    CIPasswordHasher passwordHasher = new CIPasswordHasher("config-hasher",
+                            CryptoConst.HashType.lookup(passwordHashConfig.getValue("hash_type")),
+                                    passwordHashConfig.getValue("iteration"));
                     credentialHasher = passwordHasher;
                     if (log.isEnabled())
-                        log.getLogger().info("Credential hasher: " + passwordHasher.getHashType() + " " + passwordHasher.getIteration());
+                        log.getLogger().info("Credential hasher: " + passwordHasher.getHashType() + " " + passwordHasher.getIterations());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

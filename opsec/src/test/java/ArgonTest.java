@@ -2,12 +2,12 @@ import com.password4j.Hash;
 import com.password4j.Password;
 import io.xlogistx.opsec.OPSecUtil;
 import org.junit.jupiter.api.Test;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.RateCounter;
 import org.zoxweb.shared.util.SharedBase64;
 
-import java.security.SecureRandom;
 import java.util.Arrays;
 
 public class ArgonTest {
@@ -57,35 +57,36 @@ public class ArgonTest {
         int parallelism = 1;
 
 
-        SecureRandom sc = new SecureRandom();
+
         String password = "myPassword123";
-        byte[] salt = new byte[saltLength];
-        sc.nextBytes(salt);
+
 
         // Hash
-
+        byte[] salt = SecUtil.SINGLETON.generateRandomBytes(16);
 
         int length = 3;
 
-        byte[] hash = OPSecUtil.argon2idHash(password, salt, iterations, memory, parallelism, hashLength);
+        byte[] hash = OPSecUtil.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
         rc.reset().start();
         boolean valid = false;
         for (int i = 0; i < length; i++) {
-            salt = new byte[saltLength];
-            sc.nextBytes(salt);
-            hash = OPSecUtil.argon2idHash(password, salt, iterations, memory, parallelism, hashLength);
-            valid = Arrays.equals(hash, OPSecUtil.argon2idHash(password, salt, iterations, memory, parallelism, hashLength));
+            hash = OPSecUtil.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
+            valid = Arrays.equals(hash, OPSecUtil.argon2idHash(password, hashLength, salt, memory, iterations, parallelism));
+            assert valid;
         }
 
         // To verify, recompute the hash with same parameters and salt, and compare hashes
 
         rc.stop(length);
-        System.out.println("Salt: " + SharedBase64.encodeAsString(SharedBase64.Base64Type.URL, salt));
+
         System.out.println("Hash: " + SharedBase64.encodeAsString(SharedBase64.Base64Type.URL, hash));
         System.out.println("Password valid: " + valid + " " + rc);
         NVGenericMap nvgm = OPSecUtil.Argon2.hashPassword(password);
 
-        System.out.println("Password valid: " + OPSecUtil.Argon2.validate("pissoff", nvgm));
+        System.out.println("Password valid: " + OPSecUtil.Argon2.validate("myPassword123", nvgm));
+        String canID = OPSecUtil.Argon2.argon2idCanID(password);
+        System.out.println(canID);
+        assert Password.check("myPassword123", canID).withArgon2();
     }
 
 

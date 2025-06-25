@@ -180,7 +180,7 @@ public class TestSubjectSwap {
             }
 
             try {
-                log.getLogger().info("" + GSONUtil.toJSONDefault(HashUtil.toPassword(CryptoConst.HASHType.BCRYPT, 0, 10, "D!v2c3$Dm5n")));
+                log.getLogger().info("" + GSONUtil.toJSONDefault(HashUtil.toPassword(CryptoConst.HashType.BCRYPT, 0, 10, "D!v2c3$Dm5n")));
 
                 String data = "GET" + "/data" + "Mon, 25 Jul 2023 05:00:00 GMT";
                 String secret = "mysecretkey123";
