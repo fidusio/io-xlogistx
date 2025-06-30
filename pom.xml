@@ -89,7 +89,7 @@
 
 
         <zoxweb-core.version>2.3.8</zoxweb-core.version>
-
+        <okhttp.version>4.12.0</okhttp.version>
         <xlogistx.version>1.0.0</xlogistx.version>
         <java-xt-core.version>RELEASE</java-xt-core.version>
 
@@ -253,6 +253,12 @@
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>${snakeyaml.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
             </dependency>
 
 

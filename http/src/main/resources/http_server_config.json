@@ -16,6 +16,12 @@
     "keep-alive": {
       "time_out": "5s",
       "maximum": 20
+    },
+    "on-startup": {
+      "bean": "startup class name with OnStartup annotation"
+    },
+    "on-shutdown": {
+      "bean": "shutdown class name with OnShutdown annotation"
     }
   },
   "connections": [
@@ -134,7 +140,7 @@
             "title": "FormEmail"
           },
           "recipients": "batata@webmail.com",
-          "subject" : "Contact Form"
+          "subject": "Contact Form"
         }
       }
     },
@@ -163,7 +169,8 @@
       ],
       "properties": {
         "base_folder": "/webs/xlogistx.io",
-        #"html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
+        #
+        "html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
         "default_file": "index.html",
         "caching": true
       }

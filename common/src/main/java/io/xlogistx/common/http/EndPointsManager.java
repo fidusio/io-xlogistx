@@ -7,10 +7,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.shared.annotation.EndPointProp;
-import org.zoxweb.shared.annotation.MappedProp;
-import org.zoxweb.shared.annotation.ParamProp;
-import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.annotation.*;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
@@ -35,8 +32,9 @@ public class EndPointsManager {
     private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
     private final Map<String, Object> beanMaps = new LinkedHashMap<>();
     private final InstanceFactory.ParamsInstanceCreator<?> pic;
+    private MethodHolder onStartup, onShutdown;
 
-    public EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic) {
+    private EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic) {
         this.pic = pic;
     }
 
@@ -206,11 +204,11 @@ public class EndPointsManager {
                 SecurityProp.class);
 
         if (classAnnotationMap != null) {
-            ServerEndpoint serverWS = classAnnotationMap.getMatchingClassAnnotation(ServerEndpoint.class);
+            ServerEndpoint serverWS = classAnnotationMap.findClassAnnotationByType(ServerEndpoint.class);
             if (serverWS != null) {
-                SecurityProp sp = classAnnotationMap.getMatchingClassAnnotation(SecurityProp.class);
+                SecurityProp sp = classAnnotationMap.findClassAnnotationByType(SecurityProp.class);
                 log.getLogger().info("WebSocket server end point " + classAnnotationMap);
-                log.getLogger().info("OnMessage: " + Arrays.toString(classAnnotationMap.matchingMethods(OnMessage.class)));
+                log.getLogger().info("OnMessage: " + Arrays.toString(classAnnotationMap.findMethodAnnotationsByType(OnMessage.class)));
                 String uri = updatePath(baseURI, serverWS.value());
                 WSCache wsCache = new WSCache(beanClass);
                 Object wsBean = epm.pic.newInstance(uri, sp, wsCache, beanInstance);
@@ -359,6 +357,41 @@ public class EndPointsManager {
         }
 
 
+        // scan onStartup and OnShutdown
+        NVGenericMap startup = serverConfig.getProperties().getNV("on-startup");
+        NVGenericMap shutdown = serverConfig.getProperties().getNV("on-shutdown");
+        log.getLogger().info("startup config: " + startup + " shutdown config: " + shutdown);
+
+        if (startup != null) {
+            try {
+                Class<?> clazz = Class.forName(startup.getValue("bean"));
+                ReflectionUtil.AnnotationMap onStartup = ReflectionUtil.scanClassAnnotations(clazz, OnStartup.class);
+                if (onStartup != null) {
+                    epm.onStartup = new MethodHolder(clazz.getConstructor().newInstance(), onStartup.findMethodAnnotationsByType(OnStartup.class)[0], null);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        if (shutdown != null) {
+            try {
+                Class<?> clazz = Class.forName(startup.getValue("bean"));
+                ReflectionUtil.AnnotationMap onShutdown = ReflectionUtil.scanClassAnnotations(clazz, OnShutdown.class);
+                if (onShutdown != null) {
+                    epm.onShutdown = new MethodHolder(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(OnStartup.class)[0], null);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        log.getLogger().info("@OnStartup: " + epm.onStartup + " @OnShutdown: " + epm.onShutdown);
+
+
         return epm;
     }
 
@@ -503,5 +536,14 @@ public class EndPointsManager {
         }
 
         return parameters;
+    }
+
+
+    public MethodHolder getOnStartup() {
+        return onStartup;
+    }
+
+    public MethodHolder getOnShutdown() {
+        return onShutdown;
     }
 }

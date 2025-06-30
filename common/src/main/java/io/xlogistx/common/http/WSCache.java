@@ -101,8 +101,8 @@ public class WSCache {
                     SecurityProp.class);
             Map<String, Method> ret = new HashMap<>();
             for (WSMethodType wsmt : WSMethodType.values()) {
-                Method[] matching = classAnnotationMap.matchingMethods(wsmt.annotationType);
-                if (matching != null && matching.length > 0) {
+                Method[] matching = classAnnotationMap.findMethodsByType(wsmt.annotationType);
+                if (matching != null) {
                     for (Method m : matching) {
 
                         Set<Set<Class<?>>> combos = SharedUtil.combinationsAsSet(false, wsmt.getParameterTypes());

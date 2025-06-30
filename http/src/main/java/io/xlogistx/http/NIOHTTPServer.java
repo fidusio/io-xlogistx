@@ -496,6 +496,10 @@ public class NIOHTTPServer
                 logger.getLogger().info("KAConfig: " + kaConfig);
             }
 
+            String startupBeanName = config.getProperties().lookupValue("on-startup.bean");
+            String shutdownBeanName = config.getProperties().lookupValue("on-shutdown.bean");
+            logger.getLogger().info("startup bean: " + startupBeanName + " shutdown bean: " + shutdownBeanName);
+
             // scan endpoints
             endPointsManager = EndPointsManager.scan(getConfig(), (a) -> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]));
             if (logger.isEnabled()) logger.getLogger().info("mapping completed***********************");

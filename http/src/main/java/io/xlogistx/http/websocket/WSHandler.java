@@ -8,6 +8,7 @@ import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPUtil;
+import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
@@ -200,7 +201,7 @@ public class WSHandler
                     case PING:
                         // we received a ping message
 
-                        webSocketSession.getBasicRemote().sendPong(frame.data() != null ? frame.data().wrap() : null);
+                        webSocketSession.getBasicRemote().sendPong(frame.data() != null ? ByteBufferUtil.wrap(frame.data()) : null);
                         break;
                     case PONG:
                         toInvoke = methodCache.lookup(WSCache.WSMethodType.PONG, false);

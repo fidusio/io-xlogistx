@@ -1,5 +1,6 @@
 package io.xlogistx.http.websocket;
 
+import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.shared.util.BytesArray;
 
 import javax.websocket.PongMessage;
@@ -16,7 +17,7 @@ public class WSPongMessage
 
     @Override
     public ByteBuffer getApplicationData() {
-        return data.wrap();
+        return ByteBufferUtil.wrap(data);
     }
 
     public String toString() {

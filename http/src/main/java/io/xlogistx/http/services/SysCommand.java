@@ -50,14 +50,14 @@ public class SysCommand
 
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "system-shutdown", uris = "/system/shutdown")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:shutdown")
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "system-shutdown", uris = "/system/poweroff")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:poweroff")
     public SimpleMessage systemShutdown() {
         if (getProperties() != null) {
             String command = getProperties().getValue("shutdown-command");
             Long delay = getProperties().getValue("shutdown-delay");
             if (command == null || delay == null) {
-                return new SimpleMessage("Shutdown: command or delay missing from config", HTTPStatusCode.BAD_REQUEST.CODE);
+                return new SimpleMessage("poweroff: command or delay missing from config", HTTPStatusCode.BAD_REQUEST.CODE);
             }
             TaskUtil.defaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
                 @Override
