@@ -4,6 +4,7 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
+import io.xlogistx.shiro.ShiroInvoker;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
@@ -25,7 +26,6 @@ import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
-import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
@@ -46,7 +46,6 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -350,10 +349,11 @@ public class NIOHTTPServer
                                 logger.getLogger().info(epm.path);
                             }
 
-                            Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
-                            Object result = ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
-                                    epm.result.methodHolder.methodAnnotations,
-                                    parameters);
+//                            Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
+                            Object result = epm.result.methodHolder.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
+//                                    ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
+//                                    epm.result.methodHolder.methodAnnotations,
+//                                    parameters);
 
                             HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
                                     HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
@@ -496,13 +496,26 @@ public class NIOHTTPServer
                 logger.getLogger().info("KAConfig: " + kaConfig);
             }
 
-            String startupBeanName = config.getProperties().lookupValue("on-startup.bean");
-            String shutdownBeanName = config.getProperties().lookupValue("on-shutdown.bean");
-            logger.getLogger().info("startup bean: " + startupBeanName + " shutdown bean: " + shutdownBeanName);
+//            String startupBeanName = config.getProperties().lookupValue("on-startup.bean");
+//            String shutdownBeanName = config.getProperties().lookupValue("on-shutdown.bean");
+//            logger.getLogger().info("startup bean: " + startupBeanName + " shutdown bean: " + shutdownBeanName);
 
             // scan endpoints
-            endPointsManager = EndPointsManager.scan(getConfig(), (a) -> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]));
+            endPointsManager = EndPointsManager.scan(getConfig(), (a) -> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]), ShiroInvoker.SINGLETON);
+
+            if(endPointsManager.getOnShutdown() != null)
+            {
+                ResourceManager.SINGLETON.register("on-shutdown", endPointsManager.getOnShutdown());
+            }
+
+            if(endPointsManager.getOnStartup() != null)
+            {
+                ResourceManager.SINGLETON.register("on-startup", endPointsManager.getOnStartup());
+            }
+
             if (logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
+
+            EndpointsUtil.SINGLETON.startup();
 
             // NISocket
             if (getNIOSocket() == null) {

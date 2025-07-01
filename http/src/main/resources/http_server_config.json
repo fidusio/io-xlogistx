@@ -18,10 +18,10 @@
       "maximum": 20
     },
     "on-startup": {
-      "bean": "startup class name with OnStartup annotation"
+      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
     },
     "on-shutdown": {
-      "bean": "shutdown class name with OnShutdown annotation"
+      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
     }
   },
   "connections": [

@@ -3,6 +3,7 @@ package io.xlogistx.http.websocket;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPRawHandler;
 import io.xlogistx.common.http.WSCache;
+import io.xlogistx.shiro.ShiroInvoker;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
@@ -125,7 +126,7 @@ public class WSHandler
             Method toInvoke = methodCache.lookup(WSCache.WSMethodType.OPEN, false);
             if (toInvoke != null) {
                 try {
-                    ShiroUtil.invokeMethod(false, getBean(), toInvoke, new Object[]{webSocketSession});
+                    ShiroInvoker.SINGLETON.invoke(false, getBean(), toInvoke, new Object[]{webSocketSession});
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -191,7 +192,7 @@ public class WSHandler
 
                             if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
                             try {
-                                ShiroUtil.invokeMethod(false, getBean(), toInvoke, parameters);
+                                ShiroInvoker.SINGLETON.invoke(false, getBean(), toInvoke, parameters);
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -216,7 +217,7 @@ public class WSHandler
                     if (log.isEnabled())
                         log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
                     try {
-                        ShiroUtil.invokeMethod(false, getBean(), toInvoke, parameters);
+                        ShiroInvoker.SINGLETON.invoke(false, getBean(), toInvoke, parameters);
                     } catch (Exception e) {
                         e.printStackTrace();
                         log.getLogger().info(webSocketSession.isOpen() + " " + frame.id() + " " + e);

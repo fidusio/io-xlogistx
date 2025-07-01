@@ -12,6 +12,7 @@ import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPServerConfig;
+import org.zoxweb.shared.security.SecureInvoker;
 import org.zoxweb.shared.util.*;
 
 import javax.websocket.OnClose;
@@ -193,7 +194,7 @@ public class EndPointsManager {
     }
 
 
-    private static boolean scanWebSocket(String baseURI, EndPointsManager epm, Class<?> beanClass, Object beanInstance) {
+    private static boolean scanWebSocket(String baseURI, EndPointsManager epm, Class<?> beanClass, Object beanInstance, SecureInvoker si) {
         // scan the annotation
         ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass,
                 ServerEndpoint.class,
@@ -226,7 +227,7 @@ public class EndPointsManager {
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
-                epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next(), hep));
+                epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next(), hep, si));
 
                 log.getLogger().info("Inner websocket " + map);
                 log.getLogger().info("CACHED Mapped Methods: " + wsCache.getCache());
@@ -267,7 +268,7 @@ public class EndPointsManager {
         return true;
     }
 
-    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsInstanceCreator<?> pic) {
+    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsInstanceCreator<?> pic, SecureInvoker secureInvocation) {
         HTTPEndPoint[] allHEP = serverConfig.getEndPoints();
         EndPointsManager epm = new EndPointsManager(pic);
         for (HTTPEndPoint configHEP : allHEP) {
@@ -289,7 +290,7 @@ public class EndPointsManager {
                 }
 
                 if (log.isEnabled()) log.getLogger().info("bean:" + beanName);
-                if (!scanWebSocket(serverConfig.getBaseURI(), epm, beanClass, beanInstance)) {
+                if (!scanWebSocket(serverConfig.getBaseURI(), epm, beanClass, beanInstance, secureInvocation)) {
                     if (log.isEnabled()) log.getLogger().info("Scan the class");
                     ReflectionUtil.AnnotationMap classAnnotationMap = ReflectionUtil.scanClassAnnotations(beanClass, MappedProp.class);
                     // --- Map the bean to the mapped id
@@ -334,7 +335,7 @@ public class EndPointsManager {
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
-                                        mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations, methodHEP));
+                                        mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations, methodHEP, secureInvocation));
 
                                     } else {
                                         if (log.isEnabled())
@@ -367,7 +368,16 @@ public class EndPointsManager {
                 Class<?> clazz = Class.forName(startup.getValue("bean"));
                 ReflectionUtil.AnnotationMap onStartup = ReflectionUtil.scanClassAnnotations(clazz, OnStartup.class);
                 if (onStartup != null) {
-                    epm.onStartup = new MethodHolder(clazz.getConstructor().newInstance(), onStartup.findMethodAnnotationsByType(OnStartup.class)[0], null);
+                    epm.onStartup = new MethodHolder(clazz.getConstructor().newInstance(), onStartup.findMethodAnnotationsByType(OnStartup.class)[0], null, secureInvocation);
+                }
+
+                NVGenericMap properties = startup.getNV("properties");
+                if (epm.onStartup.instance instanceof SetNVProperties) {
+                    NVGenericMap instanceProp = ((SetNVProperties) epm.onStartup.instance).getProperties();
+                    if (instanceProp != null)
+                        NVGenericMap.merge(instanceProp, properties);
+                    else
+                        ((SetNVProperties) epm.onStartup.instance).setProperties(properties);
                 }
 
             } catch (Exception e) {
@@ -381,7 +391,19 @@ public class EndPointsManager {
                 Class<?> clazz = Class.forName(startup.getValue("bean"));
                 ReflectionUtil.AnnotationMap onShutdown = ReflectionUtil.scanClassAnnotations(clazz, OnShutdown.class);
                 if (onShutdown != null) {
-                    epm.onShutdown = new MethodHolder(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(OnStartup.class)[0], null);
+                    // same class for onStartup and onShutdown we have to use the same instance as the startup
+                    if (epm.onStartup.instance.getClass().equals(clazz))
+                        epm.onShutdown = new MethodHolder(epm.onStartup.instance, onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation);
+                    else
+                        epm.onShutdown = new MethodHolder(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation);
+                }
+                NVGenericMap properties = shutdown.getNV("properties");
+                if (epm.onShutdown.instance instanceof SetNVProperties) {
+                    NVGenericMap instanceProp = ((SetNVProperties) epm.onShutdown.instance).getProperties();
+                    if (instanceProp != null)
+                        NVGenericMap.merge(instanceProp, properties);
+                    else
+                        ((SetNVProperties) epm.onShutdown.instance).setProperties(properties);
                 }
 
             } catch (Exception e) {

@@ -34,8 +34,6 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.SecUtil;
-import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.http.HTTPAuthorizationBasic;
@@ -51,8 +49,6 @@ import org.zoxweb.shared.util.ExceptionReason.Reason;
 import org.zoxweb.shared.util.*;
 
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -421,11 +417,11 @@ public class ShiroUtil {
         checkRoles(false, subject, roles);
     }
 
-    public static Object invokeMethod(boolean strict, Object bean, Method method, Object... parameters)
-            throws InvocationTargetException, IllegalAccessException {
-        authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
-        return ReflectionUtil.invokeMethod(strict, bean, method, parameters);
-    }
+//    public static <V> V invokeMethod(boolean strict, Object bean, Method method, Object... parameters)
+//            throws InvocationTargetException, IllegalAccessException {
+//        authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
+//        return (V)ReflectionUtil.invokeMethod(strict, bean, method, parameters);
+//    }
 
 
     public static void checkRoles(boolean partial, Subject subject, String... roles)

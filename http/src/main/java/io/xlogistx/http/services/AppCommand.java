@@ -1,6 +1,7 @@
 package io.xlogistx.http.services;
 
 
+import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.JMod;
@@ -18,13 +19,15 @@ import org.zoxweb.shared.util.NVGenericMap;
 
 
 public class AppCommand
-//extends PropertyHolder
 {
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "app-shutdown", uris = "/app/shutdown")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:shutdown")
     public SimpleMessage appShutdown() {
+
+        EndpointsUtil.SINGLETON.shutdown();
+
         long delay = Const.TimeInMillis.SECOND.MILLIS * 5;
         TaskUtil.defaultTaskScheduler().queue(delay, () -> System.exit(0));
         return new SimpleMessage("App will shutdown in " + Const.TimeInMillis.toString(delay), HTTPStatusCode.OK.CODE);
@@ -48,8 +51,4 @@ public class AppCommand
 
 
     }
-
-//    protected void refreshProperties()
-//    {
-//    }
 }
