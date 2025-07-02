@@ -1,18 +1,20 @@
 package io.xlogistx.common.http;
 
 
-import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.common.data.MethodContainer;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.server.security.SecureInvoker;
+
+
 import org.zoxweb.shared.annotation.*;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMediaType;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.http.HTTPServerConfig;
-import org.zoxweb.shared.security.SecureInvoker;
 import org.zoxweb.shared.util.*;
 
 import javax.websocket.OnClose;
@@ -33,16 +35,17 @@ public class EndPointsManager {
     private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
     private final Map<String, Object> beanMaps = new LinkedHashMap<>();
     private final InstanceFactory.ParamsInstanceCreator<?> pic;
-    private MethodHolder onStartup, onShutdown;
+    private MethodContainer onStartup, onShutdown;
 
     private EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic) {
         this.pic = pic;
     }
 
-    public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodHolder mh) {
+    public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodContainer mh) {
         uri = SharedStringUtil.toTrimmedLowerCase(uri);
         SUS.checkIfNulls("Mapping parameters can't be null", uri, hep);
         EndPointMeta epm = new EndPointMeta(hep, mh);
+        SecUtil.SINGLETON.applyAndCacheSecurityProfile(mh.methodAnnotations.method, null);
         uriEndPointMeta.put(uri, epm);
         return epm;
     }
@@ -227,7 +230,7 @@ public class EndPointsManager {
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
-                epm.map(uri, hep, new MethodHolder(wsBean, map.values().iterator().next(), hep, si));
+                epm.map(uri, hep, new MethodContainer(wsBean, map.values().iterator().next(), hep, si));
 
                 log.getLogger().info("Inner websocket " + map);
                 log.getLogger().info("CACHED Mapped Methods: " + wsCache.getCache());
@@ -335,7 +338,7 @@ public class EndPointsManager {
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
-                                        mapHEP(epm, methodHEP, new MethodHolder(beanInstance, methodAnnotations, methodHEP, secureInvocation));
+                                        mapHEP(epm, methodHEP, new MethodContainer(beanInstance, methodAnnotations, methodHEP, secureInvocation));
 
                                     } else {
                                         if (log.isEnabled())
@@ -368,7 +371,7 @@ public class EndPointsManager {
                 Class<?> clazz = Class.forName(startup.getValue("bean"));
                 ReflectionUtil.AnnotationMap onStartup = ReflectionUtil.scanClassAnnotations(clazz, OnStartup.class);
                 if (onStartup != null) {
-                    epm.onStartup = new MethodHolder(clazz.getConstructor().newInstance(), onStartup.findMethodAnnotationsByType(OnStartup.class)[0], null, secureInvocation);
+                    epm.onStartup = new MethodContainer(clazz.getConstructor().newInstance(), onStartup.findMethodAnnotationsByType(OnStartup.class)[0], null, secureInvocation);
                 }
 
                 NVGenericMap properties = startup.getNV("properties");
@@ -393,9 +396,9 @@ public class EndPointsManager {
                 if (onShutdown != null) {
                     // same class for onStartup and onShutdown we have to use the same instance as the startup
                     if (epm.onStartup.instance.getClass().equals(clazz))
-                        epm.onShutdown = new MethodHolder(epm.onStartup.instance, onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation);
+                        epm.onShutdown = new MethodContainer(epm.onStartup.instance, onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation);
                     else
-                        epm.onShutdown = new MethodHolder(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation);
+                        epm.onShutdown = new MethodContainer(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation);
                 }
                 NVGenericMap properties = shutdown.getNV("properties");
                 if (epm.onShutdown.instance instanceof SetNVProperties) {
@@ -418,10 +421,10 @@ public class EndPointsManager {
     }
 
 
-    private static void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodHolder methodHolder) {
+    private static void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodContainer methodContainer) {
         for (String path : hep.getPaths()) {
             String pathToBeAdded = HTTPUtil.basePath(path, true);
-            endPointsManager.map(pathToBeAdded, hep, methodHolder);
+            endPointsManager.map(pathToBeAdded, hep, methodContainer);
             if (log.isEnabled()) log.getLogger().info(pathToBeAdded + ":" + hep);
         }
     }
@@ -470,8 +473,8 @@ public class EndPointsManager {
 
 
         // need to parse the payload parameters
-        for (Parameter p : uriMapResult.result.methodHolder.methodAnnotations.method.getParameters()) {
-            Annotation pAnnotation = uriMapResult.result.methodHolder.methodAnnotations.parametersAnnotations.get(p);
+        for (Parameter p : uriMapResult.result.methodContainer.methodAnnotations.method.getParameters()) {
+            Annotation pAnnotation = uriMapResult.result.methodContainer.methodAnnotations.parametersAnnotations.get(p);
             if (pAnnotation instanceof ParamProp) {
                 ParamProp pp = (ParamProp) pAnnotation;
                 if (pp.uri()) {
@@ -561,11 +564,11 @@ public class EndPointsManager {
     }
 
 
-    public MethodHolder getOnStartup() {
+    public MethodContainer getOnStartup() {
         return onStartup;
     }
 
-    public MethodHolder getOnShutdown() {
+    public MethodContainer getOnShutdown() {
         return onShutdown;
     }
 }

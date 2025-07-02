@@ -1,6 +1,6 @@
 package io.xlogistx.http.services;
 
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
@@ -11,10 +11,11 @@ import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NVPair;
 
 public class SysConfig
-        extends PropertyHolder {
+        extends PropertyContainer<NVGenericMap> {
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "gson-enum-format", uris = "/gson/simple/format/{format}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "gson:" + SecurityModel.PERM_ACCESS)

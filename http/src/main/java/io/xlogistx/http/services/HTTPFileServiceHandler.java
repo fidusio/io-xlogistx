@@ -1,6 +1,6 @@
 package io.xlogistx.http.services;
 
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
@@ -9,10 +9,7 @@ import org.zoxweb.server.util.JarTool;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.ResourceManager;
-import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,7 +22,7 @@ import java.nio.file.Path;
 import java.util.zip.ZipInputStream;
 
 public class HTTPFileServiceHandler
-        extends PropertyHolder
+        extends PropertyContainer<NVGenericMap>
 //        implements HTTPRawHandler
 {
     public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);

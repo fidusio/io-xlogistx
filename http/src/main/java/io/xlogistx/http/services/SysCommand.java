@@ -1,7 +1,7 @@
 package io.xlogistx.http.services;
 
 
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.RuntimeUtil;
@@ -13,12 +13,13 @@ import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.task.SupplierTask;
 import org.zoxweb.shared.util.Const;
+import org.zoxweb.shared.util.NVGenericMap;
 
 import java.io.IOException;
 
 
 public class SysCommand
-        extends PropertyHolder {
+        extends PropertyContainer<NVGenericMap> {
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "system-reboot", uris = "/system/reboot")

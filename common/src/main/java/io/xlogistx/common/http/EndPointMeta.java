@@ -1,14 +1,14 @@
 package io.xlogistx.common.http;
 
-import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.common.data.MethodContainer;
 import org.zoxweb.shared.http.HTTPEndPoint;
 
 public class EndPointMeta {
     public final HTTPEndPoint httpEndPoint;
-    public final MethodHolder methodHolder;
+    public final MethodContainer methodContainer;
 
-    public EndPointMeta(HTTPEndPoint hep, MethodHolder mh) {
+    public EndPointMeta(HTTPEndPoint hep, MethodContainer mh) {
         this.httpEndPoint = hep;
-        this.methodHolder = mh;
+        this.methodContainer = mh;
     }
 }

@@ -126,7 +126,7 @@ public class WSHandler
             Method toInvoke = methodCache.lookup(WSCache.WSMethodType.OPEN, false);
             if (toInvoke != null) {
                 try {
-                    ShiroInvoker.SINGLETON.invoke(false, getBean(), toInvoke, new Object[]{webSocketSession});
+                    ShiroInvoker.SINGLETON.invoke(false, false, getBean(), toInvoke, new Object[]{webSocketSession});
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -192,7 +192,7 @@ public class WSHandler
 
                             if (log.isEnabled()) log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
                             try {
-                                ShiroInvoker.SINGLETON.invoke(false, getBean(), toInvoke, parameters);
+                                ShiroInvoker.SINGLETON.invoke(false, false,getBean(), toInvoke, parameters);
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -217,7 +217,7 @@ public class WSHandler
                     if (log.isEnabled())
                         log.getLogger().info(opCode + " " + frame.isFin() + " " + toInvoke);
                     try {
-                        ShiroInvoker.SINGLETON.invoke(false, getBean(), toInvoke, parameters);
+                        ShiroInvoker.SINGLETON.invoke(false,false, getBean(), toInvoke, parameters);
                     } catch (Exception e) {
                         e.printStackTrace();
                         log.getLogger().info(webSocketSession.isOpen() + " " + frame.id() + " " + e);

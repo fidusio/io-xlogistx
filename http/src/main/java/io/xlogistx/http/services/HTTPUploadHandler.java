@@ -1,6 +1,6 @@
 package io.xlogistx.http.services;
 
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPRawHandler;
 import org.zoxweb.server.http.HTTPUtil;
@@ -24,7 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 public class HTTPUploadHandler
-        extends PropertyHolder
+        extends PropertyContainer<NVGenericMap>
         implements HTTPRawHandler {
 
 

@@ -340,17 +340,17 @@ public class NIOHTTPServer
                         //_________________________________________
 
                         // check if instance of HTTPSessionHandler
-                        if (epm.result.methodHolder.instance instanceof HTTPRawHandler) {
-                            ((HTTPRawHandler) epm.result.methodHolder.instance).handle(hph);
+                        if (epm.result.methodContainer.instance instanceof HTTPRawHandler) {
+                            ((HTTPRawHandler) epm.result.methodContainer.instance).handle(hph);
                         } else if (hph.isRequestComplete()) {
                             if (logger.isEnabled()) {
-                                logger.getLogger().info("" + epm.result.methodHolder.instance);
+                                logger.getLogger().info("" + epm.result.methodContainer.instance);
                                 logger.getLogger().info("" + hph.getRequest());
                                 logger.getLogger().info(epm.path);
                             }
 
 //                            Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
-                            Object result = epm.result.methodHolder.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
+                            Object result = epm.result.methodContainer.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
 //                                    ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
 //                                    epm.result.methodHolder.methodAnnotations,
 //                                    parameters);

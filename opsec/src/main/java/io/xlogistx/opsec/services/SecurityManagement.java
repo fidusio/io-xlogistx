@@ -1,6 +1,6 @@
 package io.xlogistx.opsec.services;
 
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
@@ -15,7 +15,7 @@ import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 
 public class SecurityManagement
-extends PropertyHolder
+extends PropertyContainer
 {
 
     @EndPointProp(methods = {HTTPMethod.POST}, name="create-subject", uris="/opsec/regsiter/subject")

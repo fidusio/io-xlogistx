@@ -1,6 +1,6 @@
 package io.xlogistx.http.services;
 
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -20,7 +20,7 @@ import java.util.Date;
 
 @MappedProp(name = "ping", id = "ping-class")
 public class Ping
-        extends PropertyHolder {
+        extends PropertyContainer<NVGenericMap> {
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "ping", uris = "/ping/{detailed}")

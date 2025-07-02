@@ -1,6 +1,6 @@
 package io.xlogistx.http;
 
-import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.common.data.MethodContainer;
 import org.zoxweb.shared.util.ResourceManager;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,7 +22,7 @@ public class EndpointsUtil {
     {
         if(!startCallStatus.getAndSet(true))
         {
-            MethodHolder shutdown = ResourceManager.SINGLETON.lookup("on-startup");
+            MethodContainer shutdown = ResourceManager.SINGLETON.lookup("on-startup");
             if (shutdown != null) {
                 try {
                     return shutdown.invoke();
@@ -40,7 +40,7 @@ public class EndpointsUtil {
     {
         if(!shutdownCallStatus.getAndSet(true))
         {
-            MethodHolder shutdown = ResourceManager.SINGLETON.lookup("on-shutdown");
+            MethodContainer shutdown = ResourceManager.SINGLETON.lookup("on-shutdown");
             if (shutdown != null) {
                 try {
                     return shutdown.invoke();

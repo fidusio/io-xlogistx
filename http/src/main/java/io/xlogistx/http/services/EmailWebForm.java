@@ -1,7 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.ChallengeManager;
-import io.xlogistx.common.data.PropertyHolder;
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.smtp.EmailRecipient;
 import io.xlogistx.common.smtp.SMTPMessage;
 import io.xlogistx.common.smtp.SMTPSender;
@@ -18,7 +18,7 @@ import org.zoxweb.shared.util.*;
 import java.io.IOException;
 
 public class EmailWebForm
-        extends PropertyHolder {
+        extends PropertyContainer<NVGenericMap> {
     public static final LogWrapper log = new LogWrapper(EmailWebForm.class).setEnabled(true);
     private MailerConfig mailerConfig;
 

@@ -1,6 +1,6 @@
 package io.xlogistx.common.http;
 
-import io.xlogistx.common.data.MethodHolder;
+import io.xlogistx.common.data.MethodContainer;
 
 import javax.websocket.server.ServerEndpointConfig;
 import java.lang.annotation.Annotation;
@@ -10,11 +10,11 @@ public class WSMethodConfig {
 
     ServerEndpointConfig fd;
     private Annotation methodAnnotation;
-    public final MethodHolder methodHolder;
+    public final MethodContainer methodContainer;
 
 
-    public WSMethodConfig(MethodHolder methodHolder) {
-        this.methodHolder = methodHolder;
+    public WSMethodConfig(MethodContainer methodContainer) {
+        this.methodContainer = methodContainer;
     }
 
     public Annotation getMethodAnnotation() {
