@@ -33,6 +33,7 @@ import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.protocol.ProtoSession;
+import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
 
@@ -48,6 +49,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
@@ -56,22 +58,25 @@ import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
 
 
 public class NIOHTTPServer
-        implements DaemonController {
-    public static final String VERSION = "1.1.9";
+        implements DaemonController, GetNamedVersion{
+    public static final String VERSION = "1.2.0";
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
-    private boolean isClosed = true;
+    //private boolean isClosed = true;
     private volatile boolean securityManagerEnabled = false;
     private EndPointsManager endPointsManager = null;
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
-    public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NOUFN")
-            .lookupResource(ResourceManager.Resource.HTTP_SERVER);
+//    public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NOUFN")
+//            .lookupResource(ResourceManager.Resource.HTTP_SERVER);
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
+
+
 
 
     public class HTTPSession
@@ -120,7 +125,6 @@ public class NIOHTTPServer
         @Override
         public void close() throws IOException {
             IOUtil.close(hph, protocolHandler);
-
 
         }
 
@@ -195,7 +199,11 @@ public class NIOHTTPServer
             try {
 
 
-                if (e instanceof HTTPCallException) {
+                if (e instanceof AccessException) {
+                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
+                            HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                } else if (e instanceof HTTPCallException) {
 
                     HTTPUtil.formatErrorResponse((HTTPCallException) e, hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
@@ -456,12 +464,7 @@ public class NIOHTTPServer
         TaskUtil.registerMainThread();
         String msg = "";
         NVGenericMap keepAliveConfig = null;
-        if (isClosed) {
-            if (config != null) {
-                isClosed = false;
-            }
-
-
+        if (config != null && !isClosed.get()) {
             String shiroConfig = config.getProperties().lookupValue("shiro.config");
             // shiro registration
             if (shiroConfig != null) {
@@ -500,22 +503,6 @@ public class NIOHTTPServer
 //            String shutdownBeanName = config.getProperties().lookupValue("on-shutdown.bean");
 //            logger.getLogger().info("startup bean: " + startupBeanName + " shutdown bean: " + shutdownBeanName);
 
-            // scan endpoints
-            endPointsManager = EndPointsManager.scan(getConfig(), (a) -> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]), ShiroInvoker.SINGLETON);
-
-            if(endPointsManager.getOnShutdown() != null)
-            {
-                ResourceManager.SINGLETON.register("on-shutdown", endPointsManager.getOnShutdown());
-            }
-
-            if(endPointsManager.getOnStartup() != null)
-            {
-                ResourceManager.SINGLETON.register("on-startup", endPointsManager.getOnStartup());
-            }
-
-            if (logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
-
-            EndpointsUtil.SINGLETON.startup();
 
             // NISocket
             if (getNIOSocket() == null) {
@@ -523,6 +510,27 @@ public class NIOHTTPServer
                     TaskUtil.setTaskProcessorThreadCount(getConfig().getThreadPoolSize());
                 nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
             }
+
+
+            ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, this);
+
+            // scan endpoints
+
+            endPointsManager = EndPointsManager.scan(getConfig(), (a) -> new WSHandler((String) a[0], (SecurityProp) a[1], (WSCache) a[2], a[3]), ShiroInvoker.SINGLETON);
+
+            if (endPointsManager.getOnShutdown() != null) {
+                ResourceManager.SINGLETON.register("on-shutdown", endPointsManager.getOnShutdown());
+            }
+
+            if (endPointsManager.getOnStartup() != null) {
+                ResourceManager.SINGLETON.register("on-startup", endPointsManager.getOnStartup());
+            }
+
+            if (logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
+
+            EndpointsUtil.SINGLETON.startup();
+
+
             ConnectionConfig[] ccs = getConfig().getConnectionConfigs();
 
 
@@ -600,8 +608,6 @@ public class NIOHTTPServer
         if (!SUS.isEmpty(msg))
             logger.getLogger().info("Services started" + msg);
 
-
-        ResourceManager.SINGLETON.register("nio-http-server", this);
         if (keepAliveConfig != null)
             ResourceManager.SINGLETON.register("keep-alive-config", keepAliveConfig);
 
@@ -680,5 +686,18 @@ public class NIOHTTPServer
 
     }
 
+
+    @Override
+    public String getVersion() {
+        return VERSION;
+    }
+
+    /**
+     * @return the name of the object
+     */
+    @Override
+    public String getName() {
+        return "NOYFB";
+    }
 
 }

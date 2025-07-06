@@ -93,6 +93,13 @@
       }
     },
     {
+      "bean": "io.xlogistx.http.services.DNSCache",
+      "properties": {
+        "resolver": "8.8.8.8",
+        "port": 53
+      }
+    },
+    {
       "bean": "io.xlogistx.http.services.EchoChat"
     },
     {

@@ -15,6 +15,11 @@ import java.nio.channels.spi.AbstractSelectableChannel;
 public class NIONMapHandler extends ProtocolHandler {
     public final static LogWrapper logger = new LogWrapper(ProtocolHandler.class).setEnabled(false);
     private ByteBuffer bb = ByteBufferUtil.allocateByteBuffer(512);
+    public NIONMapHandler()
+    {
+        super(false);
+    }
+
     @Override
     protected void  close_internal() throws IOException {
 

@@ -97,7 +97,7 @@ public class HTTPFileServiceHandler
 
         HTTPMessageConfigInterface response = new HTTPMessageConfig();
         response.setHTTPStatusCode(HTTPStatusCode.OK);
-        response.getHeaders().build(HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+        response.getHeaders().build(HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
         if (mime != null)
             response.setContentType(mime.getValue());
         response.setContentAsIS(fileIS);
@@ -159,7 +159,7 @@ public class HTTPFileServiceHandler
 
 
         HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
-                HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+                HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
 //                HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN.toHTTPHeader("*"));
 
         if (mime != null)

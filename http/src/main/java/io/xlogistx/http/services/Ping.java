@@ -30,25 +30,21 @@ public class Ping
         response.add("message", "App server is up and running.");
         response.add("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date()));
         FileSystem fs = ResourceManager.lookupResource(ResourceManager.Resource.FILE_SYSTEM);
+        NIOHTTPServer niohttpServer  = ResourceManager.lookupResource(ResourceManager.Resource.HTTP_SERVER);
 
-        if (getProperties().get("server_name") != null)
-            response.add(getProperties().get("server_name"));
-        if (getProperties().get("version") != null)
-            response.add(getProperties().get("version"));
+        response.build("server-name", niohttpServer.getName()).build("version", niohttpServer.getVersion());
         if (detailed) {
-
             response.build("subject-id", ShiroUtil.subjectUserID())
-                    .build("jdk_version", System.getProperty("java.version"))
-                    .build("vm_name", System.getProperty("java.vm.name"))
-                    .build("vm_vendor_version", System.getProperty("java.vendor.version"))
+                    .build("jdk-version", System.getProperty("java.version"))
+                    .build("vm-name", System.getProperty("java.vm.name"))
+                    .build("vm-vendor-version", System.getProperty("java.vendor.version"))
                     .build("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS))
-                    .build("current_thread", Thread.currentThread().getName())
-                    .build("version", NIOHTTPServer.VERSION)
+                    .build("current-thread", Thread.currentThread().getName())
                     .build("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
                             + "," + System.getProperty("os.arch"))
-                    .build(new NVInt("byte_buffer_cache", ByteBufferUtil.cacheCount()))
-                    .build(new NVInt("ubaos_cache", ByteBufferUtil.baosCount()))
-                    .build(new NVLong("total_cached_byte_capacity_kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())))
+                    .build(new NVInt("byte-buffer-cache", ByteBufferUtil.cacheCount()))
+                    .build(new NVInt("ubaos-cache", ByteBufferUtil.baosCount()))
+                    .build(new NVLong("total-cached-byte-capacity-kb", Const.SizeInBytes.K.convertBytes(ByteBufferUtil.cacheCapacity())))
                     .build("file-system", fs != null ? fs.toString() : "UNKNOWN")
                     //response.getProperties().add("version", )
                     .build(TaskUtil.info())
@@ -56,7 +52,6 @@ public class Ping
                     .build((NVGenericMap) ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO))
                     .build((NVGenericMap) ResourceManager.lookupResource("keep-alive-config"));
 
-            NIOHTTPServer niohttpServer = ResourceManager.lookupResource("nio-http-server");
             if (niohttpServer != null)
                 response.add(niohttpServer.getNIOSocket().getStats());
         }

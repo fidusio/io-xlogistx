@@ -96,7 +96,7 @@ public class HTTPUploadHandler
 
 
         HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
-                HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+                HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
         hmciResponse.setContentType(HTTPMediaType.APPLICATION_JSON);
         NVGenericMap responseData = new NVGenericMap();
         responseData.build("filename", file.getName())
@@ -209,7 +209,7 @@ public class HTTPUploadHandler
 
 
                 HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
-                        HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
+                        HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
                 hmciResponse.setContentType(HTTPMediaType.APPLICATION_JSON);
                 NVGenericMap responseData = new NVGenericMap();
                 File file = fileData.getProperties().getValue("file");

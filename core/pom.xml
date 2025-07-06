@@ -44,6 +44,11 @@
             <artifactId>junit-jupiter-params</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>dnsjava</groupId>
+            <artifactId>dnsjava</artifactId>
+        </dependency>
+
 
     </dependencies>
 

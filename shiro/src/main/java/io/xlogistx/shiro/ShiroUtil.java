@@ -38,7 +38,6 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.http.HTTPAuthorizationBasic;
 import org.zoxweb.shared.security.AccessException;
-import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
@@ -296,7 +295,7 @@ public class ShiroUtil {
         try {
             return SecurityUtils.getSubject();
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessException(e.getMessage(), Reason.NOT_FOUND);
         }
     }
 
@@ -342,7 +341,7 @@ public class ShiroUtil {
 
     public static void authorizationCheckPoint(ResourceSecurity rs) {
         if (!isAuthorizedCheckPoint(rs))
-            throw new AccessSecurityException("Subject not Authorized");
+            throw new AccessException("Subject not role or permission not Authorized", Reason.UNAUTHORIZED);
 
     }
 

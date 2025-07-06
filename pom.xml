@@ -92,7 +92,7 @@
         <okhttp.version>4.12.0</okhttp.version>
         <xlogistx.version>1.0.0</xlogistx.version>
         <java-xt-core.version>RELEASE</java-xt-core.version>
-
+        <dnsjava.version>3.6.3</dnsjava.version>
 
         <slf4j.version>RELEASE</slf4j.version>
 
@@ -259,6 +259,12 @@
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
                 <version>${okhttp.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dnsjava</groupId>
+                <artifactId>dnsjava</artifactId>
+                <version>${dnsjava.version}</version>
             </dependency>
 
 
