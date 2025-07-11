@@ -195,24 +195,27 @@ public class HTTPProtocolHandler
         if (result instanceof HTTPMessageConfigInterface)
             response = (HTTPMessageConfigInterface) result;
             // json response
-        else if (SharedStringUtil.contains(contentType, "application/json", true))
+        else if (SharedStringUtil.contains(contentType, "application/json", true) && result != null)
             HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
-        else {
-            if (result instanceof String) {
-                HTTPUtil.buildResponse(response, statusCode, headersToAdd);
-                response.setContent((String) result);
-            } else if (result instanceof byte[]) {
-                HTTPUtil.buildResponse(response, statusCode, headersToAdd);
-                response.setContent((byte[]) result);
-            } else if (result != null) {
-                // look for encoder for the time being stick with json
-                HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
-            } else {
-                HTTPUtil.buildResponse(response, statusCode, headersToAdd);
-            }
-
+        else if (result instanceof String) {
+            HTTPUtil.buildResponse(response, statusCode, headersToAdd);
+            response.setContent((String) result);
+        } else if (result instanceof byte[]) {
+            HTTPUtil.buildResponse(response, statusCode, headersToAdd);
+            response.setContent((byte[]) result);
+        } else if (result != null) {
+            // look for encoder for the time being stick with json
+            HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
+        } else if (result == null) {
+            HTTPUtil.buildResponse(response, statusCode, headersToAdd);
+            if (response.getHTTPStatusCode() != HTTPStatusCode.NO_CONTENT)
+                response.setContentLength(0);
+            response.getHeaders().remove(HTTPHeader.CONTENT_TYPE);
+//            response.setContentType((GetValue<String>[]) null);
         }
-        if(response.getContentType() == null)
+
+
+        if (result != null && response.getContentType() == null)
             response.setContentType(contentType);
         validateKeepAlive();
         return response;

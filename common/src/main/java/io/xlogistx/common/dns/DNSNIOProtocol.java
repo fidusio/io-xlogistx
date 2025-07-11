@@ -15,17 +15,21 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class DNSNIOProtocol
         extends ProtocolHandler {
     public static final LogWrapper log = new LogWrapper(ProtocolHandler.class).setEnabled(false);
     private final ByteBuffer buffer = ByteBufferUtil.allocateByteBuffer(512);
-    public static final DNSNIOProtocol SINGLETON = new DNSNIOProtocol();
     private final RateCounter rc = new RateCounter("DNSNIOProtocol");
 
 
-    private DNSNIOProtocol() {
+    private final ScheduledExecutorService scheduler;
+
+
+    public DNSNIOProtocol(ScheduledExecutorService scheduler) {
         super(false);
+        this.scheduler = scheduler;
     }
 
     @Override
@@ -83,7 +87,7 @@ public class DNSNIOProtocol
 
                     InetAddress cachedHost = DNSRegistrar.SINGLETON.lookup(qName);
                     if (question.getType() == Type.A && cachedHost != null) {
-                        responseMsg.addRecord(new ARecord(question.getName(), DClass.IN,60, cachedHost), Section.ANSWER);
+                        responseMsg.addRecord(new ARecord(question.getName(), DClass.IN, 60, cachedHost), Section.ANSWER);
                     } else {
                         // Forward to upstream resolver
                         try {
@@ -100,14 +104,16 @@ public class DNSNIOProtocol
                     byte[] respBytes = responseMsg.toWire(512);
                     ByteBuffer respBuffer = ByteBuffer.wrap(respBytes);
                     SocketAddress destination = clientAddr;
-                    ((DatagramChannel) selectionKey.channel()).send(respBuffer, destination);
-//                    TaskUtil.defaultTaskScheduler().execute(() -> {
-//                        try {
-//                            ((DatagramChannel) selectionKey.channel()).send(respBuffer, destination);
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-//                    });
+                    if (scheduler != null)
+                        scheduler.execute(() -> {
+                            try {
+                                ((DatagramChannel) selectionKey.channel()).send(respBuffer, destination);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    else
+                        ((DatagramChannel) selectionKey.channel()).send(respBuffer, destination);
 
 
                 }
@@ -129,7 +135,7 @@ public class DNSNIOProtocol
      */
     @Override
     public String getDescription() {
-        return "";
+        return "Java DNS cache";
     }
 
     /**
@@ -137,6 +143,14 @@ public class DNSNIOProtocol
      */
     @Override
     public String getName() {
-        return "";
+        return "DNSNIOProtocol";
     }
+
+//    public ScheduledExecutorService getScheduler() {
+//        return scheduler;
+//    }
+//
+//    public void setScheduler(ScheduledExecutorService scheduler) {
+//        this.scheduler = scheduler;
+//    }
 }

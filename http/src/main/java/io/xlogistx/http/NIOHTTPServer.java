@@ -44,13 +44,10 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
@@ -58,25 +55,21 @@ import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
 
 
 public class NIOHTTPServer
-        implements DaemonController, GetNamedVersion{
-    public static final String VERSION = "1.2.0";
+        implements DaemonController, GetNamedVersion {
+    public static final String VERSION = "1.2.2";
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
     //private boolean isClosed = true;
-    private volatile boolean securityManagerEnabled = false;
+    //private volatile boolean securityManagerEnabled = false;
     private EndPointsManager endPointsManager = null;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
-    private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
-//    public final String NAME = ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, "NOUFN")
-//            .lookupResource(ResourceManager.Resource.HTTP_SERVER);
+//    private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
-
-
 
 
     public class HTTPSession
@@ -478,7 +471,7 @@ public class NIOHTTPServer
 //                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
 //                    }
                     logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
-                    securityManagerEnabled = true;
+//                    securityManagerEnabled = true;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

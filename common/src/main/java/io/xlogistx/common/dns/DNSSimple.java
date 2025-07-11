@@ -85,13 +85,13 @@ public class DNSSimple {
             int port = params.intValue("port", 53);
             List<GetNameValue<String>> hosts = ParamUtil.parseGroupedValues(params.stringValue("dns", true));
             System.out.println("To cache " + hosts);
-            for(GetNameValue<String> gnvs : hosts)
+            for (GetNameValue<String> gnvs : hosts)
                 DNSRegistrar.SINGLETON.register(gnvs);
 
             DNSNIOProtocol.log.setEnabled(true);
             //syncProcessing()
             NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
-            nioSocket.addDatagramChannel(new InetSocketAddress(port), new DNSNIOFactory());
+            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSNIOFactory.SINGLETON);
 
 
         } catch (Exception e) {

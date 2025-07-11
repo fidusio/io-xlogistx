@@ -3,10 +3,12 @@ package io.xlogistx.common.dns;
 import org.zoxweb.server.net.ProtocolFactoryBase;
 
 public class DNSNIOFactory
-    extends ProtocolFactoryBase<DNSNIOProtocol>
-{
+        extends ProtocolFactoryBase<DNSNIOProtocol> {
 
+    public static final DNSNIOFactory SINGLETON = new DNSNIOFactory();
 
+    private DNSNIOFactory() {
+    }
 
     /**
      * Init the protocol factory
@@ -31,6 +33,6 @@ public class DNSNIOFactory
      */
     @Override
     public DNSNIOProtocol newInstance() {
-        return DNSNIOProtocol.SINGLETON;
+        return new DNSNIOProtocol(getProperties().getValue("scheduler"));
     }
 }
