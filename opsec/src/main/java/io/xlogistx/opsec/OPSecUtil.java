@@ -1,6 +1,12 @@
 package io.xlogistx.opsec;
 
 
+import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.channel.ClientChannel;
+import org.apache.sshd.client.channel.ClientChannelEvent;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.keyprovider.FileKeyPairProvider;
+import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -36,15 +42,20 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.security.SShURI;
 import org.zoxweb.shared.util.*;
 
 import javax.crypto.*;
 import java.io.*;
 import java.math.BigInteger;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -107,27 +118,25 @@ public class OPSecUtil {
         public static boolean validate(String password, NVGenericMap hashInfo) {
             byte[] storedHash = hashInfo.getValue(HASH);
             byte[] passwordHash = argon2idHash(password,
-                    storedHash.length,  (byte[]) hashInfo.getValue(SALT), hashInfo.getValue(MEMORY), hashInfo.getValue(ITERATIONS), hashInfo.getValue(PARALLELISM)
+                    storedHash.length, (byte[]) hashInfo.getValue(SALT), hashInfo.getValue(MEMORY), hashInfo.getValue(ITERATIONS), hashInfo.getValue(PARALLELISM)
             );
 
             return Arrays.equals(passwordHash, storedHash);
         }
 
 
-        public static String argon2idCanID(String password)
-        {
-           return argon2idCanID(SharedStringUtil.getBytes(password));
+        public static String argon2idCanID(String password) {
+            return argon2idCanID(SharedStringUtil.getBytes(password));
         }
 
-        public static String argon2idCanID(byte[] password)
-        {
+        public static String argon2idCanID(byte[] password) {
             byte[] salt = SecUtil.SINGLETON.generateRandomBytes(16);
             byte[] hash = argon2idHash(password, 32, salt, Const.SizeInBytes.K.mult(15), 2, 1);
             return argonToCanID("argon2id", 19, hash, salt, Const.SizeInBytes.K.mult(15), 2, 1);
         }
 
 
-        public static String argonToCanID(String alg, int version,  byte[] hash, byte[] salt, int memory, int iterations, int parallelism) {
+        public static String argonToCanID(String alg, int version, byte[] hash, byte[] salt, int memory, int iterations, int parallelism) {
 //            String base64Salt = Base64.getEncoder().withoutPadding().encodeToString(salt);
 //            String base64Hash = Base64.getEncoder().withoutPadding().encodeToString(hash);
 
@@ -261,6 +270,59 @@ public class OPSecUtil {
         return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
     }
 
+    public X509CertificateHolder generateIntermediateCA(
+            PrivateKey caPrivateKey, X509CertificateHolder caCert,
+            String subjectDN, KeyPair intermediateKeyPair, int days) throws Exception {
+
+        long now = System.currentTimeMillis();
+        Date notBefore = new Date(now);
+        Date notAfter = new Date(now + days * 24L * 60 * 60 * 1000);
+        X500Name issuer = caCert.getSubject();
+        BigInteger serial = BigInteger.valueOf(now);
+
+        X500Name subject = new X500Name("CN=" + subjectDN);
+        JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                issuer,
+                serial,
+                notBefore, notAfter,
+                subject,
+                intermediateKeyPair.getPublic()
+        );
+
+        // Add CA:TRUE extension
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
+
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withECDSA")
+                .setProvider("BC").build(caPrivateKey);
+
+        return builder.build(signer);
+    }
+
+    public  X509CertificateHolder generateSignedCertificate(
+            PrivateKey issuerKey, X509CertificateHolder issuerCert,
+            String subjectDN, KeyPair subjectKeyPair, int days, boolean isCA) throws Exception {
+
+        long now = System.currentTimeMillis();
+        Date notBefore = new Date(now);
+        Date notAfter = new Date(now + Const.TimeInMillis.DAY.mult(days));
+        BigInteger serial = BigInteger.valueOf(now);
+
+        JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                issuerCert.getSubject(),
+                serial,
+                notBefore, notAfter,
+                new X500Name(subjectDN),
+                subjectKeyPair.getPublic()
+        );
+
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCA));
+
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withECDSA")
+                .setProvider("BC").build(issuerKey);
+
+        return builder.build(signer);
+    }
+
     public KeyPair generateKeyPair(CanonicalID keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
@@ -368,6 +430,70 @@ public class OPSecUtil {
         return stringWriter.toString();
     }
 
+    public static String sshCommand(String user, int port, String host, KeyPair[] keys, String command) throws IOException {
+        SshClient client = SshClient.setUpDefaultClient();
+        client.start();
+
+//        KeyPairProvider keyPairProvider = new FileKeyPairProvider(Collections.singletonList(Paths.get(privateKeyPath)));
+//        Iterable<KeyPair> keys = keyPairProvider.loadKeys(null);
+
+        UByteArrayOutputStream ubaos = new UByteArrayOutputStream();
+        try (ClientSession session = client.connect(user, host, port).verify(10000).getSession()) {
+            for (KeyPair key : keys)
+                session.addPublicKeyIdentity(key);
+            session.auth().verify(5000);
+
+            try (ClientChannel channel = session.createExecChannel(command)) {
+                channel.setOut(ubaos);
+                channel.setErr(ubaos);
+                channel.open().verify(5_000);
+                channel.waitFor(Collections.singleton(ClientChannelEvent.CLOSED), 0);
+                return ubaos.toString();
+            }
+        } finally {
+            client.stop();
+        }
+    }
+
+
+    public static KeyPair[] loadKeyPairFromPath(URI path) throws GeneralSecurityException, IOException {
+        KeyPairProvider keyPairProvider = new FileKeyPairProvider(Collections.singletonList(Paths.get(path)));
+        List<KeyPair> ret = new ArrayList<>();
+
+        for (KeyPair kp : keyPairProvider.loadKeys(null))
+            ret.add(kp);
+        return ret.toArray(new KeyPair[0]);
+    }
+
+
+    public static String sshCommand(SShURI sshURI, String password, String command) throws IOException {
+        return sshCommand(sshURI.user, sshURI.port, sshURI.host, password, command);
+    }
+
+
+    public static String sshCommand(SShURI sshURI, KeyPair[] keyPairs, String command) throws IOException {
+        return sshCommand(sshURI.user, sshURI.port, sshURI.host, keyPairs, command);
+    }
+
+    public static String sshCommand(String user, int port, String host, String password, String command) throws IOException {
+        SshClient client = SshClient.setUpDefaultClient();
+        client.start();
+
+        try (ClientSession session = client.connect(user, host, port).verify(10000).getSession()) {
+            session.addPasswordIdentity(password);
+            session.auth().verify(5000);
+            UByteArrayOutputStream ubaos = new UByteArrayOutputStream();
+            try (ClientChannel channel = session.createExecChannel(command)) {
+                channel.setOut(ubaos);
+                channel.setErr(ubaos);
+                channel.open().verify(5_000);
+                channel.waitFor(Collections.singleton(ClientChannelEvent.CLOSED), 0);
+                return ubaos.toString();
+            }
+        } finally {
+            client.stop();
+        }
+    }
 
     public PrivateKey convertPemToPrivateKey(String pem) throws IOException {
         StringReader stringReader = new StringReader(pem);
@@ -588,7 +714,6 @@ public class OPSecUtil {
     public static byte[] argon2idHash(byte[] password, int hashLength, byte[] salt, int memory, int iterations, int parallelism) {
 
 
-
         Argon2Parameters.Builder builder = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
                 .withSalt(salt)
                 .withIterations(iterations)
@@ -602,11 +727,6 @@ public class OPSecUtil {
         generator.generateBytes(password, hash);
         return hash;
     }
-
-
-
-
-
 
 
 //    public static PrivateKey extractKCPrivateKeyFromEncoded(byte[] encodedKey) {
