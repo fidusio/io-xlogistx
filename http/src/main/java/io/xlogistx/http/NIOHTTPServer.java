@@ -576,7 +576,7 @@ public class NIOHTTPServer
                                 msg += " HTTPS @" + serverAddress;
                                 break;
                             case HTTP:
-                                // we need to create a http server
+                                // we need to create an http server
                                 logger.getLogger().info("we need to create an http server");
                                 serverAddress = cc.getSocketConfig();
                                 getNIOSocket().addServerSocket(serverAddress, serverAddress.getBacklog(), new NIOSocketHandlerFactory(httpIC));
