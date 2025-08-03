@@ -12,10 +12,7 @@ import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.ExtensionsGenerator;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -42,7 +39,6 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.util.io.pem.PemReader;
-import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
@@ -64,6 +60,8 @@ import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class OPSecUtil {
@@ -77,18 +75,23 @@ public class OPSecUtil {
 
     public enum Argon2
             implements GetName {
-        MEMORY(Const.SizeInBytes.K.mult(15)),
-        SALT_LEN(16),
-        HASH_LEN(32),
-        ITERATIONS(3),
-        PARALLELISM(1),
-        HASH(-1),
-        SALT(-1),
+        ALGORITHM("algorithm", -1),
+        MEMORY("m",Const.SizeInBytes.K.mult(15)),
+        SALT_LEN("salt_len", 16),
+        HASH_LEN("hash_len", 32),
+        ITERATIONS("t", 3),
+        PARALLELISM("p", 1),
+        HASH("hash", -1),
+        SALT("halt", -1),
+        VERSION("version", -1),
 
         ;
+
+        private final String name;
         public final int VAL;
 
-        Argon2(int val) {
+        Argon2(String name, int val) {
+            this.name = name;
             this.VAL = val;
         }
 
@@ -118,8 +121,11 @@ public class OPSecUtil {
         public static boolean validate(String password, NVGenericMap hashInfo) {
             byte[] storedHash = hashInfo.getValue(HASH);
             byte[] passwordHash = argon2idHash(password,
-                    storedHash.length, (byte[]) hashInfo.getValue(SALT), hashInfo.getValue(MEMORY), hashInfo.getValue(ITERATIONS), hashInfo.getValue(PARALLELISM)
-            );
+                    storedHash.length,
+                    (byte[]) hashInfo.getValue(SALT),
+                    hashInfo.getValue(MEMORY),
+                    hashInfo.getValue(ITERATIONS),
+                    hashInfo.getValue(PARALLELISM));
 
             return Arrays.equals(passwordHash, storedHash);
         }
@@ -136,6 +142,40 @@ public class OPSecUtil {
         }
 
 
+        public static NVGenericMap parseArgon2PHCString(String phcString) {
+            // Result map
+            NVGenericMap result = new NVGenericMap();
+
+            // Regex for PHC string, groups: algorithm, version, params, salt, hash
+            Pattern p = Pattern.compile(
+                    "^\\$(argon2(?:id|i|d))\\$v=(\\d+)\\$([a-zA-Z0-9=,]+)\\$([A-Za-z0-9+/=]+)\\$([A-Za-z0-9+/=]+)$"
+            );
+            Matcher m = p.matcher(phcString.trim());
+
+            if (!m.matches()) {
+                throw new IllegalArgumentException("Invalid Argon2 PHC string format");
+            }
+
+            // Fill map
+            result.build(Argon2.ALGORITHM, m.group(1));
+            result.build(new NVInt(Argon2.VERSION, Integer.parseInt(m.group(2))));
+
+            // Parse param string (e.g. m=65536,t=3,p=1)
+            String[] params = m.group(3).split(",");
+            for (String param : params) {
+                String[] nv = param.split("=", 2);
+                if (nv.length == 2) result.build(new NVInt(nv[0], Integer.parseInt(nv[1])));
+            }
+            result.build("salt", m.group(4));
+            result.build("hash", m.group(5));
+
+            result.build(new NVBlob(Argon2.SALT, SharedBase64.decode(SharedBase64.Base64Type.DEFAULT_NP, m.group(4))));
+            result.build(new NVBlob(Argon2.HASH, SharedBase64.decode(SharedBase64.Base64Type.DEFAULT_NP, m.group(5))));
+            return result;
+        }
+
+
+
         public static String argonToCanID(String alg, int version, byte[] hash, byte[] salt, int memory, int iterations, int parallelism) {
 //            String base64Salt = Base64.getEncoder().withoutPadding().encodeToString(salt);
 //            String base64Hash = Base64.getEncoder().withoutPadding().encodeToString(hash);
@@ -145,6 +185,8 @@ public class OPSecUtil {
             return String.format("$%s$v=%d$m=%d,t=%d,p=%d$%s$%s",
                     alg, version, memory, iterations, parallelism, base64Salt, base64Hash);
         }
+
+
     }
 
 

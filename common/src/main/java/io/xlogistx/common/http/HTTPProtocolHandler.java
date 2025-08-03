@@ -7,12 +7,14 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.BaseChannelOutputStream;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -20,6 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HTTPProtocolHandler
         implements CloseableType, IsExpired {
 
+
+    public static final String SESSION_CONTEXT = "hph-session-context";
     public final LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(false);
     private final UByteArrayOutputStream responseStream = ByteBufferUtil.allocateUBAOS(256);//new UByteArrayOutputStream(256);
     private HTTPMessageConfigInterface response = new HTTPMessageConfig();
@@ -132,6 +136,10 @@ public class HTTPProtocolHandler
         return false;
     }
 
+
+    public InetSocketAddress getClientAddress() {
+        return outputStream != null ? ((BaseChannelOutputStream) outputStream).getClientAddress() : null;
+    }
 
     public boolean isHTTPProtocol() {
         return (protocolMode == URIScheme.HTTPS || protocolMode == URIScheme.HTTP);

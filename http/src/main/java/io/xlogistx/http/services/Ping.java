@@ -1,6 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
+import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -15,6 +16,7 @@ import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.util.*;
 
+import java.net.InetSocketAddress;
 import java.nio.file.FileSystem;
 import java.util.Date;
 
@@ -30,10 +32,20 @@ public class Ping
         response.add("message", "App server is up and running.");
         response.add("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date()));
         FileSystem fs = ResourceManager.lookupResource(ResourceManager.Resource.FILE_SYSTEM);
-        NIOHTTPServer niohttpServer  = ResourceManager.lookupResource(ResourceManager.Resource.HTTP_SERVER);
+        NIOHTTPServer niohttpServer = ResourceManager.lookupResource(ResourceManager.Resource.HTTP_SERVER);
 
         response.build("server-name", niohttpServer.getName()).build("version", niohttpServer.getVersion());
+
         if (detailed) {
+            try {
+                HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+                InetSocketAddress callAddress = hph.getClientAddress();
+                if (callAddress != null) {
+                    response.build("caller-address", callAddress.getHostName());
+                }
+            } catch (Exception e) {
+
+            }
             response.build("subject-id", ShiroUtil.subjectUserID())
                     .build("jdk-version", System.getProperty("java.version"))
                     .build("vm-name", System.getProperty("java.vm.name"))

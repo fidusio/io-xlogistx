@@ -99,6 +99,10 @@ public class ShiroUtil {
 //	}
 
 
+    public static <V> V getFromThreadContext(Object key) {
+        return (V) ThreadContext.get(key);
+    }
+
     public static Subject loginSubject(String subjectID, String credentials, String domainID, String appID, boolean autoLogin) {
         try {
             Subject currentUser = SecurityUtils.getSubject();

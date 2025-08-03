@@ -81,6 +81,7 @@ public class DNSSimple {
 
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
             String resolver = params.stringValue("resolver", false);
+
             DNSRegistrar.SINGLETON.setResolver(resolver);
             int port = params.intValue("port", 53);
             List<GetNameValue<String>> hosts = ParamUtil.parseGroupedValues(params.stringValue("dns", true));

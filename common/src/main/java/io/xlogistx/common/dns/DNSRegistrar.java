@@ -3,10 +3,12 @@ package io.xlogistx.common.dns;
 import org.xbill.DNS.Message;
 import org.xbill.DNS.Resolver;
 import org.xbill.DNS.SimpleResolver;
+import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedHashMap;
 
@@ -68,7 +70,10 @@ public class DNSRegistrar
     }
 
     public DNSRegistrar setResolver(String resolverIP) throws UnknownHostException {
-        this.resolver = new SimpleResolver(resolverIP);
+        IPAddress resolverAddress = new IPAddress(resolverIP);
+        if(resolverAddress.getPort() == -1)
+            resolverAddress.setPort(53);
+        this.resolver = new SimpleResolver(new InetSocketAddress(resolverAddress.getInetAddress(), resolverAddress.getPort()));
         return this;
     }
 

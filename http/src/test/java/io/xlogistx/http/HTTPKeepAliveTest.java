@@ -11,9 +11,12 @@ import java.util.List;
 
 public class HTTPKeepAliveTest {
 
+    private static final String TEST_URL = "https://localhost:6443/timestamp";
+
     @Test
     public void testKeepAlive() throws IOException {
-        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit("https://localhost:6443/timestamp", null, HTTPMethod.GET, false);
+        System.out.println("URI: " + TEST_URL);
+        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(TEST_URL, null, HTTPMethod.GET, false);
         hmci.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE);
         int max = 0;
         int count = 0;
@@ -40,7 +43,8 @@ public class HTTPKeepAliveTest {
 
     @Test
     public void testNoKeepAlive() throws IOException {
-        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit("https://localhost:6443/timestamp", null, HTTPMethod.GET, false);
+        System.out.println("URI: " + TEST_URL);
+        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(TEST_URL, null, HTTPMethod.GET, false);
         hmci.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);
         int max = 0;
         do {

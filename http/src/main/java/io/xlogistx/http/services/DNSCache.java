@@ -4,7 +4,9 @@ import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.dns.DNSNIOFactory;
 import io.xlogistx.common.dns.DNSNIOProtocol;
 import io.xlogistx.common.dns.DNSRegistrar;
+import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.http.NIOHTTPServer;
+import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
@@ -16,9 +18,9 @@ import org.zoxweb.shared.util.GetNameValue;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.ResourceManager;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.Map;
 
 public class DNSCache
@@ -29,7 +31,11 @@ public class DNSCache
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-cache-add", uris = "/system/dns/cache/{domain}/{ipv4}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:add")
-    public NVGenericMap addDomainToCache(@ParamProp(name = "domain") String domain, @ParamProp(name = "ipv4") String ipv4) throws UnknownHostException {
+    public NVGenericMap addDomainToCache(@ParamProp(name = "domain") String domain, @ParamProp(name = "ipv4") String ipv4) throws IOException {
+
+        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        InetSocketAddress callerAddress = hph.getClientAddress();
+        log.getLogger().info("Remote host: " + (callerAddress != null ? callerAddress.getHostName() : "NULL"));
         DNSRegistrar.SINGLETON.register(domain, ipv4);
         if (log.isEnabled()) log.getLogger().info("Added " + domain + " " + ipv4);
         return new NVGenericMap().build("status", "Successful registration").build(domain, ipv4);
@@ -47,7 +53,7 @@ public class DNSCache
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-cache-list", uris = "/system/dns")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:read")
-    public NVGenericMap listCache() {
+    public NVGenericMap listDomainsCache() {
         NVGenericMap nvgm = new NVGenericMap();
 
 

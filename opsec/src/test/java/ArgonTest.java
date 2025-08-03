@@ -3,6 +3,7 @@ import com.password4j.Password;
 import io.xlogistx.opsec.OPSecUtil;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.SecUtil;
+import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.RateCounter;
@@ -23,6 +24,9 @@ public class ArgonTest {
                 .withArgon2();
 
         String hashedPassword = hash.getResult();
+        System.out.println(hashedPassword);
+        NVGenericMap nvgmArgon = OPSecUtil.Argon2.parseArgon2PHCString(hashedPassword);
+        System.out.println(GSONUtil.toJSONDefault(nvgmArgon));
 
 
         // Verify the password
@@ -79,7 +83,7 @@ public class ArgonTest {
 
         rc.stop(length);
 
-        System.out.println("Hash: " + SharedBase64.encodeAsString(SharedBase64.Base64Type.URL, hash));
+        System.out.println("Hash: " + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, hash));
         System.out.println("Password valid: " + valid + " " + rc);
         NVGenericMap nvgm = OPSecUtil.Argon2.hashPassword(password);
 

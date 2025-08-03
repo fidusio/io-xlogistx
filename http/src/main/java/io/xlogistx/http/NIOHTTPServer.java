@@ -15,10 +15,7 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.net.BaseSessionCallback;
-import org.zoxweb.server.net.NIOSocket;
-import org.zoxweb.server.net.NIOSocketHandlerFactory;
-import org.zoxweb.server.net.PlainSessionCallback;
+import org.zoxweb.server.net.*;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
@@ -56,22 +53,22 @@ import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion {
-    public static final String VERSION = "1.2.2";
+    public static final String VERSION = "1.2.5";
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
-    //private boolean isClosed = true;
-    //private volatile boolean securityManagerEnabled = false;
     private EndPointsManager endPointsManager = null;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
-//    private final List<Function<HTTPProtocolHandler, Const.FunctionStatus>> filters = new ArrayList<>();
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
 
     private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
 
 
+    /**
+     * Plain socket HTTP handler
+     */
     public class HTTPSession
             extends PlainSessionCallback {
         protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP, kaConfig);
@@ -81,10 +78,12 @@ public class NIOHTTPServer
 
             try {
                 if (hph.parseRequest(inBuffer)) {
+                    ThreadContext.put(HTTPProtocolHandler.SESSION_CONTEXT, hph);
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
 
                     incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
+
                     if (hph.isExpired())
                         IOUtil.close(this);
 
@@ -98,6 +97,9 @@ public class NIOHTTPServer
                 processException(hph, get(), e);
                 IOUtil.close(this);
                 // we should close
+            } finally {
+                HTTPProtocolHandler hphToRemove = (HTTPProtocolHandler) ThreadContext.remove(HTTPProtocolHandler.SESSION_CONTEXT);
+                if (logger.isEnabled()) logger.getLogger().info("hph removed: " + hphToRemove);
             }
 
         }
@@ -118,7 +120,6 @@ public class NIOHTTPServer
         @Override
         public void close() throws IOException {
             IOUtil.close(hph, protocolHandler);
-
         }
 
         @Override
@@ -127,6 +128,9 @@ public class NIOHTTPServer
         }
     }
 
+    /**
+     * Secure socket HTTPs handler
+     */
     public class HTTPsSession
             extends SSLSessionCallback {
         protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS, kaConfig);
@@ -135,6 +139,7 @@ public class NIOHTTPServer
         public void accept(ByteBuffer inBuffer) {
             try {
                 if (hph.parseRequest(inBuffer)) {
+                    ThreadContext.put(HTTPProtocolHandler.SESSION_CONTEXT, hph);
                     if (logger.isEnabled())
                         logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
                     // we are processing a request
@@ -154,6 +159,9 @@ public class NIOHTTPServer
                 processException(hph, get(), e);
                 IOUtil.close(this);
                 // we should close
+            } finally {
+                HTTPProtocolHandler hphToRemove = (HTTPProtocolHandler) ThreadContext.remove(HTTPProtocolHandler.SESSION_CONTEXT);
+                if (logger.isEnabled()) logger.getLogger().info("hph removed: " + hphToRemove);
             }
 
 
@@ -338,6 +346,7 @@ public class NIOHTTPServer
 
                         // +++ Security check +++++++++++++++++++++
                         securityCheck(epm, hph);
+
                         //_________________________________________
 
                         // check if instance of HTTPSessionHandler
@@ -408,8 +417,8 @@ public class NIOHTTPServer
                         } else {
                             ShiroUtil.subject().logout();
                         }
-
                     }
+
                 }
             }
             break;

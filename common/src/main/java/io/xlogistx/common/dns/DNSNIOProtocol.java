@@ -44,10 +44,6 @@ public class DNSNIOProtocol
      */
     @Override
     public void accept(SelectionKey selectionKey) {
-//        DatagramPacket packet = new DatagramPacket(buf, buf.length);
-//        socket.receive(packet);
-
-
         SocketAddress clientAddr = null;
         do {
             try {
