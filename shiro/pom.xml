@@ -1,72 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 
-  <modelVersion>4.0.0</modelVersion>
-  
-  <parent>
-    <groupId>io.xlogistx</groupId>
-    <artifactId>xlogistx</artifactId>
-    <version>1.0.0</version>
-  </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.xlogistx</groupId>
+        <artifactId>xlogistx</artifactId>
+        <version>1.0.0</version>
+    </parent>
 
 
-  <name>xlogistx-shiro</name>
-  <artifactId>xlogistx-shiro</artifactId>
+    <name>xlogistx-shiro</name>
+    <artifactId>xlogistx-shiro</artifactId>
 
 
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+        </dependency>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-    </dependency>
-	
-	<dependency>
-	  <groupId>org.zoxweb</groupId>
-	  <artifactId>zoxweb-core</artifactId>
-	</dependency>
+        <dependency>
+            <groupId>org.zoxweb</groupId>
+            <artifactId>zoxweb-core</artifactId>
+        </dependency>
 
-    <dependency>
-        <groupId>org.apache.shiro</groupId>
-        <artifactId>shiro-core</artifactId>
-        <version>${apache.shiro.version}</version>
-    </dependency>
-
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-core</artifactId>
+            <version>${apache.shiro.version}</version>
+        </dependency>
 
 
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-      <version>${commons-logging.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>${commons-logging.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>${commons-beanutils.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>${commons-beanutils.version}</version>
+        </dependency>
 
-    <dependency>
-    <groupId>org.slf4j</groupId>
-    <artifactId>slf4j-simple</artifactId>
-    <version>${slf4j.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>javax.cache</groupId>
-      <artifactId>cache-api</artifactId>
-      <version>${javax-cache.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>${javax-cache.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>org.ehcache</groupId>
-      <artifactId>ehcache</artifactId>
-      <version>${ehcache-org.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <version>${ehcache-org.version}</version>
+        </dependency>
 
-  </dependencies>
+    </dependencies>
 
 </project>
