@@ -13,18 +13,14 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.server.http.HTTPAPIEndPoint;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.CIPasswordHasher;
+import org.zoxweb.server.security.SHAPasswordHasher;
 import org.zoxweb.server.util.GSONUtil;
-import org.zoxweb.shared.crypto.CredentialHasher;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.CIPassword;
+import org.zoxweb.shared.crypto.CredentialHasher;
 import org.zoxweb.shared.http.HTTPAPIResult;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 import org.zoxweb.shared.security.shiro.ShiroSessionData;
-import org.zoxweb.shared.util.KVMapStore;
-import org.zoxweb.shared.util.KVMapStoreDefault;
-import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.SetNVProperties;
+import org.zoxweb.shared.util.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,10 +33,10 @@ implements SetNVProperties
     public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
 
     private final KVMapStore<String, ShiroSessionData> kvSessionData = new KVMapStoreDefault<String, ShiroSessionData>(new HashMap<String, ShiroSessionData>());
-    private final KVMapStore<String, AuthenticationInfo> kvAuthcInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
+    private final KVMapStore<String, AuthenticationInfo> kvAuthenticationInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
-    private CredentialHasher<CIPassword> credentialHasher = new CIPasswordHasher("", CryptoConst.HashType.SHA_256, 64);
+    private CredentialHasher<CIPassword> credentialHasher = new SHAPasswordHasher(64);
 
 
 
@@ -60,7 +56,7 @@ implements SetNVProperties
     /**
      * This is a proxy realm meaning it depends on a remote server that actually
      * has the Subject info such as username or userid and the user credentials
-     * The proxy realm will make a http call to the remote authentication server
+     * The proxy realm will make an http call to the remote authentication server
      * The current system must be registered with remote server and authenticate the
      * request with a JWT token that Identifies the current system
      * the api call is a post call with a payload of the authentication token
@@ -89,7 +85,7 @@ implements SetNVProperties
         try
         {
 
-            AuthenticationInfo authenticationInfo = kvAuthcInfo.get((String)token.getPrincipal());
+            AuthenticationInfo authenticationInfo = kvAuthenticationInfo.get((String)token.getPrincipal());
             if(authenticationInfo != null)
                 return authenticationInfo;
 
@@ -101,7 +97,7 @@ implements SetNVProperties
                 authenticationInfo = new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
 
                 kvSessionData.put((String) token.getPrincipal(), result.getData());
-                kvAuthcInfo.put((String)token.getPrincipal(), authenticationInfo);
+                kvAuthenticationInfo.put((String)token.getPrincipal(), authenticationInfo);
 
                 return authenticationInfo;
             }
@@ -206,12 +202,15 @@ implements SetNVProperties
             if (log.isEnabled()) log.getLogger().info("credential-hasher: " + passwordHashConfig);
             if (passwordHashConfig != null) {
                 try {
-                    CIPasswordHasher passwordHasher = new CIPasswordHasher("config-hasher",
-                            CryptoConst.HashType.lookup(passwordHashConfig.getValue("hash_type")),
-                                    passwordHashConfig.getValue("iteration"));
+
+                    // temp hack
+                    NVInt rounds = passwordHashConfig.getNV("rounds");
+                    if(rounds == null)
+                        rounds = passwordHashConfig.getNV("iteration");
+                    SHAPasswordHasher passwordHasher = new SHAPasswordHasher(rounds.getValue());
                     credentialHasher = passwordHasher;
                     if (log.isEnabled())
-                        log.getLogger().info("Credential hasher: " + passwordHasher.getHashType() + " " + passwordHasher.getIterations());
+                        log.getLogger().info("Credential hasher: " + passwordHasher.getHashType() + " " + passwordHasher.getRounds());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

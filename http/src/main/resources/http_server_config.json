@@ -17,12 +17,8 @@
       "time_out": "5s",
       "maximum": 20
     },
-    "on-startup": {
-      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
-    },
-    "on-shutdown": {
-      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
-    }
+    "on-startup": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown" },
+    "on-shutdown": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown"}
   },
   "connections": [
     {

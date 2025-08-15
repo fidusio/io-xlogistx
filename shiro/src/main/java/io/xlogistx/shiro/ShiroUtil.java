@@ -61,7 +61,6 @@ public class ShiroUtil {
 
     public static boolean login(String domain, String realm, String username, String password) {
         Subject subject = SecurityUtils.getSubject();
-
         if (!subject.isAuthenticated()) {
             UsernamePasswordToken token = new DomainUsernamePasswordToken(username, password, false, null, domain);
             try {

@@ -110,7 +110,7 @@
             <groupId>com.password4j</groupId>
             <artifactId>password4j</artifactId>
             <version>${password4j.version}</version>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
 
 

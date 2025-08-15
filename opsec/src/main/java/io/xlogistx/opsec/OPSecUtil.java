@@ -17,8 +17,6 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
-import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.bouncycastle.jcajce.SecretKeyWithEncapsulation;
 import org.bouncycastle.jcajce.spec.KEMExtractSpec;
 import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
@@ -59,9 +57,10 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 
 public class OPSecUtil {
@@ -72,131 +71,6 @@ public class OPSecUtil {
     public static final String CK_NAME = "KYBER";
     public static final String CD_NAME = "DILITHIUM";
 
-
-    public enum Argon2
-            implements GetName {
-        ALGORITHM("algorithm", -1),
-        MEMORY("m",Const.SizeInBytes.K.mult(15)),
-        SALT_LEN("salt_len", 16),
-        HASH_LEN("hash_len", 32),
-        ITERATIONS("t", 3),
-        PARALLELISM("p", 1),
-        HASH("hash", -1),
-        SALT("halt", -1),
-        VERSION("version", -1),
-
-        ;
-
-        private final String name;
-        public final int VAL;
-
-        Argon2(String name, int val) {
-            this.name = name;
-            this.VAL = val;
-        }
-
-        public String getName() {
-            return name().toLowerCase();
-        }
-
-
-        public static NVGenericMap hashPassword(String password) {
-
-            return hashPassword(SharedStringUtil.getBytes(password));
-        }
-
-        public static NVGenericMap hashPassword(byte[] password) {
-
-            byte[] salt = SecUtil.SINGLETON.generateRandomBytes(SALT_LEN.VAL);
-            byte[] hash = argon2idHash(password, HASH_LEN.VAL, salt, MEMORY.VAL, ITERATIONS.VAL, PARALLELISM.VAL);
-            return new NVGenericMap()
-                    .build(new NVBlob(HASH, hash))
-                    .build(new NVBlob(SALT, salt))
-                    .build(new NVInt(MEMORY, MEMORY.VAL))
-                    .build(new NVInt(ITERATIONS, ITERATIONS.VAL))
-                    .build(new NVInt(PARALLELISM, PARALLELISM.VAL));
-        }
-
-
-        public static boolean validate(String password, NVGenericMap hashInfo) {
-            byte[] storedHash = hashInfo.getValue(HASH);
-            byte[] passwordHash = argon2idHash(password,
-                    storedHash.length,
-                    (byte[]) hashInfo.getValue(SALT),
-                    hashInfo.getValue(MEMORY),
-                    hashInfo.getValue(ITERATIONS),
-                    hashInfo.getValue(PARALLELISM));
-
-            return Arrays.equals(passwordHash, storedHash);
-        }
-
-
-        public static String argon2idCanID(String password) {
-            return argon2idCanID(SharedStringUtil.getBytes(password));
-        }
-
-        public static String argon2idCanID(byte[] password) {
-            byte[] salt = SecUtil.SINGLETON.generateRandomBytes(16);
-            byte[] hash = argon2idHash(password, 32, salt, Const.SizeInBytes.K.mult(15), 2, 1);
-            return argonToCanID("argon2id", 19, hash, salt, Const.SizeInBytes.K.mult(15), 2, 1);
-        }
-
-
-        public static NVGenericMap parseArgon2PHCString(String phcString) {
-            // Result map
-            NVGenericMap result = new NVGenericMap();
-
-            // Regex for PHC string, groups: algorithm, version, params, salt, hash
-            Pattern p = Pattern.compile(
-                    "^\\$(argon2(?:id|i|d))\\$v=(\\d+)\\$([a-zA-Z0-9=,]+)\\$([A-Za-z0-9+/=]+)\\$([A-Za-z0-9+/=]+)$"
-            );
-            Matcher m = p.matcher(phcString.trim());
-
-            if (!m.matches()) {
-                throw new IllegalArgumentException("Invalid Argon2 PHC string format");
-            }
-
-            // Fill map
-            result.build(Argon2.ALGORITHM, m.group(1));
-            result.build(new NVInt(Argon2.VERSION, Integer.parseInt(m.group(2))));
-
-            // Parse param string (e.g. m=65536,t=3,p=1)
-            String[] params = m.group(3).split(",");
-            for (String param : params) {
-                String[] nv = param.split("=", 2);
-                if (nv.length == 2) result.build(new NVInt(nv[0], Integer.parseInt(nv[1])));
-            }
-            result.build("salt", m.group(4));
-            result.build("hash", m.group(5));
-
-            result.build(new NVBlob(Argon2.SALT, SharedBase64.decode(SharedBase64.Base64Type.DEFAULT_NP, m.group(4))));
-            result.build(new NVBlob(Argon2.HASH, SharedBase64.decode(SharedBase64.Base64Type.DEFAULT_NP, m.group(5))));
-            return result;
-        }
-
-
-
-        public static String argonToCanID(String alg, int version, byte[] hash, byte[] salt, int memory, int iterations, int parallelism) {
-//            String base64Salt = Base64.getEncoder().withoutPadding().encodeToString(salt);
-//            String base64Hash = Base64.getEncoder().withoutPadding().encodeToString(hash);
-
-            String base64Salt = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, salt);
-            String base64Hash = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, hash);
-            return String.format("$%s$v=%d$m=%d,t=%d,p=%d$%s$%s",
-                    alg, version, memory, iterations, parallelism, base64Salt, base64Hash);
-        }
-
-
-    }
-
-
-    // this section always on the top
-//    static
-//    {
-//        SecUtil.SINGLETON.addProvider(new BouncyCastlePQCProvider());
-//        SecUtil.SINGLETON.addProvider(new BouncyCastleProvider());
-//
-//    }
 
 
 //    private final static Provider BC_PROVIDER = new BouncyCastleProvider();
@@ -228,6 +102,7 @@ public class OPSecUtil {
 //        }
 
         loadProviders();
+        SecUtil.SINGLETON.addCredentialHasher(new ArgonPasswordHasher());
 
     }
 
@@ -340,7 +215,7 @@ public class OPSecUtil {
         return builder.build(signer);
     }
 
-    public  X509CertificateHolder generateSignedCertificate(
+    public X509CertificateHolder generateSignedCertificate(
             PrivateKey issuerKey, X509CertificateHolder issuerCert,
             String subjectDN, KeyPair subjectKeyPair, int days, boolean isCA) throws Exception {
 
@@ -736,38 +611,6 @@ public class OPSecUtil {
         Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", "BCPQC");
         kyberUnwrapCipher.init(Cipher.UNWRAP_MODE, privateKey);
         return kyberUnwrapCipher.unwrap(wrappedAesKeyBytes, "AES", Cipher.SECRET_KEY);
-    }
-
-
-    public static byte[] argon2idHash(String password, int hashLength, int saltLength, int memory, int iterations, int parallelism) {
-        return argon2idHash(SharedStringUtil.getBytes(password), hashLength, saltLength, memory, iterations, parallelism);
-    }
-
-    public static byte[] argon2idHash(byte[] password, int hashLength, int saltLength, int memory, int iterations, int parallelism) {
-
-
-        return argon2idHash(password, hashLength, SecUtil.SINGLETON.generateRandomBytes(saltLength), memory, iterations, parallelism);
-    }
-
-    public static byte[] argon2idHash(String password, int hashLength, byte[] salt, int memory, int iterations, int parallelism) {
-        return argon2idHash(SharedStringUtil.getBytes(password), hashLength, salt, memory, iterations, parallelism);
-    }
-
-    public static byte[] argon2idHash(byte[] password, int hashLength, byte[] salt, int memory, int iterations, int parallelism) {
-
-
-        Argon2Parameters.Builder builder = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
-                .withSalt(salt)
-                .withIterations(iterations)
-                .withMemoryAsKB(memory)
-                .withParallelism(parallelism);
-
-        Argon2BytesGenerator generator = new Argon2BytesGenerator();
-        generator.init(builder.build());
-
-        byte[] hash = new byte[hashLength];
-        generator.generateBytes(password, hash);
-        return hash;
     }
 
 

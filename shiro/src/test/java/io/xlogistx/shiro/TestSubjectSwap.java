@@ -5,8 +5,7 @@ import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.security.CryptoUtil;
-import org.zoxweb.server.security.HashUtil;
+import org.zoxweb.server.security.*;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CIPassword;
@@ -72,7 +71,7 @@ public class TestSubjectSwap {
         CIPassword rootCIPassword = HashUtil.toBCryptPassword("secret1");
         String bcryptedPassword = rootCIPassword.toCanonicalID();
         log.getLogger().info(bcryptedPassword);
-        srs.addCredentialInfo("root", CIPassword.fromCanonicalID(bcryptedPassword));
+        srs.addCredentialInfo("root", SecUtil.SINGLETON.fromCanonicalID(bcryptedPassword));
 
 
 
@@ -94,7 +93,8 @@ public class TestSubjectSwap {
     {
         try {
 
-
+            SecUtil.SINGLETON.addCredentialHasher(new SHAPasswordHasher(8196))
+                    .addCredentialHasher(new BCryptPasswordHasher(10));
 
             domainSubjectSetup();
             RateCounter rc = new RateCounter("shiro");

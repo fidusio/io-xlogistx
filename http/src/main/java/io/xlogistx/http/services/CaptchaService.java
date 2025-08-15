@@ -8,6 +8,7 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.EndPointProp;
+import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.SUS;
@@ -20,12 +21,13 @@ public class CaptchaService {
 
     public static final LogWrapper log = new LogWrapper(CaptchaService.class).setEnabled(false);
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "captcha-create", uris = "/app-captcha")
-    public HTTPMessageConfigInterface create() throws IOException {
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "captcha-create", uris = "/app-captcha/{captcha-type}")
+    public HTTPMessageConfigInterface create(@ParamProp(name = "captcha-type", optional = true)Challenge.Type ct) throws IOException {
         if (log.isEnabled()) log.getLogger().info("start ");
 
         HTTPMessageConfigInterface ret = new HTTPMessageConfig();
-        Challenge.Type ct = Challenge.Type.values()[Math.abs(Challenge.SR.nextInt() % Challenge.Type.values().length)];
+        if(ct == null)
+            ct = Challenge.Type.values()[Math.abs(Challenge.SR.nextInt() % Challenge.Type.values().length)];
         int power = 0;
         switch (ct) {
             case ADDITION:
