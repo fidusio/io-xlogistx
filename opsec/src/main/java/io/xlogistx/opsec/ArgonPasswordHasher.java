@@ -21,7 +21,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
             implements GetName {
 //        ALGORITHM("algorithm", -1),
         MEMORY("m", Const.SizeInBytes.K.mult(15)),
-        SALT_LEN("salt_len", 16),
+        SALT_LEN("salt_len", 32),
         HASH_LEN("hash_len", 32),
         ROUNDS("t", 3),
         PARALLELISM("p", 2),
@@ -164,17 +164,21 @@ public class ArgonPasswordHasher extends PasswordHasher {
 
     private final int memory;
     private final int parallelism;
+    private final int saltLength;
+    private final int hashLength;
 
     public ArgonPasswordHasher()
     {
-        this(Argon2.MEMORY.VAL, Argon2.ROUNDS.VAL, Argon2.PARALLELISM.VAL);
+        this(Argon2.MEMORY.VAL, Argon2.ROUNDS.VAL, Argon2.PARALLELISM.VAL, Argon2.SALT_LEN.VAL, Argon2.HASH_LEN.VAL);
     }
 
 
-    public ArgonPasswordHasher(int memory, int rounds, int parallelism) {
+    public ArgonPasswordHasher(int memory, int rounds, int parallelism, int saltLen, int hashLen) {
         super("argon2", CryptoConst.HashType.ARGON2, CryptoConst.HashType.ARGON2.VARIANCES, rounds);
         this.memory = memory;
         this.parallelism = parallelism;
+        this.saltLength = saltLen;
+        this.hashLength = hashLen;
     }
 
 
@@ -187,8 +191,8 @@ public class ArgonPasswordHasher extends PasswordHasher {
     public CIPassword hash(byte[] password) {
 
         CIPassword result = new CIPassword();
-        byte[] salt = SecUtil.SINGLETON.generateRandomBytes(Argon2.SALT_LEN.VAL);
-        byte[] hash = Argon2.argon2idHash(password, Argon2.HASH_LEN.VAL, salt, memory, getRounds(), parallelism);
+        byte[] salt = SecUtil.SINGLETON.generateRandomBytes(saltLength);
+        byte[] hash = Argon2.argon2idHash(password, hashLength, salt, memory, getRounds(), parallelism);
         result.setName("argon2id");
         result.setVersion("" + Argon2.VERSION.VAL);
         result.setSalt(salt);
@@ -196,8 +200,8 @@ public class ArgonPasswordHasher extends PasswordHasher {
         result.setRounds(getRounds());
 
         result.getProperties()
-                .build(new NVInt(Argon2.MEMORY, Argon2.MEMORY.VAL))
-                .build(new NVInt(Argon2.PARALLELISM, Argon2.PARALLELISM.VAL));
+                .build(new NVInt(Argon2.MEMORY, memory))
+                .build(new NVInt(Argon2.PARALLELISM, parallelism));
 
         result.setCanonicalID(Argon2.argonToCanID(result.getName(),
                 Integer.parseInt(result.getVersion()),

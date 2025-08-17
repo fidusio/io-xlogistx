@@ -1,31 +1,32 @@
 import com.password4j.Hash;
 import com.password4j.Password;
 import io.xlogistx.opsec.ArgonPasswordHasher;
+import io.xlogistx.opsec.OPSecUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CIPassword;
+import org.zoxweb.shared.crypto.CredentialHasher;
 import org.zoxweb.shared.util.RateCounter;
+import org.zoxweb.shared.util.SharedBase64;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 public class ArgonTest {
 
     private static final RateCounter rc = new RateCounter("test");
 
-    private static final ArgonPasswordHasher argon2Hasher = new ArgonPasswordHasher(ArgonPasswordHasher.Argon2.MEMORY.VAL, ArgonPasswordHasher.Argon2.ROUNDS.VAL, ArgonPasswordHasher.Argon2.PARALLELISM.VAL);
-
     @BeforeAll
     public static void init()
     {
-
-        SecUtil.SINGLETON.addCredentialHasher(new ArgonPasswordHasher(ArgonPasswordHasher.Argon2.MEMORY.VAL, ArgonPasswordHasher.Argon2.ROUNDS.VAL, ArgonPasswordHasher.Argon2.PARALLELISM.VAL));
+        OPSecUtil.SINGLETON.loadProviders();
     }
 
 
     @Test
-    public void password4JTest() throws NoSuchAlgorithmException {
+    public void argon2Test() throws NoSuchAlgorithmException {
         // Hash the password
 
         Hash hash = Password.hash("myPassword123")
@@ -61,47 +62,67 @@ public class ArgonTest {
     }
 
 
-//    @Test
-//    public void bc() {
-//        // Example parameters
-//        int saltLength = 16;        // bytes
-//        int hashLength = 32;        // bytes
-//        int iterations = 3;         // time cost
-//        int memory = Const.SizeInBytes.K.mult(15);         // in KB (64 MB)
-//        int parallelism = 1;
-//
-//
-//
-//        String password = "myPassword123";
-//
-//
-//        // Hash
-//        byte[] salt = SecUtil.SINGLETON.generateRandomBytes(16);
-//
-//        int length = 3;
-//
-//        byte[] hash = ArgonPasswordHasher.Argon2.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
-//        rc.reset().start();
-//        boolean valid = false;
-//        for (int i = 0; i < length; i++) {
-//            hash = ArgonPasswordHasher.Argon2.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
-//            valid = Arrays.equals(hash, ArgonPasswordHasher.Argon2.argon2idHash(password, hashLength, salt, memory, iterations, parallelism));
-//            assert valid;
-//        }
-//
-//        // To verify, recompute the hash with same parameters and salt, and compare hashes
-//
-//        rc.stop(length);
-//
-//        System.out.println("Hash: " + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, hash));
-//        System.out.println("Password valid: " + valid + " " + rc);
-//        NVGenericMap nvgm = ArgonPasswordHasher.Argon2.hashPassword(password);
-//
-//        System.out.println("Password valid: " + ArgonPasswordHasher.Argon2.validate("myPassword123", nvgm));
-//        String canID = ArgonPasswordHasher.Argon2.argon2idCanID(password);
-//        System.out.println(canID);
-//        assert Password.check("myPassword123", canID).withArgon2();
-//    }
+    @Test
+    public void password4JTest() {
+        String password = "myPassword!23";
+
+
+
+        int length = 3;
+
+        CredentialHasher<CIPassword> argonHasher =  SecUtil.SINGLETON.lookupCredentialHasher("argon2");
+        CIPassword ciPassword = argonHasher.hash(password);//ArgonPasswordHasher.Argon2.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
+        rc.reset().start();
+        boolean valid = false;
+        for (int i = 0; i < length; i++) {
+            ciPassword = argonHasher.hash(password);//ArgonPasswordHasher.Argon2.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
+            valid = argonHasher.isPasswordValid(ciPassword, password);
+            assert valid;
+            System.out.println("CAN ID: " + ciPassword.toCanonicalID());
+
+        }
+
+        // To verify, recompute the hash with same parameters and salt, and compare hashes
+
+        rc.stop(length);
+
+        assert SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, ciPassword.getHash()).equals(Base64.getEncoder().withoutPadding().encodeToString(ciPassword.getHash()));
+        System.out.println("Hash: " + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT_NP, ciPassword.getHash()));
+        System.out.println("Hash: " + Base64.getEncoder().withoutPadding().encodeToString(ciPassword.getHash()));
+        System.out.println("Password valid: " + valid + " " + rc);
+        CIPassword argon2Password = argonHasher.hash(password);
+
+        System.out.println("Password valid: " + argonHasher.isPasswordValid(argon2Password, password));
+        System.out.println("Password valid: " + Password.check(password, argon2Password.getCanonicalID()).withArgon2());
+        String canID = ciPassword.getCanonicalID();
+        System.out.println("canID: "+ canID);
+
+    }
+
+    @Test
+    public void genByPassword4JValidatedByBC()
+    {
+        String password = "myPassword!23";
+        Hash hash = Password.hash(password)
+                .addRandomSalt()
+                .withArgon2();
+
+        String argon2CanID  = hash.getResult();
+        System.out.println("Password4J generated: " + argon2CanID);
+        CredentialHasher<CIPassword> argonHasher =  SecUtil.SINGLETON.lookupCredentialHasher("argon2");
+        CIPassword ciPassword = argonHasher.fromCanonicalID(argon2CanID);
+        assert argonHasher.isPasswordValid(ciPassword, password);
+    }
+
+    @Test
+    public void genByBCValidatedByPassword4J()
+    {
+        String password = "myPassword!23";
+        CredentialHasher<CIPassword> argonHasher =  new ArgonPasswordHasher(ArgonPasswordHasher.Argon2.MEMORY.VAL, 2, 1, 64, 32);
+        CIPassword ciPassword = argonHasher.hash(password);
+        assert Password.check(password, ciPassword.getCanonicalID())
+                .withArgon2();
+    }
 
 
 }
