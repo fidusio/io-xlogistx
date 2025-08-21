@@ -107,6 +107,11 @@ public class OPSecUtil {
     }
 
 
+    public static OPSecUtil singleton()
+    {
+        return SINGLETON;
+    }
+
     public synchronized void reloadProviders() {
         boolean stat = SecUtil.SINGLETON.removeProvider(BC_CKD_PROVIDER);
         log.getLogger().info("Provider " + BC_CKD_PROVIDER + " removed: " + stat);

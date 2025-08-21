@@ -14,7 +14,7 @@ public class OnStartupOnShutdown
     @OnStartup
     public void onStartup() {
         log.getLogger().info("OnStartup");
-        OPSecUtil.SINGLETON.loadProviders();
+        OPSecUtil.singleton();
     }
 
     @OnShutdown

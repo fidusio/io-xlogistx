@@ -1,5 +1,6 @@
 package io.xlogistx.opsec;
 
+
 import okio.Path;
 import org.zoxweb.shared.security.SShURI;
 import org.zoxweb.shared.util.ParamUtil;
@@ -13,6 +14,7 @@ public class SSHRemote {
     public static void main(String... args) {
         try {
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
+            System.out.println(params.toString());
 
             String[] sshURIsParams = ParamUtil.parseWithSep(",", params.stringValue("ssh-uris"));
             String password = params.stringValue("password", true);
@@ -20,14 +22,13 @@ public class SSHRemote {
             String pemKey = params.stringValue("pem", true);
 
             URI pemURI = null;
-            try
-            {
-                pemURI = new URI(pemKey);
+            if(password == null) {
+                try {
+                    pemURI = new URI(pemKey);
 
-            }
-            catch(Exception e)
-            {
-                pemURI = Path.get(pemKey).toFile().toURI();
+                } catch (Exception e) {
+                    pemURI = Path.get(pemKey).toFile().toURI();
+                }
             }
 
 

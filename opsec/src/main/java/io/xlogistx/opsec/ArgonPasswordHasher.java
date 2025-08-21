@@ -97,7 +97,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
             }
 
             // Fill map
-            result.setName(m.group(1));
+            result.setAlgorithm(m.group(1));
             int version = Integer.parseInt(m.group(2));
             result.setVersion(""+version);
 
@@ -174,7 +174,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
 
 
     public ArgonPasswordHasher(int memory, int rounds, int parallelism, int saltLen, int hashLen) {
-        super("argon2", CryptoConst.HashType.ARGON2, CryptoConst.HashType.ARGON2.VARIANCES, rounds);
+        super(CryptoConst.HashType.ARGON2.getName(), CryptoConst.HashType.ARGON2, CryptoConst.HashType.ARGON2.VARIANCES, rounds);
         this.memory = memory;
         this.parallelism = parallelism;
         this.saltLength = saltLen;
@@ -193,7 +193,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
         CIPassword result = new CIPassword();
         byte[] salt = SecUtil.SINGLETON.generateRandomBytes(saltLength);
         byte[] hash = Argon2.argon2idHash(password, hashLength, salt, memory, getRounds(), parallelism);
-        result.setName("argon2id");
+        result.setAlgorithm("argon2id");
         result.setVersion("" + Argon2.VERSION.VAL);
         result.setSalt(salt);
         result.setHash(hash);
@@ -203,7 +203,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
                 .build(new NVInt(Argon2.MEMORY, memory))
                 .build(new NVInt(Argon2.PARALLELISM, parallelism));
 
-        result.setCanonicalID(Argon2.argonToCanID(result.getName(),
+        result.setCanonicalID(Argon2.argonToCanID(result.getAlgorithm(),
                 Integer.parseInt(result.getVersion()),
                 result.getHash(),
                 result.getSalt(),
