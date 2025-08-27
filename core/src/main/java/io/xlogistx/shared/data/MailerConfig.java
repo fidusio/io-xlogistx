@@ -5,8 +5,7 @@ import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.util.*;
 
 public class MailerConfig
-        extends SetNameDescriptionDAO
-{
+        extends SetNameDescriptionDAO {
 
     public enum Param
             implements GetNVConfig {
@@ -33,7 +32,7 @@ public class MailerConfig
         }
     }
 
-    public static final NVConfigEntity NVC_MAILER_CONFIG = new NVConfigEntityLocal(
+    public static final NVConfigEntity NVC_MAILER_CONFIG = new NVConfigEntityPortable(
             "mailer_config",
             null,
             MailerConfig.class.getSimpleName(),
@@ -49,45 +48,36 @@ public class MailerConfig
     );
 
 
-    public MailerConfig()
-    {
+    public MailerConfig() {
         super(NVC_MAILER_CONFIG);
     }
 
 
-
-    public void setSMTPConfig(SMTPConfig smtpConfig)
-    {
+    public void setSMTPConfig(SMTPConfig smtpConfig) {
         setValue(Param.SMTP_CONFIG, smtpConfig);
     }
 
-    public SMTPConfig getSMTPConfig()
-    {
+    public SMTPConfig getSMTPConfig() {
         return lookupValue(Param.SMTP_CONFIG);
     }
 
-    public void setDocumentTemplate(DocumentTemplate docTemplate)
-    {
+    public void setDocumentTemplate(DocumentTemplate docTemplate) {
         setValue(Param.DOCUMENT_TEMPLATE, docTemplate);
     }
 
-    public DocumentTemplate getDocumentTemplate()
-    {
+    public DocumentTemplate getDocumentTemplate() {
         return lookupValue(Param.DOCUMENT_TEMPLATE);
     }
 
-    public String getFrom()
-    {
+    public String getFrom() {
         return lookupValue(Param.FROM);
     }
 
-    public void setFrom(String email)
-    {
+    public void setFrom(String email) {
         setValue(Param.FROM, email);
     }
 
-    public String getRecipients()
-    {
+    public String getRecipients() {
         return lookupValue(Param.RECIPIENTS);
     }
 
@@ -95,8 +85,7 @@ public class MailerConfig
      * Format : "to:email@email.com, bcc:hidden@email.com"
      * @param emails
      */
-    public void setRecipients(String emails)
-    {
+    public void setRecipients(String emails) {
         setValue(Param.RECIPIENTS, emails);
     }
 

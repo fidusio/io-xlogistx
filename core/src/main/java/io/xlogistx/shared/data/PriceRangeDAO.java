@@ -22,60 +22,60 @@ import java.util.List;
 
 @SuppressWarnings("serial")
 public class PriceRangeDAO
-    extends SetNameDescriptionDAO {
+        extends SetNameDescriptionDAO {
 
-  public enum Param
-      implements GetNVConfig {
-    PRICE_LIST(NVConfigManager
-        .createNVConfigEntity("price_list", "List of prices", "Prices", false, true,
-            PriceDAO.NVC_PRICE_DAO, NVConfigEntity.ArrayType.LIST)),
+    public enum Param
+            implements GetNVConfig {
+        PRICE_LIST(NVConfigManager
+                .createNVConfigEntity("price_list", "List of prices", "Prices", false, true,
+                        PriceDAO.NVC_PRICE_DAO, NVConfigEntity.ArrayType.LIST)),
 
-    ;
+        ;
 
-    private final NVConfig nvc;
+        private final NVConfig nvc;
 
-    Param(NVConfig nvc) {
-      this.nvc = nvc;
+        Param(NVConfig nvc) {
+            this.nvc = nvc;
+        }
+
+        @Override
+        public NVConfig getNVConfig() {
+            return nvc;
+        }
     }
 
-    @Override
-    public NVConfig getNVConfig() {
-      return nvc;
+    public static final NVConfigEntity NVC_PRICE_RANGE_DAO = new NVConfigEntityPortable(
+            "price_range_dao",
+            null,
+            PriceRangeDAO.class.getSimpleName(),
+            true,
+            false,
+            false,
+            false,
+            PriceRangeDAO.class,
+            SharedUtil.extractNVConfigs(Param.values()),
+            null,
+            false,
+            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+    );
+
+
+    public PriceRangeDAO() {
+        super(NVC_PRICE_RANGE_DAO);
     }
-  }
 
-  public static final NVConfigEntity NVC_PRICE_RANGE_DAO = new NVConfigEntityLocal(
-      "price_range_dao",
-      null,
-      PriceRangeDAO.class.getSimpleName(),
-      true,
-      false,
-      false,
-      false,
-      PriceRangeDAO.class,
-      SharedUtil.extractNVConfigs(Param.values()),
-      null,
-      false,
-      SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
-  );
+    /**
+     * Returns list of prices.
+     */
+    public List<PriceDAO> getPriceList() {
+        return lookupValue(Param.PRICE_LIST);
+    }
 
-
-  public PriceRangeDAO() {
-    super(NVC_PRICE_RANGE_DAO);
-  }
-
-  /**
-   * Returns list of prices.
-   */
-  public List<PriceDAO> getPriceList() {
-    return lookupValue(Param.PRICE_LIST);
-  }
-
-  /**
-   * Sets list of prices.
-   */
-  public void setPriceList(List<PriceDAO> list) {
-    setValue(Param.PRICE_LIST, list);
-  }
+    /**
+     * Sets list of prices.
+     */
+    public void setPriceList(List<PriceDAO> list) {
+        setValue(Param.PRICE_LIST, list);
+    }
 
 }

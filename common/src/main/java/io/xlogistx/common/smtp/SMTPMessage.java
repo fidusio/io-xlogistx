@@ -7,12 +7,10 @@ import org.zoxweb.shared.util.*;
 
 
 public class SMTPMessage
-    extends CanonicalIDDAO
-{
+        extends CanonicalIDDAO {
 
     public enum Param
-            implements GetNVConfig
-    {
+            implements GetNVConfig {
 
         FROM(NVConfigManager.createNVConfig("from", "From", "From", true, true, false, false, String.class, FilterType.EMAIL)),
         TO(NVConfigManager.createNVConfig("to", "To destination", "To", true, true, NVStringList.class)),
@@ -24,20 +22,17 @@ public class SMTPMessage
         ;
         private final NVConfig nvc;
 
-        Param(NVConfig nvc)
-        {
+        Param(NVConfig nvc) {
             this.nvc = nvc;
         }
 
-        public NVConfig getNVConfig()
-        {
+        public NVConfig getNVConfig() {
             return nvc;
         }
     }
 
 
-
-    public static final NVConfigEntity NVC_SMTP_MESSAGE = new NVConfigEntityLocal
+    public static final NVConfigEntity NVC_SMTP_MESSAGE = new NVConfigEntityPortable
             (
                     "smtp_message",
                     null,
@@ -54,89 +49,73 @@ public class SMTPMessage
             );
 
 
-
-    public SMTPMessage()
-    {
+    public SMTPMessage() {
         super(NVC_SMTP_MESSAGE);
     }
-    public SMTPMessage(String subject, String message)
-    {
+
+    public SMTPMessage(String subject, String message) {
         this();
         setSubject(subject);
         setContent(message);
     }
 
 
-    public void setFrom(String from)
-    {
+    public void setFrom(String from) {
         setValue(Param.FROM, from);
     }
 
-    public String getFrom()
-    {
+    public String getFrom() {
         return lookupValue(Param.FROM);
     }
 
-    public void setSubject(String subject)
-    {
+    public void setSubject(String subject) {
         setValue(Param.SUBJECT, subject);
     }
 
-    public String getSubject()
-    {
+    public String getSubject() {
         return lookupValue(Param.SUBJECT);
     }
 
 
-    public void setContent(String content)
-    {
+    public void setContent(String content) {
         setValue(Param.CONTENT, content);
     }
 
-    public String getContent()
-    {
+    public String getContent() {
         return lookupValue(Param.CONTENT);
     }
 
 
-    public String[] getTo()
-    {
+    public String[] getTo() {
         return ((NVStringList) lookup(Param.TO)).getValues();
     }
 
-    public String[] getBCC()
-    {
+    public String[] getBCC() {
         return ((NVStringList) lookup(Param.BCC)).getValues();
     }
 
-    public String[] getCC()
-    {
+    public String[] getCC() {
         return ((NVStringList) lookup(Param.CC)).getValues();
     }
 
 
-    public String[] getReplyTo()
-    {
+    public String[] getReplyTo() {
         return ((NVStringList) lookup(Param.REPLY_TO)).getValues();
     }
 
 
-    public void addRecipients(EmailRecipient ... recipients)
-    {
-        for(EmailRecipient recipient : recipients)
-        {
+    public void addRecipients(EmailRecipient... recipients) {
+        for (EmailRecipient recipient : recipients) {
             addRecipient(recipient.getRecipientType(), recipient.getEmail());
         }
     }
 
-    public void addRecipient(EmailRecipient.Type type, String email)
-    {
-        if(type == null)
+    public void addRecipient(EmailRecipient.Type type, String email) {
+        if (type == null)
             type = EmailRecipient.Type.TO;
         email = FilterType.EMAIL.validate(email);
         NVStringList toAdd = null;
-        switch (type)
-        {
+        switch (type) {
 
             case TO:
                 toAdd = (NVStringList) lookup(Param.TO);
@@ -153,7 +132,6 @@ public class SMTPMessage
         }
         toAdd.getValue().add(email);
     }
-
 
 
 }

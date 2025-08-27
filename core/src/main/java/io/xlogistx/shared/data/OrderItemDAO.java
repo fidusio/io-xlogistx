@@ -21,92 +21,92 @@ import org.zoxweb.shared.util.*;
 
 @SuppressWarnings("serial")
 public class OrderItemDAO
-    extends SetNameDescriptionDAO {
+        extends SetNameDescriptionDAO {
 
-  public enum Param
-      implements GetNVConfig {
+    public enum Param
+            implements GetNVConfig {
 
-    ITEM(NVConfigManager.createNVConfigEntity("item", "Item", "Item", true, true, ItemDAO.class,
-        NVConfigEntity.ArrayType.NOT_ARRAY)),
-    QUANTITY(
-        NVConfigManager.createNVConfig("quantity", "Quantity", "Quantity", true, true, int.class)),
-    TOTAL(NVConfigManager
-        .createNVConfigEntity("total", "Total", "Total", true, true, AmountDAO.class,
-            NVConfigEntity.ArrayType.NOT_ARRAY)),
+        ITEM(NVConfigManager.createNVConfigEntity("item", "Item", "Item", true, true, ItemDAO.class,
+                NVConfigEntity.ArrayType.NOT_ARRAY)),
+        QUANTITY(
+                NVConfigManager.createNVConfig("quantity", "Quantity", "Quantity", true, true, int.class)),
+        TOTAL(NVConfigManager
+                .createNVConfigEntity("total", "Total", "Total", true, true, AmountDAO.class,
+                        NVConfigEntity.ArrayType.NOT_ARRAY)),
 
-    ;
+        ;
 
-    private final NVConfig nvc;
+        private final NVConfig nvc;
 
-    Param(NVConfig nvc) {
-      this.nvc = nvc;
+        Param(NVConfig nvc) {
+            this.nvc = nvc;
+        }
+
+        @Override
+        public NVConfig getNVConfig() {
+            return nvc;
+        }
     }
 
-    @Override
-    public NVConfig getNVConfig() {
-      return nvc;
+    public static final NVConfigEntity NVC_ORDER_ITEM_DAO = new NVConfigEntityPortable(
+            "order_item_dao",
+            null,
+            OrderItemDAO.class.getSimpleName(),
+            true,
+            false,
+            false,
+            false,
+            OrderItemDAO.class,
+            SharedUtil.extractNVConfigs(Param.values()),
+            null,
+            false,
+            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+    );
+
+    public OrderItemDAO() {
+        super(NVC_ORDER_ITEM_DAO);
     }
-  }
 
-  public static final NVConfigEntity NVC_ORDER_ITEM_DAO = new NVConfigEntityLocal(
-      "order_item_dao",
-      null,
-      OrderItemDAO.class.getSimpleName(),
-      true,
-      false,
-      false,
-      false,
-      OrderItemDAO.class,
-      SharedUtil.extractNVConfigs(Param.values()),
-      null,
-      false,
-      SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
-  );
+    /**
+     * Returns the item.
+     */
+    public ItemDAO getItem() {
+        return lookupValue(Param.ITEM);
+    }
 
-  public OrderItemDAO() {
-    super(NVC_ORDER_ITEM_DAO);
-  }
+    /**
+     * Sets the item.
+     */
+    public void setItem(ItemDAO item) {
+        setValue(Param.ITEM, item);
+    }
 
-  /**
-   * Returns the item.
-   */
-  public ItemDAO getItem() {
-    return lookupValue(Param.ITEM);
-  }
+    /**
+     * Returns the quantity.
+     */
+    public int getQuantity() {
+        return lookupValue(Param.QUANTITY);
+    }
 
-  /**
-   * Sets the item.
-   */
-  public void setItem(ItemDAO item) {
-    setValue(Param.ITEM, item);
-  }
+    /**
+     * Sets the quantity.
+     */
+    public void setQuantity(int quantity) {
+        setValue(Param.QUANTITY, quantity);
+    }
 
-  /**
-   * Returns the quantity.
-   */
-  public int getQuantity() {
-    return lookupValue(Param.QUANTITY);
-  }
+    /**
+     * Returns the total.
+     */
+    public AmountDAO getTotal() {
+        return lookupValue(Param.TOTAL);
+    }
 
-  /**
-   * Sets the quantity.
-   */
-  public void setQuantity(int quantity) {
-    setValue(Param.QUANTITY, quantity);
-  }
-
-  /**
-   * Returns the total.
-   */
-  public AmountDAO getTotal() {
-    return lookupValue(Param.TOTAL);
-  }
-
-  /**
-   * Sets the total.
-   */
-  public void setTotal(AmountDAO total) {
-    setValue(Param.TOTAL, total);
-  }
+    /**
+     * Sets the total.
+     */
+    public void setTotal(AmountDAO total) {
+        setValue(Param.TOTAL, total);
+    }
 
 }

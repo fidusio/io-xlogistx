@@ -20,40 +20,35 @@ import org.zoxweb.shared.data.SimpleDocumentDAO;
 import org.zoxweb.shared.util.*;
 
 
-
 /**
- * 
+ *
  * @author mzebib
  */
 @SuppressWarnings("serial")
 public class DocumentTemplate
-	extends SimpleDocumentDAO
-{
+        extends SimpleDocumentDAO {
 
-	public enum Param
-		implements GetNVConfig
-	{
-		TAGS(NVConfigManager.createNVConfig("tags", "token tags", "TokenTags", true, true, NVStringList.class)),
-		TITLE(NVConfigManager.createNVConfig("title", "Message title", "Title", true, true, String.class)),
-		PRE_TAG(NVConfigManager.createNVConfig("pre_tag", "The pre token tag.", "PreTokenTag", false, true, String.class)),
-		POST_TAG(NVConfigManager.createNVConfig("post_tag", "The post token tag.", "PostTokenTag", false, true, String.class)),
+    public enum Param
+            implements GetNVConfig {
+        TAGS(NVConfigManager.createNVConfig("tags", "token tags", "TokenTags", true, true, NVStringList.class)),
+        TITLE(NVConfigManager.createNVConfig("title", "Message title", "Title", true, true, String.class)),
+        PRE_TAG(NVConfigManager.createNVConfig("pre_tag", "The pre token tag.", "PreTokenTag", false, true, String.class)),
+        POST_TAG(NVConfigManager.createNVConfig("post_tag", "The post token tag.", "PostTokenTag", false, true, String.class)),
 
-		;
+        ;
 
         private final NVConfig nvc;
 
-        Param(NVConfig nvc)
-        {
+        Param(NVConfig nvc) {
             this.nvc = nvc;
         }
 
-        public NVConfig getNVConfig()
-        {
+        public NVConfig getNVConfig() {
             return nvc;
         }
-	}
+    }
 
-	public static final NVConfigEntity NVC_DOCUMENT_TEMPLATE = new NVConfigEntityLocal(
+    public static final NVConfigEntity NVC_DOCUMENT_TEMPLATE = new NVConfigEntityPortable(
             "document_template",
             null,
             "DocumentTemplate",
@@ -61,7 +56,7 @@ public class DocumentTemplate
             false,
             false,
             false,
-			DocumentTemplate.class,
+            DocumentTemplate.class,
             SharedUtil.extractNVConfigs(Param.values()),
             null,
             false,
@@ -69,91 +64,80 @@ public class DocumentTemplate
     );
 
 
-	/**
-	 * The default constructor.
-	 */
-	public DocumentTemplate()
-	{
-		super(NVC_DOCUMENT_TEMPLATE);
-	}
-	
+    /**
+     * The default constructor.
+     */
+    public DocumentTemplate() {
+        super(NVC_DOCUMENT_TEMPLATE);
+    }
 
-	
-	/**
-	 * Returns the message body tags.
-	 * @return tags
-	 */
-	@SuppressWarnings("unchecked")
-	public String[] getBodyTags()
-	{		
-		return ((NVStringList) lookup(Param.TAGS)).getValues();
-	}
-	
-	/**
-	 * Sets the message body tags.
-	 * @param tags
-	 */
-	@SuppressWarnings("unchecked")
-	public void setBodyTags(String ...tags)
-	{
-		NVStringList tagsList = (NVStringList) lookup(Param.TAGS);
-		tagsList.setValues(tags);
-	}	
-	
 
-	
-	/**
-	 * Returns the message title.
-	 * @return title
-	 */
-	public String getTitle()
-	{
-		return lookupValue(Param.TITLE);
-	}
+    /**
+     * Returns the message body tags.
+     * @return tags
+     */
+    @SuppressWarnings("unchecked")
+    public String[] getBodyTags() {
+        return ((NVStringList) lookup(Param.TAGS)).getValues();
+    }
 
-	/**
-	 * Sets the message title.
-	 * @param title
-	 */
-	public void setTitle(String title)
-	{
-		setValue(Param.TITLE, title);
-	}
-	
-	/**
-	 * Returns the pre-token tag.
-	 * @return pretag
-	 */
-	public String getPreTag() 
-	{
-		return  lookupValue(Param.PRE_TAG);
-	}
-	
-	/**
-	 * Sets the pre-token tag.
-	 * @param preTokenTag
-	 */
-	public void setPreTag(String preTokenTag) 
-	{
-		setValue(Param.PRE_TAG, preTokenTag);
-	}
-	
-	/**
-	 * Returns the post-token tag.
-	 * @return post tag
-	 */
-	public String getPostTag() 
-	{
-		return  lookupValue(Param.POST_TAG);
-	}
+    /**
+     * Sets the message body tags.
+     * @param tags
+     */
+    @SuppressWarnings("unchecked")
+    public void setBodyTags(String... tags) {
+        NVStringList tagsList = (NVStringList) lookup(Param.TAGS);
+        tagsList.setValues(tags);
+    }
 
-	/**
-	 * Sets the post-token tag.
-	 * @param postTokenTag
-	 */
-	public void setPostTag(String postTokenTag)
-	{
-		setValue(Param.POST_TAG, postTokenTag);
-	}
-	
+
+    /**
+     * Returns the message title.
+     * @return title
+     */
+    public String getTitle() {
+        return lookupValue(Param.TITLE);
+    }
+
+    /**
+     * Sets the message title.
+     * @param title
+     */
+    public void setTitle(String title) {
+        setValue(Param.TITLE, title);
+    }
+
+    /**
+     * Returns the pre-token tag.
+     * @return pretag
+     */
+    public String getPreTag() {
+        return lookupValue(Param.PRE_TAG);
+    }
+
+    /**
+     * Sets the pre-token tag.
+     * @param preTokenTag
+     */
+    public void setPreTag(String preTokenTag) {
+        setValue(Param.PRE_TAG, preTokenTag);
+    }
+
+    /**
+     * Returns the post-token tag.
+     * @return post tag
+     */
+    public String getPostTag() {
+        return lookupValue(Param.POST_TAG);
+    }
+
+    /**
+     * Sets the post-token tag.
+     * @param postTokenTag
+     */
+    public void setPostTag(String postTokenTag) {
+        setValue(Param.POST_TAG, postTokenTag);
+    }
+
 }

@@ -11,77 +11,76 @@ import java.util.List;
  */
 @SuppressWarnings("serial")
 public class ZipCodeDistanceListDAO
-    extends SetNameDescriptionDAO {
+        extends SetNameDescriptionDAO {
 
-  public enum Param
-      implements GetNVConfig {
+    public enum Param
+            implements GetNVConfig {
 
-    ZIP_CODES(NVConfigManager
-        .createNVConfigEntity("zip_codes", "Zip Codes", "ZipCodes", false, true,
-            ZipCodeDistanceDAO.NVC_ZIP_CODE_DISTANCE_DAO, NVConfigEntity.ArrayType.GET_NAME_MAP)),
+        ZIP_CODES(NVConfigManager
+                .createNVConfigEntity("zip_codes", "Zip Codes", "ZipCodes", false, true,
+                        ZipCodeDistanceDAO.NVC_ZIP_CODE_DISTANCE_DAO, NVConfigEntity.ArrayType.GET_NAME_MAP)),
 
-    ;
+        ;
 
-    private final NVConfig nvc;
+        private final NVConfig nvc;
 
-    Param(NVConfig nvc) {
-      this.nvc = nvc;
+        Param(NVConfig nvc) {
+            this.nvc = nvc;
+        }
+
+        @Override
+        public NVConfig getNVConfig() {
+            return nvc;
+        }
     }
 
-    @Override
-    public NVConfig getNVConfig() {
-      return nvc;
-    }
-  }
-
-  public static final NVConfigEntity NVC_ZIP_CODE_DISTANCE_LIST_DAO = new NVConfigEntityLocal(
-      "zip_code_distance_list_dao",
-      null,
-      ZipCodeDistanceListDAO.class.getSimpleName(),
-      true,
-      false,
-      false,
-      false,
-      ZipCodeDistanceListDAO.class,
-      SharedUtil.extractNVConfigs(Param.values()),
-      null,
-      false,
-      SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
-  );
+    public static final NVConfigEntity NVC_ZIP_CODE_DISTANCE_LIST_DAO = new NVConfigEntityPortable(
+            "zip_code_distance_list_dao",
+            null,
+            ZipCodeDistanceListDAO.class.getSimpleName(),
+            true,
+            false,
+            false,
+            false,
+            ZipCodeDistanceListDAO.class,
+            SharedUtil.extractNVConfigs(Param.values()),
+            null,
+            false,
+            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+    );
 
 
-  public ZipCodeDistanceListDAO() {
-    super(NVC_ZIP_CODE_DISTANCE_LIST_DAO);
-  }
-
-
-  public ArrayValues<ZipCodeDistanceDAO> getZipCodes() {
-    return (ArrayValues<ZipCodeDistanceDAO>) lookup(Param.ZIP_CODES);
-  }
-
-  public void setZipCodes(List<ZipCodeDistanceDAO> zipCodes) {
-    ArrayValues<ZipCodeDistanceDAO> zipCodesAV = getZipCodes();
-    zipCodesAV.clear();
-    for(ZipCodeDistanceDAO z : zipCodes)
-    {
-      zipCodesAV.add(z);
-    }
-  }
-
-  public boolean isWithinRange(AddressDAO addressToCheck) {
-    if (addressToCheck != null && addressToCheck.getZIPOrPostalCode() != null) {
-      return isWithinRange(addressToCheck.getZIPOrPostalCode());
+    public ZipCodeDistanceListDAO() {
+        super(NVC_ZIP_CODE_DISTANCE_LIST_DAO);
     }
 
-    return false;
-  }
 
-  public boolean isWithinRange(String zipCodeToCheck) {
-    if (SUS.isNotEmpty(zipCodeToCheck)) {
-      return (getZipCodes().get(zipCodeToCheck) != null);
+    public ArrayValues<ZipCodeDistanceDAO> getZipCodes() {
+        return (ArrayValues<ZipCodeDistanceDAO>) lookup(Param.ZIP_CODES);
     }
 
-    return false;
-  }
+    public void setZipCodes(List<ZipCodeDistanceDAO> zipCodes) {
+        ArrayValues<ZipCodeDistanceDAO> zipCodesAV = getZipCodes();
+        zipCodesAV.clear();
+        for (ZipCodeDistanceDAO z : zipCodes) {
+            zipCodesAV.add(z);
+        }
+    }
+
+    public boolean isWithinRange(AddressDAO addressToCheck) {
+        if (addressToCheck != null && addressToCheck.getZIPOrPostalCode() != null) {
+            return isWithinRange(addressToCheck.getZIPOrPostalCode());
+        }
+
+        return false;
+    }
+
+    public boolean isWithinRange(String zipCodeToCheck) {
+        if (SUS.isNotEmpty(zipCodeToCheck)) {
+            return (getZipCodes().get(zipCodeToCheck) != null);
+        }
+
+        return false;
+    }
 
 }

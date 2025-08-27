@@ -22,88 +22,88 @@ import org.zoxweb.shared.util.*;
 
 @SuppressWarnings("serial")
 public class PriceDAO
-    extends SetNameDescriptionDAO {
+        extends SetNameDescriptionDAO {
 
-  public enum Param
-      implements GetNVConfig {
-    RANGE(NVConfigManager
-        .createNVConfigEntity("range", "Range", "Range", true, true, Range.class,
-            NVConfigEntity.ArrayType.NOT_ARRAY)),
-    PRICE(NVConfigManager
-        .createNVConfigEntity("price", "Price", "Price", true, true, AmountDAO.class,
-            NVConfigEntity.ArrayType.NOT_ARRAY)),
+    public enum Param
+            implements GetNVConfig {
+        RANGE(NVConfigManager
+                .createNVConfigEntity("range", "Range", "Range", true, true, Range.class,
+                        NVConfigEntity.ArrayType.NOT_ARRAY)),
+        PRICE(NVConfigManager
+                .createNVConfigEntity("price", "Price", "Price", true, true, AmountDAO.class,
+                        NVConfigEntity.ArrayType.NOT_ARRAY)),
 
-    ;
+        ;
 
-    private final NVConfig nvc;
+        private final NVConfig nvc;
 
-    Param(NVConfig nvc) {
-      this.nvc = nvc;
+        Param(NVConfig nvc) {
+            this.nvc = nvc;
+        }
+
+        @Override
+        public NVConfig getNVConfig() {
+            return nvc;
+        }
+    }
+
+    public static final NVConfigEntity NVC_PRICE_DAO = new NVConfigEntityPortable(
+            "price_dao",
+            null,
+            PriceDAO.class.getSimpleName(),
+            true,
+            false,
+            false,
+            false,
+            PriceDAO.class,
+            SharedUtil.extractNVConfigs(Param.values()),
+            null,
+            false,
+            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+    );
+
+
+    public PriceDAO() {
+        super(NVC_PRICE_DAO);
+    }
+
+    public PriceDAO(Range range, AmountDAO price) {
+        this();
+        setRange(range);
+        setPrice(price);
+    }
+
+    /**
+     * Returns the range.
+     */
+    public Range getRange() {
+        return lookupValue(Param.RANGE);
+    }
+
+    /**
+     * Sets the range.
+     */
+    public void setRange(Range range) {
+        setValue(Param.RANGE, range);
+    }
+
+    /**
+     * Returns the price
+     */
+    public AmountDAO getPrice() {
+        return lookupValue(Param.PRICE);
+    }
+
+    /**
+     * Sets the price.
+     */
+    public void setPrice(AmountDAO price) {
+        setValue(Param.PRICE, price);
     }
 
     @Override
-    public NVConfig getNVConfig() {
-      return nvc;
+    public String toString() {
+        return getRange() + " : " + getPrice();
     }
-  }
-
-  public static final NVConfigEntity NVC_PRICE_DAO = new NVConfigEntityLocal(
-      "price_dao",
-      null,
-      PriceDAO.class.getSimpleName(),
-      true,
-      false,
-      false,
-      false,
-      PriceDAO.class,
-      SharedUtil.extractNVConfigs(Param.values()),
-      null,
-      false,
-      SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
-  );
-
-
-  public PriceDAO() {
-    super(NVC_PRICE_DAO);
-  }
-
-  public PriceDAO(Range range, AmountDAO price) {
-    this();
-    setRange(range);
-    setPrice(price);
-  }
-
-  /**
-   * Returns the range.
-   */
-  public Range getRange() {
-    return lookupValue(Param.RANGE);
-  }
-
-  /**
-   * Sets the range.
-   */
-  public void setRange(Range range) {
-    setValue(Param.RANGE, range);
-  }
-
-  /**
-   * Returns the price
-   */
-  public AmountDAO getPrice() {
-    return lookupValue(Param.PRICE);
-  }
-
-  /**
-   * Sets the price.
-   */
-  public void setPrice(AmountDAO price) {
-    setValue(Param.PRICE, price);
-  }
-
-  @Override
-  public String toString() {
-    return getRange() + " : " + getPrice();
-  }
 
 }

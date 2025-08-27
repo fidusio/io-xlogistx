@@ -34,7 +34,7 @@ public class ZipCodeDistanceDAO
     }
   }
 
-  public static final NVConfigEntity NVC_ZIP_CODE_DISTANCE_DAO = new NVConfigEntityLocal(
+  public static final NVConfigEntity NVC_ZIP_CODE_DISTANCE_DAO = new NVConfigEntityPortable(
       "zip_code_distance_dao",
       null,
       ZipCodeDistanceDAO.class.getSimpleName(),

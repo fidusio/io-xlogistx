@@ -388,20 +388,20 @@ public class OPSecUtil {
     }
 
 
-    public static String sshCommand(SShURI sshURI, String password, String command) throws IOException {
-        return sshCommand(sshURI.user, sshURI.port, sshURI.host, password, command);
+    public static String sshCommand(SShURI sshURI, String command) throws IOException {
+        return sshCommand(sshURI.subject, sshURI.port, sshURI.host, sshURI.credential, command);
     }
 
 
     public static String sshCommand(SShURI sshURI, KeyPair[] keyPairs, String command) throws IOException {
-        return sshCommand(sshURI.user, sshURI.port, sshURI.host, keyPairs, command);
+        return sshCommand(sshURI.subject, sshURI.port, sshURI.host, keyPairs, command);
     }
 
-    public static String sshCommand(String user, int port, String host, String password, String command) throws IOException {
+    public static String sshCommand(String subject, int port, String host, String password, String command) throws IOException {
         SshClient client = SshClient.setUpDefaultClient();
         client.start();
 
-        try (ClientSession session = client.connect(user, host, port).verify(10000).getSession()) {
+        try (ClientSession session = client.connect(subject, host, port).verify(10000).getSession()) {
             session.addPasswordIdentity(password);
             session.auth().verify(5000);
             UByteArrayOutputStream ubaos = new UByteArrayOutputStream();
