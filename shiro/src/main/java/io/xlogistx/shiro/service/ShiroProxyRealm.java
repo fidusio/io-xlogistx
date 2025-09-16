@@ -14,6 +14,7 @@ import org.zoxweb.server.http.HTTPAPIEndPoint;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SHAPasswordHasher;
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.crypto.CredentialHasher;
@@ -27,8 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 public class ShiroProxyRealm extends AuthorizingRealm
-implements SetNVProperties
-{
+        implements SetNVProperties {
 
     public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
 
@@ -37,14 +37,13 @@ implements SetNVProperties
 
     private NVGenericMap configProperties;
     private CredentialHasher<CIPassword> credentialHasher = new SHAPasswordHasher(64);
-
+    private volatile long cacheDuration = Const.TimeInMillis.HOUR.MILLIS;
 
 
     private String configPath;
     private HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm;
 
-    public ShiroProxyRealm()
-    {
+    public ShiroProxyRealm() {
         super();
 //        setName("ProxyRealm");
 //        setAuthenticationCachingEnabled(true);
@@ -80,31 +79,33 @@ implements SetNVProperties
         // the payload is a json object {"principal": token.getPrincipal(), "credentials": token.getCredentials()}
         // The remote server must validate the re
 
-        if(log.isEnabled()) log.getLogger().info("token: " + token) ;
+        if (log.isEnabled()) log.getLogger().info("token: " + token);
 
-        try
-        {
+        try {
 
-            AuthenticationInfo authenticationInfo = kvAuthenticationInfo.get((String)token.getPrincipal());
-            if(authenticationInfo != null)
+            AuthenticationInfo authenticationInfo = kvAuthenticationInfo.get((String) token.getPrincipal());
+            if (authenticationInfo != null)
                 return authenticationInfo;
 
-            if(remoteRealm != null)
-            {
+            if (remoteRealm != null) {
                 HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall(token);
                 if (log.isEnabled()) log.getLogger().info("remoteRealm " + result);
                 CIPassword passwordDAO = credentialHasher.hash((char[]) token.getCredentials());
                 authenticationInfo = new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
-
-                kvSessionData.put((String) token.getPrincipal(), result.getData());
-                kvAuthenticationInfo.put((String)token.getPrincipal(), authenticationInfo);
+                String principalToken = (String) token.getPrincipal();
+                kvSessionData.put(principalToken, result.getData());
+                kvAuthenticationInfo.put(principalToken, authenticationInfo);
+                TaskUtil.defaultTaskScheduler().queue(cacheDuration, () -> {
+                    // remote cache after one hour this is a hack
+                    kvSessionData.remove(principalToken);
+                    kvAuthenticationInfo.remove(principalToken);
+                    log.getLogger().info(principalToken + " removed from cache");
+                });
 
                 return authenticationInfo;
             }
-        }
-        catch (Exception e)
-        {
-            if(log.isEnabled())
+        } catch (Exception e) {
+            if (log.isEnabled())
                 e.printStackTrace();
         }
 
@@ -112,21 +113,17 @@ implements SetNVProperties
     }
 
 
-
-
-
     @Override
-    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals)
-    {
-        if(log.isEnabled()) log.getLogger().info(""+principals);
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
+        if (log.isEnabled()) log.getLogger().info("" + principals);
         String user = (String) principals.getPrimaryPrincipal();
 
 
         ShiroSessionData ssd = kvSessionData.get(user);
         SimpleAuthorizationInfo ret = new SimpleAuthorizationInfo();
 
-        if(log.isEnabled()) log.getLogger().info(user +": " + ssd.permissions());
-        if(log.isEnabled()) log.getLogger().info(user +": " + ssd.roles());
+        if (log.isEnabled()) log.getLogger().info(user + ": " + ssd.permissions());
+        if (log.isEnabled()) log.getLogger().info(user + ": " + ssd.roles());
         ret.addStringPermissions(ssd.permissions());
         ret.addRoles(ssd.roles());
 
@@ -134,9 +131,13 @@ implements SetNVProperties
 
 
     }
+
     @Override
     public void setProperties(NVGenericMap properties) {
         this.configProperties = properties;
+        if (properties != null && properties.getValue("cache-duration") != null) {
+            cacheDuration = Const.TimeInMillis.toMillis(properties.getValue("cache-duration"));
+        }
     }
 
     @Override
@@ -144,42 +145,34 @@ implements SetNVProperties
         return configProperties;
     }
 
-    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm)
-    {
+    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm) {
         this.remoteRealm = remoteRealm;
     }
 
 
-
-    protected Object getAuthenticationCacheKey(AuthenticationToken token)
-    {
-        if(log.isEnabled()) log.getLogger().info("TAG1::key:" + token);
-        if(token instanceof JWTAuthenticationToken)
-        {
-            return ((JWTAuthenticationToken)token).getJWTSubjectID();
+    protected Object getAuthenticationCacheKey(AuthenticationToken token) {
+        if (log.isEnabled()) log.getLogger().info("TAG1::key:" + token);
+        if (token instanceof JWTAuthenticationToken) {
+            return ((JWTAuthenticationToken) token).getJWTSubjectID();
         }
         return super.getAuthenticationCacheKey(token);
     }
 
-    protected Object getAuthenticationCacheKey(PrincipalCollection principals)
-    {
-        if(log.isEnabled()) log.getLogger().info("TAG2::key:" + principals);
-        if (principals instanceof DomainPrincipalCollection)
-        {
-            DomainPrincipalCollection dpc = (DomainPrincipalCollection)principals;
+    protected Object getAuthenticationCacheKey(PrincipalCollection principals) {
+        if (log.isEnabled()) log.getLogger().info("TAG2::key:" + principals);
+        if (principals instanceof DomainPrincipalCollection) {
+            DomainPrincipalCollection dpc = (DomainPrincipalCollection) principals;
             return dpc.getJWSubjectID() != null ? dpc.getJWSubjectID() : dpc.getPrimaryPrincipal();
         }
         return super.getAuthenticationCacheKey(principals);
     }
 
 
-
     public String getConfigPath() {
         return configPath;
     }
 
-    public void setConfigPath(String configPath) throws IOException
-    {
+    public void setConfigPath(String configPath) throws IOException {
         try {
             if (log.isEnabled()) log.getLogger().info(configPath);
             this.configPath = configPath;
@@ -205,7 +198,7 @@ implements SetNVProperties
 
                     // temp hack
                     NVInt rounds = passwordHashConfig.getNV("rounds");
-                    if(rounds == null)
+                    if (rounds == null)
                         rounds = passwordHashConfig.getNV("iteration");
                     SHAPasswordHasher passwordHasher = new SHAPasswordHasher(rounds.getValue());
                     credentialHasher = passwordHasher;
@@ -219,9 +212,7 @@ implements SetNVProperties
 
 
             if (log.isEnabled()) log.getLogger().info("remote realm set");
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             throw new IOException(e.getMessage());
         }

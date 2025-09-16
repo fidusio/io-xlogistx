@@ -224,17 +224,17 @@ public class ArgonPasswordHasher extends PasswordHasher {
     }
 
     @Override
-    public boolean isPasswordValid(CIPassword ci, String password) {
+    public boolean validate(CIPassword ci, String password) {
         return Argon2.validate(SharedStringUtil.getBytes(password), ci);
     }
 
     @Override
-    public boolean isPasswordValid(CIPassword ci, byte[] password) {
+    public boolean validate(CIPassword ci, byte[] password) {
         return Argon2.validate(password, ci);
     }
 
     @Override
-    public boolean isPasswordValid(CIPassword ci, char[] password) {
+    public boolean validate(CIPassword ci, char[] password) {
         return Argon2.validate(ByteBufferUtil.toBytes(password), ci);
     }
 }

@@ -78,8 +78,15 @@ public class GeneratePEMAndCSR
                 keyBAOS.writeTo(os);
             }
 
-            // Generate CSR
-            PKCS10CertificationRequest csr = OPSecUtil.SINGLETON.generateCSR(keyPair, attrs, altNames);
+            PKCS10CertificationRequest csr;
+            if("EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm())) {
+                // Generate CSR
+                csr = OPSecUtil.SINGLETON.createCSR(keyPair, attrs, altNames, "DigitalSignature", "KeyAgreement");
+                System.out.println(keyPair.getPublic().getAlgorithm());
+            }
+            else
+                csr = OPSecUtil.SINGLETON.createCSR(keyPair, attrs, altNames, "DigitalSignature", "KeyEncipherment");
+
 
             // Save CSR to PEM file
             UByteArrayOutputStream csrBAOS = new UByteArrayOutputStream();

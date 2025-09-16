@@ -45,13 +45,8 @@
         <module>common</module>
         <module>http</module>
         <module>shiro</module>
-        <module>http-ws</module>
         <module>core</module>
-        <!--        <module>http-servlet</module>-->
-        <!--        <module>http-servlet-shiro</module>-->
-        <!-- <module>okta</module> -->
         <module>opsec</module>
-        <!--        <module>assembly</module>-->
         <module>gui-audio</module>
     </modules>
 
@@ -89,7 +84,7 @@
 
 
         <zoxweb-core.version>2.3.8</zoxweb-core.version>
-        <okhttp.version>4.12.0</okhttp.version>
+        <okhttp.version>5.1.0</okhttp.version>
         <xlogistx.version>1.0.0</xlogistx.version>
         <java-xt-core.version>RELEASE</java-xt-core.version>
         <dnsjava.version>3.6.3</dnsjava.version>
@@ -261,11 +256,11 @@
                 <version>${snakeyaml.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.squareup.okhttp3</groupId>
-                <artifactId>okhttp</artifactId>
-                <version>${okhttp.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>com.squareup.okhttp3</groupId>-->
+<!--                <artifactId>okhttp-jvm</artifactId>-->
+<!--                <version>${okhttp.version}</version>-->
+<!--            </dependency>-->
 
             <dependency>
                 <groupId>dnsjava</groupId>

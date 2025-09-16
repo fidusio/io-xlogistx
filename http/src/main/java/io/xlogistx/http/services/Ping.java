@@ -50,8 +50,13 @@ public class Ping
                     .build("jdk-version", System.getProperty("java.version"))
                     .build("vm-name", System.getProperty("java.vm.name"))
                     .build("vm-vendor-version", System.getProperty("java.vendor.version"))
-                    .build("uptime", Const.TimeInMillis.toString(System.currentTimeMillis() - TaskUtil.START_TIME_MILLIS))
-                    .build("current-thread", Thread.currentThread().getName())
+                    .build("uptime", Const.TimeInMillis.toString(RuntimeUtil.vmMXBean().getUptime()));
+            try {
+                response.build("os-uptime", Const.TimeInMillis.toString(RuntimeUtil.linuxUptime()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            response.build("current-thread", Thread.currentThread().getName())
                     .build("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
                             + "," + System.getProperty("os.arch"))
                     .build(new NVInt("byte-buffer-cache", ByteBufferUtil.cacheCount()))

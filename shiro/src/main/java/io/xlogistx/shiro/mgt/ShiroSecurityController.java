@@ -9,7 +9,7 @@ import org.zoxweb.shared.api.APICredentialsDAO;
 import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.api.APITokenDAO;
 import org.zoxweb.shared.crypto.EncryptedData;
-import org.zoxweb.shared.crypto.EncryptedKey;
+import org.zoxweb.shared.crypto.EncapsulatedKey;
 import org.zoxweb.shared.data.MessageTemplateDAO;
 import org.zoxweb.shared.filters.BytesValueFilter;
 import org.zoxweb.shared.filters.ChainedFilter;
@@ -27,11 +27,10 @@ import java.security.SignatureException;
 import java.util.UUID;
 
 public class ShiroSecurityController
-    implements SecurityController
-
-{
+        implements SecurityController {
 
     public static final LogWrapper log = new LogWrapper(ShiroSecurityController.class).setEnabled(false);
+
     @Override
     public void validateCredential(CredentialInfo ci, String input) throws AccessSecurityException {
 
@@ -44,50 +43,37 @@ public class ShiroSecurityController
 
     @Override
     public final Object encryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException
-    {
+            throws NullPointerException, IllegalArgumentException, AccessException {
         SUS.checkIfNulls("Null parameters", container.getGUID(), nvb);
-
 
 
         boolean encrypt = false;
 
         // the nvpair filter will override nvc value
         if (nvb instanceof NVPair &&
-                (ChainedFilter.isFilterSupported(((NVPair)nvb).getValueFilter(),FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(((NVPair)nvb).getValueFilter(),FilterType.ENCRYPT_MASK)))
-        {
+                (ChainedFilter.isFilterSupported(((NVPair) nvb).getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(((NVPair) nvb).getValueFilter(), FilterType.ENCRYPT_MASK))) {
             encrypt = true;
 
-        }
-        else if (nvc != null && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
-        {
+        } else if (nvc != null && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK))) {
             encrypt = true;
         }
 
 
-
-
-
-        if (encrypt && nvb.getValue() != null)
-        {
+        if (encrypt && nvb.getValue() != null) {
             // CRUD.MOVE was to allow shared with to move the data between folders
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
-            try
-            {
+            try {
                 return CryptoUtil.encryptData(new EncryptedData(), dataKey, BytesValueFilter.SINGLETON.validate(nvb));
 
             } catch (InvalidKeyException | NullPointerException
                      | IllegalArgumentException | NoSuchAlgorithmException
                      | NoSuchPaddingException
                      | InvalidAlgorithmParameterException
-                     | IllegalBlockSizeException | BadPaddingException e)
-            {
+                     | IllegalBlockSizeException | BadPaddingException e) {
                 // TODO Auto-generated catch block
                 throw new AccessException(e.getMessage());
             }
-        }
-        else
-        {
+        } else {
             return nvb.getValue();
         }
     }
@@ -95,36 +81,25 @@ public class ShiroSecurityController
     @SuppressWarnings("unchecked")
     @Override
     public final NVEntity decryptValues(APIDataStore<?, ?> dataStore, NVEntity container, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException
-    {
+            throws NullPointerException, IllegalArgumentException, AccessException {
 
-        if (container == null)
-        {
+        if (container == null) {
             return null;
         }
 
         SUS.checkIfNulls("Null parameters", container.getGUID());
-        for (NVBase<?> nvb : container.getAttributes().values().toArray( new NVBase[0]))
-        {
-            if (nvb instanceof NVPair)
-            {
-                decryptValue(dataStore, container, (NVPair)nvb, null);
-            }
-            else if (nvb instanceof NVEntityReference)
-            {
+        for (NVBase<?> nvb : container.getAttributes().values().toArray(new NVBase[0])) {
+            if (nvb instanceof NVPair) {
+                decryptValue(dataStore, container, (NVPair) nvb, null);
+            } else if (nvb instanceof NVEntityReference) {
                 NVEntity temp = (NVEntity) nvb.getValue();
-                if (temp != null)
-                {
+                if (temp != null) {
                     decryptValues(dataStore, temp, null);
                 }
-            }
-            else if (nvb instanceof NVEntityReferenceList || nvb instanceof NVEntityReferenceIDMap || nvb instanceof NVEntityGetNameMap)
-            {
+            } else if (nvb instanceof NVEntityReferenceList || nvb instanceof NVEntityReferenceIDMap || nvb instanceof NVEntityGetNameMap) {
                 ArrayValues<NVEntity> arrayValues = (ArrayValues<NVEntity>) nvb;
-                for (NVEntity nve : arrayValues.values())
-                {
-                    if (nve != null)
-                    {
+                for (NVEntity nve : arrayValues.values()) {
+                    if (nve != null) {
                         decryptValues(dataStore, container, null);
                     }
                 }
@@ -138,23 +113,19 @@ public class ShiroSecurityController
 
     @Override
     public final String decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVPair nvp, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException
-    {
+            throws NullPointerException, IllegalArgumentException, AccessException {
 
-        if (container instanceof EncryptedData)
-        {
+        if (container instanceof EncryptedData) {
             return nvp != null ? nvp.getValue() : null;
         }
 
 
         SUS.checkIfNulls("Null parameters", container.getGUID(), nvp);
 
-        if (nvp.getValue()!= null && (ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT_MASK)))
-        {
+        if (nvp.getValue() != null && (ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT_MASK))) {
 
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
-            try
-            {
+            try {
                 EncryptedData ed = EncryptedData.fromCanonicalID(nvp.getValue());
                 byte[] data = CryptoUtil.decryptEncryptedData(ed, dataKey);
 
@@ -165,14 +136,11 @@ public class ShiroSecurityController
             } catch (NullPointerException
                      | IllegalArgumentException | InvalidKeyException |
                      NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
-                     IllegalBlockSizeException | BadPaddingException | SignatureException e)
-            {
+                     IllegalBlockSizeException | BadPaddingException | SignatureException e) {
                 // TODO Auto-generated catch block
                 throw new AccessException(e.getMessage());
             }
-        }
-        else
-        {
+        } else {
             return nvp.getValue();
         }
     }
@@ -180,25 +148,21 @@ public class ShiroSecurityController
 
     @Override
     public final Object decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVBase<?> nvb, Object value, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException
-    {
+            throws NullPointerException, IllegalArgumentException, AccessException {
 
-        if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
-        {
+        if (container instanceof EncryptedData && !(container instanceof EncapsulatedKey)) {
             container.setValue(nvb.getName(), value);
             return nvb.getValue();
         }
 
 
         SUS.checkIfNulls("Null parameters", container.getGUID(), nvb);
-        NVConfig nvc = ((NVConfigEntity)container.getNVConfig()).lookup(nvb.getName());
+        NVConfig nvc = ((NVConfigEntity) container.getNVConfig()).lookup(nvb.getName());
 
-        if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK)))
-        {
+        if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK))) {
 
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
-            try
-            {
+            try {
 
                 byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
 
@@ -211,15 +175,13 @@ public class ShiroSecurityController
             } catch (NullPointerException
                      | IllegalArgumentException | InvalidKeyException
                      | NoSuchAlgorithmException | NoSuchPaddingException
-                     | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | SignatureException e)
-            {
+                     | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException |
+                     SignatureException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
                 throw new AccessException(e.getMessage());
             }
-        }
-        else
-        {
+        } else {
 
             return value;
         }
@@ -227,77 +189,62 @@ public class ShiroSecurityController
 
     @Override
     public final Object decryptValue(String userID, APIDataStore<?, ?> dataStore, NVEntity container, Object value, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException
-    {
+            throws NullPointerException, IllegalArgumentException, AccessException {
 
-        if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
-        {
+        if (container instanceof EncryptedData && !(container instanceof EncapsulatedKey)) {
             return value;
         }
 
 
         SUS.checkIfNulls("Null parameters", container.getGUID());
 
-        if (value instanceof EncryptedData)
-        {
+        if (value instanceof EncryptedData) {
             //if(log.isEnabled()) log.getLogger().info("userID:" + userID);
 
-            byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, (userID != null ?  userID : checkNVEntityAccess(container, CRUD.READ)), container.getGUID());
-            try
-            {
+            byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, (userID != null ? userID : checkNVEntityAccess(container, CRUD.READ)), container.getGUID());
+            try {
 
                 byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
                 return BytesValueFilter.bytesToValue(String.class, data);
 
 
             } catch (NullPointerException
-                     | IllegalArgumentException | InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | SignatureException e)
-            {
+                     | IllegalArgumentException | InvalidKeyException | NoSuchAlgorithmException |
+                     NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException |
+                     BadPaddingException | SignatureException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
                 throw new AccessException(e.getMessage());
             }
-        }
-        else
-        {
+        } else {
 
             return value;
         }
     }
 
     @Override
-    public void associateNVEntityToSubjectGUID(NVEntity nve, String subjectGUID)
-    {
+    public void associateNVEntityToSubjectGUID(NVEntity nve, String subjectGUID) {
 
-        if (nve.getGUID() == null)
-        {
-            if (nve.getSubjectGUID() == null)
-            {
-                if(subjectGUID == null)
+        if (nve.getGUID() == null) {
+            if (nve.getSubjectGUID() == null) {
+                if (subjectGUID == null)
                     subjectGUID = currentSubjectGUID();
 
                 /// must create a exclusion filter
                 if (!(nve instanceof SubjectIdentifier || nve instanceof MessageTemplateDAO))
                     nve.setSubjectGUID(subjectGUID);// != null ? subjectGUID : currentSubjectGUID());
 
-                for (NVBase<?> nvb : nve.getAttributes().values().toArray(new NVBase[0]))
-                {
-                    if (nvb instanceof NVEntityReference)
-                    {
+                for (NVBase<?> nvb : nve.getAttributes().values().toArray(new NVBase[0])) {
+                    if (nvb instanceof NVEntityReference) {
                         NVEntity temp = (NVEntity) nvb.getValue();
-                        if (temp != null)
-                        {
+                        if (temp != null) {
                             associateNVEntityToSubjectGUID(temp, subjectGUID);
                         }
-                    }
-                    else if (nvb instanceof NVEntityReferenceList || nvb instanceof NVEntityReferenceIDMap || nvb instanceof NVEntityGetNameMap)
-                    {
+                    } else if (nvb instanceof NVEntityReferenceList || nvb instanceof NVEntityReferenceIDMap || nvb instanceof NVEntityGetNameMap) {
                         @SuppressWarnings("unchecked")
                         ArrayValues<NVEntity> arrayValues = (ArrayValues<NVEntity>) nvb;
-                        for (NVEntity nveTemp : arrayValues.values())
-                        {
-                            if (nveTemp != null)
-                            {
+                        for (NVEntity nveTemp : arrayValues.values()) {
+                            if (nveTemp != null) {
                                 associateNVEntityToSubjectGUID(nveTemp, subjectGUID);
                             }
                         }
@@ -320,86 +267,69 @@ public class ShiroSecurityController
     }
 
 
-
-
-    public final  boolean isNVEntityAccessible(NVEntity nve, CRUD ...permissions)
-            throws NullPointerException, IllegalArgumentException
-    {
+    public final boolean isNVEntityAccessible(NVEntity nve, CRUD... permissions)
+            throws NullPointerException, IllegalArgumentException {
         return isNVEntityAccessible(Const.LogicalOperator.AND, nve, permissions);
     }
 
 
-    public final  boolean isNVEntityAccessible(Const.LogicalOperator lo, NVEntity nve, CRUD ...permissions)
-            throws NullPointerException, IllegalArgumentException
-    {
-        try
-        {
+    public final boolean isNVEntityAccessible(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
+            throws NullPointerException, IllegalArgumentException {
+        try {
             checkNVEntityAccess(lo, nve, permissions);
             return true;
-        }
-        catch(AccessException e)
-        {
+        } catch (AccessException e) {
             //e.printStackTrace();
             return false;
         }
     }
 
 
-    public final String checkNVEntityAccess(NVEntity nve, CRUD ...permissions)
-            throws NullPointerException, IllegalArgumentException, AccessException
-
-    {
+    public final String checkNVEntityAccess(NVEntity nve, CRUD... permissions)
+            throws NullPointerException, IllegalArgumentException, AccessException {
         return checkNVEntityAccess(Const.LogicalOperator.AND, nve, permissions);
     }
 
 
-    public final String checkNVEntityAccess(Const.LogicalOperator lo, NVEntity nve, CRUD ...permissions)
-            throws NullPointerException, IllegalArgumentException, AccessException
-    {
+    public final String checkNVEntityAccess(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
+            throws NullPointerException, IllegalArgumentException, AccessException {
         SUS.checkIfNulls("Null NVEntity", lo, nve);
 
-        if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO)
-        {
+        if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO) {
             return nve.getSubjectGUID();
         }
 
         String subjectGUID = currentSubjectGUID();
 
-        if (subjectGUID == null || nve.getSubjectGUID() == null)
-        {
+        if (subjectGUID == null || nve.getSubjectGUID() == null) {
             throw new AccessException("Unauthenticated subject: " + nve.getClass().getName());
         }
 
-        if (!nve.getSubjectGUID().equals(subjectGUID))
-        {
+        if (!nve.getSubjectGUID().equals(subjectGUID)) {
 
-            if (permissions != null && permissions.length > 0)
-            {
+            if (permissions != null && permissions.length > 0) {
                 boolean checkStatus = false;
-                for(CRUD permission : permissions)
-                {
+                for (CRUD permission : permissions) {
                     String pattern = SharedUtil.toCanonicalID(':', "nventity", permission, nve.getGUID());
                     checkStatus = ShiroUtil.isPermitted(pattern);
                     if ((checkStatus && Const.LogicalOperator.OR == lo) ||
-                            (!checkStatus && Const.LogicalOperator.AND == lo))
-                    {
+                            (!checkStatus && Const.LogicalOperator.AND == lo)) {
                         // we are ok
                         break;
                     }
 
                 }
-                if(checkStatus)
+                if (checkStatus)
                     return nve.getSubjectGUID();
             }
 
-            if(log.isEnabled()) log.getLogger().info("nveUserID:" + nve.getSubjectGUID() + " subjectGUID:" + subjectGUID);
+            if (log.isEnabled())
+                log.getLogger().info("nveUserID:" + nve.getSubjectGUID() + " subjectGUID:" + subjectGUID);
             throw new AccessException("Access Denied. for resource:" + nve.getGUID());
         }
 
         return subjectGUID;
     }
-
-
 
 
     @Override
@@ -408,17 +338,12 @@ public class ShiroSecurityController
 
         String userID = currentSubjectID();
 
-        if (userID != null && nveUserID != null)
-        {
-            if (!nveUserID.equals(userID))
-            {
-                if (permissions != null && permissions.length > 0)
-                {
+        if (userID != null && nveUserID != null) {
+            if (!nveUserID.equals(userID)) {
+                if (permissions != null && permissions.length > 0) {
 
-                    for(CRUD permission : permissions)
-                    {
-                        if (!ShiroUtil.isPermitted(SharedUtil.toCanonicalID(':', "nventity", permission, nveRefID)))
-                        {
+                    for (CRUD permission : permissions) {
+                        if (!ShiroUtil.isPermitted(SharedUtil.toCanonicalID(':', "nventity", permission, nveRefID))) {
                             return false;
                         }
                     }
@@ -427,9 +352,7 @@ public class ShiroSecurityController
                 }
 
                 //if(log.isEnabled()) log.getLogger().info("NVEntity UserID:" + nveUserID + " UserID:" + userID);
-            }
-            else
-            {
+            } else {
                 return true;
             }
         }

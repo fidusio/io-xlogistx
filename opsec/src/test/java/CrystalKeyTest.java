@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.SecUtil;
+import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedBase64;
@@ -23,7 +24,7 @@ public class CrystalKeyTest {
 
     public static final String KYBER_PUB_KEY_B64 = "MIIDMjALBglghkgBZQMEBAEDggMhAGzcCIWTOQl1t2tDJSR0yIQ0EPy4prQnPq08fAIEMfmgKFBxn7lJv/VLb6QSdmYyCBwIZomGdGtRdYpWW852xgdyvTK6mXfVKEq5DHlzfftYZ5inqAmBwSWrL1i6m7hbExvBbeyLmdxwLrSGS/CEaz4SxmZqXuCbrzQJuOmJqaA3DM+pFW3xochUXYjRX/vpREikIVi3QNEBWS7GdSSRkLpMsgcF0ERCcVUItH2qWJugbFhkmvtRxqj4auN6Nc9AakWKNMqGK2aVTGU0ivlKFlyVcsdouGZhkH+TqtqbpkIjI9UxOvM1sb/3Bj0Sw70EtEBgVavjeMbjF6/GWMxUFtxCTKeSNxh4CDdLm+UjZFkGFafkbAHoa3uMBhhcRoa6x3u5iMuYoK+pW10MTGsqxxlgxseoIF05QUI1vzwMGvkKZARFF21LA50sjP4cq0TzFL6HcD7GbQFkwGTxhyRXbOKoQgxQlXk4Mp8okZezgJeUYLCDiU76eCABa90zVZGza6liLqBJO+4AimQKTBx2fv7cNiS4THv8KM0ae2ZoJilgE3O2yiRRa+E7bJNlVFqFQIJQCOMZE5OrC8jDeC+cRw5RVWnFamAUrFUpVXFoBSMDA70yUO7wxzDyrmFVdnMqOasqU6lMJainhxNhzU2LvpNwTNRDh3MymNhamWf3AEnjWtShA0pUMdDUDXnnhzs0WHPkWdGSsXIzLVIsPjQGZ+baVKs5EKhswE6Bc7srhy6QXa5LLFJSYDWZyfFExll2HIaaiANwEb4TEVBmpbtER/j0d+KlzLbGceQWSLcrN8S6jjO1F7kBXYWqACb7u1zMBmdgMJ4ZmgWjauj0jPdckdzBGyLJZsuFRUOUpPpzlOgIplyAwPEHmFWqKkc1vd3cSjRcv8kwEAcaPFOluLkkgorDoBpbQrHTjD+5GCoxXwVGhSl7N7gRaYdLmWP6JgUDK9rKH9qHm9DxSecpDeeKuZMYrXy4bMDJJZLEFM0CLXiyFyYrlQQEXK1jfVwVIMrFT0tcEHwOfFGkBGKE85mn2qWGbrHn98cLiBUJNodawzCv";
     public static final String KYBER_PRIV_KEY_B64 = "MFQCAQAwCwYJYIZIAWUDBAQBBEIEQI/ZBZPU3YtE+dqKLHnpsqJaAY/D+BrWNZWo+pNOcl/QcoMd1Zhem3F9cX6z3vn3MUApJPds+VOIOdwBLD8oN4s=";
-    public static final String AES_KEY_B64 = "CJCDR2W5SspyxSkw2WWxUAvvFRiH/bW3d2Arbn8I3Zo=";
+    public static final String AES_KEY_B64 = "ohU+mCHxMhLyBuvjVaVfnmWOSfylqNHVgtIREQ0UavQ=";
     @BeforeAll
     public static void first()
     {
@@ -57,10 +58,11 @@ public class CrystalKeyTest {
         {
             byte[] wrappedAesKeyBytes = OPSecUtil.SINGLETON.encryptCKAESKey(kp.getPublic(), aes);
             log.getLogger().info(wrappedAesKeyBytes.length + " Wrapped AES Key : " + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, wrappedAesKeyBytes));
+            log.getLogger().info("");
             // 5. Unwrap the AES key using Kyber in UNWRAP_MODE
             Key unwrappedAesKey = OPSecUtil.SINGLETON.decryptCKAESKey(kp.getPrivate(), wrappedAesKeyBytes);
             assert(SUS.equals(aes.getEncoded(), unwrappedAesKey.getEncoded()));
-            log.getLogger().info("[" + i + "] Are keys equals: " + aes.equals(unwrappedAesKey));
+            log.getLogger().info("[" + i + "] Are keys equals: " + aes.equals(unwrappedAesKey) + " aes key length: " + unwrappedAesKey.getAlgorithm() + " " + unwrappedAesKey.getFormat() + " " + unwrappedAesKey.getEncoded().length);
         }
     }
 
@@ -86,7 +88,7 @@ public class CrystalKeyTest {
         Cipher kyberWrapCipher = Cipher.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
         kyberWrapCipher.init(Cipher.WRAP_MODE, kyberPub, new SecureRandom());
         byte[] wrappedAesKeyBytes = kyberWrapCipher.wrap(originalAesKey);
-        log.getLogger().info( wrappedAesKeyBytes.length + " Wrapped AES Key : " + SharedStringUtil.bytesToHex(wrappedAesKeyBytes));
+        log.getLogger().info( wrappedAesKeyBytes.length + " Kyber AES Encryption : " + SharedStringUtil.bytesToHex(wrappedAesKeyBytes));
         // 5. Unwrap the AES key using Kyber in UNWRAP_MODE
         Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", OPSecUtil.BC_CKD_PROVIDER);
         kyberUnwrapCipher.init(Cipher.UNWRAP_MODE, kyberPriv);
@@ -147,7 +149,7 @@ public class CrystalKeyTest {
             PublicKey originalPublicKey = kp.getPublic();
             PrivateKey originalPrivateKey = kp.getPrivate();
             SecretKeyWithEncapsulation skwe = OPSecUtil.SINGLETON.generateCKEncryptionKey(originalPublicKey);
-            log.getLogger().info(SUS.toCanonicalID(',', skwe.getEncoded().length, skwe.getEncapsulation().length));
+            log.getLogger().info("Encoded key length " + skwe.getEncoded().length + " encapsulation length "  + skwe.getEncapsulation().length);
             byte[] aesKey = skwe.getEncoded();
             SecretKeyWithEncapsulation regenSKWE = OPSecUtil.SINGLETON.extractCKDecryptionKey(originalPrivateKey, skwe.getEncapsulation());
             assert SUS.equals(aesKey, regenSKWE.getEncoded());
@@ -169,8 +171,7 @@ public class CrystalKeyTest {
             String pubKeyBase64 = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, pubKeyBytes);
             String privKeyBase64 = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, privKeyBytes);
 
-            log.getLogger().info("\nSaved Public Key  (Base64): " + pubKeyBase64);
-            log.getLogger().info("Saved Private Key (Base64): " + privKeyBase64);
+            log.getLogger().info("\nPUB-KEY: " + pubKeyBase64 + "\nPRI-KEY: " + privKeyBase64);
 
             /*
              * Imagine at this point, you persist these strings somewhere (file, DB, etc.).
@@ -206,8 +207,9 @@ public class CrystalKeyTest {
             log.getLogger().info("\nRegenerated Public Key  (object): " + regenKeyPair.getPublic());
             log.getLogger().info("Regenerated Private Key (object): " + regenKeyPair.getPrivate());
 
-            log.getLogger().info("\nDo public keys match?  " + pubKeysMatch);
+            log.getLogger().info("Do public keys match?  " + pubKeysMatch);
             log.getLogger().info("Do private keys match? " + privKeysMatch);
+            log.getLogger().info(GSONUtil.toJSONDefault(regenKeyPair.getPublic()));
 
 
             log.getLogger().info("Run count: " + i);

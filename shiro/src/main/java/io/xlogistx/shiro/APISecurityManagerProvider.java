@@ -15,7 +15,7 @@ import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.api.APISecurityManager;
 import org.zoxweb.shared.api.APITokenDAO;
 import org.zoxweb.shared.crypto.EncryptedData;
-import org.zoxweb.shared.crypto.EncryptedKey;
+import org.zoxweb.shared.crypto.EncapsulatedKey;
 import org.zoxweb.shared.data.DataConst.SessionParam;
 import org.zoxweb.shared.data.MessageTemplateDAO;
 import org.zoxweb.shared.data.UserIDDAO;
@@ -212,7 +212,7 @@ public class APISecurityManagerProvider
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
 	
-		if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
+		if (container instanceof EncryptedData && !(container instanceof EncapsulatedKey))
 		{
 			container.setValue(nvb.getName(), value);
 			return nvb.getValue();
@@ -259,7 +259,7 @@ public class APISecurityManagerProvider
 			throws NullPointerException, IllegalArgumentException, AccessException
 	{
 	
-		if (container instanceof EncryptedData && !(container instanceof EncryptedKey))
+		if (container instanceof EncryptedData && !(container instanceof EncapsulatedKey))
 		{
 			
 			return value;

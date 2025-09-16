@@ -7,6 +7,9 @@ import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.keyprovider.FileKeyPairProvider;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
+import org.bouncycastle.asn1.ASN1EncodableVector;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -301,10 +304,130 @@ public class OPSecUtil {
         return keyStore;
     }
 
+
+    public  PKCS10CertificationRequest createCSR(KeyPair keyPair, String dn, String alternativeName,
+                                                 String ...props) throws IOException, OperatorCreationException {
+        // Validate inputs
+        if (keyPair == null || keyPair.getPublic() == null || keyPair.getPrivate() == null) {
+            throw new IllegalArgumentException("KeyPair must not be null and must include public and private keys");
+        }
+        if (dn == null || dn.trim().isEmpty()) {
+            throw new IllegalArgumentException("Distinguished Name (dn) must not be null or empty");
+        }
+
+        // Create subject
+        X500Name subject;
+        try {
+            subject = new X500Name(dn);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid Distinguished Name format: " + dn, e);
+        }
+
+        // Initialize extensions
+        ASN1EncodableVector extensions = new ASN1EncodableVector();
+
+        // Step 1: Process Key Usage extension
+        int keyUsageBits = 0;
+        for(String prop : props)
+        {
+            switch(prop.toLowerCase())
+            {
+                case "digitalsignature":
+                    keyUsageBits |= KeyUsage.digitalSignature;
+                    log.getLogger().info(prop);
+                    break;
+                case "keyencipherment":
+                    keyUsageBits |= KeyUsage.keyEncipherment;
+                    log.getLogger().info(prop);
+                    break;
+                case "nonrepudiation":
+                    keyUsageBits |= KeyUsage.nonRepudiation;
+                    break;
+                case "datcipherment":
+                    keyUsageBits |= KeyUsage.dataEncipherment;
+                    break;
+                case "keyagreement":
+                    keyUsageBits |= KeyUsage.keyAgreement;
+                    log.getLogger().info(prop);
+                    break;
+
+                case "keycertsign":
+                    keyUsageBits |= KeyUsage.keyCertSign;
+                    break;
+
+                case "crlsign":
+                    keyUsageBits |= KeyUsage.cRLSign;
+                    break;
+
+                case "encipheronly":
+                    keyUsageBits |= KeyUsage.encipherOnly;
+                    break;
+
+                case "decipheronly":
+                    keyUsageBits |= KeyUsage.decipherOnly;
+                    break;
+
+            }
+
+
+
+        }
+        if (keyUsageBits != 0) {
+            log.getLogger().info("keyUsageBits: " + keyUsageBits);
+            KeyUsage keyUsage = new KeyUsage(keyUsageBits);
+            extensions.add(new Extension(
+                    new ASN1ObjectIdentifier("2.5.29.15"), // Key Usage OID
+                    true, // Critical
+                    keyUsage.toASN1Primitive().getEncoded()
+            ));
+        }
+
+        // Step 2: Process Subject Alternative Name extension
+        if (alternativeName != null && !alternativeName.trim().isEmpty()) {
+            String[] names = alternativeName.split(",");
+            ASN1EncodableVector generalNames = new ASN1EncodableVector();
+            for (String name : names) {
+                name = name.trim();
+                if (name.startsWith("DNS:")) {
+                    generalNames.add(new GeneralName(GeneralName.dNSName, name.substring(4)));
+                } else if (name.startsWith("IP:")) {
+                    generalNames.add(new GeneralName(GeneralName.iPAddress, name.substring(3)));
+                } else {
+                    throw new IllegalArgumentException("Invalid alternative name format: " + name +
+                            ". Use 'DNS:name' or 'IP:address'");
+                }
+            }
+            // Corrected: Use GeneralNames.getInstance with DERSequence
+            GeneralNames san = GeneralNames.getInstance(new DERSequence(generalNames));
+            extensions.add(new Extension(
+                    new ASN1ObjectIdentifier("2.5.29.17"), // Subject Alternative Name OID
+                    false, // Non-critical
+                    san.toASN1Primitive().getEncoded()
+            ));
+        }
+
+        // Step 3: Create CSR
+        PKCS10CertificationRequestBuilder csrBuilder =
+                new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
+        if (extensions.size() > 0) {
+            csrBuilder.addAttribute(
+                    new ASN1ObjectIdentifier("1.2.840.113549.1.9.14"), // ExtensionRequest
+                    Extensions.getInstance(new DERSequence(extensions)) // Corrected: Use DERSequence directly
+            );
+        }
+
+        // Step 4: Sign the CSR
+        String signatureAlgorithm = keyPair.getPublic().getAlgorithm().equals("EC") ?
+                "SHA256withECDSA" : "SHA256withRSA";
+        JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(signatureAlgorithm);
+        return csrBuilder.build(signerBuilder.build(keyPair.getPrivate()));
+    }
+
     public PKCS10CertificationRequest generateCSR(KeyPair keyPair, String attr, String altNames) throws Exception {
         X500Name subject = createSubject(attr);
         PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
 
+        Extensions extensions = null;
         // Add Subject Alternative Names (SAN) extension if provided
         if (altNames != null && !altNames.isEmpty()) {
             List<GeneralName> sanList = new ArrayList<>();
@@ -331,13 +454,33 @@ public class OPSecUtil {
             GeneralNames subjectAltName = new GeneralNames(sanList.toArray(new GeneralName[0]));
             ExtensionsGenerator extensionsGenerator = new ExtensionsGenerator();
             extensionsGenerator.addExtension(Extension.subjectAlternativeName, false, subjectAltName);
-            csrBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extensionsGenerator.generate());
+            extensions = extensionsGenerator.generate();
+            csrBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extensions);
         }
+
+
+//        if("EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm())) {
+//            KeyUsage keyUsage = new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyAgreement);
+//            ASN1EncodableVector extensions = new ASN1EncodableVector();
+//            extensions.add(new Extension(
+//                    new ASN1ObjectIdentifier("2.5.29.15"), // Key Usage OID
+//                    true, // Critical
+//                    keyUsage.toASN1Primitive().getEncoded()
+//            ));
+//
+//            csrBuilder.addAttribute(
+//                    new ASN1ObjectIdentifier("1.2.840.113549.1.9.14"), // ExtensionRequest
+//                    new Extensions(Extension.getInstance(new DERSequence(extensions)))
+//            );
+//        }
 
 
         JcaContentSignerBuilder csBuilder = "EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm()) ?
                 new JcaContentSignerBuilder(CryptoConst.SignatureAlgo.SHA256_EC.getName()) :
                 new JcaContentSignerBuilder(CryptoConst.SignatureAlgo.SHA256_RSA.getName());
+
+
+
 
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         return csrBuilder.build(signer);
