@@ -16,9 +16,109 @@ public class GUIUtil {
     public static final Color MID_COLOR   = new Color(0, 128, 255);  // Blueish
     public static final Color END_COLOR   = new Color(0, 255, 0);
 
-    public static final String ADD_SIGN = "\u2795";
-    public static final String DELETE_SIGN = "\u2796";
+    public static final String ADD_SIGN = "+";// "\u2795";
+    public static final String DELETE_SIGN = "-";//"\u2796";
     public static final String UPDATE_SIGN = "\uD83D\uDD04";
+
+
+    public static final Icon MINUS_ICON  = UIManager.getIcon("Tree.expandedIcon");   // usually a minus box
+    public static final Icon PLUS_ICON = UIManager.getIcon("Tree.collapsedIcon"); // usually a plus box
+
+    public static class PlusIcon implements Icon {
+        private final int size;
+
+        public PlusIcon(int size) {
+            this.size = size;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getIconWidth();
+            int h = getIconHeight();
+            g2.setColor(Color.BLACK);
+            int thickness = 2;
+
+            // vertical line
+            g2.fillRect(x + w / 2 - thickness / 2, y + 4, thickness, h - 8);
+            // horizontal line
+            g2.fillRect(x + 4, y + h / 2 - thickness / 2, w - 8, thickness);
+
+            g2.dispose();
+        }
+
+        @Override public int getIconWidth() { return size; }
+        @Override public int getIconHeight() { return size; }
+    }
+
+    public static class MinusIcon implements Icon {
+        private final int size;
+
+        public MinusIcon(int size) {
+            this.size = size;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getIconWidth();
+            int h = getIconHeight();
+            g2.setColor(Color.BLACK);
+            int thickness = 2;
+
+            // horizontal line
+            g2.fillRect(x + 4, y + h / 2 - thickness / 2, w - 8, thickness);
+
+            g2.dispose();
+        }
+
+        @Override public int getIconWidth() { return size; }
+        @Override public int getIconHeight() { return size; }
+    }
+
+    public static class UpdateIcon implements Icon {
+        private final int size;
+        private final Color color;
+
+        public UpdateIcon(int size, Color color) {
+            this.size = size;
+            this.color = color;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getIconWidth();
+            int h = getIconHeight();
+            int strokeWidth = Math.max(2, size / 10);
+
+            g2.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.setColor(color);
+
+            // Draw circular arc
+            int pad = strokeWidth;
+            g2.drawArc(x + pad, y + pad, w - 2 * pad, h - 2 * pad, 30, 270);
+
+            // Draw arrowhead at the end of arc
+            int arrowSize = size / 4;
+            Polygon arrowHead = new Polygon();
+            arrowHead.addPoint(x + w - pad - arrowSize, y + h / 2);        // left
+            arrowHead.addPoint(x + w - pad, y + h / 2 - arrowSize / 2);    // top
+            arrowHead.addPoint(x + w - pad, y + h / 2 + arrowSize / 2);    // bottom
+            g2.fillPolygon(arrowHead);
+
+            g2.dispose();
+        }
+
+        @Override public int getIconWidth()  { return size; }
+        @Override public int getIconHeight() { return size; }
+    }
 
 
     private static final Lock lock = new ReentrantLock();

@@ -48,7 +48,7 @@ public class Sha3Test {
 
     @Test
     public void testSha3_512() throws NoSuchAlgorithmException {
-        byte[][] aesKeys = new byte[1000][];
+        byte[][] aesKeys = new byte[10000][];
         String algorithm = "AES";
         KeyGenerator keyGen = KeyGenerator.getInstance(algorithm);
         keyGen.init(256); // AES-256

@@ -10,7 +10,7 @@ public class DynamicComboBoxTest {
             JFrame frame = new JFrame("Dynamic ComboBox Panel Demo");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            DynamicComboBox dynamicComboBoxPanel = new DynamicComboBox();
+            DynamicComboBox dynamicComboBoxPanel = new DynamicComboBox(true );
 
             // Add some initial entries (optional)
             dynamicComboBoxPanel.addItem("Option 1")
