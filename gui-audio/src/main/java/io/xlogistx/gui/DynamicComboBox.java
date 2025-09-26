@@ -1,5 +1,7 @@
 package io.xlogistx.gui;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zoxweb.shared.util.SUS;
 
 import javax.swing.*;
@@ -7,11 +9,18 @@ import java.awt.*;
 
 public class DynamicComboBox extends JPanel {
 
+    private static final Logger log = LoggerFactory.getLogger(DynamicComboBox.class);
     private final JComboBox<String> comboBox;
     private final DefaultComboBoxModel<String> comboBoxModel;
-    private int lastSelected;
+    //private final JTextArea contentTA;
+    // final Map<String, String> contentMap = new LinkedHashMap();
+
 
     public DynamicComboBox(boolean addUpdate) {
+        this(addUpdate, false);
+    }
+
+    public DynamicComboBox(boolean addUpdate, boolean addContentTextArea) {
         // Layout for this panel
         setLayout(new BorderLayout(10, 10));
 
@@ -19,6 +28,10 @@ public class DynamicComboBox extends JPanel {
         comboBoxModel = new DefaultComboBoxModel<>();
         comboBox = new JComboBox<>(comboBoxModel);
         comboBox.setEditable(true); // Use a non-editable combo box so user picks from the dropdown
+//        if (addContentTextArea)
+//            contentTA = GUIUtil.configureTextArea(new JTextArea(), null, null);
+//        else
+//            contentTA = null;
 
         // Listen for selection changes
 //        comboBox.addActionListener((e)-> {
@@ -32,7 +45,11 @@ public class DynamicComboBox extends JPanel {
 
 
         comboBox.getEditor().addActionListener((e) -> handleEditorUpdate());
-        comboBox.addActionListener((e) -> lastSelected = comboBox.getSelectedIndex());
+//        comboBox.addActionListener(e->{
+//            String selected = (String) comboBox.getSelectedItem();
+//            if (selected != null) {
+//                contentTA.setText(contentMap.get(selected));
+//            }});
 
         // Create the text field for new or updated entries
         //textField = new JTextField(15);
@@ -42,19 +59,15 @@ public class DynamicComboBox extends JPanel {
         // Create buttons
 
 
-        JButton addButton = new JButton(new GUIUtil.PlusIcon(size));
-        addButton.setPreferredSize(buttonDimension);
-        addButton.setMaximumSize(buttonDimension);
-        JButton deleteButton = new JButton(new GUIUtil.MinusIcon(size));
-        deleteButton.setPreferredSize(buttonDimension);
-        deleteButton.setMaximumSize(buttonDimension);
+        JButton addButton = GUIUtil.iconButton(new GUIUtil.PlusIcon(size));
+
+        JButton deleteButton =GUIUtil.iconButton(new GUIUtil.MinusIcon(size));
 
         JButton updateButton = null;
         if (addUpdate) {
-            updateButton = new JButton(new GUIUtil.UpdateIcon(size, Color.BLACK));
-            updateButton.setPreferredSize(buttonDimension);
-            updateButton.setMaximumSize(buttonDimension);
+            updateButton = GUIUtil.iconButton(new GUIUtil.UpdateIcon(size));
         }
+
 
         JPanel buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS));
@@ -64,12 +77,20 @@ public class DynamicComboBox extends JPanel {
         if (updateButton != null)
             buttonsPanel.add(updateButton);
 
-        setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        JPanel comboBoxPanel = new JPanel();
+        comboBoxPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
-        add(buttonsPanel);
+        comboBoxPanel.add(buttonsPanel);
         //add(controlPanel);
         // Add components to the main panel
-        add(comboBox);//, BorderLayout.CENTER);
+        comboBoxPanel.add(comboBox);//, BorderLayout.CENTER);
+
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        add(comboBoxPanel);
+//        if(contentTA != null)
+//        {
+//            add(contentTA);
+//        }
 
 
         // Button Listeners
@@ -109,8 +130,21 @@ public class DynamicComboBox extends JPanel {
         }
     }
 
-    public DynamicComboBox addItem(String item) {
-        addNewEntry(item);
+//    public DynamicComboBox addItem(String item) {
+//        addNewEntry(item);
+//        return this;
+//    }
+
+//    public DynamicComboBox addItem(GetNameValue<String> gnv)
+//    {
+//        return addItem(gnv.getName(), gnv.getValue());
+//    }
+    public DynamicComboBox addItem(String content)
+    {
+//        contentMap.put(name, content);
+        addNewEntry(content);
+
+
         return this;
     }
 
@@ -121,11 +155,15 @@ public class DynamicComboBox extends JPanel {
 
 
     private void addNewEntry(String toAdd) {
-        if (toAdd != null) {
-//            comboBoxModel.addElement(toAdd);
-//            comboBox.setSelectedIndex(comboBox.getItemCount() -1);
-            comboBoxModel.insertElementAt(toAdd, comboBox.getItemCount());
-            comboBoxModel.setSelectedItem(toAdd);
+//        if (SUS.isNotEmpty(toAdd))
+        {
+            int index = comboBoxModel.getIndexOf(toAdd);
+            if(index == -1)
+                index = comboBox.getItemCount();
+
+            comboBoxModel.insertElementAt(toAdd, index);
+            comboBox.setSelectedIndex(index);
+//            contentTA.setText(contentMap.get(toAdd));
         }
     }
 
@@ -150,6 +188,9 @@ public class DynamicComboBox extends JPanel {
     }
 
     public String getSelectedItem() {
+//        if(contentTA != null)
+//            return SUS.trimOrNull(contentTA.getText());
+
         return SUS.trimOrNull((String) getModel().getSelectedItem());
     }
 

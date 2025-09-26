@@ -68,15 +68,19 @@ public class DNSNIOProtocol
                         continue;
                     }
 
+
                     if (log.isEnabled()) log.getLogger().info("query : " + queryMsg.getQuestion());
 
                     Record question = queryMsg.getQuestion();
                     if (question == null) continue;
+
                     String qName = question.getName().toString();
 
                     Message responseMsg = new Message(queryMsg.getHeader().getID());
                     responseMsg.getHeader().setFlag(Flags.QR); // set as response
                     responseMsg.addRecord(question, Section.QUESTION);
+
+                    if (log.isEnabled()) log.getLogger().info("qName: " + qName);
 
 
                     // Handle locally if in customDomains and Type A query

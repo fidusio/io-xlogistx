@@ -1,6 +1,6 @@
 package io.xlogistx.gui.test;
 
-import io.xlogistx.gui.IconWidget;
+import io.xlogistx.gui.IconStatusWidget;
 
 import javax.swing.*;
 import java.awt.*;
@@ -87,7 +87,7 @@ public class StateIconDemo {
                 Icon youtubeIcon = new ImageIcon("/youtube.ico");
 
                 // Create StateIcon with default state "OFF"
-                IconWidget stateIcon = new IconWidget(40,40);
+                IconStatusWidget stateIcon = new IconStatusWidget(40,40);
                 stateIcon.mapStatus("youtube", youtubeIcon)
                         .mapStatus("xlogistx", xlogistxIcon)
                         .mapStatus("google", googleIcon);
