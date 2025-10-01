@@ -15,7 +15,10 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.net.*;
+import org.zoxweb.server.net.BaseSessionCallback;
+import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.server.net.NIOSocketHandlerFactory;
+import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionCallback;
@@ -48,12 +51,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
-import static org.zoxweb.shared.util.InstanceFactory.InstanceCreator;
 
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion {
-    public static final String VERSION = "1.3.9";
+    public static final String VERSION = "1.4.0";
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
@@ -61,9 +63,8 @@ public class NIOHTTPServer
     private EndPointsManager endPointsManager = null;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private volatile KAConfig kaConfig = null;
-    private final InstanceFactory.InstanceCreator<PlainSessionCallback> httpIC = HTTPSession::new;
-
-    private final InstanceCreator<SSLSessionCallback> httpsIC = HTTPsSession::new;
+    private final InstanceFactory.Creator<PlainSessionCallback> httpIC = HTTPSession::new;
+    private final InstanceFactory.Creator<SSLSessionCallback> httpsIC = HTTPsSession::new;
 
 
     /**

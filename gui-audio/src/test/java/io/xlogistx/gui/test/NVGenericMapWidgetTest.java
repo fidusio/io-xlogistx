@@ -26,6 +26,7 @@ public class NVGenericMapWidgetTest {
                 data.build(new NVBoolean("enabled", Boolean.TRUE));
                 data.build(new NVEnum("mode", Mode.PROD)); // enum example
                 data.build(new NVFloat("precision", 0.1f));
+                data.build(new NVBlob("bin", new byte[]{1,2,3,4,5,6,7,8}));
 
                 NVGenericMapWidget panel = new NVGenericMapWidget(data);
                 f.setContentPane(panel);

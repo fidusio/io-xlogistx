@@ -16,6 +16,19 @@ public class GUIUtil {
     public static final Color MID_COLOR = new Color(0, 128, 255);  // Blueish
     public static final Color END_COLOR = new Color(0, 255, 0);
 
+    public static final Color LIGHT_RED = new Color(255, 102, 102);
+    public static final Color BOOTSTARP_RED = new Color(0Xdc3545);
+    public static final Color DARK_RED = new Color(139, 0, 0);
+
+    public static final Color LIGHT_GREEN = new Color(144, 238, 144);
+    public static final Color BOOTSTARP_GREEN = new Color(0X28a745);
+    public static final Color DARK_GREEN = new Color(0, 100, 0);
+
+
+    public static final Color MATERIAL_BLUE = new Color(33, 150, 243);   // #2196F3
+    public static final Color BOOTSTRAP_BLUE = new Color(0X2196F3);  // #007BFF
+    public static final Color IOS_BLUE = new Color(10, 132, 255);       // #0A84FF
+
     public static final String ADD_SIGN = "+";// "\u2795";
     public static final String DELETE_SIGN = "-";//"\u2796";
     public static final String UPDATE_SIGN = "\uD83D\uDD04";
@@ -28,10 +41,11 @@ public class GUIUtil {
 
 
         public PlusIcon(int size) {
-            super(size, Color.BLACK);
+            this(size, Color.WHITE);
         }
+
         public PlusIcon(int size, Color color) {
-            super(size, color);
+            super(size, color, DARK_GREEN);
         }
 
         @Override
@@ -41,6 +55,7 @@ public class GUIUtil {
 
             int w = getIconWidth();
             int h = getIconHeight();
+            c.setBackground(backGroundColor);
             g2.setColor(color);
             int thickness = 2;
 
@@ -54,14 +69,19 @@ public class GUIUtil {
 
     }
 
+
+
+
+
     public static class SaveIcon extends IconWidget {
 
 
         public SaveIcon(int size) {
-            super(size, Color.GREEN);
+            this(size, Color.WHITE);
         }
+
         public SaveIcon(int size, Color color) {
-            super(size, color);
+            super(size, color, DARK_GREEN);
         }
 
         @Override
@@ -69,6 +89,7 @@ public class GUIUtil {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setStroke(new BasicStroke(Math.max(2, dimension.height / 6), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            c.setBackground(backGroundColor);
             g2.setColor(color);
 
             int w = getIconWidth();
@@ -94,10 +115,11 @@ public class GUIUtil {
 
 
         public CancelIcon(int size) {
-            super(size, Color.RED);
+            this(size, Color.WHITE);
         }
+
         public CancelIcon(int size, Color color) {
-            super(size, color);
+            super(size, color, BOOTSTARP_RED);
         }
 
         @Override
@@ -105,6 +127,7 @@ public class GUIUtil {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setStroke(new BasicStroke(Math.max(2, dimension.width / 6), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            c.setBackground(backGroundColor);
             g2.setColor(color);
 
             int w = getIconWidth();
@@ -122,10 +145,11 @@ public class GUIUtil {
 
 
         public MinusIcon(int size) {
-            super(size, Color.BLACK);
+            this(size, Color.WHITE);
         }
+
         public MinusIcon(int size, Color color) {
-            super(size, color);
+            super(size, color, BOOTSTARP_RED);
         }
 
         @Override
@@ -135,6 +159,7 @@ public class GUIUtil {
 
             int w = getIconWidth();
             int h = getIconHeight();
+            c.setBackground(backGroundColor);
             g2.setColor(color);
             int thickness = 2;
 
@@ -143,23 +168,50 @@ public class GUIUtil {
 
             g2.dispose();
         }
-
-
     }
 
     public static class UpdateIcon extends IconWidget {
 
 
         public UpdateIcon(int size) {
-            this(size, Color.BLACK);
+            this(size, Color.WHITE);
         }
 
         public UpdateIcon(int size, Color color) {
-            super(size, color);
+            super(size, color, BOOTSTRAP_BLUE);
         }
 
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
+
+        public void circlePaintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setStroke(new BasicStroke(Math.max(2, dimension.width / 10), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.setColor(color);
+            c.setBackground(backGroundColor);
+
+            int w = getIconWidth();
+            int h = getIconHeight();
+            int pad = dimension.width / 6;
+
+            // Draw arc (almost a circle)
+            g2.drawArc(x + pad, y + pad, w - 2 * pad, h - 2 * pad, 45, 270);
+
+            // Draw arrowhead at the end of arc
+            int arrowSize = dimension.width / 4;
+            Polygon arrowHead = new Polygon();
+            int cx = x + w - pad;         // arrow tip X
+            int cy = y + h / 2;           // arrow tip Y
+
+            arrowHead.addPoint(cx, cy);                             // tip
+            arrowHead.addPoint(cx - arrowSize, cy - arrowSize / 2); // back top
+            arrowHead.addPoint(cx - arrowSize, cy + arrowSize / 2); // back bottom
+
+            g2.fill(arrowHead);
+
+            g2.dispose();
+        }
+
+        public void halfCirclePaintIcon(Component c, Graphics g, int x, int y) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -168,6 +220,9 @@ public class GUIUtil {
             int strokeWidth = Math.max(2, dimension.width / 10);
 
             g2.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            c.setBackground(backGroundColor);
+
             g2.setColor(color);
 
             // Draw circular arc
@@ -183,6 +238,11 @@ public class GUIUtil {
             g2.fillPolygon(arrowHead);
 
             g2.dispose();
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            halfCirclePaintIcon(c, g, x, y);
         }
 
     }

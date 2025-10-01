@@ -34,10 +34,10 @@ public class EndPointsManager {
 
     private final URIMap<EndPointMeta> uriEndPointMeta = new URIMap<>();
     private final Map<String, Object> beanMaps = new LinkedHashMap<>();
-    private final InstanceFactory.ParamsInstanceCreator<?> pic;
+    private final InstanceFactory.ParamsCreator<?> pic;
     private MethodContainer onStartup, onShutdown;
 
-    private EndPointsManager(InstanceFactory.ParamsInstanceCreator<?> pic) {
+    private EndPointsManager(InstanceFactory.ParamsCreator<?> pic) {
         this.pic = pic;
     }
 
@@ -271,7 +271,7 @@ public class EndPointsManager {
         return true;
     }
 
-    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsInstanceCreator<?> pic, SecureInvoker secureInvocation) {
+    public static EndPointsManager scan(HTTPServerConfig serverConfig, InstanceFactory.ParamsCreator<?> pic, SecureInvoker secureInvocation) {
         HTTPEndPoint[] allHEP = serverConfig.getEndPoints();
         EndPointsManager epm = new EndPointsManager(pic);
         for (HTTPEndPoint configHEP : allHEP) {

@@ -9,6 +9,7 @@ import java.awt.*;
 
 public class DynamicComboBox extends JPanel {
 
+
     private static final Logger log = LoggerFactory.getLogger(DynamicComboBox.class);
     private final JComboBox<String> comboBox;
     private final DefaultComboBoxModel<String> comboBoxModel;
@@ -28,37 +29,15 @@ public class DynamicComboBox extends JPanel {
         comboBoxModel = new DefaultComboBoxModel<>();
         comboBox = new JComboBox<>(comboBoxModel);
         comboBox.setEditable(true); // Use a non-editable combo box so user picks from the dropdown
-//        if (addContentTextArea)
-//            contentTA = GUIUtil.configureTextArea(new JTextArea(), null, null);
-//        else
-//            contentTA = null;
 
-        // Listen for selection changes
-//        comboBox.addActionListener((e)-> {
-//
-//                // When user selects an item, copy it to the text field
-//                if (comboBox.getSelectedIndex() != -1) {
-//                    setSelectionIndex(comboBox.getSelectedIndex());
-//
-//            }
-//        });
 
 
         comboBox.getEditor().addActionListener((e) -> handleEditorUpdate());
-//        comboBox.addActionListener(e->{
-//            String selected = (String) comboBox.getSelectedItem();
-//            if (selected != null) {
-//                contentTA.setText(contentMap.get(selected));
-//            }});
 
-        // Create the text field for new or updated entries
-        //textField = new JTextField(15);
 
         int size = 16;
         Dimension buttonDimension = new Dimension(size, size);
         // Create buttons
-
-
         JButton addButton = GUIUtil.iconButton(new GUIUtil.PlusIcon(size));
 
         JButton deleteButton =GUIUtil.iconButton(new GUIUtil.MinusIcon(size));
@@ -70,28 +49,19 @@ public class DynamicComboBox extends JPanel {
 
 
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS));
+        buttonsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
 
         buttonsPanel.add(addButton);
         buttonsPanel.add(deleteButton);
         if (updateButton != null)
             buttonsPanel.add(updateButton);
 
-        JPanel comboBoxPanel = new JPanel();
-        comboBoxPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
-        comboBoxPanel.add(buttonsPanel);
-        //add(controlPanel);
-        // Add components to the main panel
-        comboBoxPanel.add(comboBox);//, BorderLayout.CENTER);
 
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        add(comboBoxPanel);
-//        if(contentTA != null)
-//        {
-//            add(contentTA);
-//        }
-
+//        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
+        add(buttonsPanel);
+        add(comboBox);
 
         // Button Listeners
         addButton.addActionListener((e) -> addNewEntry(""));
@@ -130,28 +100,17 @@ public class DynamicComboBox extends JPanel {
         }
     }
 
-//    public DynamicComboBox addItem(String item) {
-//        addNewEntry(item);
-//        return this;
-//    }
 
-//    public DynamicComboBox addItem(GetNameValue<String> gnv)
-//    {
-//        return addItem(gnv.getName(), gnv.getValue());
-//    }
     public DynamicComboBox addItem(String content)
     {
-//        contentMap.put(name, content);
+
         addNewEntry(content);
 
 
         return this;
     }
 
-//    private void setSelectionIndex(int index)
-//    {
-//        comboBox.setSelectedIndex(index);
-//    }
+
 
 
     private void addNewEntry(String toAdd) {
