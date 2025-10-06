@@ -92,7 +92,7 @@ public class HTTPUploadHandler
         }
 
 
-        HashResult hr = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
+        HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
 
 
         HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
@@ -100,9 +100,9 @@ public class HTTPUploadHandler
         hmciResponse.setContentType(HTTPMediaType.APPLICATION_JSON);
         NVGenericMap responseData = new NVGenericMap();
         responseData.build("filename", file.getName())
-                .build(new NVLong("length", hr.dataLength))
                 .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
-                .build(hr.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hr.hash.asBytes()));
+                .build(new NVLong("data-length", hashResult.dataLength))
+                .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
 
         hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));
 
@@ -214,9 +214,9 @@ public class HTTPUploadHandler
                 NVGenericMap responseData = new NVGenericMap();
                 File file = fileData.getProperties().getValue("file");
                 responseData.build("filename", file.getName())
-                        .build(new NVLong("length", hashResult.dataLength))
                         .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
                         .build("duration", Const.TimeInMillis.toString(delta))
+                        .build(new NVLong("data-length", hashResult.dataLength))
                         .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
 
                 hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));

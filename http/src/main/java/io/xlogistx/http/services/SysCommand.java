@@ -31,8 +31,8 @@ public class SysCommand
 
         if (getProperties() != null) {
             String command = getProperties().getValue("reboot-command");
-            Long delay = getProperties().getValue("reboot-delay");
-            if (command == null || delay == null) {
+            long delay = Const.TimeInMillis.toMillis(getProperties().getValue("reboot-delay"));
+            if (command == null) {
                 return new SimpleMessage("Reboot: command or delay missing from config", HTTPStatusCode.BAD_REQUEST.CODE);
             }
 
@@ -63,8 +63,8 @@ public class SysCommand
         EndpointsUtil.SINGLETON.shutdown();
         if (getProperties() != null) {
             String command = getProperties().getValue("shutdown-command");
-            Long delay = getProperties().getValue("shutdown-delay");
-            if (command == null || delay == null) {
+            long delay = Const.TimeInMillis.toMillis(getProperties().getValue("shutdown-delay"));
+            if (command == null) {
                 return new SimpleMessage("shutdown: command or delay missing from config", HTTPStatusCode.BAD_REQUEST.CODE);
             }
             TaskUtil.defaultTaskScheduler().queue(delay, new SupplierTask<String>(command) {
