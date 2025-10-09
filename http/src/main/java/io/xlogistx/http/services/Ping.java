@@ -12,6 +12,7 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.MappedProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.api.APIRegistrar;
 import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.util.*;
@@ -35,6 +36,9 @@ public class Ping
         NIOHTTPServer niohttpServer = ResourceManager.lookupResource(ResourceManager.Resource.HTTP_SERVER);
 
         response.build("server-name", niohttpServer.getName()).build("version", niohttpServer.getVersion());
+
+        NVGenericMap apiRegistrar = APIRegistrar.SINGLETON.stats(false);
+
 
         if (detailed) {
             try {
@@ -69,8 +73,11 @@ public class Ping
                     .build((NVGenericMap) ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO))
                     .build((NVGenericMap) ResourceManager.lookupResource("keep-alive-config"));
 
+
             if (niohttpServer != null)
                 response.add(niohttpServer.getNIOSocket().getStats());
+            if(apiRegistrar != null)
+                response.add(apiRegistrar);
         }
         return response;
     }

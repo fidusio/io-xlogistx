@@ -3,6 +3,7 @@ package io.xlogistx.common.data;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.server.security.SecureInvoker;
+import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SUS;
 
 import java.lang.reflect.InvocationTargetException;
@@ -13,9 +14,11 @@ public class MethodContainer {
     public final Object instance;
     public final ReflectionUtil.MethodAnnotations methodAnnotations;
     public final ResourceSecurity resourceSec;
+    public final NVGenericMap properties;
     private final SecureInvoker secureMethodInvoker;
 
-    public MethodContainer(Object instance, ReflectionUtil.MethodAnnotations methodAnnotations, ResourceSecurity resourceSec, SecureInvoker secureInvocation) {
+
+    public MethodContainer(Object instance, ReflectionUtil.MethodAnnotations methodAnnotations, ResourceSecurity resourceSec, SecureInvoker secureInvocation, NVGenericMap properties) {
         SUS.checkIfNulls("Nulls founds", instance, methodAnnotations, secureInvocation);
         if (!ReflectionUtil.hasMethod(instance, methodAnnotations.method))
             throw new IllegalArgumentException("Method not supported by instance " + methodAnnotations.method);
@@ -23,6 +26,7 @@ public class MethodContainer {
         this.methodAnnotations = methodAnnotations;
         this.resourceSec = resourceSec;
         this.secureMethodInvoker = secureInvocation;
+        this.properties = properties;
     }
 
 

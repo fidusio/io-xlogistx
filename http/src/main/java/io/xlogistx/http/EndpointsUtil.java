@@ -7,8 +7,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EndpointsUtil {
     public static final EndpointsUtil SINGLETON = new EndpointsUtil();
-    private final AtomicBoolean startCallStatus = new AtomicBoolean(false);
-    private final AtomicBoolean shutdownCallStatus = new AtomicBoolean(false);
+    private final AtomicBoolean onStartupCallStatus = new AtomicBoolean(false);
+    private final AtomicBoolean postStartupCallStatus = new AtomicBoolean(false);
+    private final AtomicBoolean onShutdownCallStatus = new AtomicBoolean(false);
     private EndpointsUtil(){}
 
 
@@ -20,12 +21,36 @@ public class EndpointsUtil {
      */
     public <V> V startup()
     {
-        if(!startCallStatus.getAndSet(true))
+        if(!onStartupCallStatus.getAndSet(true))
         {
-            MethodContainer shutdown = ResourceManager.SINGLETON.lookup("on-startup");
-            if (shutdown != null) {
+            MethodContainer onStartup = ResourceManager.SINGLETON.lookup("on-startup");
+            if (onStartup != null) {
                 try {
-                    return shutdown.invoke();
+                    return onStartup.invoke();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new SecurityException(e);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     *
+     * @return null or value
+     * @param <V> return type
+     * @exception SecurityException in case of error
+     */
+    public <V> V postStartup()
+    {
+        if(!postStartupCallStatus.getAndSet(true))
+        {
+            MethodContainer postStartup = ResourceManager.SINGLETON.lookup("post-startup");
+            if (postStartup != null) {
+                try {
+                    return postStartup.invoke();
                 } catch (Exception e) {
                     e.printStackTrace();
                     throw new SecurityException(e);
@@ -38,7 +63,7 @@ public class EndpointsUtil {
 
     public <V> V shutdown()
     {
-        if(!shutdownCallStatus.getAndSet(true))
+        if(!onShutdownCallStatus.getAndSet(true))
         {
             MethodContainer shutdown = ResourceManager.SINGLETON.lookup("on-shutdown");
             if (shutdown != null) {

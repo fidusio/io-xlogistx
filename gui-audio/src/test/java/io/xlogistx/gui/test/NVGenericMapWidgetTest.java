@@ -19,7 +19,7 @@ public class NVGenericMapWidgetTest {
                 // Demo data
                 NVGenericMap data = new NVGenericMap("Service Config");
 //                Map<String, Object> data = new LinkedHashMap<String, Object>();
-                data.build("title", "Hello world");
+                data.build("title", null);
                 data.build(new NVInt("maxUsers", 250));
                 data.build(new NVLong("timeoutMs", 15000L));
                 data.build(new NVDouble("threshold", 0.75d));

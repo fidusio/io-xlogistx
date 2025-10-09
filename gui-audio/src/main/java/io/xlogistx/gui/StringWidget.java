@@ -1,9 +1,6 @@
 package io.xlogistx.gui;
 
-import org.zoxweb.shared.util.DataCodec;
-import org.zoxweb.shared.util.MappedObject;
-import org.zoxweb.shared.util.MetaValueCodec;
-import org.zoxweb.shared.util.SetNameValue;
+import org.zoxweb.shared.util.*;
 
 import javax.swing.*;
 
@@ -28,10 +25,11 @@ public class StringWidget extends JScrollPane {
         public void mapToValue(MappedObject<SetNameValue<?>, StringWidget> nvMap) {
             SetNameValue<?> snvs = nvMap.get();
 
-            if (snvs.getValue() instanceof String)
+
+            if (snvs.getValue() instanceof String || snvs instanceof NVPair)
 //                ((JTextArea)nvMap.getMap().getViewport().getView()).setText((String)snvs.getValue());
                 ((SetNameValue<String>) snvs).setValue(((JTextArea) nvMap.getMap().getViewport().getView()).getText());
-            else if (snvs.getValue() instanceof byte[]) {
+            else if (snvs.getValue() instanceof byte[] || snvs instanceof NVBlob) {
                 DataCodec<byte[], String> codec = MetaValueCodec.SINGLETON.lookupCodec(byte[].class);
 //                    nvgm.build(new NVBlob(key, codec.decode(ta.getText().trim())));
                 ((SetNameValue<byte[]>) snvs).setValue(codec.decode(((JTextArea) nvMap.getMap().getViewport().getView()).getText()));

@@ -55,7 +55,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion {
-    public static final String VERSION = "1.4.2";
+    public static final String VERSION = "1.4.4";
 
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     private final HTTPServerConfig config;
@@ -529,6 +529,10 @@ public class NIOHTTPServer
                 ResourceManager.SINGLETON.register("on-startup", endPointsManager.getOnStartup());
             }
 
+            if (endPointsManager.getPostStartup() != null) {
+                ResourceManager.SINGLETON.register("post-startup", endPointsManager.getPostStartup());
+            }
+
             if (logger.isEnabled()) logger.getLogger().info("mapping completed***********************");
 
             EndpointsUtil.SINGLETON.startup();
@@ -614,6 +618,7 @@ public class NIOHTTPServer
         if (keepAliveConfig != null)
             ResourceManager.SINGLETON.register("keep-alive-config", keepAliveConfig);
 
+        EndpointsUtil.SINGLETON.postStartup();
 
     }
 
