@@ -18,6 +18,7 @@
       "maximum": 20
     },
     "on-startup": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown" },
+    "post-startup": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown" },
     "on-shutdown": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown"}
   },
   "connections": [
@@ -114,6 +115,9 @@
     },
     {
       "bean": "io.xlogistx.http.services.AppCommand"
+    },
+    {
+      "bean": "io.xlogistx.http.services.MapURLs"
     },
     {
       "bean": "io.xlogistx.http.services.CaptchaService"

@@ -230,7 +230,7 @@ public class EndPointsManager {
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
-                epm.map(uri, hep, new MethodContainer(wsBean, map.values().iterator().next(), hep, si, null));
+                epm.map(uri, hep, new MethodContainer(wsBean, map.values().iterator().next(), hep, si));
 
                 log.getLogger().info("Inner websocket " + map);
                 log.getLogger().info("CACHED Mapped Methods: " + wsCache.getCache());
@@ -255,7 +255,7 @@ public class EndPointsManager {
             throw new IllegalArgumentException("Annotated parameters not equals to actual parameters" + ma.method);
 
         if (annotationCount > 0) {
-            // check that the annotation are of the type anotClass and uniquely named
+            // check that the annotation are of the type annotation Class and uniquely named
             Set<String> annotParamNames = new HashSet<String>();
             for (Annotation a : ma.parametersAnnotations.values()) {
                 if (a == null || !ReflectionUtil.isTypeMatchingAnyAnnotation(ParamProp.class, a))
@@ -338,7 +338,7 @@ public class EndPointsManager {
 
                                         methodHEP = mergeOuterIntoInner(classHEP, methodHEP, false);
 
-                                        mapHEP(epm, methodHEP, new MethodContainer(beanInstance, methodAnnotations, methodHEP, secureInvocation, null));
+                                        mapHEP(epm, methodHEP, new MethodContainer(beanInstance, methodAnnotations, methodHEP, secureInvocation));
 
                                     } else {
                                         if (log.isEnabled())
@@ -362,86 +362,12 @@ public class EndPointsManager {
 
 
         // scan onStartup and OnShutdown
-        NVGenericMap startup = serverConfig.getProperties().getNV("on-startup");
-        NVGenericMap postStartup = serverConfig.getProperties().getNV("post-startup");
-        NVGenericMap shutdown = serverConfig.getProperties().getNV("on-shutdown");
 
-        log.getLogger().info("startup config: " + startup + " shutdown config: " + shutdown);
+        epm.onStartup = scanBeanProperties(serverConfig, "on-startup", OnStartup.class, secureInvocation);
+        epm.postStartup = scanBeanProperties(serverConfig, "post-startup", PostStartup.class, secureInvocation);
+        epm.onShutdown = scanBeanProperties(serverConfig, "on-shutdown", OnShutdown.class, secureInvocation);
 
-        if (startup != null) {
-            try {
-                Class<?> clazz = Class.forName(startup.getValue("bean"));
-                ReflectionUtil.AnnotationMap onStartup = ReflectionUtil.scanClassAnnotations(clazz, OnStartup.class);
-                if (onStartup != null) {
-                    epm.onStartup = new MethodContainer(clazz.getConstructor().newInstance(), onStartup.findMethodAnnotationsByType(OnStartup.class)[0], null, secureInvocation, new NVGenericMap().build(new NVBoolean("async", false)));
-                }
-
-                NVGenericMap properties = startup.getNV("properties");
-                if (epm.onStartup.instance instanceof SetNVProperties) {
-                    NVGenericMap instanceProp = ((SetNVProperties) epm.onStartup.instance).getProperties();
-                    if (instanceProp != null)
-                        NVGenericMap.merge(instanceProp, properties);
-                    else
-                        ((SetNVProperties) epm.onStartup.instance).setProperties(properties);
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        }
-
-        if (postStartup != null) {
-            try {
-                Class<?> clazz = Class.forName(startup.getValue("bean"));
-                ReflectionUtil.AnnotationMap onShutdown = ReflectionUtil.scanClassAnnotations(clazz, PostStartup.class);
-                if (postStartup != null) {
-                    // same class for onStartup and onShutdown we have to use the same instance as the startup
-                    if (epm.onStartup.instance.getClass().equals(clazz))
-                        epm.postStartup = new MethodContainer(epm.onStartup.instance, onShutdown.findMethodAnnotationsByType(PostStartup.class)[0], null, secureInvocation, new NVGenericMap().build(new NVBoolean("async", true)));
-                    else
-                        epm.postStartup = new MethodContainer(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(PostStartup.class)[0], null, secureInvocation, new NVGenericMap().build(new NVBoolean("async", true)));
-                }
-                NVGenericMap properties = shutdown.getNV("properties");
-                if (epm.postStartup.instance instanceof SetNVProperties) {
-                    NVGenericMap instanceProp = ((SetNVProperties) epm.postStartup.instance).getProperties();
-                    if (instanceProp != null)
-                        NVGenericMap.merge(instanceProp, properties);
-                    else
-                        ((SetNVProperties) epm.postStartup.instance).setProperties(properties);
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (shutdown != null) {
-            try {
-                Class<?> clazz = Class.forName(startup.getValue("bean"));
-                ReflectionUtil.AnnotationMap onShutdown = ReflectionUtil.scanClassAnnotations(clazz, OnShutdown.class);
-                if (onShutdown != null) {
-                    // same class for onStartup and onShutdown we have to use the same instance as the startup
-                    if (epm.onStartup.instance.getClass().equals(clazz))
-                        epm.onShutdown = new MethodContainer(epm.onStartup.instance, onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation, new NVGenericMap().build(new NVBoolean("async", false)));
-                    else
-                        epm.onShutdown = new MethodContainer(clazz.getConstructor().newInstance(), onShutdown.findMethodAnnotationsByType(OnShutdown.class)[0], null, secureInvocation, new NVGenericMap().build(new NVBoolean("async", false)));
-                }
-                NVGenericMap properties = shutdown.getNV("properties");
-                if (epm.onShutdown.instance instanceof SetNVProperties) {
-                    NVGenericMap instanceProp = ((SetNVProperties) epm.onShutdown.instance).getProperties();
-                    if (instanceProp != null)
-                        NVGenericMap.merge(instanceProp, properties);
-                    else
-                        ((SetNVProperties) epm.onShutdown.instance).setProperties(properties);
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        log.getLogger().info("@OnStartup: " + epm.onStartup + " @OnShutdown: " + epm.onShutdown);
+        log.getLogger().info("@OnStartup: " + epm.onStartup + " @PostStartup: " + epm.postStartup + " @OnShutdown: " + epm.onShutdown);
 
 
         return epm;
@@ -462,10 +388,7 @@ public class EndPointsManager {
         HTTPEndPoint hep = uriMapResult.result.httpEndPoint;
 
 
-//        if (!hep.isPathSupported(hmci.getURI()))
-//        {
-//            throw new IOException("Invalid uri " + hmci.getURI());
-//        }
+
         // parse the path parameters
         Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], hmci.getURI(), false);
 
@@ -602,4 +525,41 @@ public class EndPointsManager {
     public MethodContainer getOnShutdown() {
         return onShutdown;
     }
+
+
+    private static MethodContainer scanBeanProperties(HTTPServerConfig serverConfig, String propName, Class<? extends Annotation> annotation, SecureInvoker secureInvocation)
+    {
+        NVGenericMap ssp  = serverConfig.getProperties().getNV(propName);
+        MethodContainer methodContainer  = null;
+
+        if (ssp != null) {
+            try {
+                Class<?> clazz = Class.forName(ssp.getValue("bean"));
+
+                ReflectionUtil.AnnotationMap annotationMap = ReflectionUtil.scanClassAnnotations(clazz, annotation);
+                if (annotationMap != null) {
+                    // same class for onStartup and onShutdown we have to use the same instance as the startup
+
+                     methodContainer = new MethodContainer(clazz, annotationMap.findMethodAnnotationsByType(annotation)[0], null, secureInvocation);
+
+                    NVGenericMap properties = ssp.getNV("properties");
+                    if (properties != null && methodContainer.instance instanceof SetNVProperties) {
+                        NVGenericMap instanceProp = ((SetNVProperties)methodContainer.instance).getProperties();
+                        if (instanceProp != null)
+                            NVGenericMap.merge(instanceProp, properties);
+                        else
+                            ((SetNVProperties)methodContainer.instance).setProperties(properties);
+                    }
+                }
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return methodContainer;
+    }
+
+
+
 }

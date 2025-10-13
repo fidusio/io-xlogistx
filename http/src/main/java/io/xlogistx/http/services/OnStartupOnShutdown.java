@@ -5,6 +5,7 @@ import io.xlogistx.opsec.OPSecUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.OnShutdown;
 import org.zoxweb.shared.annotation.OnStartup;
+import org.zoxweb.shared.annotation.PostStartup;
 import org.zoxweb.shared.util.NVGenericMap;
 
 public class OnStartupOnShutdown
@@ -17,6 +18,12 @@ public class OnStartupOnShutdown
         OPSecUtil.singleton();
     }
 
+    @PostStartup
+    public void afterStartup()
+    {
+        log.getLogger().info("PostStartup");
+    }
+
     @OnShutdown
     public void onShutdown() {
         log.getLogger().info("OnShutdown");
@@ -25,6 +32,6 @@ public class OnStartupOnShutdown
 
     @Override
     protected void refreshProperties() {
-
+        log.getLogger().info("Properties to set");
     }
 }
