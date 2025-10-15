@@ -109,7 +109,7 @@ public class TestSubjectSwap {
             t.start();
             try {
                 t.join();
-                log.info("The temporary thread is dead status: " + t.isAlive());
+                log.getLogger().info("The temporary thread is dead status: " + t.isAlive());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

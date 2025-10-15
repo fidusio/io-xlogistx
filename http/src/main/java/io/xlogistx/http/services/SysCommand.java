@@ -40,7 +40,7 @@ public class SysCommand
                 @Override
                 public void run() {
                     try {
-                        log.info("will exec command: " + get());
+                        log.getLogger().info("will exec command: " + get());
                         RuntimeUtil.runAndFinish(get());
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -71,7 +71,7 @@ public class SysCommand
                 @Override
                 public void run() {
                     try {
-                        log.info("will exec command: " + get());
+                        log.getLogger().info("will exec command: " + get());
                         RuntimeUtil.runAndFinish(get());
                     } catch (InterruptedException e) {
                         e.printStackTrace();
