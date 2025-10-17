@@ -12,10 +12,11 @@ public class StringWidget extends JScrollPane {
         @Override
         public void valueToMap(MappedObject<SetNameValue<?>, StringWidget> nvMap) {
             SetNameValue<?> snvs = nvMap.get();
-            if (snvs.getValue() instanceof String)
+
+            if (snvs.getValue() instanceof String || snvs instanceof NVPair)
                 ((JTextArea) nvMap.getMap().getViewport().getView()).setText((String) snvs.getValue());
             else if (snvs.getValue() instanceof byte[]) {
-                DataCodec<byte[], String> codec = MetaValueCodec.SINGLETON.lookupCodec(byte[].class);
+                DataCodec<byte[], String> codec = DataCodecRegistrar.SINGLETON.lookup(byte[].class);
 //                    nvgm.build(new NVBlob(key, codec.decode(ta.getText().trim())));
                 ((JTextArea) nvMap.getMap().getViewport().getView()).setText(codec.encode((byte[]) snvs.getValue()));
             }
@@ -30,7 +31,7 @@ public class StringWidget extends JScrollPane {
 //                ((JTextArea)nvMap.getMap().getViewport().getView()).setText((String)snvs.getValue());
                 ((SetNameValue<String>) snvs).setValue(((JTextArea) nvMap.getMap().getViewport().getView()).getText());
             else if (snvs.getValue() instanceof byte[] || snvs instanceof NVBlob) {
-                DataCodec<byte[], String> codec = MetaValueCodec.SINGLETON.lookupCodec(byte[].class);
+                DataCodec<byte[], String> codec = DataCodecRegistrar.SINGLETON.lookup(byte[].class);
 //                    nvgm.build(new NVBlob(key, codec.decode(ta.getText().trim())));
                 ((SetNameValue<byte[]>) snvs).setValue(codec.decode(((JTextArea) nvMap.getMap().getViewport().getView()).getText()));
 

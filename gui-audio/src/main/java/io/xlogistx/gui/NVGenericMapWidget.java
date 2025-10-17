@@ -98,47 +98,47 @@ public class NVGenericMapWidget extends JPanel {
         return MetaToWidget.SINGLETON.create(gnv);
     }
 
-    private JComponent createEditorFor(Object value) {
-        if (value instanceof String) {
-            JTextArea ta = new JTextArea(4, 32);
-            ta.setLineWrap(true);
-            ta.setWrapStyleWord(true);
-            ta.setText((String) value);
-            return new JScrollPane(ta);
-        } else if (value instanceof Integer || value instanceof Long
-                || value instanceof Float || value instanceof Double) {
-            JTextField tf = new JTextField(24);
-            tf.setText(String.valueOf(value));
-            tf.setToolTipText("Numeric value (" + value.getClass().getSimpleName() + ")");
-            return tf;
-        } else if (value instanceof Boolean) {
-            JCheckBox cb = new JCheckBox();
-            cb.setSelected((Boolean) value);
-            return cb;
-        } else if (value instanceof Enum) {
-            Enum<?> enumVal = (Enum<?>) value;
-            Object[] constants = enumVal.getDeclaringClass().getEnumConstants();
-            JComboBox<Object> combo = new JComboBox<>(constants);
-            combo.setSelectedItem(enumVal);
-            return combo;
-        } else if (value instanceof byte[]) {
-            JTextArea ta = new JTextArea(4, 32);
-            ta.setLineWrap(true);
-            ta.setWrapStyleWord(true);
-
-            DataCodec<byte[], String> codec = MetaValueCodec.SINGLETON.lookupCodec(value);
-
-            ta.setText(codec.encode((byte[]) value));
-            return new JScrollPane(ta);
-        } else {
-            // Fallback: show toString in a disabled field
-            JTextField tf = new JTextField(24);
-            tf.setText(value == null ? "" : String.valueOf(value));
-            tf.setEditable(false);
-            tf.setToolTipText("Unsupported type: " + (value == null ? "null" : value.getClass().getName()));
-            return tf;
-        }
-    }
+//    private JComponent createEditorFor(Object value) {
+//        if (value instanceof String) {
+//            JTextArea ta = new JTextArea(4, 32);
+//            ta.setLineWrap(true);
+//            ta.setWrapStyleWord(true);
+//            ta.setText((String) value);
+//            return new JScrollPane(ta);
+//        } else if (value instanceof Integer || value instanceof Long
+//                || value instanceof Float || value instanceof Double) {
+//            JTextField tf = new JTextField(24);
+//            tf.setText(String.valueOf(value));
+//            tf.setToolTipText("Numeric value (" + value.getClass().getSimpleName() + ")");
+//            return tf;
+//        } else if (value instanceof Boolean) {
+//            JCheckBox cb = new JCheckBox();
+//            cb.setSelected((Boolean) value);
+//            return cb;
+//        } else if (value instanceof Enum) {
+//            Enum<?> enumVal = (Enum<?>) value;
+//            Object[] constants = enumVal.getDeclaringClass().getEnumConstants();
+//            JComboBox<Object> combo = new JComboBox<>(constants);
+//            combo.setSelectedItem(enumVal);
+//            return combo;
+//        } else if (value instanceof byte[]) {
+//            JTextArea ta = new JTextArea(4, 32);
+//            ta.setLineWrap(true);
+//            ta.setWrapStyleWord(true);
+//
+//            DataCodec<byte[], String> codec = DataCodecRegistrar.SINGLETON.lookup(value);
+//
+//            ta.setText(codec.encode((byte[]) value));
+//            return new JScrollPane(ta);
+//        } else {
+//            // Fallback: show toString in a disabled field
+//            JTextField tf = new JTextField(24);
+//            tf.setText(value == null ? "" : String.valueOf(value));
+//            tf.setEditable(false);
+//            tf.setToolTipText("Unsupported type: " + (value == null ? "null" : value.getClass().getName()));
+//            return tf;
+//        }
+//    }
 
     // Re-read backing map into UI (Cancel)
     private void onCancel(ActionEvent e) {
