@@ -11,6 +11,8 @@ import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -54,10 +56,10 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 
 public class NIOHTTPServer
-        implements DaemonController, GetNamedVersion {
-    public static final String VERSION = "1.4.6";
-
+        implements DaemonController, GetNamedVersion, CanonicalID {
+    public final static String VERSION = "1.4.9";
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
+
     private final HTTPServerConfig config;
     private NIOSocket nioSocket;
     private EndPointsManager endPointsManager = null;
@@ -619,11 +621,22 @@ public class NIOHTTPServer
             ResourceManager.SINGLETON.register("keep-alive-config", keepAliveConfig);
 
         EndpointsUtil.SINGLETON.postStartup();
+        logger.getLogger().info(toCanonicalID() + " HTTPNIOServer FINISHED start().");
 
     }
 
     public EndPointsManager getEndPointsManager() {
         return endPointsManager;
+    }
+
+    /**
+     * Converts the implementing object in its canonical form.
+     *
+     * @return text identification of the object
+     */
+    @Override
+    public String toCanonicalID() {
+        return SUS.toCanonicalID('-', getName(), getVersion());
     }
 
     public static void main(String... args) {
