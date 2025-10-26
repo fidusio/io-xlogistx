@@ -89,15 +89,15 @@
         "base_folder": "/webs/test/apps"
       }
     },
-    {
-      "bean": "io.xlogistx.http.services.DNSCache",
-      "properties": {
-        "resolver": "10.0.0.1",
-        "port": 53,
-        "scheduled": false,
-        "log-enabled": false
-      }
-    },
+//    {
+//      "bean": "io.xlogistx.http.services.DNSCache",
+//      "properties": {
+//        "resolver": "10.0.0.1",
+//        "port": 53,
+//        "scheduled": false,
+//        "log-enabled": false
+//      }
+//    },
     {
       "bean": "io.xlogistx.http.services.EchoChat"
     },
