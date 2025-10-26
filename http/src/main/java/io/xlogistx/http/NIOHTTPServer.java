@@ -57,7 +57,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static String VERSION = "1.4.9";
+    public final static String VERSION = "1.5.0";
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -665,7 +665,7 @@ public class NIOHTTPServer
                 throw new IllegalArgumentException("No configuration file was defined");
 
             if (logger.isEnabled()) logger.getLogger().info("" + hsc);
-            if (logger.isEnabled()) logger.getLogger().info("" + Arrays.toString(hsc.getConnectionConfigs()));
+            if (logger.isEnabled()) logger.getLogger().info(Arrays.toString(hsc.getConnectionConfigs()));
             if (hsc.getThreadPoolSize() > 0)
                 TaskUtil.setTaskProcessorThreadCount(hsc.getThreadPoolSize());
 

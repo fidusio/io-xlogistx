@@ -211,6 +211,7 @@
                 <scope>test</scope>
             </dependency>
 
+
             <dependency>
                 <groupId>org.zoxweb</groupId>
                 <artifactId>zoxweb-core</artifactId>
@@ -222,6 +223,11 @@
                 <version>${apache-ssh.version}</version> <!-- or latest -->
             </dependency>
 
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-jvm</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>javax.websocket</groupId>
