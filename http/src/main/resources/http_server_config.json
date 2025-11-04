@@ -17,9 +17,15 @@
       "time_out": "5s",
       "maximum": 20
     },
-    "on-startup": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown" },
-    "post-startup": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown" },
-    "on-shutdown": { "bean": "io.xlogistx.http.services.OnStartupOnShutdown"}
+    "on-startup": {
+      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
+    },
+    "post-startup": {
+      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
+    },
+    "on-shutdown": {
+      "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
+    }
   },
   "connections": [
     {
@@ -29,7 +35,7 @@
       ],
       "socket_config": {
         "port": 6080,
-        "backlog": 250
+        "backlog": 256
       }
     },
     {
@@ -39,7 +45,7 @@
       ],
       "socket_config": {
         "port": 6443,
-        "backlog": 250
+        "backlog": 256
       },
       "ssl_config": {
         "name": "SSLCONFIG",
@@ -89,15 +95,15 @@
         "base_folder": "/webs/test/apps"
       }
     },
-//    {
-//      "bean": "io.xlogistx.http.services.DNSCache",
-//      "properties": {
-//        "resolver": "10.0.0.1",
-//        "port": 53,
-//        "scheduled": false,
-//        "log-enabled": false
-//      }
-//    },
+    //    {
+    //      "bean": "io.xlogistx.http.services.DNSCache",
+    //      "properties": {
+    //        "resolver": "10.0.0.1",
+    //        "port": 53,
+    //        "scheduled": false,
+    //        "log-enabled": false
+    //      }
+    //    },
     {
       "bean": "io.xlogistx.http.services.EchoChat"
     },

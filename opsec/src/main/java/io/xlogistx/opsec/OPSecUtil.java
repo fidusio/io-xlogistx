@@ -16,6 +16,7 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -54,10 +55,8 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.cert.*;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
@@ -73,7 +72,6 @@ public class OPSecUtil {
     public static final String BC_CKD_PROVIDER = "BCPQC";
     public static final String CK_NAME = "KYBER";
     public static final String CD_NAME = "DILITHIUM";
-
 
 
 //    private final static Provider BC_PROVIDER = new BouncyCastleProvider();
@@ -110,8 +108,7 @@ public class OPSecUtil {
     }
 
 
-    public static OPSecUtil singleton()
-    {
+    public static OPSecUtil singleton() {
         return SINGLETON;
     }
 
@@ -305,8 +302,8 @@ public class OPSecUtil {
     }
 
 
-    public  PKCS10CertificationRequest createCSR(KeyPair keyPair, String dn, String alternativeName,
-                                                 String ...props) throws IOException, OperatorCreationException {
+    public PKCS10CertificationRequest createCSR(KeyPair keyPair, String dn, String alternativeName,
+                                                String... props) throws IOException, OperatorCreationException {
         // Validate inputs
         if (keyPair == null || keyPair.getPublic() == null || keyPair.getPrivate() == null) {
             throw new IllegalArgumentException("KeyPair must not be null and must include public and private keys");
@@ -328,10 +325,8 @@ public class OPSecUtil {
 
         // Step 1: Process Key Usage extension
         int keyUsageBits = 0;
-        for(String prop : props)
-        {
-            switch(prop.toLowerCase())
-            {
+        for (String prop : props) {
+            switch (prop.toLowerCase()) {
                 case "digitalsignature":
                     keyUsageBits |= KeyUsage.digitalSignature;
                     log.getLogger().info(prop);
@@ -368,7 +363,6 @@ public class OPSecUtil {
                     break;
 
             }
-
 
 
         }
@@ -478,8 +472,6 @@ public class OPSecUtil {
         JcaContentSignerBuilder csBuilder = "EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm()) ?
                 new JcaContentSignerBuilder(CryptoConst.SignatureAlgo.SHA256_EC.getName()) :
                 new JcaContentSignerBuilder(CryptoConst.SignatureAlgo.SHA256_RSA.getName());
-
-
 
 
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
@@ -789,6 +781,19 @@ public class OPSecUtil {
     public KeyPair generateKeyPair(String type, String provider, AlgorithmParameterSpec keySpec, SecureRandom random)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
         return CryptoUtil.generateKeyPair(type, provider, keySpec, random);
+    }
+
+    public X509CRL readCRL(InputStream is) throws CertificateException, CRLException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        return (X509CRL) cf.generateCRL(is);
+    }
+
+    public X509CRLEntry[] getRevokedCerts(InputStream is) throws CertificateException, CRLException {
+        return getRevokedCerts(readCRL(is));
+    }
+
+    public X509CRLEntry[] getRevokedCerts(X509CRL crl) {
+        return crl.getRevokedCertificates().toArray(new X509CRLEntry[0]);
     }
 
 

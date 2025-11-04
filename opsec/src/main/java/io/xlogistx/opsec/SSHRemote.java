@@ -58,7 +58,7 @@ public class SSHRemote {
         } catch (Exception e) {
             e.printStackTrace();
 
-            System.err.println("Usage: ssh-uris=root[password or credential]@192.168.1.1,root@google.com:2022  [pem=google.privateKey.pem] command=\"ls -ls\"");
+            System.err.println("Usage: ssh-uris=root:[password or credential]@192.168.1.1,root@google.com:2022  [pem=google.privateKey.pem] command=\"ls -ls\"");
         }
     }
 }
