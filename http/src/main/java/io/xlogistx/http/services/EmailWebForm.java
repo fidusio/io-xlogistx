@@ -22,6 +22,86 @@ public class EmailWebForm
     public static final LogWrapper log = new LogWrapper(EmailWebForm.class).setEnabled(true);
     private MailerConfig mailerConfig;
 
+
+    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail-generic", uris = "/form/generic-mailer/{domain}/{source}")
+    public HTTPMessageConfigInterface webMailerGeneric(@ParamProp(name = "domain") String domain,
+                                                       @ParamProp(name = "source") String source,
+                                                       @ParamProp(name = "nvgm", source = Const.ParamSource.PAYLOAD, optional = true) NVGenericMap payload)
+            throws IOException {
+
+        HTTPMessageConfigInterface ret = new HTTPMessageConfig();
+
+        String captchaID = payload.getValue("captcha-id");
+        String captchaValue = payload.getValue("captcha");
+        String redirectURL = payload.getValue("redirect_url");
+
+        if (log.isEnabled())
+            log.getLogger().info("data: " + SUS.toCanonicalID(',', domain, source, captchaID, captchaValue, redirectURL));
+
+        if (!ChallengeManager.SINGLETON.validate(captchaID, captchaValue)) {
+//            throw new HTTPCallException("Invalid captcha " + captchaValue);
+
+            ret.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
+            ret.setContentType("text/html");
+            ret.setContent("Captcha Validation Failed " + captchaValue);
+            ret.getHeaders().build("Access-Control-Allow-Origin", "*");
+            ret.getHeaders().build("Cache-Control", "no-cache, no-store, must-revalidate");
+            return ret;
+        }
+
+
+        try {
+            SMTPConfig sc = mailerConfig.getSMTPConfig();
+            DocumentTemplate docTemplate = mailerConfig.getDocumentTemplate();
+//            String content = docTemplate.getContent();
+            payload.remove("captcha-id");
+            payload.remove("captcha");
+            payload.remove("redirect_url");
+            StringBuilder content = new StringBuilder("Email-Generic form\n");
+            for (GetNameValue<?> gnv : payload.values()) {
+                content.append(gnv.getName());
+                content.append(" : ");
+                content.append(gnv.getValue());
+                content.append("\n");
+
+            }
+
+
+//            for (String tagId : docTemplate.getBodyTags()) {
+//                String tag = docTemplate.getPreTag() + tagId + docTemplate.getPostTag();
+//
+//                try {
+//                    GetNameValue<String> gnvTag = payload.getNV(tagId);
+//                    String value = (gnvTag != null && !SUS.isEmpty(gnvTag.getValue())) ? gnvTag.getValue() : "NP";
+//                    content = SharedStringUtil.embedText(content, tag, value);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//            }
+
+
+            SMTPMessage smtpMessage = new SMTPMessage(docTemplate.getTitle(), content.toString());
+            smtpMessage.setFrom(sc.getUser());
+            smtpMessage.addRecipients(EmailRecipient.toRecipients(mailerConfig.getRecipients()));
+
+
+            SMTPSender.sendEmail(sc, smtpMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        ret.setHTTPStatusCode(HTTPStatusCode.FOUND);
+        ret.setContentType("text/html");
+        ret.setContent(Const.EMPTY_BYTE_ARRAY);
+        ret.getHeaders().build(HTTPHeader.LOCATION, redirectURL);
+//        ret.getHeaders().build(HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        ret.getHeaders().build(HTTPHeader.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+
+
+        return ret;
+    }
+
+
     @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail", uris = "/form/mailer/{domain}/{source}")
     public HTTPMessageConfigInterface webMailer(@ParamProp(name = "domain") String domain,
                                                 @ParamProp(name = "source") String source,

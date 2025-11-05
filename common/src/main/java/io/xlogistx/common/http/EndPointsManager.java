@@ -5,11 +5,9 @@ import io.xlogistx.common.data.MethodContainer;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SecUtil;
+import org.zoxweb.server.security.SecureInvoker;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
-import org.zoxweb.server.security.SecureInvoker;
-
-
 import org.zoxweb.shared.annotation.*;
 import org.zoxweb.shared.http.HTTPEndPoint;
 import org.zoxweb.shared.http.HTTPMediaType;
@@ -22,7 +20,6 @@ import javax.websocket.OnError;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.server.ServerEndpoint;
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -123,39 +120,12 @@ public class EndPointsManager {
                 hep.setPaths(uris);
 
             } else if (a instanceof SecurityProp) {
-//                SecurityProp sp = (SecurityProp) a;
-//
-//                String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-//                String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
-//                CryptoConst.AuthenticationType[] authTypes = sp.authentications();
-//                String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-//                hep.setPermissions(permissions);
-//                hep.setRoles(roles);
-//                hep.setAuthenticationTypes(authTypes);
-//                hep.setRestrictions(restrictions);
-//                hep.setProtocols(sp.protocols());
                 SecUtil.SINGLETON.applySecurityProp(hep, (SecurityProp) a);
             }
         }
         return updatePaths(baseURI, hep);
     }
 
-
-//    public static void applySecurityProp(HTTPEndPoint hep, SecurityProp sp)
-//    {
-//        if (hep != null && sp != null)
-//        {
-//            String[] roles = SUS.isEmpty(sp.roles()) ? null : SharedStringUtil.parseString(sp.roles(), ",", " ", "\t");
-//            String[] permissions = SUS.isEmpty(sp.permissions()) ? null : SharedStringUtil.parseString(sp.permissions(), ",", " ", "\t");
-//            CryptoConst.AuthenticationType[] authTypes = sp.authentications();
-//            String[] restrictions = sp.restrictions().length > 0 ? sp.restrictions() : null;
-//            hep.setPermissions(permissions);
-//            hep.setRoles(roles);
-//            hep.setAuthenticationTypes(authTypes);
-//            hep.setRestrictions(restrictions);
-//            hep.setProtocols(sp.protocols());
-//        }
-//    }
 
     public static HTTPEndPoint mergeOuterIntoInner(HTTPEndPoint outer, HTTPEndPoint inner, boolean pathOverride) {
 
@@ -383,17 +353,15 @@ public class EndPointsManager {
     }
 
 
-    public static Map<String, Object> buildParameters(URIMap.URIMapResult<EndPointMeta> uriMapResult, HTTPMessageConfigInterface hmci) throws IOException {
+    public static Map<String, Object> buildParameters(URIMap.URIMapResult<EndPointMeta> uriMapResult, HTTPMessageConfigInterface hmci) {
 
         HTTPEndPoint hep = uriMapResult.result.httpEndPoint;
-
 
 
         // parse the path parameters
         Map<String, Object> parameters = HTTPUtil.parsePathParameters(hep.getPaths()[0], hmci.getURI(), false);
 
         if (hmci.getParameters().size() > 0) {
-            GetNameValue<?>[] gnValues = hmci.getParameters().values();
             for (GetNameValue<?> gnv : hmci.getParameters().values()) {
                 parameters.put(gnv.getName(), gnv.getValue());
             }
@@ -401,26 +369,6 @@ public class EndPointsManager {
 
 
         HTTPMediaType contentType = HTTPMediaType.lookup(hmci.getContentType());
-
-//        String  payload = null;
-        // parse if not post for n=v&n2=v2 body
-//        if (!he.getRequestMethod().equalsIgnoreCase(HTTPMethod.GET.getName()) && contentType == HTTPMediaType.APPLICATION_WWW_URL_ENC)
-//        {
-//            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
-//            List<GetNameValue<String>> payloadParameters = HTTPUtil.parseQuery(payload, false);
-//
-//            if(payloadParameters != null && payloadParameters.size() > 0)
-//            {
-//                for(GetNameValue<String> gnv : payloadParameters)
-//                    parameters.put(gnv.getName(), gnv.getValue());
-//            }
-//        }
-//        else if (contentType == HTTPMediaType.APPLICATION_JSON)
-//        {
-//            payload = IOUtil.inputStreamToString(he.getRequestBody(), true);
-//        }
-        //if(log.isEnabled()) log.getLogger().info("payload:" + payload);
-
 
         // need to parse the payload parameters
         for (Parameter p : uriMapResult.result.methodContainer.methodAnnotations.method.getParameters()) {
@@ -440,7 +388,8 @@ public class EndPointsManager {
                         switch (contentType) {
 
                             case APPLICATION_WWW_URL_ENC:
-                                // this case is impossible to happen
+                                if (p.getType().isAssignableFrom(NVGenericMap.class))
+                                    parameters.put(pp.name(), hmci.getParameters());
                                 break;
                             case APPLICATION_JSON:
                                 if (log.isEnabled()) {
@@ -449,8 +398,6 @@ public class EndPointsManager {
                                 }
                                 Object v = GSONUtil.fromJSONDefault(hmci.getContent(), pClassType);
                                 parameters.put(pp.name(), v);
-
-
                                 break;
                             case APPLICATION_OCTET_STREAM:
                                 break;
@@ -527,10 +474,9 @@ public class EndPointsManager {
     }
 
 
-    private static MethodContainer scanBeanProperties(HTTPServerConfig serverConfig, String propName, Class<? extends Annotation> annotation, SecureInvoker secureInvocation)
-    {
-        NVGenericMap ssp  = serverConfig.getProperties().getNV(propName);
-        MethodContainer methodContainer  = null;
+    private static MethodContainer scanBeanProperties(HTTPServerConfig serverConfig, String propName, Class<? extends Annotation> annotation, SecureInvoker secureInvocation) {
+        NVGenericMap ssp = serverConfig.getProperties().getNV(propName);
+        MethodContainer methodContainer = null;
 
         if (ssp != null) {
             try {
@@ -540,15 +486,15 @@ public class EndPointsManager {
                 if (annotationMap != null) {
                     // same class for onStartup and onShutdown we have to use the same instance as the startup
 
-                     methodContainer = new MethodContainer(clazz, annotationMap.findMethodAnnotationsByType(annotation)[0], null, secureInvocation);
+                    methodContainer = new MethodContainer(clazz, annotationMap.findMethodAnnotationsByType(annotation)[0], null, secureInvocation);
 
                     NVGenericMap properties = ssp.getNV("properties");
                     if (properties != null && methodContainer.instance instanceof SetNVProperties) {
-                        NVGenericMap instanceProp = ((SetNVProperties)methodContainer.instance).getProperties();
+                        NVGenericMap instanceProp = ((SetNVProperties) methodContainer.instance).getProperties();
                         if (instanceProp != null)
                             NVGenericMap.merge(instanceProp, properties);
                         else
-                            ((SetNVProperties)methodContainer.instance).setProperties(properties);
+                            ((SetNVProperties) methodContainer.instance).setProperties(properties);
                     }
                 }
 
@@ -559,7 +505,6 @@ public class EndPointsManager {
         }
         return methodContainer;
     }
-
 
 
 }
