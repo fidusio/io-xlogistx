@@ -21,7 +21,6 @@
 
   <properties>
     <metadata-exctractor.verion>RELEASE</metadata-exctractor.verion>
-    <angus.version>2.0.3</angus.version>
   </properties>
 
 
@@ -53,7 +52,7 @@
     <dependency>
       <groupId>org.eclipse.angus</groupId>
       <artifactId>angus-mail</artifactId>
-      <version>${angus.version}</version>
+      <version>${angus.mail.version}</version>
 <!--      <scope>runtime</scope>-->
     </dependency>
 
