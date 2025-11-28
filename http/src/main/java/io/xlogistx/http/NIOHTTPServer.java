@@ -55,7 +55,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static String VERSION = "1.5.3";
+    public final static String VERSION = "1.5.6";
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;

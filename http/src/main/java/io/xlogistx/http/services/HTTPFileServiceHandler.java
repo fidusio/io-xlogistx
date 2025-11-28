@@ -1,8 +1,8 @@
 package io.xlogistx.http.services;
 
+
 import io.xlogistx.common.data.PropertyContainer;
-import io.xlogistx.common.http.HTTPProtocolHandler;
-import org.zoxweb.server.http.HTTPUtil;
+import io.xlogistx.common.http.CachedPathMatcher;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.JarTool;
@@ -21,23 +21,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipInputStream;
 
+/**
+ * This class load static public accessible files from the base-folder
+ */
 public class HTTPFileServiceHandler
-        extends PropertyContainer<NVGenericMap>
-//        implements HTTPRawHandler
-{
+        extends PropertyContainer<NVGenericMap> {
     public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);
 
     private Path baseFolder;
+    private final CachedPathMatcher cpm = new CachedPathMatcher();
 
     @Override
     protected void refreshProperties() {
         String htmlURI = getProperties().getValue("html_uri");
         FileSystem fileSystem = ResourceManager.lookupResource(ResourceManager.Resource.FILE_SYSTEM);
-        if(log.isEnabled()) log.getLogger().info("We have a file system: " + fileSystem);
+        if (log.isEnabled()) log.getLogger().info("We have a file system: " + fileSystem);
 
         if (htmlURI != null && fileSystem != null && fileSystem != FileSystems.getDefault()) {
             // need to copy the jar content to FileSystem
-            if(log.isEnabled()) log.getLogger().info("htmt_uri: " + htmlURI);
+            if (log.isEnabled()) log.getLogger().info("htmt_uri: " + htmlURI);
 
             try {
                 URI uri = new URI(htmlURI);
@@ -45,14 +47,14 @@ public class HTTPFileServiceHandler
                 ZipInputStream zis = JarTool.convertToZipIS(is);
                 Path pathHtmlURI = fileSystem.getPath("/html_content");
                 Files.createDirectory(pathHtmlURI);
-                if(log.isEnabled()) log.getLogger().info("pathHtmlURI: " + pathHtmlURI);
+                if (log.isEnabled()) log.getLogger().info("pathHtmlURI: " + pathHtmlURI);
                 JarTool.zipISToOutputPath(zis, pathHtmlURI);
                 log.getLogger().info(IOUtil.toStringFileSystem(fileSystem));
                 baseFolder = pathHtmlURI;
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if(log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
+            if (log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
 
         } else
             setBaseFolder(getProperties().getValue("base_folder"));
@@ -82,18 +84,16 @@ public class HTTPFileServiceHandler
         if (filename.startsWith("/"))
             filename = filename.substring(1);
 
-        Path filePath = getBaseFolder().resolve(filename);
-        //File file = new File(getBaseFolder(), filename);
-        if (!Files.exists(filePath) || !Files.isRegularFile(filePath) || !Files.isReadable(filePath)) {
+
+        Path filePath = cpm.resolveCaseInsensitiveRecursive(getBaseFolder(), filename, true);
+        if (filePath == null) {
             if (log.isEnabled())
                 log.getLogger().info("File Not Found:" + filename);
             throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
         }
 
 
-        InputStream fileIS = Files.newInputStream(filePath);
-        //UByteArrayOutputStream ubaos = new UByteArrayOutputStream();
-        //IOUtil.relayStreams(fileIS, ubaos, true, false);
+        InputStream fileIS = Files.newInputStream(filePath);;
 
         HTTPMessageConfigInterface response = new HTTPMessageConfig();
         response.setHTTPStatusCode(HTTPStatusCode.OK);
@@ -104,79 +104,8 @@ public class HTTPFileServiceHandler
 
         return response;
 
-//        HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
-//                HTTPHeader.SERVER.toHTTPHeader((String) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)));
-////                HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN.toHTTPHeader("*"));
-//
-//        if (mime != null)
-//            hmci.setContentType(mime.getValue());
-//
-//        hmci.setContentLength((int) fileIS.available());
-//
-////        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
-////        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
-//        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream())
-//                .writeTo(protocolHandler.getOutputStream());
-//
-//        IOUtil.relayStreams(fileIS, protocolHandler.getOutputStream(), true, false);
-//        if (log.isEnabled()) log.getLogger().info("filename: " + filename);
 
     }
-
-//    @Override
-//    @EndPointProp(methods = {HTTPMethod.GET}, name = "files", uris = "/")
-    public void handle(@ParamProp(name = "file-info", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler protocolHandler)
-            throws IOException {
-        String filename = protocolHandler.getRequest(true).getURI();
-
-        if (SUS.isEmpty(filename) || filename.equals("/")) {
-            String override = getProperties().getValue("default_file");
-            if (override != null) {
-                filename = override;
-            }
-        }
-        HTTPMediaType mime = HTTPMediaType.lookupByExtension(filename);
-        if (log.isEnabled()) {
-
-            log.getLogger().info("file to load: " + filename);
-
-            log.getLogger().info("mime: " + mime);
-        }
-
-        if (filename.startsWith("/"))
-            filename = filename.substring(1);
-
-        Path filePath = getBaseFolder().resolve(filename);
-        //File file = new File(getBaseFolder(), filename);
-        if (!Files.exists(filePath) || !Files.isRegularFile(filePath) || !Files.isReadable(filePath)) {
-            if (log.isEnabled())
-                log.getLogger().info("File Not Found:" + filename);
-            throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
-        }
-
-
-        InputStream fileIS = Files.newInputStream(filePath);
-
-
-        HTTPMessageConfigInterface hmci = protocolHandler.buildResponse(HTTPStatusCode.OK,
-                HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
-//                HTTPHeader.ACCESS_CONTROL_ALLOW_ORIGIN.toHTTPHeader("*"));
-
-        if (mime != null)
-            hmci.setContentType(mime.getValue());
-
-        hmci.setContentLength((int) fileIS.available());
-
-//        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream());
-//        protocolHandler.getResponseStream().writeTo(protocolHandler.getOutputStream());
-        HTTPUtil.formatResponse(hmci, protocolHandler.getResponseStream())
-                .writeTo(protocolHandler.getOutputStream());
-
-        IOUtil.relayStreams(fileIS, protocolHandler.getOutputStream(), true, false);
-        if (log.isEnabled()) log.getLogger().info("filename: " + filename);
-
-    }
-
 
     public HTTPFileServiceHandler setBaseFolder(String baseFolder) throws IllegalArgumentException {
         baseFolder = SharedStringUtil.trimOrNull(baseFolder);
