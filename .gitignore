@@ -59,6 +59,7 @@ test-classes/
 bin
 target
 .DS_Store
+.claude
 
 
 

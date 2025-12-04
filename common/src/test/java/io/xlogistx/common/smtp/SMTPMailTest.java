@@ -60,7 +60,7 @@ public class SMTPMailTest {
             System.out.println("Email sent!");
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("uasage: smtphost port senderEmail senderMailPassword recipientEmail");
+            System.err.println("usage: smtphost port senderEmail senderMailPassword recipientEmail");
         }
     }
 }

@@ -55,7 +55,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static String VERSION = "1.5.6";
+    public final static String VERSION = "1.5.9";
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -199,7 +199,9 @@ public class NIOHTTPServer
     private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e) {
         if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
-
+                if (e instanceof InvocationTargetException) {
+                    e = (Exception) ((InvocationTargetException) e).getTargetException();
+                }
 
                 if (e instanceof AccessException) {
                     HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),

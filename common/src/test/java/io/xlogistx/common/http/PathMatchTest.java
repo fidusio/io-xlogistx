@@ -12,10 +12,12 @@ public class PathMatchTest {
         CachedPathMatcher pm = new CachedPathMatcher();
 
 
-        System.out.println(pm.resolveCaseInsensitiveRecursive(Paths.get("/webs/xlogistx.io"), "/articles/NIOFramework", true));
-        System.out.println(pm.resolveCaseInsensitiveRecursive(Paths.get("/webs/xlogistx.io"), "/articles/NIOFramework", false));
-        System.out.println(pm.resolveCaseInsensitiveRecursive(Paths.get("/webs/xlogistx.io"), "/articles/nioFramework/MultiThreadNIOssLSocket.html", true));
 
-        System.out.println(pm.resolveCaseInsensitiveRecursive(Paths.get("/webs/xlogistx.io"), "Index.ht", true));
+
+        System.out.println(pm.findIn(Paths.get("/webs/xlogistx.io"), "/articles/NIOFramework"));
+        System.out.println(pm.findIn(Paths.get("/webs/xlogistx.io"), "/articles/NIOFramework"));
+        System.out.println(pm.findIn(Paths.get("/webs/xlogistx.io"), "/articles/nioFramework/MultiThreadNIOssLSocket.html"));
+
+        System.out.println(pm.findIn(Paths.get("/webs/xlogistx.io"), "Index.ht"));
     }
 }

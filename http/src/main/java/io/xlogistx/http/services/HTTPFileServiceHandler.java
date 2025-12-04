@@ -41,10 +41,12 @@ public class HTTPFileServiceHandler
             // need to copy the jar content to FileSystem
             if (log.isEnabled()) log.getLogger().info("htmt_uri: " + htmlURI);
 
+            InputStream is = null;
+            ZipInputStream zis = null;
             try {
                 URI uri = new URI(htmlURI);
-                InputStream is = uri.toURL().openStream();
-                ZipInputStream zis = JarTool.convertToZipIS(is);
+                is = uri.toURL().openStream();
+                zis = JarTool.convertToZipIS(is);
                 Path pathHtmlURI = fileSystem.getPath("/html_content");
                 Files.createDirectory(pathHtmlURI);
                 if (log.isEnabled()) log.getLogger().info("pathHtmlURI: " + pathHtmlURI);
@@ -53,6 +55,8 @@ public class HTTPFileServiceHandler
                 baseFolder = pathHtmlURI;
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                IOUtil.close(is, zis);
             }
             if (log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
 
@@ -85,7 +89,7 @@ public class HTTPFileServiceHandler
             filename = filename.substring(1);
 
 
-        Path filePath = cpm.resolveCaseInsensitiveRecursive(getBaseFolder(), filename, true);
+        Path filePath = cpm.findIn(getBaseFolder(), filename);
         if (filePath == null) {
             if (log.isEnabled())
                 log.getLogger().info("File Not Found:" + filename);
@@ -93,14 +97,12 @@ public class HTTPFileServiceHandler
         }
 
 
-        InputStream fileIS = Files.newInputStream(filePath);;
-
         HTTPMessageConfigInterface response = new HTTPMessageConfig();
         response.setHTTPStatusCode(HTTPStatusCode.OK);
         response.getHeaders().build(HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
         if (mime != null)
             response.setContentType(mime.getValue());
-        response.setContentAsIS(fileIS);
+        response.setContentAsIS(Files.newInputStream(filePath));
 
         return response;
 

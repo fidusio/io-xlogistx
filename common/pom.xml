@@ -20,7 +20,7 @@
 
 
   <properties>
-    <metadata-exctractor.verion>RELEASE</metadata-exctractor.verion>
+    <metadata-extractor.version>RELEASE</metadata-extractor.version>
   </properties>
 
 
@@ -82,7 +82,7 @@
     <dependency>
       <groupId>com.drewnoakes</groupId>
       <artifactId>metadata-extractor</artifactId>
-      <version>${metadata-exctractor.verion}</version>
+      <version>${metadata-extractor.version}</version>
     </dependency>
 
 
