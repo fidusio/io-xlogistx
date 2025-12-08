@@ -20,11 +20,14 @@ import org.zoxweb.shared.util.*;
 import java.net.InetSocketAddress;
 import java.nio.file.FileSystem;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @MappedProp(name = "ping", id = "ping-class")
 public class Ping
         extends PropertyContainer<NVGenericMap> {
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
+
+    private final AtomicBoolean isLinux = new AtomicBoolean(true);
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "ping", uris = "/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL}, permissions = "system:ping")
@@ -55,10 +58,12 @@ public class Ping
                     .build("vm-name", System.getProperty("java.vm.name"))
                     .build("vm-vendor-version", System.getProperty("java.vendor.version"))
                     .build("uptime", Const.TimeInMillis.toString(RuntimeUtil.vmMXBean().getUptime()));
-            try {
-                response.build("os-uptime", Const.TimeInMillis.toString(RuntimeUtil.linuxUptime()));
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (isLinux.get()) {
+                try {
+                    response.build("os-uptime", Const.TimeInMillis.toString(RuntimeUtil.linuxUptime()));
+                } catch (Exception e) {
+                    isLinux.set(false);
+                }
             }
             response.build("current-thread", Thread.currentThread().getName())
                     .build("os", System.getProperty("os.name") + "," + System.getProperty("os.version")
@@ -74,9 +79,9 @@ public class Ping
                     .build((NVGenericMap) ResourceManager.lookupResource("keep-alive-config"));
 
 
-            if (niohttpServer != null)
-                response.add(niohttpServer.getNIOSocket().getStats());
-            if(apiRegistrar != null)
+
+            response.add(niohttpServer.getNIOSocket().getStats());
+            if (apiRegistrar != null)
                 response.add(apiRegistrar);
         }
         return response;

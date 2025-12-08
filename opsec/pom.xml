@@ -13,13 +13,7 @@
     <artifactId>xlogistx-opsec</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <jdk.version>8</jdk.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <password4j.version>1.8.4</password4j.version>
-    </properties>
+
 
     <build>
         <directory>target</directory>
@@ -35,19 +29,18 @@
             </resource>
         </resources>
         <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>${maven-compiler-plugin.version}</version>
-            <configuration>
-                <source>${jdk.version}</source>
-                <target>${jdk.version}</target>
-            </configuration>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${jdk.version}</source>
+                    <target>${jdk.version}</target>
+                </configuration>
 
-        </plugin>
+            </plugin>
         </plugins>
     </build>
-
 
 
     <dependencies>
@@ -62,13 +55,6 @@
             <artifactId>xlogistx-core</artifactId>
             <version>${xlogistx.version}</version>
         </dependency>
-
-
-<!--        <dependency>-->
-<!--            <groupId>com.jcraft</groupId>-->
-<!--            <artifactId>jsch</artifactId>-->
-<!--            <version>${jsch.version}</version>-->
-<!--        </dependency>-->
 
 
         <dependency>
@@ -112,7 +98,6 @@
             <version>${password4j.version}</version>
             <scope>test</scope>
         </dependency>
-
 
 
     </dependencies>

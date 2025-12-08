@@ -17,35 +17,12 @@
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
-
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        </license>
-    </licenses>
-
     <scm>
         <url>https://github.com/fidusio/io-xlogistx.git</url>
-        <connection>scm:git:git://github.com/fidusio/io-xlogistx.git</connection>
-        <developerConnection>scm:git:git://github.com/fidusio/io-xlogistx.git</developerConnection>
+        <connection>scm:git:https://github.com/fidusio/io-xlogistx.git</connection>
+        <developerConnection>scm:git:git@github.com:fidusio/io-xlogistx.git</developerConnection>
     </scm>
 
-    <developers>
-        <developer>
-            <id>javaconsigliere</id>
-            <name>Java Consigliere</name>
-            <email>javaconsigliere@gmail.com</email>
-            <url>http://xlogistx.io</url>
-            <organization>XlogistX.IO</organization>
-            <organizationUrl>http://xlogistx.io</organizationUrl>
-            <roles>
-                <role>architect</role>
-                <role>developer</role>
-            </roles>
-            <timezone>America/Los_Angeles</timezone>
-        </developer>
-    </developers>
 
     <modules>
         <module>common</module>
@@ -56,143 +33,6 @@
         <module>gui-audio</module>
     </modules>
 
-
-    <!-- Version definition -->
-<!--    <properties>-->
-<!--        <skipTests>true</skipTests>-->
-<!--        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>-->
-<!--        <jdk.version>8</jdk.version>-->
-<!--        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>-->
-<!--        <maven-plugin-source.version>3.2.1</maven-plugin-source.version>-->
-<!--        <maven-resources-plugin.version>3.3.0</maven-resources-plugin.version>-->
-<!--        <maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>-->
-<!--        <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>-->
-<!--        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>-->
-<!--        <maven-javadoc.version>3.4.1</maven-javadoc.version>-->
-<!--        <exec-maven.version>3.1.0</exec-maven.version>-->
-
-
-<!--        <commons-logging.version>RELEASE</commons-logging.version>-->
-<!--        <commons-beanutils.version>RELEASE</commons-beanutils.version>-->
-<!--        <commons-codec.version>RELEASE</commons-codec.version>-->
-<!--        <commons-csv.version>RELEASE</commons-csv.version>-->
-<!--        <commons-fileupload.version>1.5</commons-fileupload.version>-->
-<!--        <apache.shiro.version>1.13.0</apache.shiro.version>-->
-<!--        <ehcache-org.version>3.9.11</ehcache-org.version>-->
-<!--        <gson.version>2.13.1</gson.version>-->
-<!--        <javax-cache.version>RELEASE</javax-cache.version>-->
-<!--        <javax-servlet.version>4.0.1</javax-servlet.version>-->
-<!--        <jsoup.version>RELEASE</jsoup.version>-->
-<!--        <snakeyaml.version>RELEASE</snakeyaml.version>-->
-<!--        <junit.version>5.12.0</junit.version>-->
-<!--        <websocket.version>RELEASE</websocket.version>-->
-<!--        &lt;!&ndash;        <jsch.version>RELEASE</jsch.version>&ndash;&gt;-->
-
-
-<!--        <zoxweb-core.version>2.3.8</zoxweb-core.version>-->
-<!--        <okhttp.version>5.1.0</okhttp.version>-->
-<!--        <xlogistx.version>1.0.0</xlogistx.version>-->
-<!--        <java-xt-core.version>RELEASE</java-xt-core.version>-->
-<!--        <dnsjava.version>3.6.3</dnsjava.version>-->
-<!--        <apache-ssh.version>2.15.0</apache-ssh.version>-->
-
-<!--        <slf4j.version>RELEASE</slf4j.version>-->
-
-
-<!--        <cron-util.version>RELEASE</cron-util.version>-->
-<!--        <bc.version>RELEASE</bc.version>&lt;!&ndash; kyber crystal issue don't use RELEASE&ndash;&gt;-->
-<!--    </properties>-->
-
-<!--    <build>-->
-<!--        <directory>target</directory>-->
-<!--        <resources>-->
-<!--            <resource>-->
-<!--                <directory>src/main/java/</directory>-->
-<!--            </resource>-->
-<!--            <resource>-->
-<!--                <directory>src/main/resources/</directory>-->
-<!--            </resource>-->
-<!--        </resources>-->
-
-<!--        <plugins>-->
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-compiler-plugin</artifactId>-->
-<!--                <version>${maven-compiler-plugin.version}</version>-->
-<!--                <configuration>-->
-<!--                    <source>${jdk.version}</source>-->
-<!--                    <target>${jdk.version}</target>-->
-<!--                </configuration>-->
-
-<!--            </plugin>-->
-
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-surefire-plugin</artifactId>-->
-<!--                <version>${maven-surefire-plugin.version}</version>-->
-<!--                <configuration>-->
-<!--                    <skipTests>${skipTests}</skipTests>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
-
-
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-resources-plugin</artifactId>-->
-<!--                <version>${maven-resources-plugin.version}</version>-->
-<!--                <configuration>-->
-<!--                    <encoding>UTF-8</encoding>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
-
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-source-plugin</artifactId>-->
-<!--                <version>${maven-plugin-source.version}</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>attach-sources</id>-->
-<!--                        <goals>-->
-<!--                            <goal>jar</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
-
-<!--            &lt;!&ndash;-->
-<!--            <plugin>-->
-<!--              <groupId>org.apache.maven.plugins</groupId>-->
-<!--              <artifactId>maven-jar-plugin</artifactId>-->
-<!--              <version>${maven-jar-plugin.version}</version>-->
-<!--              <executions>-->
-<!--                <execution>-->
-<!--                  <goals>-->
-<!--                    <goal>test-jar</goal>-->
-<!--                  </goals>-->
-<!--                </execution>-->
-<!--              </executions>-->
-<!--            </plugin>-->
-
-<!--            <plugin>-->
-<!--              <groupId>org.apache.maven.plugins</groupId>-->
-<!--              <artifactId>maven-javadoc-plugin</artifactId>-->
-<!--              <version>${maven-javadoc.version}</version>-->
-<!--              <configuration>-->
-<!--                <failOnError>false</failOnError>-->
-<!--              </configuration>-->
-
-<!--              <executions>-->
-<!--                <execution>-->
-<!--                  <id>attach-javadocs</id>-->
-<!--                  <goals>-->
-<!--                    <goal>jar</goal>-->
-<!--                  </goals>-->
-<!--                </execution>-->
-<!--              </executions>-->
-<!--            </plugin>-->
-<!--             &ndash;&gt;-->
-<!--        </plugins>-->
-<!--    </build>-->
     <dependencyManagement>
         <dependencies>
 
@@ -268,11 +108,11 @@
                 <version>${snakeyaml.version}</version>
             </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>com.squareup.okhttp3</groupId>-->
-<!--                <artifactId>okhttp-jvm</artifactId>-->
-<!--                <version>${okhttp.version}</version>-->
-<!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>com.squareup.okhttp3</groupId>-->
+            <!--                <artifactId>okhttp-jvm</artifactId>-->
+            <!--                <version>${okhttp.version}</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>dnsjava</groupId>
