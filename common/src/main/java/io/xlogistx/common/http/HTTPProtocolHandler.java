@@ -110,6 +110,8 @@ public class HTTPProtocolHandler
         return override || isRequestComplete() ? responseStream : null;
     }
 
+    public HTTPMessageConfigInterface getResponse() {return isRequestComplete() ? response : null;}
+
     @Override
     public synchronized void close() throws IOException {
         if (!closed.getAndSet(true)) {
@@ -135,6 +137,11 @@ public class HTTPProtocolHandler
 
         return false;
     }
+
+    public NVGenericMap getResponseHeaders() {return getResponse() != null ? getResponse().getHeaders() : null;}
+
+    public NVGenericMap getResponseParameters() {return getResponse() != null ? getResponse().getParameters() : null;}
+
 
 
     public InetSocketAddress getClientAddress() {

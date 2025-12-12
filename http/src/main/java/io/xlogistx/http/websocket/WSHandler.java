@@ -66,7 +66,7 @@ public class WSHandler
      */
     @EndPointProp(methods = {HTTPMethod.GET}, name = "all-websocket", uris = "/web-socket-overridden")
     @Override
-    public void handle(@ParamProp(name = "WSProtocol", source = Const.ParamSource.RESOURCE) HTTPProtocolHandler hph)
+    public boolean handle(@ParamProp(name = "WSProtocol", source = Const.ParamSource.RESOURCE) HTTPProtocolHandler hph)
             throws IOException {
         if (log.isEnabled()) log.getLogger().info("Protocol " + hph.getProtocol());
         if (hph.isHTTPProtocol()) {
@@ -150,6 +150,8 @@ public class WSHandler
                 currentSession.detach();
             }
         }
+
+        return false;
     }
 
 

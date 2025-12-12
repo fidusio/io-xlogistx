@@ -7,10 +7,11 @@ import io.xlogistx.http.websocket.WSHandler;
 import io.xlogistx.shiro.ShiroInvoker;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
-import org.apache.shiro.SecurityUtils;
+//import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
+import org.zoxweb.server.http.HTTPHeaderParser;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -248,6 +249,12 @@ public class NIOHTTPServer
         // if the resource permission  is PERM_RESOURCE_ANY
         if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
                 !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
+            // check for the cookie
+            if(logger.isEnabled())
+                logger.getLogger().info("Request Headers: " + hph.getRequest(true).getHeaders());
+
+
+
             HTTPAuthorization httpAuthorization = hph.getRequest(true).getAuthorization();
             if (logger.isEnabled())
                 logger.getLogger().info("Authorization header: " + httpAuthorization);
@@ -282,25 +289,37 @@ public class NIOHTTPServer
                         }
                     }
 
+                    /**
+                     * session cookie check
+                     */
+                    try {
+                        GetNameValue<String> cookieHeader = hph.getRequest().getHeaders().lookup(HTTPHeader.COOKIE);
+                        if (cookieHeader != null) {
+                            NamedValue<?> cookie = HTTPHeaderParser.parseHeader(cookieHeader);
+                            if (cookie != null) {
+                                String jSessionID = cookie.getProperties().getValue(HTTPConst.SESSION_ID);
+                                if(ShiroUtil.loginBySessionID(jSessionID))
+                                    if(logger.isEnabled())
+                                        logger.getLogger().info("session: " + ShiroUtil.toString(ShiroUtil.subject().getSession()));
+
+                            }
+                        }
+                    }
+                    catch (Exception ex) { ex.printStackTrace();}
+
                     if (!ShiroUtil.subject().isAuthenticated()) {
-                        SecurityUtils.getSubject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+                        ShiroUtil.subject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
                         if (logger.isEnabled())
-                            logger.getLogger().info("subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                            logger.getLogger().info("subject : " + ShiroUtil.subject().getPrincipal() + " login: " + ShiroUtil.subject().isAuthenticated());
                     }
 
                     if (!ShiroUtil.isAuthorizedCheckPoint(epm.result.httpEndPoint)) {
-//                        HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(null, hph.getRequest().getURI(), hph.getRequest().getMethod());
-//                        hmci.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
-//                        hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
                         throw new HTTPCallException("Role Or Permission, Authorization Access Denied", HTTPStatusCode.UNAUTHORIZED);
                     }
 
                     if (hph.getRequest(true).isTransferChunked() && protoSession == null) {
-
-//                        Subject currentSubject = ShiroUtil.subject();
-//                        protoSession = new ShiroSession(currentSubject, null, hph::isRequestComplete);
                         hph.setConnectionSession(new ShiroSession<>(ShiroUtil.subject(), null, hph::isRequestComplete));
-                        logger.getLogger().info("TRANSFER-CHUNKED subject : " + SecurityUtils.getSubject().getPrincipal() + " login: " + SecurityUtils.getSubject().isAuthenticated());
+                        logger.getLogger().info("TRANSFER-CHUNKED subject : " + ShiroUtil.subject().getPrincipal() + " login: " + ShiroUtil.subject().isAuthenticated());
                     }
 
                     // need to add session here
@@ -309,6 +328,11 @@ public class NIOHTTPServer
                 }
             }
         }
+
+
+
+        if(logger.isEnabled())
+            logger.getLogger().info("session: " + ShiroUtil.toString(ShiroUtil.subject().getSession()));
 
     }
 
@@ -354,7 +378,9 @@ public class NIOHTTPServer
 
                         // check if instance of HTTPSessionHandler
                         if (epm.result.methodContainer.instance instanceof HTTPRawHandler) {
-                            ((HTTPRawHandler) epm.result.methodContainer.instance).handle(hph);
+                            if(((HTTPRawHandler) epm.result.methodContainer.instance).handle(hph))
+                                HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hph.getResponse(), hph.getOutputStream());
+
                         } else if (hph.isRequestComplete()) {
                             if (logger.isEnabled()) {
                                 logger.getLogger().info("" + epm.result.methodContainer.instance);
@@ -362,12 +388,14 @@ public class NIOHTTPServer
                                 logger.getLogger().info(epm.path);
                             }
 
-//                            Map<String, Object> parameters = endPointsManager.buildParameters(epm, hph.getRequest());
+                            /**
+                             * calling the implementation method that is processing the request
+                             */
                             Object result = epm.result.methodContainer.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
-//                                    ReflectionUtil.invokeMethod(epm.result.methodHolder.instance,
-//                                    epm.result.methodHolder.methodAnnotations,
-//                                    parameters);
 
+                            /**
+                             * Converting the result into a http response
+                             */
                             HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
                                     HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
@@ -415,11 +443,13 @@ public class NIOHTTPServer
                                 protoSession.close();
                                 hph.reset();
                             }
-                            ThreadContext.unbindSubject();
+//                            ThreadContext.unbindSubject();
 
-                        } else {
+                        }
+                        else if(!ShiroUtil.subject().isAuthenticated()){
                             ShiroUtil.subject().logout();
                         }
+                        ThreadContext.unbindSubject();
                     }
 
                 }
@@ -474,7 +504,7 @@ public class NIOHTTPServer
             // shiro registration
             if (shiroConfig != null) {
                 try {
-                    SecurityUtils.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
+                   ShiroUtil.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
 
 //                    IniRealm iniRealm = ShiroUtil.getRealm(IniRealm.class);
 //                    if (iniRealm != null) {
@@ -482,7 +512,7 @@ public class NIOHTTPServer
 //                        iniRealm.setCredentialsMatcher(new PasswordCredentialsMatcher());
 //                        logger.getLogger().info("Credential matcher set for realm:" + iniRealm);
 //                    }
-                    logger.getLogger().info("shiro security manager loaded " + SecurityUtils.getSecurityManager());
+                    logger.getLogger().info("shiro security manager loaded " + ShiroUtil.getSecurityManager());
 //                    securityManagerEnabled = true;
                 } catch (Exception e) {
                     e.printStackTrace();

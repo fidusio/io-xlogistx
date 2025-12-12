@@ -159,9 +159,12 @@
         }
       }
     },
-    /*{
+    {
       "bean": "io.xlogistx.http.services.Login"
-    },*/
+    },
+    {
+      "bean": "io.xlogistx.http.services.Logout"
+    },
     {
       "name": "public_file_loader",
       "description": "This handler will point to a PATH and local directory to enable file loading",
@@ -184,7 +187,8 @@
       ],
       "properties": {
         "base_folder": "/webs/xlogistx.io",
-        #"html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
+        #
+        "html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
         "default_file": "index.html",
         "caching": true
       }

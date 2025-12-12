@@ -32,6 +32,7 @@ import org.apache.shiro.session.Session;
 import org.apache.shiro.session.mgt.DefaultSessionKey;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.crypto.CryptoConst;
@@ -44,8 +45,8 @@ import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
 import org.zoxweb.shared.security.shiro.RealmController;
 import org.zoxweb.shared.security.shiro.RealmControllerHolder;
 import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
-import org.zoxweb.shared.util.ExceptionReason.Reason;
 import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.util.ExceptionReason.Reason;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -74,6 +75,15 @@ public class ShiroUtil {
         }
 
         return false;
+    }
+
+
+    public static void setSecurityManager(SecurityManager securityManager) {
+        SecurityUtils.setSecurityManager(securityManager);
+    }
+
+    public static SecurityManager getSecurityManager() {
+        return SecurityUtils.getSecurityManager();
     }
 
 //	public static Subject loginSubject(String domain, String realm, String username, String password)
@@ -596,6 +606,57 @@ public class ShiroUtil {
         }
 
         return null;
+    }
+
+    public static boolean loginBySessionID(String sessionID) {
+        if (sessionID == null) {
+            return false;
+        }
+
+        try {
+            // Get session by ID
+            Session session = SecurityUtils.getSecurityManager()
+                    .getSession(new DefaultSessionKey(sessionID));
+
+            if (session == null) {
+                return false;
+            }
+
+            // Extract principals from session
+            PrincipalCollection principals = (PrincipalCollection)
+                    session.getAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY);
+
+            if (principals == null || principals.isEmpty()) {
+                return false;
+            }
+
+            Boolean authenticated = (Boolean)
+                    session.getAttribute(DefaultSubjectContext.AUTHENTICATED_SESSION_KEY);
+
+            // Build the Subject
+            Subject subject = new Subject.Builder()
+                    .sessionId(sessionID)
+                    .principals(principals)
+                    .authenticated(authenticated != null && authenticated)
+                    .buildSubject();
+
+            // Bind to current thread
+            ThreadContext.bind(subject);
+
+            return true;
+
+        } catch (Exception e) {
+            // Session doesn't exist or is expired
+            return false;
+        }
+    }
+
+    public static String toString(Session session) {
+        if (session == null)
+            return "NO SESSION";
+
+        return SUS.toCanonicalID(',', session, session.getId(), Const.TimeInMillis.toString(session.getTimeout()), session.getAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY),
+                session.getAttribute(DefaultSubjectContext.AUTHENTICATED_SESSION_KEY));
     }
 
     /**

@@ -38,7 +38,7 @@ public class HTTPUploadHandler
     @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:upload:files")
     @Override
-    public void handle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
+    public boolean handle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
             throws IOException {
 
 
@@ -48,8 +48,7 @@ public class HTTPUploadHandler
 
         HTTPMessageConfig hmciRequest = (HTTPMessageConfig) hph.getRequest(true);
         if (hmciRequest.isTransferChunked()) {
-            chunkedHandle(hph);
-            return;
+            return chunkedHandle(hph);
         }
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
@@ -114,11 +113,11 @@ public class HTTPUploadHandler
         // ex
         hph.expire();
 
-
+        return true;
     }
 
 
-    private void chunkedHandle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
+    private boolean chunkedHandle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
             throws IOException {
 
         if (log.isEnabled()) log.getLogger().info("Chunked data");
@@ -221,16 +220,17 @@ public class HTTPUploadHandler
 
                 hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));
 
-                HTTPUtil.formatResponse(hmciResponse, hph.getResponseStream())
-                        .writeTo(hph.getOutputStream());
+//                HTTPUtil.formatResponse(hmciResponse, hph.getResponseStream())
+//                        .writeTo(hph.getOutputStream());
 
                 if (log.isEnabled()) log.getLogger().info("Done receiving File: " + file);
 
                 // ex
                 hph.expire();
+                return true;
             }
         }
-
+        return false;
 
     }
 
