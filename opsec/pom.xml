@@ -13,7 +13,9 @@
     <artifactId>xlogistx-opsec</artifactId>
     <packaging>jar</packaging>
 
-
+    <properties>
+        <password4j.version>1.8.4</password4j.version>
+    </properties>
 
     <build>
         <directory>target</directory>
