@@ -81,7 +81,7 @@ public class GeneratePEMAndCSR
             PKCS10CertificationRequest csr;
             if("EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm())) {
                 // Generate CSR
-                csr = OPSecUtil.SINGLETON.createCSR(keyPair, attrs, altNames, "DigitalSignature", "KeyAgreement");
+                csr = OPSecUtil.SINGLETON.createCSR(keyPair, attrs, altNames, "DigitalSignature", "KeyAgreement"/*, "DataEncipherment"*/);
                 System.out.println(keyPair.getPublic().getAlgorithm());
             }
             else

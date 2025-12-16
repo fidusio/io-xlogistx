@@ -338,7 +338,7 @@ public class OPSecUtil {
                 case "nonrepudiation":
                     keyUsageBits |= KeyUsage.nonRepudiation;
                     break;
-                case "datcipherment":
+                case "dataencipherment":
                     keyUsageBits |= KeyUsage.dataEncipherment;
                     break;
                 case "keyagreement":

@@ -22,7 +22,7 @@ public class YamlJsonUtil {
   }
 
 
-  private YamlJsonUtil(){};
+  private YamlJsonUtil(){}
 
   /**
    * Convert a yaml string to a json string
