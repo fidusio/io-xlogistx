@@ -7,20 +7,18 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.util.ParamUtil;
 
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 
-public class GeneratePEMAndCSR
-{
-    public static void main(String[] args)
-    {
+public class GeneratePEMAndCSR {
+    public static void main(String[] args) {
 
-        try
-        {
-            OutputStream os = null;
+        try {
+            OutputStream os;
 
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
             String keyType = params.stringValue("keytype");
@@ -34,85 +32,47 @@ public class GeneratePEMAndCSR
             String filename = OPSecUtil.SINGLETON.extractFilename(attrs);
 
 
-
             UByteArrayOutputStream keyBAOS = new UByteArrayOutputStream();
             // Save Private Key to PEM file
-            try (Writer writer = new OutputStreamWriter(keyBAOS))
-            {
+            try (Writer writer = new OutputStreamWriter(keyBAOS)) {
                 JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
-
-
-//                String[] parsed = keyType.split("[ ,:]");
-//                if (parsed.length != 2)
-//                {
-//                    throw new IllegalArgumentException("invalid key " + keyType + " ie:  rsa 2048 or ec:secp256r1 or use , as separator");
-//                }
-//                String parsedType = parsed[0].toUpperCase();
-//                String parsedSpec = parsed[1];
-//                if ("EC".equals(parsedType))
-//                {
-//                    // this a hack really should not be done like this
-//                    // just to fix a bug
-//                    switch(parsedSpec.toLowerCase())
-//                    {
-//                        case "secp256r1":
-//                            keyBAOS.write(OPSecUtil.BEGIN_EC_PARAM +"\n");
-//                            keyBAOS.write(OPSecUtil.SECP_256_R1_EC_VAL +"\n");
-//                            keyBAOS.write(OPSecUtil.END_EC_PARAM+"\n");
-//                            break;
-//                        case "secp384r1":
-//                            keyBAOS.write(OPSecUtil.BEGIN_EC_PARAM +"\n");
-//                            keyBAOS.write(OPSecUtil.SECP_384_R1_EC_VAL +"\n");
-//                            keyBAOS.write(OPSecUtil.END_EC_PARAM+"\n");
-//                            break;
-//                        default:
-//                            throw new IllegalArgumentException("Unsupported " + keyType);
-//
-//                    }
-//                }
-
 
                 pemWriter.writeObject(keyPair.getPrivate());
                 pemWriter.close();
-                os = new FileOutputStream(OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".key"));
+                os = Files.newOutputStream(Paths.get(OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".key")));
+                //os = new FileOutputStream(OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".key"));
                 keyBAOS.writeTo(os);
             }
 
             PKCS10CertificationRequest csr;
-            if("EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm())) {
+            if ("EC".equalsIgnoreCase(keyPair.getPublic().getAlgorithm())) {
                 // Generate CSR
                 csr = OPSecUtil.SINGLETON.createCSR(keyPair, attrs, altNames, "DigitalSignature", "KeyAgreement"/*, "DataEncipherment"*/);
                 System.out.println(keyPair.getPublic().getAlgorithm());
-            }
-            else
+            } else
                 csr = OPSecUtil.SINGLETON.createCSR(keyPair, attrs, altNames, "DigitalSignature", "KeyEncipherment");
 
 
             // Save CSR to PEM file
             UByteArrayOutputStream csrBAOS = new UByteArrayOutputStream();
-            try (Writer writer = new OutputStreamWriter(csrBAOS))
-            {
+            try (Writer writer = new OutputStreamWriter(csrBAOS)) {
                 JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
                 pemWriter.writeObject(csr);
                 pemWriter.close();
-                os = new FileOutputStream(OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".csr"));
+                os = Files.newOutputStream(Paths.get((OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".csr"))));
                 csrBAOS.writeTo(os);
-            }
-            finally
-            {
+            } finally {
                 IOUtil.close(os);
             }
 
             System.out.println("PEM and CSR files have been generated.\n");
 
 
-            System.out.println(keyBAOS.toString());
+            System.out.println(keyBAOS);
 
-            System.out.println(csrBAOS.toString());
+            System.out.println(csrBAOS);
 
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Usage: GeneratePEMAndCSR keytype=RSA:2048 attrs=\"CN=domain.com,L=LALA LAND\" [alt=\"DNS:www.domain.com\"] [out_dir=/temp/domain]");
             System.err.println("keytype=RSA or EC ie  RSA:2048 or ec:secp256r1");

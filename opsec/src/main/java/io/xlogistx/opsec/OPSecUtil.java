@@ -73,6 +73,54 @@ public class OPSecUtil {
     public static final String CK_NAME = "KYBER";
     public static final String CD_NAME = "DILITHIUM";
 
+    public enum KeyUsageType
+            implements GetNameValue<KeyUsage> {
+        DIGITAL_SIGNATURE("digitalSignature", new KeyUsage(KeyUsage.digitalSignature)),
+        NON_REPUDIATION("nonRepudiation", new KeyUsage(KeyUsage.nonRepudiation)),
+        KEY_ENCIPHERMENT("keyEncipherment", new KeyUsage(KeyUsage.keyEncipherment)),
+        DATA_ENCIPHERMENT("dataEncipherment", new KeyUsage(KeyUsage.dataEncipherment)),
+        KEY_AGREEMENT("keyAgreement", new KeyUsage(KeyUsage.keyAgreement)),
+        KEY_CERT_SIGN("keyCertSign", new KeyUsage(KeyUsage.keyCertSign)),
+        CRL_SIGN("cRLSign", new KeyUsage(KeyUsage.cRLSign)),
+        ENCIPHER_ONLY("encipherOnly", new KeyUsage(KeyUsage.encipherOnly)),
+        DECIPHER_ONLY("decipherOnly", new KeyUsage(KeyUsage.decipherOnly)),
+        ;
+
+        private final String name;
+        private final KeyUsage keyUsage;
+
+        KeyUsageType(String name, KeyUsage keyUsage) {
+            this.name = name;
+            this.keyUsage = keyUsage;
+        }
+
+        /**
+         * @return the name of the object
+         */
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        /**
+         * Returns the value.
+         *
+         * @return typed value
+         */
+        @Override
+        public KeyUsage getValue() {
+            return keyUsage;
+        }
+
+//        public int bitsPadUsage() {
+//            return keyUsage.getPadBits();
+//        }
+
+        public static KeyUsageType lookup(String name) {
+            return SharedUtil.lookupTypedEnum(KeyUsageType.values(), name);
+        }
+    }
+
 
 //    private final static Provider BC_PROVIDER = new BouncyCastleProvider();
 //    private static Provider BC_CHRYSTAL_PROVIDER = new BouncyCastlePQCProvider();
@@ -245,6 +293,205 @@ public class OPSecUtil {
         return builder.build(signer);
     }
 
+    /**
+     * Sign a CSR to produce a certificate.
+     *
+     * @param csr            the certificate signing request
+     * @param caPrivateKey   the CA's private key for signing
+     * @param caCert         the CA's certificate (issuer)
+     * @param duration       validity duration (e.g., "365d", "1y")
+     * @param copyExtensions if true, copy extensions from the CSR to the certificate
+     * @return the signed X509Certificate
+     */
+    public X509Certificate signCSR(PKCS10CertificationRequest csr,
+                                   PrivateKey caPrivateKey,
+                                   X509Certificate caCert,
+                                   String duration,
+                                   boolean copyExtensions) throws Exception {
+        // Extract public key from CSR
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        PublicKey subjectPublicKey = converter.getPublicKey(csr.getSubjectPublicKeyInfo());
+
+        // Set validity period
+        Date notBefore = new Date();
+        Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration));
+
+        // Generate serial number
+        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+
+        // Create certificate builder
+        X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                caCert,
+                serial,
+                notBefore,
+                notAfter,
+                csr.getSubject(),
+                subjectPublicKey
+        );
+
+        // Copy extensions from CSR if requested
+        if (copyExtensions) {
+            Extensions csrExtensions = extractExtensions(csr);
+            if (csrExtensions != null) {
+                for (ASN1ObjectIdentifier oid : csrExtensions.getExtensionOIDs()) {
+                    Extension ext = csrExtensions.getExtension(oid);
+                    certBuilder.addExtension(ext);
+                }
+            }
+        }
+
+        // Determine signature algorithm based on CA key type
+        String signatureAlgorithm = getSignatureAlgorithm(caPrivateKey);
+        ContentSigner signer = new JcaContentSignerBuilder(signatureAlgorithm)
+                .setProvider(BC_PROVIDER).build(caPrivateKey);
+
+        // Build and convert to X509Certificate
+        return new JcaX509CertificateConverter()
+                .setProvider(BC_PROVIDER)
+                .getCertificate(certBuilder.build(signer));
+    }
+
+    /**
+     * Sign a CSR to produce a certificate holder.
+     *
+     * @param csr            the certificate signing request
+     * @param caPrivateKey   the CA's private key for signing
+     * @param caCertHolder   the CA's certificate holder (issuer)
+     * @param days           validity in days
+     * @param copyExtensions if true, copy extensions from the CSR to the certificate
+     * @return the signed X509CertificateHolder
+     */
+    public X509CertificateHolder signCSR(PKCS10CertificationRequest csr,
+                                         PrivateKey caPrivateKey,
+                                         X509CertificateHolder caCertHolder,
+                                         int days,
+                                         boolean copyExtensions) throws Exception {
+        // Extract public key from CSR
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        PublicKey subjectPublicKey = converter.getPublicKey(csr.getSubjectPublicKeyInfo());
+
+        // Set validity period
+        long now = System.currentTimeMillis();
+        Date notBefore = new Date(now);
+        Date notAfter = new Date(now + Const.TimeInMillis.DAY.mult(days));
+
+        // Generate serial number
+        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+
+        // Create certificate builder
+        JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                caCertHolder.getSubject(),
+                serial,
+                notBefore,
+                notAfter,
+                csr.getSubject(),
+                subjectPublicKey
+        );
+
+        // Copy extensions from CSR if requested
+        if (copyExtensions) {
+            Extensions csrExtensions = extractExtensions(csr);
+            if (csrExtensions != null) {
+                for (ASN1ObjectIdentifier oid : csrExtensions.getExtensionOIDs()) {
+                    Extension ext = csrExtensions.getExtension(oid);
+                    certBuilder.addExtension(ext);
+                }
+            }
+        }
+
+        // Determine signature algorithm based on CA key type
+        String signatureAlgorithm = getSignatureAlgorithm(caPrivateKey);
+        ContentSigner signer = new JcaContentSignerBuilder(signatureAlgorithm)
+                .setProvider(BC_PROVIDER).build(caPrivateKey);
+
+        return certBuilder.build(signer);
+    }
+
+    /**
+     * Sign a CSR with additional extensions beyond those in the CSR.
+     *
+     * @param csr               the certificate signing request
+     * @param caPrivateKey      the CA's private key for signing
+     * @param caCert            the CA's certificate (issuer)
+     * @param duration          validity duration (e.g., "365d", "1y")
+     * @param additionalExtensions extra extensions to add
+     * @param copyCSRExtensions if true, copy extensions from the CSR
+     * @return the signed X509Certificate
+     */
+    public X509Certificate signCSR(PKCS10CertificationRequest csr,
+                                   PrivateKey caPrivateKey,
+                                   X509Certificate caCert,
+                                   String duration,
+                                   Extensions additionalExtensions,
+                                   boolean copyCSRExtensions) throws Exception {
+        // Extract public key from CSR
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        PublicKey subjectPublicKey = converter.getPublicKey(csr.getSubjectPublicKeyInfo());
+
+        // Set validity period
+        Date notBefore = new Date();
+        Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration));
+
+        // Generate serial number
+        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+
+        // Create certificate builder
+        X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                caCert,
+                serial,
+                notBefore,
+                notAfter,
+                csr.getSubject(),
+                subjectPublicKey
+        );
+
+        // Copy extensions from CSR if requested
+        if (copyCSRExtensions) {
+            Extensions csrExtensions = extractExtensions(csr);
+            if (csrExtensions != null) {
+                for (ASN1ObjectIdentifier oid : csrExtensions.getExtensionOIDs()) {
+                    Extension ext = csrExtensions.getExtension(oid);
+                    certBuilder.addExtension(ext);
+                }
+            }
+        }
+
+        // Add additional extensions
+        if (additionalExtensions != null) {
+            for (ASN1ObjectIdentifier oid : additionalExtensions.getExtensionOIDs()) {
+                Extension ext = additionalExtensions.getExtension(oid);
+                certBuilder.addExtension(ext);
+            }
+        }
+
+        // Determine signature algorithm based on CA key type
+        String signatureAlgorithm = getSignatureAlgorithm(caPrivateKey);
+        ContentSigner signer = new JcaContentSignerBuilder(signatureAlgorithm)
+                .setProvider(BC_PROVIDER).build(caPrivateKey);
+
+        // Build and convert to X509Certificate
+        return new JcaX509CertificateConverter()
+                .setProvider(BC_PROVIDER)
+                .getCertificate(certBuilder.build(signer));
+    }
+
+    private String getSignatureAlgorithm(PrivateKey privateKey) {
+        String algorithm = privateKey.getAlgorithm();
+        if ("EC".equalsIgnoreCase(algorithm) || "ECDSA".equalsIgnoreCase(algorithm)) {
+            return CryptoConst.SignatureAlgo.SHA256_EC.getName();
+        } else if ("RSA".equalsIgnoreCase(algorithm)) {
+            return CryptoConst.SignatureAlgo.SHA256_RSA.getName();
+        } else if ("Ed25519".equalsIgnoreCase(algorithm)) {
+            return "Ed25519";
+        } else if ("Ed448".equalsIgnoreCase(algorithm)) {
+            return "Ed448";
+        } else if (algorithm.toUpperCase().contains("DILITHIUM")) {
+            return "Dilithium";
+        }
+        // Default to RSA
+        return CryptoConst.SignatureAlgo.SHA256_RSA.getName();
+    }
+
     public KeyPair generateKeyPair(CanonicalID keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
@@ -326,44 +573,46 @@ public class OPSecUtil {
         // Step 1: Process Key Usage extension
         int keyUsageBits = 0;
         for (String prop : props) {
-            switch (prop.toLowerCase()) {
-                case "digitalsignature":
-                    keyUsageBits |= KeyUsage.digitalSignature;
-                    log.getLogger().info(prop);
-                    break;
-                case "keyencipherment":
-                    keyUsageBits |= KeyUsage.keyEncipherment;
-                    log.getLogger().info(prop);
-                    break;
-                case "nonrepudiation":
-                    keyUsageBits |= KeyUsage.nonRepudiation;
-                    break;
-                case "dataencipherment":
-                    keyUsageBits |= KeyUsage.dataEncipherment;
-                    break;
-                case "keyagreement":
-                    keyUsageBits |= KeyUsage.keyAgreement;
-                    log.getLogger().info(prop);
-                    break;
+            KeyUsageType keyUsage = KeyUsageType.lookup(prop);
+            if(keyUsage != null)
+                keyUsageBits |= keyUsage.getValue().getPadBits();
 
-                case "keycertsign":
-                    keyUsageBits |= KeyUsage.keyCertSign;
-                    break;
-
-                case "crlsign":
-                    keyUsageBits |= KeyUsage.cRLSign;
-                    break;
-
-                case "encipheronly":
-                    keyUsageBits |= KeyUsage.encipherOnly;
-                    break;
-
-                case "decipheronly":
-                    keyUsageBits |= KeyUsage.decipherOnly;
-                    break;
-
-            }
-
+//            switch (prop.toLowerCase()) {
+//                case "digitalsignature":
+//                    keyUsageBits |= KeyUsage.digitalSignature;
+//                    log.getLogger().info(prop);
+//                    break;
+//                case "keyencipherment":
+//                    keyUsageBits |= KeyUsage.keyEncipherment;
+//                    log.getLogger().info(prop);
+//                    break;
+//                case "nonrepudiation":
+//                    keyUsageBits |= KeyUsage.nonRepudiation;
+//                    break;
+//                case "dataencipherment":
+//                    keyUsageBits |= KeyUsage.dataEncipherment;
+//                    break;
+//                case "keyagreement":
+//                    keyUsageBits |= KeyUsage.keyAgreement;
+//                    log.getLogger().info(prop);
+//                    break;
+//
+//                case "keycertsign":
+//                    keyUsageBits |= KeyUsage.keyCertSign;
+//                    break;
+//
+//                case "crlsign":
+//                    keyUsageBits |= KeyUsage.cRLSign;
+//                    break;
+//
+//                case "encipheronly":
+//                    keyUsageBits |= KeyUsage.encipherOnly;
+//                    break;
+//
+//                case "decipheronly":
+//                    keyUsageBits |= KeyUsage.decipherOnly;
+//                    break;
+//            }
 
         }
         if (keyUsageBits != 0) {
@@ -478,11 +727,150 @@ public class OPSecUtil {
         return csrBuilder.build(signer);
     }
 
+    public PKCS10CertificationRequest readCSR(String pem) throws IOException {
+        try (PEMParser pemParser = new PEMParser(new StringReader(pem))) {
+            Object obj = pemParser.readObject();
+            if (obj instanceof PKCS10CertificationRequest) {
+                return (PKCS10CertificationRequest) obj;
+            }
+            throw new IllegalArgumentException("Invalid CSR PEM format: " + obj.getClass().getName());
+        }
+    }
+
+    public PKCS10CertificationRequest readCSR(File file) throws IOException {
+        try (PEMParser pemParser = new PEMParser(new FileReader(file))) {
+            Object obj = pemParser.readObject();
+            if (obj instanceof PKCS10CertificationRequest) {
+                return (PKCS10CertificationRequest) obj;
+            }
+            throw new IllegalArgumentException("Invalid CSR PEM format: " + obj.getClass().getName());
+        }
+    }
+
+    public PublicKey extractPublicKey(PKCS10CertificationRequest csr) throws IOException {
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        return converter.getPublicKey(csr.getSubjectPublicKeyInfo());
+    }
+
+    public Extensions extractExtensions(PKCS10CertificationRequest csr) {
+        org.bouncycastle.asn1.pkcs.Attribute[] attributes = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+        if (attributes != null && attributes.length > 0) {
+            org.bouncycastle.asn1.ASN1Set attrValues = attributes[0].getAttrValues();
+            if (attrValues.size() > 0) {
+                return Extensions.getInstance(attrValues.getObjectAt(0));
+            }
+        }
+        return null;
+    }
+
+    public KeyUsage extractKeyUsage(PKCS10CertificationRequest csr) {
+        Extensions extensions = extractExtensions(csr);
+        if (extensions != null) {
+            Extension keyUsageExt = extensions.getExtension(Extension.keyUsage);
+            if (keyUsageExt != null) {
+                return KeyUsage.getInstance(keyUsageExt.getParsedValue());
+            }
+        }
+        return null;
+    }
+
+    public GeneralNames extractSubjectAlternativeNames(PKCS10CertificationRequest csr) {
+        Extensions extensions = extractExtensions(csr);
+        if (extensions != null) {
+            Extension sanExt = extensions.getExtension(Extension.subjectAlternativeName);
+            if (sanExt != null) {
+                return GeneralNames.getInstance(sanExt.getParsedValue());
+            }
+        }
+        return null;
+    }
+
+    public String csrToString(PKCS10CertificationRequest csr) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Subject: ").append(csr.getSubject()).append("\n");
+        sb.append("Public Key Algorithm: ").append(csr.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm()).append("\n");
+        sb.append("Signature Algorithm: ").append(csr.getSignatureAlgorithm().getAlgorithm()).append("\n");
+
+        Extensions extensions = extractExtensions(csr);
+        if (extensions != null) {
+            sb.append("Extensions:\n");
+            for (ASN1ObjectIdentifier oid : extensions.getExtensionOIDs()) {
+                Extension ext = extensions.getExtension(oid);
+                sb.append("  - OID: ").append(oid).append(" (critical: ").append(ext.isCritical()).append(")\n");
+                if (oid.equals(Extension.keyUsage)) {
+                    KeyUsage ku = KeyUsage.getInstance(ext.getParsedValue());
+                    sb.append("    Key Usage: ").append(keyUsageToString(ku)).append("\n");
+                } else if (oid.equals(Extension.subjectAlternativeName)) {
+                    GeneralNames san = GeneralNames.getInstance(ext.getParsedValue());
+                    sb.append("    Subject Alt Names: ");
+                    for (GeneralName name : san.getNames()) {
+                        sb.append(generalNameToString(name)).append(", ");
+                    }
+                    sb.append("\n");
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    private String keyUsageToString(KeyUsage ku) {
+        StringBuilder sb = new StringBuilder();
+        int bits = ku.getPadBits();
+        if ((bits & KeyUsage.digitalSignature) != 0) sb.append("digitalSignature ");
+        if ((bits & KeyUsage.nonRepudiation) != 0) sb.append("nonRepudiation ");
+        if ((bits & KeyUsage.keyEncipherment) != 0) sb.append("keyEncipherment ");
+        if ((bits & KeyUsage.dataEncipherment) != 0) sb.append("dataEncipherment ");
+        if ((bits & KeyUsage.keyAgreement) != 0) sb.append("keyAgreement ");
+        if ((bits & KeyUsage.keyCertSign) != 0) sb.append("keyCertSign ");
+        if ((bits & KeyUsage.cRLSign) != 0) sb.append("cRLSign ");
+        if ((bits & KeyUsage.encipherOnly) != 0) sb.append("encipherOnly ");
+        if ((bits & KeyUsage.decipherOnly) != 0) sb.append("decipherOnly ");
+        return sb.toString().trim();
+    }
+
+    private String generalNameToString(GeneralName name) {
+        switch (name.getTagNo()) {
+            case GeneralName.dNSName:
+                return "DNS:" + name.getName();
+            case GeneralName.iPAddress:
+                return "IP:" + name.getName();
+            case GeneralName.rfc822Name:
+                return "Email:" + name.getName();
+            case GeneralName.uniformResourceIdentifier:
+                return "URI:" + name.getName();
+            default:
+                return name.toString();
+        }
+    }
 
     public String convertPrivateKeyToPEM(PrivateKey privateKey) throws IOException {
         StringWriter stringWriter = new StringWriter();
         try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
             pemWriter.writeObject(privateKey);
+        }
+        return stringWriter.toString();
+    }
+
+    public String convertCertificateToPEM(X509Certificate certificate) throws IOException {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(certificate);
+        }
+        return stringWriter.toString();
+    }
+
+    public String convertCertificateToPEM(X509CertificateHolder certificateHolder) throws IOException {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(certificateHolder);
+        }
+        return stringWriter.toString();
+    }
+
+    public String convertCSRToPEM(PKCS10CertificationRequest csr) throws IOException {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+            pemWriter.writeObject(csr);
         }
         return stringWriter.toString();
     }
