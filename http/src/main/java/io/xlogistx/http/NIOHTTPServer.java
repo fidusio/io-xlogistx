@@ -56,7 +56,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static String VERSION = "1.6.2";
+    public final static String VERSION = "1.6.3";
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -197,11 +197,11 @@ public class NIOHTTPServer
         }
     }
 
-    private void processException(HTTPProtocolHandler hph, OutputStream os, Exception e) {
+    private void processException(HTTPProtocolHandler hph, OutputStream os, Throwable e) {
         if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
                 if (e instanceof InvocationTargetException) {
-                    e = (Exception) ((InvocationTargetException) e).getTargetException();
+                    e = ((InvocationTargetException) e).getTargetException();
                 }
 
                 if (e instanceof AccessException) {
@@ -215,6 +215,11 @@ public class NIOHTTPServer
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 } else if (e instanceof AuthenticationException) {
                     HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
+                            HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
+                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+                } else if (e instanceof Error) {
+                    e.printStackTrace();
+                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.INTERNAL_SERVER_ERROR), hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 } else {
@@ -250,9 +255,8 @@ public class NIOHTTPServer
         if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
                 !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
             // check for the cookie
-            if(logger.isEnabled())
+            if (logger.isEnabled())
                 logger.getLogger().info("Request Headers: " + hph.getRequest(true).getHeaders());
-
 
 
             HTTPAuthorization httpAuthorization = hph.getRequest(true).getAuthorization();
@@ -298,14 +302,15 @@ public class NIOHTTPServer
                             NamedValue<?> cookie = HTTPHeaderParser.parseHeader(cookieHeader);
                             if (cookie != null) {
                                 String jSessionID = cookie.getProperties().getValue(HTTPConst.SESSION_ID);
-                                if(ShiroUtil.loginBySessionID(jSessionID))
-                                    if(logger.isEnabled())
+                                if (ShiroUtil.loginBySessionID(jSessionID))
+                                    if (logger.isEnabled())
                                         logger.getLogger().info("session: " + ShiroUtil.toString(ShiroUtil.subject().getSession()));
 
                             }
                         }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
-                    catch (Exception ex) { ex.printStackTrace();}
 
                     if (!ShiroUtil.subject().isAuthenticated()) {
                         ShiroUtil.subject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
@@ -330,8 +335,7 @@ public class NIOHTTPServer
         }
 
 
-
-        if(logger.isEnabled())
+        if (logger.isEnabled())
             logger.getLogger().info("session: " + ShiroUtil.toString(ShiroUtil.subject().getSession()));
 
     }
@@ -378,7 +382,7 @@ public class NIOHTTPServer
 
                         // check if instance of HTTPSessionHandler
                         if (epm.result.methodContainer.instance instanceof HTTPRawHandler) {
-                            if(((HTTPRawHandler) epm.result.methodContainer.instance).handle(hph))
+                            if (((HTTPRawHandler) epm.result.methodContainer.instance).handle(hph))
                                 HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hph.getResponse(), hph.getOutputStream());
 
                         } else if (hph.isRequestComplete()) {
@@ -445,8 +449,7 @@ public class NIOHTTPServer
                             }
 //                            ThreadContext.unbindSubject();
 
-                        }
-                        else if(!ShiroUtil.subject().isAuthenticated()){
+                        } else if (!ShiroUtil.subject().isAuthenticated()) {
                             ShiroUtil.subject().logout();
                         }
                         ThreadContext.unbindSubject();
@@ -504,7 +507,7 @@ public class NIOHTTPServer
             // shiro registration
             if (shiroConfig != null) {
                 try {
-                   ShiroUtil.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
+                    ShiroUtil.setSecurityManager(ShiroUtil.loadSecurityManager(shiroConfig));
 
 //                    IniRealm iniRealm = ShiroUtil.getRealm(IniRealm.class);
 //                    if (iniRealm != null) {
