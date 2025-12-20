@@ -72,7 +72,7 @@ public class DNSNIOProtocol
                     Record question = queryMsg.getQuestion();
                     if (question == null) continue;
                     SocketAddress refAddr = clientAddr;
-                    if (executor != null)
+                    if (localExecutor != null)
                         // parallel processing
                         localExecutor.execute(() -> {
                             try {
@@ -87,7 +87,9 @@ public class DNSNIOProtocol
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
-                rc.stop();
+                if (clientAddr != null) {
+                    rc.stop();
+                }
             }
         } while (clientAddr != null);
         if (log.isEnabled()) log.getLogger().info("rate-counter: " + rc);
