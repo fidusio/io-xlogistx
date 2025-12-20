@@ -33,6 +33,6 @@ public class DNSNIOFactory
      */
     @Override
     public DNSNIOProtocol newInstance() {
-        return new DNSNIOProtocol(getProperties().getValue("scheduler"));
+        return new DNSNIOProtocol(getProperties().getValue("executor"));
     }
 }

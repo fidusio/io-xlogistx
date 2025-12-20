@@ -76,11 +76,11 @@ public class DNSCache
             log.getLogger().info("port: " + port + " resolver: " + resolver);
             DNSRegistrar.SINGLETON.setResolver(resolver);
 
-            boolean scheduled = getProperties().getValue("scheduled", false);
-            if (scheduled) {
+            boolean parallel = getProperties().getValue("parallel", false);
+            if (parallel) {
                 if (nioSocket.getScheduler() != null) {
-                    DNSNIOFactory.SINGLETON.getProperties().build(GetNameValue.create("scheduler", nioSocket.getScheduler()));
-                    log.getLogger().info("We have to setup the scheduler " + DNSNIOFactory.SINGLETON.getProperties().getNV("scheduler"));
+                    DNSNIOFactory.SINGLETON.getProperties().build(GetNameValue.create("executor", nioSocket.getExecutor()));
+                    log.getLogger().info("We have to setup the executor " + DNSNIOFactory.SINGLETON.getProperties().getNV("executor"));
                 }
             }
             DNSNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
