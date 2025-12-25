@@ -1,8 +1,9 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
-import io.xlogistx.common.dns.DNSNIOFactory;
-import io.xlogistx.common.dns.DNSNIOProtocol;
+import io.xlogistx.common.dns.DNSTCPNIOFactory;
+import io.xlogistx.common.dns.DNSUDPNIOFactory;
+import io.xlogistx.common.dns.DNSUDPNIOProtocol;
 import io.xlogistx.common.dns.DNSRegistrar;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.http.NIOHTTPServer;
@@ -79,16 +80,19 @@ public class DNSCache
             boolean parallel = getProperties().getValue("parallel", false);
             if (parallel) {
                 if (nioSocket.getScheduler() != null) {
-                    DNSNIOFactory.SINGLETON.getProperties().build(GetNameValue.create("executor", nioSocket.getExecutor()));
-                    log.getLogger().info("We have to setup the executor " + DNSNIOFactory.SINGLETON.getProperties().getNV("executor"));
+                    DNSUDPNIOFactory.SINGLETON.getProperties().build(GetNameValue.create("executor", nioSocket.getExecutor()));
+
+                    log.getLogger().info("We have to setup the executor " + DNSUDPNIOFactory.SINGLETON.getProperties().getNV("executor"));
                 }
             }
-            DNSNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
-            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSNIOFactory.SINGLETON);
+            DNSUDPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
+            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSUDPNIOFactory.SINGLETON);
             NVGenericMap dnsCache = getProperties().getNV("cache");
             if (dnsCache != null)
                 for (GetNameValue<?> gnv : dnsCache.values())
                     DNSRegistrar.SINGLETON.register(gnv.getName(), (String) gnv.getValue());
+            nioSocket.addServerSocket(port, 250, DNSTCPNIOFactory.SINGLETON);
+
 
 
         } catch (Exception e) {

@@ -89,10 +89,10 @@ public class DNSSimple {
             for (GetNameValue<String> gnvs : hosts)
                 DNSRegistrar.SINGLETON.register(gnvs);
 
-            DNSNIOProtocol.log.setEnabled(true);
+            DNSUDPNIOProtocol.log.setEnabled(true);
             //syncProcessing()
             NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
-            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSNIOFactory.SINGLETON);
+            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSUDPNIOFactory.SINGLETON);
 
 
         } catch (Exception e) {

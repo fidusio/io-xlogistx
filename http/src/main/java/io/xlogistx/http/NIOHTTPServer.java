@@ -28,6 +28,7 @@ import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.app.AppVersionDAO;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
@@ -56,7 +57,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static String VERSION = "1.6.5";
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.7.1");
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -743,7 +744,7 @@ public class NIOHTTPServer
 
     @Override
     public String getVersion() {
-        return VERSION;
+        return VERSION.version();
     }
 
     /**
@@ -751,7 +752,7 @@ public class NIOHTTPServer
      */
     @Override
     public String getName() {
-        return "NOYFB";
+        return VERSION.getName();
     }
 
 }

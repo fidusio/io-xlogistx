@@ -2,12 +2,12 @@ package io.xlogistx.common.dns;
 
 import org.zoxweb.server.net.ProtocolFactoryBase;
 
-public class DNSNIOFactory
-        extends ProtocolFactoryBase<DNSNIOProtocol> {
+public class DNSTCPNIOFactory
+        extends ProtocolFactoryBase<DNSTCPNIOProtocol> {
 
-    public static final DNSNIOFactory SINGLETON = new DNSNIOFactory();
+    public static final DNSTCPNIOFactory SINGLETON = new DNSTCPNIOFactory();
 
-    private DNSNIOFactory() {
+    private DNSTCPNIOFactory() {
     }
 
     /**
@@ -23,7 +23,7 @@ public class DNSNIOFactory
      */
     @Override
     public String getName() {
-        return "DNSNIOFactory";
+        return "DNSTCPNIOFactory";
     }
 
     /**
@@ -32,7 +32,7 @@ public class DNSNIOFactory
      * @return new instance of T
      */
     @Override
-    public DNSNIOProtocol newInstance() {
-        return new DNSNIOProtocol(getProperties().getValue("executor"));
+    public DNSTCPNIOProtocol newInstance() {
+        return new DNSTCPNIOProtocol();
     }
 }

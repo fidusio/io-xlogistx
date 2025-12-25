@@ -19,7 +19,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DNSNIOProtocol
+public class DNSUDPNIOProtocol
         extends ProtocolHandler {
     public static final int DNS_BUFFER_SIZE = 4096;
     public static final LogWrapper log = new LogWrapper(ProtocolHandler.class).setEnabled(false);
@@ -31,7 +31,7 @@ public class DNSNIOProtocol
     private final Lock localLock = new ReentrantLock();
 
 
-    public DNSNIOProtocol(Executor localExecutor) {
+    public DNSUDPNIOProtocol(Executor localExecutor) {
         super(false);
         this.localExecutor = localExecutor;
     }
@@ -56,33 +56,41 @@ public class DNSNIOProtocol
                 clientAddr = channel.receive(buffer);
                 if (clientAddr != null) {
                     rc.start();
-                    buffer.flip();
 
                     Message queryMsg;
+                    byte[] data = ByteBufferUtil.allocateByteArray(buffer, true);
+                    if(log.isEnabled()) log.getLogger().info("Data buffer size: " + data.length);
                     try {
-                        queryMsg = new Message(buffer);
+                        queryMsg = new Message(data);
                     } catch (IOException ex) {
                         // Ignore invalid DNS messages
                         ex.printStackTrace();
+                        // crucial for performance
+                        ByteBufferUtil.cache(data);
                         continue;
                     }
 
                     if (log.isEnabled()) log.getLogger().info("query : " + queryMsg.getQuestion());
 
                     Record question = queryMsg.getQuestion();
-                    if (question == null) continue;
-                    SocketAddress refAddr = clientAddr;
+                    if (question == null) {
+                        // crucial for performance
+                        ByteBufferUtil.cache(data);
+                        continue;
+                    }
+
+                    SocketAddress refClientAddress = clientAddr;
                     if (localExecutor != null)
                         // parallel processing
                         localExecutor.execute(() -> {
                             try {
-                                processResponse(channel, refAddr, queryMsg, question);
+                                processUDPResponse(data, channel, refClientAddress, queryMsg, question);
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         });
                     else
-                        processResponse(channel, refAddr, queryMsg, question);
+                        processUDPResponse(data, channel, refClientAddress, queryMsg, question);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -93,42 +101,46 @@ public class DNSNIOProtocol
             }
         } while (clientAddr != null);
         if (log.isEnabled()) log.getLogger().info("rate-counter: " + rc);
-        if (log.isEnabled()) log.getLogger().info("threadinfo: " + GSONUtil.toJSONDefault(TaskUtil.info()));
+        if (log.isEnabled()) log.getLogger().info("threads-info: " + GSONUtil.toJSONDefault(TaskUtil.info()));
     }
 
-
-    private void processResponse(DatagramChannel channel, SocketAddress clientAddr, Message queryMsg, Record question)
+    private void processUDPResponse(byte[] data, DatagramChannel channel, SocketAddress clientAddress, Message queryMsg, Record question)
             throws IOException {
-        Message responseMsg = new Message(queryMsg.getHeader().getID());
-        responseMsg.getHeader().setFlag(Flags.QR); // set as response
-        responseMsg.addRecord(question, Section.QUESTION);
-
-        String qName = question.getName().toString();
-
-
-        if (log.isEnabled()) log.getLogger().info("qName: " + qName);
-
-        InetAddress cachedHost = DNSRegistrar.SINGLETON.lookup(qName);
-        if (question.getType() == Type.A && cachedHost != null) { // Handle locally if in customDomains and Type A query
-            responseMsg.addRecord(new ARecord(question.getName(), DClass.IN, 60, cachedHost), Section.ANSWER);
-        } else {
-
-            // Forward to upstream resolver if no executor is present
-            try {
-                responseMsg = DNSRegistrar.SINGLETON.resolve(queryMsg);
-                responseMsg.getHeader().setID(queryMsg.getHeader().getID());
-            } catch (Exception ex) {
-                // If upstream fails, just send empty response
-                // Optionally set RCODE to SERVFAIL
-                responseMsg.getHeader().setRcode(Rcode.SERVFAIL);
-            }
-        }
-
         try {
-            localLock.lock();
-            channel.send(ByteBuffer.wrap(responseMsg.toWire(DNS_BUFFER_SIZE)), clientAddr);
+            Message responseMsg = new Message(queryMsg.getHeader().getID());
+            responseMsg.getHeader().setFlag(Flags.QR); // set as response
+            responseMsg.addRecord(question, Section.QUESTION);
+
+            String qName = question.getName().toString();
+
+
+            if (log.isEnabled()) log.getLogger().info("qName: " + qName);
+
+            InetAddress cachedHost = DNSRegistrar.SINGLETON.lookup(qName);
+            if (question.getType() == Type.A && cachedHost != null) { // Handle locally if in customDomains and Type A query
+                responseMsg.addRecord(new ARecord(question.getName(), DClass.IN, 60, cachedHost), Section.ANSWER);
+            } else {
+
+                // Forward to upstream resolver if no executor is present
+                try {
+                    responseMsg = DNSRegistrar.SINGLETON.resolve(queryMsg);
+                    responseMsg.getHeader().setID(queryMsg.getHeader().getID());
+                } catch (Exception ex) {
+                    // If upstream fails, just send empty response
+                    // Optionally set RCODE to SERVFAIL
+                    responseMsg.getHeader().setRcode(Rcode.SERVFAIL);
+                }
+            }
+
+            try {
+                localLock.lock();
+                channel.send(ByteBuffer.wrap(responseMsg.toWire(DNS_BUFFER_SIZE)), clientAddress);
+            } finally {
+                localLock.unlock();
+            }
         } finally {
-            localLock.unlock();
+            // crucial for performance
+            ByteBufferUtil.cache(data);
         }
     }
 
@@ -148,14 +160,6 @@ public class DNSNIOProtocol
      */
     @Override
     public String getName() {
-        return "DNSNIOProtocol";
+        return "DNSUDPNIOProtocol";
     }
-
-//    public ScheduledExecutorService getScheduler() {
-//        return scheduler;
-//    }
-//
-//    public void setScheduler(ScheduledExecutorService scheduler) {
-//        this.scheduler = scheduler;
-//    }
 }
