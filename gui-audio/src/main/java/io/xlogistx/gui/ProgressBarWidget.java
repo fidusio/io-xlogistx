@@ -64,7 +64,7 @@ public class ProgressBarWidget extends JPanel
 
     public synchronized ProgressBarWidget setPercentConverter(PercentConverter percentValue)
     {
-        SUS.checkIfNulls("PercentValue can't be null");
+        SUS.checkIfNulls("PercentValue can't be null", percentValue);
         this.percentConverter = percentValue;
         range = percentValue.iRange();
         return this;

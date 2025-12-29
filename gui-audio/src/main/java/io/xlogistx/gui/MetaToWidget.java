@@ -89,7 +89,6 @@ public class MetaToWidget {
 
 
     public MappedObject<?, JComponent> create(GetNameValue<?> gnv) {
-        System.out.println(gnv.getClass());
         return new MappedObject(gnv, metaToWidget.lookup(gnv.getClass()).newInstance(gnv), metaWidgetSetter.lookup(gnv.getClass()));
     }
 

@@ -1,10 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
-import io.xlogistx.common.dns.DNSTCPNIOFactory;
-import io.xlogistx.common.dns.DNSUDPNIOFactory;
-import io.xlogistx.common.dns.DNSUDPNIOProtocol;
-import io.xlogistx.common.dns.DNSRegistrar;
+import io.xlogistx.common.dns.*;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.shiro.ShiroUtil;
@@ -86,12 +83,18 @@ public class DNSCache
                 }
             }
             DNSUDPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
+            DNSTCPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
+
             nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSUDPNIOFactory.SINGLETON);
+            log.getLogger().info("UDP DNS service started on port " + port);
             NVGenericMap dnsCache = getProperties().getNV("cache");
             if (dnsCache != null)
                 for (GetNameValue<?> gnv : dnsCache.values())
                     DNSRegistrar.SINGLETON.register(gnv.getName(), (String) gnv.getValue());
-            nioSocket.addServerSocket(port, 250, DNSTCPNIOFactory.SINGLETON);
+            if(getProperties().getValue("add_tcp", false)) {
+                nioSocket.addServerSocket(port, 250, DNSTCPNIOFactory.SINGLETON);
+                log.getLogger().info("TCP DNS service started on port " + port);
+            }
 
 
 

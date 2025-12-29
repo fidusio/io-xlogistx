@@ -156,7 +156,7 @@ public class DynamicComboBox extends JPanel {
     public int moveNext() {
         int count = comboBox.getItemCount();
         int nextIndex = comboBox.getSelectedIndex() + 1;
-        if (nextIndex + 1 > count)
+        if (nextIndex >= count)
             nextIndex = 0;
 
         comboBox.setSelectedIndex(nextIndex);

@@ -17,11 +17,11 @@ public class GUIUtil {
     public static final Color END_COLOR = new Color(0, 255, 0);
 
     public static final Color LIGHT_RED = new Color(255, 102, 102);
-    public static final Color BOOTSTARP_RED = new Color(0Xdc3545);
+    public static final Color BOOTSTRAP_RED = new Color(0Xdc3545);
     public static final Color DARK_RED = new Color(139, 0, 0);
 
     public static final Color LIGHT_GREEN = new Color(144, 238, 144);
-    public static final Color BOOTSTARP_GREEN = new Color(0X28a745);
+    public static final Color BOOTSTRAP_GREEN = new Color(0X28a745);
     public static final Color DARK_GREEN = new Color(0, 100, 0);
 
 
@@ -119,7 +119,7 @@ public class GUIUtil {
         }
 
         public CancelIcon(int size, Color color) {
-            super(size, color, BOOTSTARP_RED);
+            super(size, color, BOOTSTRAP_RED);
         }
 
         @Override
@@ -149,7 +149,7 @@ public class GUIUtil {
         }
 
         public MinusIcon(int size, Color color) {
-            super(size, color, BOOTSTARP_RED);
+            super(size, color, BOOTSTRAP_RED);
         }
 
         @Override
