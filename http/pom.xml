@@ -29,13 +29,6 @@
       <artifactId>junit-jupiter-params</artifactId>
     </dependency>
 
-
-	
-<!--	<dependency>-->
-<!--	  <groupId>org.zoxweb</groupId>-->
-<!--	  <artifactId>zoxweb-core</artifactId>-->
-<!--	</dependency>-->
-
     <dependency>
       <groupId>io.xlogistx</groupId>
       <artifactId>xlogistx-common</artifactId>
@@ -47,7 +40,6 @@
       <artifactId>xlogistx-core</artifactId>
       <version>${xlogistx.version}</version>
     </dependency>
-
 
     <dependency>
       <groupId>io.xlogistx</groupId>
@@ -65,8 +57,17 @@
       <version>${websocket.version}</version>
     </dependency>
 
-
-
   </dependencies>
+
+<!--  <build>-->
+<!--    <resources>-->
+<!--      <resource>-->
+<!--        <directory>src/main/resources</directory>-->
+<!--        <excludes>-->
+<!--          <exclude>**/*</exclude>-->
+<!--        </excludes>-->
+<!--      </resource>-->
+<!--    </resources>-->
+<!--  </build>-->
 
 </project>

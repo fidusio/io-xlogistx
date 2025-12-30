@@ -232,7 +232,7 @@ public class HTTPProtocolHandler
 
         if (result != null && response.getContentType() == null)
             response.setContentType(contentType);
-        validateKeepAlive();
+        validateKeepAliveAndOtherStuff();
         return response;
     }
 
@@ -252,13 +252,13 @@ public class HTTPProtocolHandler
                     respHeaders.add(header);
         }
 
-        validateKeepAlive();
+        validateKeepAliveAndOtherStuff();
 
         return response;
     }
 
 
-    private void validateKeepAlive() {
+    private void validateKeepAliveAndOtherStuff() {
 
         if (log.isEnabled()) log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
         if (isExpired() || response.getHTTPStatusCode().CODE >= HTTPStatusCode.BAD_REQUEST.CODE) {
@@ -281,6 +281,10 @@ public class HTTPProtocolHandler
                 if (log.isEnabled()) log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
             }
         }
+
+        // check if it is https
+        if(getProtocol() == URIScheme.HTTPS)
+            response.getHeaders().add(HTTPConst.CommonHeader.STRICT_TRANSPORT_SECURITY);
     }
 
 

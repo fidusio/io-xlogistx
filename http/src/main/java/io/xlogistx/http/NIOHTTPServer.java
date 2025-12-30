@@ -57,7 +57,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.7.2");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.7.3");
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -67,6 +67,7 @@ public class NIOHTTPServer
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.Creator<PlainSessionCallback> httpIC = HTTPSession::new;
     private final InstanceFactory.Creator<SSLSessionCallback> httpsIC = HTTPsSession::new;
+    private volatile String httpsRedirect = null;
 
 
     /**
@@ -81,17 +82,21 @@ public class NIOHTTPServer
 
             try {
                 if (hph.parseRequest(inBuffer)) {
+
                     ThreadContext.put(HTTPProtocolHandler.SESSION_CONTEXT, hph);
-                    if (logger.isEnabled())
-                        logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
 
-                    incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
+                    if (!httpsRedirect()) {
+                        if (logger.isEnabled())
+                            logger.getLogger().info("\n" + hph.getRawRequest().getDataStream().toString());
 
-                    if (hph.isExpired())
-                        IOUtil.close(this);
+                        incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
 
-                    if (logger.isEnabled())
-                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
+                        if (hph.isExpired())
+                            IOUtil.close(this);
+
+                        if (logger.isEnabled())
+                            logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
+                    }
                 } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
@@ -105,6 +110,29 @@ public class NIOHTTPServer
                 if (logger.isEnabled()) logger.getLogger().info("hph removed: " + hphToRemove);
             }
 
+        }
+
+
+        private boolean httpsRedirect()
+                throws IOException {
+            if (httpsRedirect != null) {
+                HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
+                redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
+                String uri = hph.getRequest().getURI();
+                if (uri == null)
+                    uri = "/";
+
+                if (!uri.startsWith("/"))
+                    uri = "/" + uri;
+
+                redirect308.getHeaders().add(HTTPHeader.LOCATION, httpsRedirect + uri);
+                HTTPUtil.formatResponse(redirect308, hph.getResponseStream());
+                hph.getResponseStream(true).writeTo(get());
+                IOUtil.close(this);
+
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -348,9 +376,8 @@ public class NIOHTTPServer
         switch (hph.getProtocol()) {
             case HTTPS:
             case HTTP:
-                // HTTP protocol processing
             {
-
+                // HTTP protocol processing
                 try {
 
                     if (logger.isEnabled()) {
@@ -461,6 +488,7 @@ public class NIOHTTPServer
             break;
             case WSS:
             case WS:
+                // web socket processing
                 ((HTTPRawHandler) hph.getEndPointBean()).handle(hph);
                 // web socket processing here
                 break;
@@ -579,6 +607,7 @@ public class NIOHTTPServer
 
             if (logger.isEnabled()) logger.getLogger().info("Connection Configs: " + Arrays.toString(ccs));
             // connection configuration
+            int sslPort = -1;
             for (ConnectionConfig cc : ccs) {
                 String[] schemes = cc.getSchemes();
                 for (String scheme : schemes) {
@@ -590,6 +619,7 @@ public class NIOHTTPServer
                                 // we need to create a https server
                                 logger.getLogger().info("we need to create an https server");
                                 serverAddress = cc.getSocketConfig();
+                                sslPort = serverAddress.getPort();
 
                                 NVGenericMap sslConfig = cc.getSSLConfig();
                                 String ksPassword = sslConfig.getValue("keystore_password");
@@ -643,6 +673,11 @@ public class NIOHTTPServer
                     }
                 }
             }
+            if (config.getProperties().getValue("https_redirect") != null && sslPort > 0) {
+                httpsRedirect = URIScheme.HTTPS.getName() + "://" + config.getProperties().getValue("https_redirect") + (sslPort != URIScheme.HTTPS.getValue() ? ":" + sslPort : "");
+                logger.getLogger().info("https redirect @ " + httpsRedirect);
+            }
+
 
             // create end point scanner
         }
