@@ -8,6 +8,7 @@ import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.util.ThreadContext;
+import org.zoxweb.server.http.HTTPHeaderParser;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
@@ -17,9 +18,7 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.SUS;
+import org.zoxweb.shared.util.*;
 
 import javax.websocket.Session;
 import java.io.IOException;
@@ -64,7 +63,7 @@ public class WSHandler
      * @param hph
      * @throws IOException
      */
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "all-websocket", uris = "/web-socket-overridden")
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "all-websocket", uris = "/web-socket-overridde")
     @Override
     public boolean handle(@ParamProp(name = "WSProtocol", source = Const.ParamSource.RESOURCE) HTTPProtocolHandler hph)
             throws IOException {
@@ -85,13 +84,16 @@ public class WSHandler
 
             resp.setHTTPStatusCode(HTTPStatusCode.SWITCHING_PROTOCOLS);
 
-            // Minimum negotiation
+
             try {
+               GetNameValue<String> supportedProtocol = parseHeaderRequestProtocol(hph.getRequest().getHeaders());
+
                 resp.getHeaders().build(headers.get(HTTPHeader.UPGRADE)).
                         build(HTTPHeader.CONNECTION.toHTTPHeader("upgrade")).
                         // caused disconnection with chrome and edge
                         //build(HTTPHeader.SEC_WEBSOCKET_PROTOCOL.toHTTPHeader("chat")).
                                 build(HTTPHeader.SEC_WEBSOCKET_ACCEPT.toHTTPHeader(HashUtil.hashAsBase64("sha-1", headers.getValue(HTTPHeader.SEC_WEBSOCKET_KEY) + HTTPWSProto.WEB_SOCKET_UUID)));
+                if(supportedProtocol != null) resp.getHeaders().build(supportedProtocol);
             } catch (NoSuchAlgorithmException e) {
                 throw new IOException(e);
             }
@@ -154,6 +156,18 @@ public class WSHandler
         return false;
     }
 
+
+    private static GetNameValue<String> parseHeaderRequestProtocol(NVGenericMap headers)
+    {
+        GetNameValue<String> hProtocol = headers.getNV(HTTPHeader.SEC_WEBSOCKET_PROTOCOL);
+        if(hProtocol != null){
+            GetNameValue<?> webSocketProtocol = HTTPHeaderParser.parseHeader(hProtocol);
+            if(log.isEnabled()) log.getLogger().info("" + webSocketProtocol);
+            // we need to check protocols TBD MN-2025-12-30
+        }
+
+        return null;
+    }
 
     private void processWSMessage(HTTPProtocolHandler hph)
             throws IOException {
@@ -223,7 +237,16 @@ public class WSHandler
                     } catch (Exception e) {
                         e.printStackTrace();
                         log.getLogger().info(webSocketSession.isOpen() + " " + frame.id() + " " + e);
-                        //
+                        Method onErrorMethod = methodCache.lookup(WSCache.WSMethodType.ERROR, false);
+                        if (onErrorMethod != null) {
+                            try {
+                                // Error Processing OnError
+                                onErrorMethod.invoke(bean, e, webSocketSession);
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+
                     }
                 }
             }

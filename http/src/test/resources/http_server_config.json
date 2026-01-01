@@ -26,7 +26,8 @@
     "on-shutdown": {
       "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
     },
-    "https_redirect" : "localhost"
+
+
   },
   "connections": [
     {
