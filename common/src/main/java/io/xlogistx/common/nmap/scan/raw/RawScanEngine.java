@@ -2,9 +2,7 @@ package io.xlogistx.common.nmap.scan.raw;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
-import io.xlogistx.common.nmap.service.ServiceMatch;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.net.NIOSocket;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,8 +17,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -35,10 +33,10 @@ public abstract class RawScanEngine implements ScanEngine {
 
     public static final LogWrapper log = new LogWrapper(RawScanEngine.class).setEnabled(false);
 
-    protected NIOSocket nioSocket;
+
     protected NMapConfig config;
     protected ExecutorService executor;
-    protected volatile boolean closed = false;
+    protected volatile AtomicBoolean closed = new AtomicBoolean(false);
     protected final AtomicInteger activeScans = new AtomicInteger(0);
 
     @Override
@@ -56,17 +54,9 @@ public abstract class RawScanEngine implements ScanEngine {
     }
 
     @Override
-    public void init(NIOSocket nioSocket, NMapConfig config) {
-        this.nioSocket = nioSocket;
+    public void init(ExecutorService executorService, NMapConfig config) {
         this.config = config;
-        this.executor = Executors.newFixedThreadPool(
-            Math.max(4, config.getMaxParallelism()),
-            r -> {
-                Thread t = new Thread(r, "RawScan-" + getScanType().name());
-                t.setDaemon(true);
-                return t;
-            }
-        );
+        this.executor = executorService;
     }
 
     @Override
@@ -125,13 +115,13 @@ public abstract class RawScanEngine implements ScanEngine {
             long endTime = System.currentTimeMillis();
 
             return ScanResult.builder(host)
-                .resolveAddress()
-                .hostUp(hostUp)
-                .hostUpReason(hostUp ? "tcp-response" : "no-response")
-                .startTime(startTime)
-                .endTime(endTime)
-                .portResults(results)
-                .build();
+                    .resolveAddress()
+                    .hostUp(hostUp)
+                    .hostUpReason(hostUp ? "tcp-response" : "no-response")
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .portResults(results)
+                    .build();
         }, executor);
     }
 
@@ -200,10 +190,10 @@ public abstract class RawScanEngine implements ScanEngine {
             // Fallback - shouldn't reach here normally
             long responseTime = System.currentTimeMillis() - startTime;
             return PortResult.builder(port, getScanType().getProtocol())
-                .state(PortState.UNKNOWN)
-                .reason("unknown")
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.UNKNOWN)
+                    .reason("unknown")
+                    .responseTime(responseTime)
+                    .build();
 
         } catch (java.net.ConnectException e) {
             // Connection refused - port is closed
@@ -213,10 +203,10 @@ public abstract class RawScanEngine implements ScanEngine {
             // No route - host is unreachable
             long responseTime = System.currentTimeMillis() - startTime;
             return PortResult.builder(port, getScanType().getProtocol())
-                .state(PortState.FILTERED)
-                .reason("no-route")
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.FILTERED)
+                    .reason("no-route")
+                    .responseTime(responseTime)
+                    .build();
         } catch (SocketTimeoutException e) {
             // Timeout - port is filtered
             long responseTime = System.currentTimeMillis() - startTime;
@@ -233,10 +223,10 @@ public abstract class RawScanEngine implements ScanEngine {
             }
 
             return PortResult.builder(port, getScanType().getProtocol())
-                .state(PortState.FILTERED)
-                .reason("error: " + reason)
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.FILTERED)
+                    .reason("error: " + reason)
+                    .responseTime(responseTime)
+                    .build();
         } finally {
             closeQuietly(selector);
             closeQuietly(channel);
@@ -248,9 +238,9 @@ public abstract class RawScanEngine implements ScanEngine {
      */
     protected PortResult createOpenResult(int port, long responseTime, SocketChannel channel) {
         PortResult.Builder builder = PortResult.builder(port, getScanType().getProtocol())
-            .state(PortState.OPEN)
-            .reason(getOpenReason())
-            .responseTime(responseTime);
+                .state(PortState.OPEN)
+                .reason(getOpenReason())
+                .responseTime(responseTime);
 
         // Try to grab banner if service detection is enabled
         if (config.isServiceDetection()) {
@@ -275,10 +265,10 @@ public abstract class RawScanEngine implements ScanEngine {
         }
 
         return PortResult.builder(port, getScanType().getProtocol())
-            .state(PortState.CLOSED)
-            .reason(reason)
-            .responseTime(responseTime)
-            .build();
+                .state(PortState.CLOSED)
+                .reason(reason)
+                .responseTime(responseTime)
+                .build();
     }
 
     /**
@@ -286,10 +276,10 @@ public abstract class RawScanEngine implements ScanEngine {
      */
     protected PortResult createFilteredResult(int port, long responseTime) {
         return PortResult.builder(port, getScanType().getProtocol())
-            .state(PortState.FILTERED)
-            .reason("no-response")
-            .responseTime(responseTime)
-            .build();
+                .state(PortState.FILTERED)
+                .reason("no-response")
+                .responseTime(responseTime)
+                .build();
     }
 
     /**
@@ -361,9 +351,9 @@ public abstract class RawScanEngine implements ScanEngine {
     @Override
     public void stop() {
         // Cancel ongoing scans by shutting down executor
-        if (executor != null && !executor.isShutdown()) {
-            executor.shutdownNow();
-        }
+//        if (executor != null && !executor.isShutdown()) {
+//            executor.shutdownNow();
+//        }
     }
 
     @Override
@@ -373,19 +363,25 @@ public abstract class RawScanEngine implements ScanEngine {
 
     @Override
     public void close() {
-        if (closed) return;
-        closed = true;
+        if (!closed.getAndSet(true)) {
 
-        if (executor != null) {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
         }
+
+//        if (executor != null) {
+//            executor.shutdown();
+//            try {
+//                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+//                    executor.shutdownNow();
+//                }
+//            } catch (InterruptedException e) {
+//                executor.shutdownNow();
+//                Thread.currentThread().interrupt();
+//            }
+//        }
+    }
+
+    @Override
+    public ExecutorService getExecutor() {
+        return executor;
     }
 }

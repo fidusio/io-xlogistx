@@ -3,7 +3,7 @@ package io.xlogistx.common.nmap.scan.udp;
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,9 +29,9 @@ public class UDPScanEngine implements ScanEngine {
     public static final LogWrapper log = new LogWrapper(UDPScanEngine.class).setEnabled(false);
 
     private NMapConfig config;
-    private ExecutorService executor;
+    private  ExecutorService executor;
     private volatile boolean initialized = false;
-    private volatile boolean closed = false;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicInteger activeScans = new AtomicInteger(0);
     private Semaphore parallelismLimiter;
 
@@ -66,7 +67,6 @@ public class UDPScanEngine implements ScanEngine {
         0x05, 0x00               // Value: NULL
     };
 
-    private static final byte[] EMPTY_PROBE = new byte[0];
 
     @Override
     public ScanType getScanType() {
@@ -85,21 +85,14 @@ public class UDPScanEngine implements ScanEngine {
     }
 
     @Override
-    public void init(NIOSocket nioSocket, NMapConfig config) {
+    public void init(ExecutorService executor, NMapConfig config) {
         if (initialized) {
             throw new IllegalStateException("Engine already initialized");
         }
 
         this.config = config;
         this.parallelismLimiter = new Semaphore(config.getMaxParallelism());
-        this.executor = Executors.newFixedThreadPool(
-            Math.max(4, config.getMaxParallelism()),
-            r -> {
-                Thread t = new Thread(r, "UDPScan");
-                t.setDaemon(true);
-                return t;
-            }
-        );
+        this.executor = executor;
         this.initialized = true;
 
         if (log.isEnabled()) {
@@ -111,7 +104,7 @@ public class UDPScanEngine implements ScanEngine {
     public CompletableFuture<PortResult> scanPort(String host, int port) {
         checkInitialized();
 
-        if (closed) {
+        if (closed.get()) {
             CompletableFuture<PortResult> closedFuture = new CompletableFuture<>();
             closedFuture.completeExceptionally(new IllegalStateException("Engine is closed"));
             return closedFuture;
@@ -272,7 +265,7 @@ public class UDPScanEngine implements ScanEngine {
             case 162:
                 return SNMP_PROBE;
             default:
-                return EMPTY_PROBE;
+                return Const.EMPTY_BYTE_ARRAY;
         }
     }
 
@@ -290,7 +283,7 @@ public class UDPScanEngine implements ScanEngine {
     public CompletableFuture<ScanResult> scanHost(String host, List<Integer> ports) {
         checkInitialized();
 
-        if (closed) {
+        if (closed.get()) {
             CompletableFuture<ScanResult> closedFuture = new CompletableFuture<>();
             closedFuture.completeExceptionally(new IllegalStateException("Engine is closed"));
             return closedFuture;
@@ -385,22 +378,25 @@ public class UDPScanEngine implements ScanEngine {
 
     @Override
     public void close() {
-        if (closed) return;
-        closed = true;
+        if (!closed.getAndSet(true))
+            stop();
 
-        stop();
+//        if (executor != null) {
+//            executor.shutdown();
+//            try {
+//                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+//                    executor.shutdownNow();
+//                }
+//            } catch (InterruptedException e) {
+//                executor.shutdownNow();
+//                Thread.currentThread().interrupt();
+//            }
+//        }
+    }
 
-        if (executor != null) {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
+    @Override
+    public ExecutorService getExecutor() {
+        return executor;
     }
 
     private void checkInitialized() {

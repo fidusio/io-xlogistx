@@ -1,11 +1,11 @@
 package io.xlogistx.common.nmap.scan;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
-import org.zoxweb.server.net.NIOSocket;
 
 import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Interface for scan engine implementations.
@@ -33,10 +33,10 @@ public interface ScanEngine extends Closeable {
      * Initialize the engine with an NIOSocket.
      * This is called before scanning begins.
      *
-     * @param nioSocket the NIO socket to use for scanning
+     * @param executorService the NIO socket to use for scanning
      * @param config the scan configuration
      */
-    void init(NIOSocket nioSocket, NMapConfig config);
+    void init(ExecutorService executorService, NMapConfig config);
 
     /**
      * Scan a single port on a host.
@@ -85,4 +85,6 @@ public interface ScanEngine extends Closeable {
      */
     @Override
     void close();
+
+    ExecutorService getExecutor();
 }

@@ -6,14 +6,17 @@ import io.xlogistx.common.nmap.config.TargetSpecification;
 import io.xlogistx.common.nmap.config.TimingTemplate;
 import io.xlogistx.common.nmap.output.OutputFormat;
 import io.xlogistx.common.nmap.output.ScanReport;
-import io.xlogistx.common.nmap.scan.*;
+import io.xlogistx.common.nmap.scan.ScanEngine;
+import io.xlogistx.common.nmap.scan.ScanResult;
+import io.xlogistx.common.nmap.scan.ScanType;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.server.task.TaskUtil;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Main NMap scanner orchestrator.
@@ -30,19 +33,20 @@ public class NMapScanner implements Closeable {
     private final Map<ScanType, ScanEngine> engines;
     private final ExecutorService executor;
     private volatile boolean running = false;
-    private volatile boolean closed = false;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private NMapScanner(NMapConfig config) {
         this.config = config;
         this.engines = new EnumMap<>(ScanType.class);
-        this.executor = Executors.newFixedThreadPool(
-            Math.max(4, config.getMaxParallelism() / 10),
-            r -> {
-                Thread t = new Thread(r, "NMapScanner-Worker");
-                t.setDaemon(true);
-                return t;
-            }
-        );
+        this.executor = TaskUtil.defaultTaskProcessor();
+//        this.executor = Executors.newFixedThreadPool(
+//            Math.max(4, config.getMaxParallelism() / 10),
+//            r -> {
+//                Thread t = new Thread(r, "NMapScanner-Worker");
+//                t.setDaemon(true);
+//                return t;
+//            }
+//        );
     }
 
     /**
@@ -66,7 +70,7 @@ public class NMapScanner implements Closeable {
      */
     public NMapScanner registerEngine(ScanEngine engine) {
         // Pass null for NIOSocket since engines use pure Java NIO internally
-        engine.init(null, config);
+        engine.init(TaskUtil.defaultTaskProcessor(), config);
         engines.put(engine.getScanType(), engine);
         return this;
     }
@@ -90,7 +94,7 @@ public class NMapScanner implements Closeable {
      * Perform the scan asynchronously.
      */
     public CompletableFuture<ScanReport> scanAsync() {
-        if (closed) {
+        if (closed.get()) {
             CompletableFuture<ScanReport> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("Scanner is closed"));
             return future;
@@ -205,7 +209,11 @@ public class NMapScanner implements Closeable {
      */
     public void stop() {
         for (ScanEngine engine : engines.values()) {
-            engine.stop();
+            try {
+                engine.close();
+            } catch (Exception e) {
+                log.getLogger().warning("Error closing engine: " + e.getMessage());
+            }
         }
     }
 
@@ -220,7 +228,7 @@ public class NMapScanner implements Closeable {
      * Check if the scanner is closed
      */
     public boolean isClosed() {
-        return closed;
+        return closed.get();
     }
 
     /**
@@ -250,30 +258,9 @@ public class NMapScanner implements Closeable {
 
     @Override
     public void close() {
-        if (closed) return;
-        closed = true;
+        if (!closed.getAndSet(true))
+            stop();
 
-        stop();
-
-        // Close all engines
-        for (ScanEngine engine : engines.values()) {
-            try {
-                engine.close();
-            } catch (Exception e) {
-                log.getLogger().warning("Error closing engine: " + e.getMessage());
-            }
-        }
-
-        // Shutdown executor
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
     }
 
     /**
@@ -284,8 +271,8 @@ public class NMapScanner implements Closeable {
     }
 
     public static class Builder {
-        private NMapConfig.Builder configBuilder = NMapConfig.builder();
-        private List<ScanEngine> customEngines = new ArrayList<>();
+        private final NMapConfig.Builder configBuilder = NMapConfig.builder();
+        private final List<ScanEngine> customEngines = new ArrayList<>();
 
         public Builder target(String target) {
             configBuilder.target(target);

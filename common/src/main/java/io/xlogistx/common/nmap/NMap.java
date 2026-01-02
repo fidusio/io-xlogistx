@@ -9,6 +9,7 @@ import io.xlogistx.common.nmap.scan.tcp.TCPConnectScanEngine;
 import io.xlogistx.common.nmap.scan.udp.UDPScanEngine;
 import org.zoxweb.server.net.NIOChannelMonitor;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.util.Const;
 
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ import java.util.List;
 public class NMap
 {
     public static void main(String... args) {
+        TaskUtil.setTaskProcessorThreadCount(64);
+        long start = System.currentTimeMillis();
         try {
             if (args.length == 0 || containsHelp(args)) {
                 printUsage();
@@ -69,7 +72,7 @@ public class NMap
                 .timing(parsed.timing)
                 .timeout(parsed.timeout)
                 .serviceDetection(parsed.serviceDetection)
-                .verbose(parsed.verbose);
+                .verbose(parsed.verbose).maxParallelism(64);
 
             if (parsed.ports != null) {
                 configBuilder.ports(parsed.ports);
@@ -106,7 +109,9 @@ public class NMap
 
             // Cleanup
             scanner.close();
+
             TaskUtil.waitIfBusyThenClose(50);
+            System.out.println("Finished " + ScanReport.SCANNER_NAME + " at " + java.time.LocalDateTime.now() + " it took " + Const.TimeInMillis.toString(System.currentTimeMillis() -startTime));
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
