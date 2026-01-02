@@ -25,9 +25,7 @@
     },
     "on-shutdown": {
       "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
-    },
-
-
+    }
   },
   "connections": [
     {
