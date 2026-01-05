@@ -17,17 +17,13 @@ public class HostDiscovery {
     private final List<DiscoveryMethod> methods;
     private final ExecutorService executor;
 
-    public HostDiscovery() {
+    public HostDiscovery(ExecutorService executor) {
         this.methods = new ArrayList<>();
-        this.executor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "HostDiscovery");
-            t.setDaemon(true);
-            return t;
-        });
+        this.executor = executor;
 
         // Register default methods
-        methods.add(new TCPPing());
-        methods.add(new ICMPPing());
+        methods.add(new TCPPing(executor));
+        methods.add(new ICMPPing(executor));
     }
 
     /**
@@ -117,18 +113,4 @@ public class HostDiscovery {
         });
     }
 
-    /**
-     * Shutdown the discovery service
-     */
-    public void shutdown() {
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-    }
 }

@@ -47,6 +47,12 @@ public interface ScanEngine extends Closeable {
      */
     CompletableFuture<PortResult> scanPort(String host, int port);
 
+
+//    void asyncScanPort(String host, int port);
+//    void asyncScanHost(String host, List<Integer> ports);
+
+//    void asyncScanPort(String host, int port);
+
     /**
      * Scan multiple ports on a host.
      *

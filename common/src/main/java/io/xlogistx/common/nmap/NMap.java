@@ -9,6 +9,7 @@ import io.xlogistx.common.nmap.scan.tcp.TCPConnectScanEngine;
 import io.xlogistx.common.nmap.scan.udp.UDPScanEngine;
 import org.zoxweb.server.net.NIOChannelMonitor;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.util.Const;
 
 import java.io.FileWriter;
@@ -41,11 +42,12 @@ import java.util.List;
  *   -oC <file>      CSV output to file
  *   -oA <basename>  Output in all formats
  */
-public class NMap
-{
+public class NMap {
     public static void main(String... args) {
         TaskUtil.setTaskProcessorThreadCount(64);
-        long start = System.currentTimeMillis();
+        TaskUtil.setMaxTasksQueue(2048);
+//        TaskProcessor.log.setEnabled(true);
+        NMapScanner.log.setEnabled(true);
         try {
             if (args.length == 0 || containsHelp(args)) {
                 printUsage();
@@ -67,12 +69,13 @@ public class NMap
 
             // Build configuration
             NMapConfig.Builder configBuilder = NMapConfig.builder()
-                .targets(parsed.targets.toArray(new String[0]))
-                .scanType(parsed.scanType)
-                .timing(parsed.timing)
-                .timeout(parsed.timeout)
-                .serviceDetection(parsed.serviceDetection)
-                .verbose(parsed.verbose).maxParallelism(64);
+                    .targets(parsed.targets.toArray(new String[0]))
+                    .scanType(parsed.scanType)
+                    .timing(parsed.timing)
+                    .timeout(parsed.timeout)
+                    .serviceDetection(parsed.serviceDetection)
+//                    .maxParallelism(64)
+                    .verbose(parsed.verbose);
 
             if (parsed.ports != null) {
                 configBuilder.ports(parsed.ports);
@@ -87,7 +90,7 @@ public class NMap
             NMapConfig config = configBuilder.build();
 
             // Create and configure scanner
-            NMapScanner scanner = NMapScanner.create(config);
+            NMapScanner scanner = NMapScanner.create(TaskUtil.defaultTaskProcessor(), config);
 
             // Register engines based on scan type
             if (parsed.scanType == ScanType.TCP_CONNECT || parsed.scanType.isTcp()) {
@@ -100,18 +103,22 @@ public class NMap
             // Run scan
             long startTime = System.currentTimeMillis();
             System.out.println("Starting " + ScanReport.SCANNER_NAME + " " +
-                ScanReport.SCANNER_VERSION + " at " + java.time.LocalDateTime.now());
+                    ScanReport.SCANNER_VERSION + " at " + java.time.LocalDateTime.now());
 
             ScanReport report = scanner.scan();
 
+            System.out.println("After " + ScanReport.SCANNER_NAME + " " +
+                    ScanReport.SCANNER_VERSION + " at " + java.time.LocalDateTime.now());
             // Output results
             outputResults(report, parsed);
 
             // Cleanup
             scanner.close();
 
+            TaskUtil.waitIfBusy(50);
+            System.out.println("Finished " + ScanReport.SCANNER_NAME + " at " + java.time.LocalDateTime.now() + " it took " + Const.TimeInMillis.toString(System.currentTimeMillis() - startTime));
+            System.out.println("Finished " + GSONUtil.toJSONDefault(TaskUtil.info(), true));
             TaskUtil.waitIfBusyThenClose(50);
-            System.out.println("Finished " + ScanReport.SCANNER_NAME + " at " + java.time.LocalDateTime.now() + " it took " + Const.TimeInMillis.toString(System.currentTimeMillis() -startTime));
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

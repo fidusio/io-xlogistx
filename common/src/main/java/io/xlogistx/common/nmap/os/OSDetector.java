@@ -9,7 +9,6 @@ import org.zoxweb.server.logging.LogWrapper;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * OS detection based on TCP/IP stack analysis.
@@ -22,13 +21,9 @@ public class OSDetector {
     private final ExecutorService executor;
     private final ICMPPing icmpPing;
 
-    public OSDetector() {
-        this.executor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "OSDetector");
-            t.setDaemon(true);
-            return t;
-        });
-        this.icmpPing = new ICMPPing();
+    public OSDetector(ExecutorService executor) {
+        this.executor = executor;
+        this.icmpPing = new ICMPPing(executor);
     }
 
     /**
@@ -150,10 +145,4 @@ public class OSDetector {
         }
     }
 
-    /**
-     * Shutdown the detector
-     */
-    public void shutdown() {
-        executor.shutdown();
-    }
 }

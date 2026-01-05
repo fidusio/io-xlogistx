@@ -2,6 +2,7 @@ package io.xlogistx.common.nmap.scan.udp;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.Const;
 
@@ -127,6 +128,16 @@ public class UDPScanEngine implements ScanEngine {
         }, executor);
     }
 
+//    @Override
+//    public void asyncScanPort(String host, int port) {
+//
+//    }
+//
+//    @Override
+//    public void asyncScanHost(String host, List<Integer> ports) {
+//
+//    }
+
     /**
      * Perform UDP scan using DatagramChannel.
      */
@@ -249,8 +260,7 @@ public class UDPScanEngine implements ScanEngine {
                 .responseTime(responseTime)
                 .build();
         } finally {
-            closeQuietly(selector);
-            closeQuietly(channel);
+            IOUtil.close(selector, channel);
         }
     }
 
@@ -269,15 +279,7 @@ public class UDPScanEngine implements ScanEngine {
         }
     }
 
-    private void closeQuietly(java.io.Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                // Ignore
-            }
-        }
-    }
+
 
     @Override
     public CompletableFuture<ScanResult> scanHost(String host, List<Integer> ports) {

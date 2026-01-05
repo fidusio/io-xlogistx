@@ -8,7 +8,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * ICMP ping discovery method.
@@ -24,12 +23,8 @@ public class ICMPPing implements DiscoveryMethod {
 
     private final ExecutorService executor;
 
-    public ICMPPing() {
-        this.executor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "ICMPPing");
-            t.setDaemon(true);
-            return t;
-        });
+    public ICMPPing(ExecutorService executor) {
+        this.executor = executor;
     }
 
     @Override
@@ -127,12 +122,5 @@ public class ICMPPing implements DiscoveryMethod {
         }
 
         return DiscoveryResult.down("no-response", "icmp");
-    }
-
-    /**
-     * Shutdown the executor service.
-     */
-    public void shutdown() {
-        executor.shutdown();
     }
 }

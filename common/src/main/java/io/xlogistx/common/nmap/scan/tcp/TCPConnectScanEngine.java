@@ -2,6 +2,7 @@ package io.xlogistx.common.nmap.scan.tcp;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.IOException;
@@ -11,10 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,6 +37,8 @@ public class TCPConnectScanEngine implements ScanEngine {
     // Track pending results by host
     private final ConcurrentMap<String, List<CompletableFuture<PortResult>>> pendingByHost =
         new ConcurrentHashMap<>();
+
+    private final List<PortResult> portScanResults = Collections.synchronizedList(new ArrayList<>());
 
     @Override
     public ScanType getScanType() {
@@ -102,6 +102,49 @@ public class TCPConnectScanEngine implements ScanEngine {
         }, executor);
     }
 
+//    @Override
+//    public void asyncScanPort(String host, int port) {
+//        executor.submit(new CallableConsumer<PortResult>() {
+//
+//            /**
+//             * Performs this operation on the given argument.
+//             *
+//             * @param o the input argument
+//             */
+//            @Override
+//            public void accept(PortResult o) {
+//                portScanResults.add(o);
+//            }
+//
+//            public void exception(Exception e){
+//                PortResult.error(port, "tcp", "interrupted");
+//            }
+//
+//            /**
+//             * Computes a result, or throws an exception if unable to do so.
+//             *
+//             * @return computed result
+//             * @throws Exception if unable to compute a result
+//             */
+//            @Override
+//            public PortResult call() throws Exception {
+//
+//                activeScans.incrementAndGet();
+//                try {
+//                    return performTcpConnect(host, port);
+//                } finally {
+//                    activeScans.decrementAndGet();
+//                }
+//            }
+//
+//        });
+//    }
+
+//    @Override
+//    public void asyncScanHost(String host, List<Integer> ports) {
+//
+//    }
+
     /**
      * Perform TCP connect scan using NIO SocketChannel.
      */
@@ -122,9 +165,9 @@ public class TCPConnectScanEngine implements ScanEngine {
 
             // Start connection
             InetSocketAddress address = new InetSocketAddress(host, port);
-            boolean connected = channel.connect(address);
+            //boolean connected = channel.connect(address);
 
-            if (!connected) {
+            if (!channel.connect(address)) {
                 // Connection in progress, wait for completion
                 channel.register(selector, SelectionKey.OP_CONNECT);
 
@@ -212,8 +255,7 @@ public class TCPConnectScanEngine implements ScanEngine {
                 .responseTime(responseTime)
                 .build();
         } finally {
-            closeQuietly(selector);
-            closeQuietly(channel);
+            IOUtil.close(selector, channel);
         }
     }
 
@@ -285,21 +327,12 @@ public class TCPConnectScanEngine implements ScanEngine {
                 log.getLogger().fine("Banner grab failed: " + e.getMessage());
             }
         } finally {
-            closeQuietly(readSelector);
+            IOUtil.close(readSelector);
         }
 
         return null;
     }
 
-    private void closeQuietly(java.io.Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                // Ignore
-            }
-        }
-    }
 
     @Override
     public CompletableFuture<ScanResult> scanHost(String host, List<Integer> ports) {
@@ -317,6 +350,7 @@ public class TCPConnectScanEngine implements ScanEngine {
         List<CompletableFuture<PortResult>> futures = new ArrayList<>();
 
         for (int port : ports) {
+            log.getLogger().info("Scanning on port " + port);
             CompletableFuture<PortResult> future = scanPort(host, port);
             futures.add(future);
 
@@ -350,6 +384,7 @@ public class TCPConnectScanEngine implements ScanEngine {
             for (CompletableFuture<PortResult> future : futures) {
                 try {
                     PortResult result = future.get();
+                    log.getLogger().info("after get " + result);
                     results.add(result);
                     if (result.isOpen() || result.isClosed()) {
                         hostUp = true;

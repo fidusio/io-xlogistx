@@ -2,6 +2,7 @@ package io.xlogistx.common.nmap.scan.raw;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.IOException;
@@ -228,8 +229,7 @@ public abstract class RawScanEngine implements ScanEngine {
                     .responseTime(responseTime)
                     .build();
         } finally {
-            closeQuietly(selector);
-            closeQuietly(channel);
+            IOUtil.close(selector, channel);
         }
     }
 
@@ -326,7 +326,7 @@ public abstract class RawScanEngine implements ScanEngine {
                     }
                 }
             } finally {
-                closeQuietly(readSelector);
+                IOUtil.close(readSelector);
             }
         } catch (Exception e) {
             // Banner grab failed, that's ok
@@ -337,16 +337,16 @@ public abstract class RawScanEngine implements ScanEngine {
 
         return null;
     }
-
-    private void closeQuietly(java.io.Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                // Ignore
-            }
-        }
-    }
+//
+//    private void closeQuietly(java.io.Closeable closeable) {
+//        if (closeable != null) {
+//            try {
+//                closeable.close();
+//            } catch (IOException e) {
+//                // Ignore
+//            }
+//        }
+//    }
 
     @Override
     public void stop() {
@@ -384,4 +384,14 @@ public abstract class RawScanEngine implements ScanEngine {
     public ExecutorService getExecutor() {
         return executor;
     }
+//
+//    @Override
+//    public void asyncScanPort(String host, int port) {
+//
+//    }
+//
+//    @Override
+//    public void asyncScanHost(String host, List<Integer> ports) {
+//
+//    }
 }

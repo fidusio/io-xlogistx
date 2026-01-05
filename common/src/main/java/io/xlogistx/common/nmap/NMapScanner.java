@@ -10,12 +10,14 @@ import io.xlogistx.common.nmap.scan.ScanEngine;
 import io.xlogistx.common.nmap.scan.ScanResult;
 import io.xlogistx.common.nmap.scan.ScanType;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.task.ConsumerCallback;
 
 import java.io.Closeable;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -35,10 +37,10 @@ public class NMapScanner implements Closeable {
     private volatile boolean running = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    private NMapScanner(NMapConfig config) {
+    private NMapScanner(ExecutorService executor, NMapConfig config) {
         this.config = config;
         this.engines = new EnumMap<>(ScanType.class);
-        this.executor = TaskUtil.defaultTaskProcessor();
+        this.executor = executor;
 //        this.executor = Executors.newFixedThreadPool(
 //            Math.max(4, config.getMaxParallelism() / 10),
 //            r -> {
@@ -52,18 +54,10 @@ public class NMapScanner implements Closeable {
     /**
      * Create a scanner with the given configuration
      */
-    public static NMapScanner create(NMapConfig config) {
-        return new NMapScanner(config);
+    public static NMapScanner create(ExecutorService executor, NMapConfig config) {
+        return new NMapScanner(executor, config);
     }
 
-    /**
-     * Create a scanner with custom NIOSocket (for backwards compatibility).
-     * Note: NIOSocket is not used by scan engines, they use pure Java NIO.
-     */
-    public static NMapScanner create(NMapConfig config, NIOSocket nioSocket) {
-        // NIOSocket is ignored - scan engines use pure Java NIO
-        return new NMapScanner(config);
-    }
 
     /**
      * Register a scan engine for a specific scan type
@@ -91,101 +85,120 @@ public class NMapScanner implements Closeable {
     }
 
     /**
-     * Perform the scan asynchronously.
+     * Perform the scan asynchronously using scanStreaming() - no join() or blocking.
      */
     public CompletableFuture<ScanReport> scanAsync() {
+        long startTime = System.currentTimeMillis();
+        TargetSpecification targets = config.getTargets();
+        PortSpecification ports = config.getPorts();
+        ScanType primaryType = config.getPrimaryScanType();
+
+        // Collect results as they stream in
+        List<ScanResult> results = Collections.synchronizedList(new ArrayList<>());
+
+        // Use scanStreaming and build report when complete
+        return scanStreaming(new ConsumerCallback<ScanResult>() {
+            @Override
+            public void accept(ScanResult result) {
+                log.getLogger().info("Scan result: " + result);
+                results.add(result);
+            }
+
+            @Override
+            public void exception(Exception e) {
+                log.getLogger().info("Scan error: " + e.getMessage());
+            }
+        }).thenApply(v -> {
+            long endTime = System.currentTimeMillis();
+
+            return ScanReport.builder()
+                .config(config)
+                .startTime(startTime)
+                .endTime(endTime)
+                .hostResults(results)
+                .addStatistic("total_hosts", targets.getTargetCount())
+                .addStatistic("total_ports_per_host", ports.getTotalPortCount())
+                .addStatistic("scan_type", primaryType.name())
+                .addStatistic("timing", config.getTiming().name())
+                .build();
+        });
+    }
+
+    /**
+     * Perform scan with streaming results - callback invoked as each host completes.
+     * No join() or blocking - results stream as they become available.
+     *
+     * @param callback receives each ScanResult as it completes; exception() called on errors
+     * @return CompletableFuture that completes when all scans finish
+     */
+    public CompletableFuture<Void> scanStreaming(ConsumerCallback<ScanResult> callback) {
         if (closed.get()) {
-            CompletableFuture<ScanReport> future = new CompletableFuture<>();
+            CompletableFuture<Void> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("Scanner is closed"));
             return future;
         }
 
         if (running) {
-            CompletableFuture<ScanReport> future = new CompletableFuture<>();
+            CompletableFuture<Void> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("Scan already in progress"));
             return future;
         }
 
         running = true;
-        long startTime = System.currentTimeMillis();
 
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                List<ScanResult> results = new ArrayList<>();
-                TargetSpecification targets = config.getTargets();
-                PortSpecification ports = config.getPorts();
+        // Get the primary scan engine
+        ScanType primaryType = config.getPrimaryScanType();
+        ScanEngine engine = engines.get(primaryType);
 
-                // Get the primary scan engine
-                ScanType primaryType = config.getPrimaryScanType();
-                ScanEngine engine = engines.get(primaryType);
+        if (engine == null) {
+            running = false;
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(new IllegalStateException(
+                "No engine registered for scan type: " + primaryType));
+            return future;
+        }
 
-                if (engine == null) {
-                    throw new IllegalStateException(
-                        "No engine registered for scan type: " + primaryType
-                    );
-                }
-
-                if (!engine.isAvailable()) {
-                    log.getLogger().warning("Engine not available: " + primaryType +
-                        ", falling back to TCP_CONNECT");
-                    engine = engines.get(ScanType.TCP_CONNECT);
-                    if (engine == null) {
-                        throw new IllegalStateException("No fallback engine available");
-                    }
-                }
-
-                // Scan each target
-                List<CompletableFuture<ScanResult>> futures = new ArrayList<>();
-
-                for (String target : targets.getTargets()) {
-                    List<Integer> portsToScan = getPortsForEngine(engine);
-
-                    if (log.isEnabled()) {
-                        log.getLogger().info("Scanning " + target +
-                            " with " + portsToScan.size() + " ports");
-                    }
-
-                    CompletableFuture<ScanResult> future = engine.scanHost(target, portsToScan);
-                    futures.add(future);
-
-                    // Rate limiting based on timing template
-                    if (config.getTiming().getProbeDelayMs() > 0) {
-                        Thread.sleep(config.getTiming().getProbeDelayMs());
-                    }
-                }
-
-                // Wait for all scans to complete
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-                // Collect results
-                for (CompletableFuture<ScanResult> future : futures) {
-                    try {
-                        results.add(future.get());
-                    } catch (Exception e) {
-                        log.getLogger().warning("Failed to get scan result: " + e.getMessage());
-                    }
-                }
-
-                long endTime = System.currentTimeMillis();
-
-                // Build report
-                return ScanReport.builder()
-                    .config(config)
-                    .startTime(startTime)
-                    .endTime(endTime)
-                    .hostResults(results)
-                    .addStatistic("total_hosts", targets.getTargetCount())
-                    .addStatistic("total_ports_per_host", ports.getTotalPortCount())
-                    .addStatistic("scan_type", primaryType.name())
-                    .addStatistic("timing", config.getTiming().name())
-                    .build();
-
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            } finally {
+        if (!engine.isAvailable()) {
+            log.getLogger().info("Engine not available: " + primaryType +
+                ", falling back to TCP_CONNECT");
+            engine = engines.get(ScanType.TCP_CONNECT);
+            if (engine == null) {
                 running = false;
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                future.completeExceptionally(new IllegalStateException("No fallback engine available"));
+                return future;
             }
-        }, executor);
+        }
+
+        TargetSpecification targets = config.getTargets();
+        List<Integer> portsToScan = getPortsForEngine(engine);
+        List<CompletableFuture<Void>> completionFutures = new ArrayList<>();
+
+        for (String target : targets.getTargets()) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Scanning " + target + " with " + portsToScan.size() + " ports");
+            }
+
+            // Scan host and invoke callback when complete - no blocking
+            CompletableFuture<Void> hostFuture = engine.scanHost(target, portsToScan)
+                .thenAccept(result -> {
+                    try {
+                        callback.accept(result);
+                    } catch (Exception e) {
+                        log.getLogger().warning("Callback error for " + target + ": " + e.getMessage());
+                    }
+                })
+                .exceptionally(e -> {
+                    callback.exception(e instanceof Exception ? (Exception) e : new Exception(e));
+                    return null;
+                });
+
+            completionFutures.add(hostFuture);
+        }
+
+        // Return a future that completes when ALL hosts are done (but doesn't block)
+        return CompletableFuture.allOf(completionFutures.toArray(new CompletableFuture[0]))
+            .whenComplete((v, e) -> running = false);
     }
 
     /**
@@ -334,23 +347,16 @@ public class NMapScanner implements Closeable {
             return this;
         }
 
-        /**
-         * @deprecated NIOSocket is no longer used. Scan engines use pure Java NIO.
-         */
-        @Deprecated
-        public Builder nioSocket(NIOSocket socket) {
-            // Ignored - scan engines use pure Java NIO
-            return this;
-        }
+
 
         public Builder registerEngine(ScanEngine engine) {
             this.customEngines.add(engine);
             return this;
         }
 
-        public NMapScanner build() {
+        public NMapScanner build(ExecutorService executorService) {
             NMapConfig config = configBuilder.build();
-            NMapScanner scanner = NMapScanner.create(config);
+            NMapScanner scanner = NMapScanner.create(executorService, config);
 
             // Register custom engines
             for (ScanEngine engine : customEngines) {

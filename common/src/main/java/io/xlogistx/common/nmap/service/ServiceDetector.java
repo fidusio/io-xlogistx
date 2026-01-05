@@ -27,18 +27,14 @@ public class ServiceDetector {
     private final ExecutorService executor;
     private final int timeoutMs;
 
-    public ServiceDetector() {
-        this(DEFAULT_TIMEOUT_MS);
+    public ServiceDetector(ExecutorService executor) {
+        this(executor, DEFAULT_TIMEOUT_MS);
     }
 
-    public ServiceDetector(int timeoutMs) {
+    public ServiceDetector(ExecutorService executor, int timeoutMs) {
         this.timeoutMs = timeoutMs;
         this.probes = new ArrayList<>();
-        this.executor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "ServiceDetector");
-            t.setDaemon(true);
-            return t;
-        });
+        this.executor = executor;
 
         // Register default probes
         registerDefaultProbes();
@@ -198,18 +194,4 @@ public class ServiceDetector {
         return null;
     }
 
-    /**
-     * Shutdown the detector
-     */
-    public void shutdown() {
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-    }
 }

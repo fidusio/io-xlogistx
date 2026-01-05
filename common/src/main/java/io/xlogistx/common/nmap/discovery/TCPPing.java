@@ -7,7 +7,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * TCP ping discovery method.
@@ -20,12 +19,8 @@ public class TCPPing implements DiscoveryMethod {
     private static final int[] DEFAULT_PORTS = {80, 443, 22, 25, 21};
     private final ExecutorService executor;
 
-    public TCPPing() {
-        this.executor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "TCPPing");
-            t.setDaemon(true);
-            return t;
-        });
+    public TCPPing(ExecutorService executor) {
+        this.executor = executor;
     }
 
     @Override
