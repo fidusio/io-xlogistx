@@ -65,7 +65,7 @@ public class PasswordToHash {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            error("error", -1);
+            error("error " +  Arrays.toString(SecUtil.SINGLETON.credentialHasherAlgorithms()), -1);
 
         }
 

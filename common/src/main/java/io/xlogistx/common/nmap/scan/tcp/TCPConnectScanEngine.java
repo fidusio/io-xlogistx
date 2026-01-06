@@ -86,7 +86,9 @@ public class TCPConnectScanEngine implements ScanEngine {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
+                log.getLogger().info("1-Semaphore permits: " + parallelismLimiter.availablePermits());
                 parallelismLimiter.acquire();
+                log.getLogger().info("2-Semaphore permits: " + parallelismLimiter.availablePermits());
                 activeScans.incrementAndGet();
                 try {
                     return performTcpConnect(host, port);

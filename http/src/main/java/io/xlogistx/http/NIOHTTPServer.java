@@ -57,7 +57,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.7.4");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.0");
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -67,7 +67,7 @@ public class NIOHTTPServer
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.Creator<PlainSessionCallback> httpIC = HTTPSession::new;
     private final InstanceFactory.Creator<SSLSessionCallback> httpsIC = HTTPsSession::new;
-    private volatile boolean httpsRedirect = false;
+    private volatile URLMatcher urlMatcher;
     private int sslPort = -1;
 
 
@@ -116,25 +116,30 @@ public class NIOHTTPServer
 
         private boolean httpsRedirect()
                 throws IOException {
-            if (httpsRedirect) {
-                HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
-                redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
-                String uri = hph.getRequest().getURI();
+            if (urlMatcher != null) {
                 IPAddress ipAddress = IPAddress.parse(hph.getRequest().getHeaders().getValue("host"));
-                String url = URIScheme.HTTPS.getName() + ipAddress.getInetAddress()+(sslPort > 0 ? ":" + sslPort : "");
+                if(urlMatcher.isValid(ipAddress.getInetAddress())) {
+                    HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
+                    redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
+                    String uri = hph.getRequest().getURI();
 
-                if (uri == null)
-                    uri = "/";
+                    String url = URIScheme.HTTPS.getName() + "://" + ipAddress.getInetAddress() + (sslPort > 0 ? ":" + sslPort : "");
 
-                if (!uri.startsWith("/"))
-                    uri = "/" + uri;
+                    if (uri == null)
+                        uri = "/";
 
-                redirect308.getHeaders().add(HTTPHeader.LOCATION, url + uri);
-                HTTPUtil.formatResponse(redirect308, hph.getResponseStream());
-                hph.getResponseStream(true).writeTo(get());
-                IOUtil.close(this);
+                    if (!uri.startsWith("/"))
+                        uri = "/" + uri;
+
+                    redirect308.getHeaders().add(HTTPHeader.LOCATION, url + uri);
+                    HTTPUtil.formatResponse(redirect308, hph.getResponseStream());
+                    hph.getResponseStream(true).writeTo(get());
+                    IOUtil.close(this);
+                    return true;
+                }
+                throw new HTTPCallException("Invalid HTTP URL: " + ipAddress.getInetAddress());
             }
-            return httpsRedirect;
+            return false;
         }
 
         /**
@@ -675,11 +680,11 @@ public class NIOHTTPServer
                 }
             }
 
-            httpsRedirect = config.getProperties().getValue("https_redirect");
-//            if ((boolean)config.getProperties().getValue("https_redirect") && sslPort > 0) {
-//                httpsRedirect = URIScheme.HTTPS.getName() + "://" + config.getProperties().getValue("https_redirect") + (sslPort != URIScheme.HTTPS.getValue() ? ":" + sslPort : "");
-//                logger.getLogger().info("https redirect @ " + httpsRedirect);
-//            }
+
+            if (config.getProperties().getValue("https_redirect") !=null && sslPort > 0) {
+                urlMatcher = new URLMatcher(config.getProperties().getValue("https_redirect"));
+                logger.getLogger().info("https redirect @ " + urlMatcher);
+            }
 
 
             // create end point scanner

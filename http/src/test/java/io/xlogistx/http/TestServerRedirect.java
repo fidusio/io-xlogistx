@@ -8,10 +8,12 @@ public class TestServerRedirect {
 
     public static void main(String[] args) {
         try {
-
+            //OkHttpClient client = OkHTTPCall.createOkHttpBuilder(null, false, null, HTTPMessageConfigInterface.DEFAULT_TIMEOUT_20_SECOND, false, 20, HTTPMessageConfigInterface.DEFAULT_TIMEOUT_40_SECOND).build();
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(args[0], null, "GET");
-
-            System.out.println(OkHTTPCall.send(hmci));
+            hmci.setSecureCheckEnabled(false);
+            hmci.setRedirectEnabled(false);
+            OkHTTPCall okHTTPCall = new OkHTTPCall(hmci);
+            System.out.println(okHTTPCall.sendRequest());
 
         } catch (Exception e) {
             e.printStackTrace();

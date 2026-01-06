@@ -5,7 +5,7 @@
       "class_type": "org.zoxweb.shared.http.HTTPMessageConfig",
       "name": "remote-login",
       "description": "Profile API configuration",
-      "url": "https://iot.xlogistx.io/",
+      "url": "https://api.xlogistx.io/",
       "uri": "subject/login",
       "redirect_enabled": true,
       "http_method": "GET",
