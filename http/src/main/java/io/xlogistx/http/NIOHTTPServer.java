@@ -7,7 +7,6 @@ import io.xlogistx.http.websocket.WSHandler;
 import io.xlogistx.shiro.ShiroInvoker;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
-//import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
@@ -55,9 +54,45 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 
 
+/**
+ * A non-blocking I/O HTTP/HTTPS server implementation that supports both plain HTTP
+ * and SSL/TLS encrypted connections using Java NIO.
+ *
+ * <p>This server provides:
+ * <ul>
+ *   <li>HTTP and HTTPS protocol support via {@link HTTPSession} and {@link HTTPsSession}</li>
+ *   <li>WebSocket (WS/WSS) protocol handling</li>
+ *   <li>Apache Shiro security integration for authentication and authorization</li>
+ *   <li>Keep-alive connection support with configurable timeout and max requests</li>
+ *   <li>Automatic HTTPS redirect for configured domains</li>
+ *   <li>Endpoint-based request routing via {@link EndPointsManager}</li>
+ * </ul>
+ *
+ * <p>Configuration is provided via {@link HTTPServerConfig} which includes:
+ * <ul>
+ *   <li>Connection configs for HTTP/HTTPS ports</li>
+ *   <li>SSL/TLS keystore and truststore settings</li>
+ *   <li>Thread pool size</li>
+ *   <li>Shiro security configuration</li>
+ *   <li>Keep-alive settings</li>
+ * </ul>
+ *
+ * <h2>Usage Example:</h2>
+ * <pre>{@code
+ * HTTPServerConfig config = GSONUtil.fromJSON(configJson, HTTPServerConfig.class);
+ * NIOHTTPServer server = new NIOHTTPServer(config);
+ * server.start();
+ * }</pre>
+ *
+ * @see HTTPServerConfig
+ * @see EndPointsManager
+ * @see NIOSocket
+ */
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.0");
+    /** Application version information containing name and version string. */
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.1");
+    /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
@@ -72,7 +107,14 @@ public class NIOHTTPServer
 
 
     /**
-     * Plain socket HTTP handler
+     * Plain socket HTTP session handler for non-encrypted HTTP connections.
+     *
+     * <p>Handles incoming HTTP requests by parsing the request buffer, performing
+     * optional HTTPS redirect checks, routing to the appropriate endpoint, and
+     * managing connection keep-alive state.
+     *
+     * @see PlainSessionCallback
+     * @see HTTPProtocolHandler
      */
     public class HTTPSession
             extends PlainSessionCallback {
@@ -167,7 +209,13 @@ public class NIOHTTPServer
     }
 
     /**
-     * Secure socket HTTPs handler
+     * Secure socket HTTPS session handler for SSL/TLS encrypted connections.
+     *
+     * <p>Handles incoming HTTPS requests with the same request processing logic
+     * as {@link HTTPSession} but over an encrypted SSL/TLS channel.
+     *
+     * @see SSLSessionCallback
+     * @see HTTPProtocolHandler
      */
     public class HTTPsSession
             extends SSLSessionCallback {
@@ -504,35 +552,92 @@ public class NIOHTTPServer
     }
 
 
+    /**
+     * Creates a new NIOHTTPServer with the specified configuration.
+     *
+     * @param config the HTTP server configuration containing connection settings,
+     *               security configuration, and endpoint definitions
+     * @throws NullPointerException if config is null
+     */
     public NIOHTTPServer(HTTPServerConfig config) {
         this(config, null);
     }
 
+    /**
+     * Creates a new NIOHTTPServer with the specified configuration and an existing NIOSocket.
+     *
+     * <p>This constructor allows sharing an NIOSocket instance across multiple servers
+     * or services for resource efficiency.
+     *
+     * @param config    the HTTP server configuration
+     * @param nioSocket an existing NIOSocket instance to use, or null to create a new one during {@link #start()}
+     * @throws NullPointerException if config is null
+     */
     public NIOHTTPServer(HTTPServerConfig config, NIOSocket nioSocket) {
         SUS.checkIfNulls("HTTPServerConfig null", config);
         this.config = config;
         this.nioSocket = nioSocket;
     }
 
+    /**
+     * Returns the underlying NIOSocket instance used by this server.
+     *
+     * @return the NIOSocket instance, or null if the server has not been started
+     */
     public NIOSocket getNIOSocket() {
         return nioSocket;
     }
 
+    /**
+     * Returns the HTTP server configuration.
+     *
+     * @return the HTTPServerConfig used to configure this server
+     */
     public HTTPServerConfig getConfig() {
         return config;
     }
 
-
+    /**
+     * {@inheritDoc}
+     *
+     * @return {@code true} if the server has been closed, {@code false} otherwise
+     */
     @Override
     public boolean isClosed() {
         return nioSocket.isClosed();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Closes the underlying NIOSocket and releases all associated resources.
+     *
+     * @throws IOException if an I/O error occurs during shutdown
+     */
     @Override
     public void close() throws IOException {
         nioSocket.close();
     }
 
+    /**
+     * Initializes and starts the HTTP server.
+     *
+     * <p>This method performs the following initialization steps:
+     * <ol>
+     *   <li>Registers the main thread with TaskUtil</li>
+     *   <li>Configures Apache Shiro security manager if specified in config</li>
+     *   <li>Sets up keep-alive configuration for persistent connections</li>
+     *   <li>Creates or uses the provided NIOSocket instance</li>
+     *   <li>Scans and registers HTTP endpoints via {@link EndPointsManager}</li>
+     *   <li>Binds to configured HTTP and HTTPS ports</li>
+     *   <li>Configures SSL/TLS context for HTTPS connections</li>
+     *   <li>Sets up HTTPS redirect if configured</li>
+     *   <li>Invokes startup and post-startup hooks</li>
+     * </ol>
+     *
+     * @throws IOException              if an I/O error occurs during server startup
+     * @throws GeneralSecurityException if SSL/TLS configuration fails
+     */
     public void start() throws IOException, GeneralSecurityException {
 
         TaskUtil.registerMainThread();
@@ -702,6 +807,11 @@ public class NIOHTTPServer
 
     }
 
+    /**
+     * Returns the endpoint manager responsible for routing HTTP requests to handlers.
+     *
+     * @return the EndPointsManager instance, or null if the server has not been started
+     */
     public EndPointsManager getEndPointsManager() {
         return endPointsManager;
     }
@@ -709,13 +819,30 @@ public class NIOHTTPServer
     /**
      * Converts the implementing object in its canonical form.
      *
-     * @return text identification of the object
+     * @return text identification of the object in format "name-version"
      */
     @Override
     public String toCanonicalID() {
         return SUS.toCanonicalID('-', getName(), getVersion());
     }
 
+    /**
+     * Main entry point for running the HTTP server standalone.
+     *
+     * <p>Command line arguments:
+     * <ul>
+     *   <li>{@code <config-file>} - Path to JSON configuration file (required)</li>
+     *   <li>{@code exec=[no_exec|default|java]} - Executor pool type (optional, default: DEFAULT)</li>
+     *   <li>{@code proxy=<port>} - Enable HTTP proxy on specified port (optional)</li>
+     * </ul>
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * java io.xlogistx.http.NIOHTTPServer server-config.json exec=default proxy=8080
+     * }</pre>
+     *
+     * @param args command line arguments
+     */
     public static void main(String... args) {
 
         long startTS = System.currentTimeMillis();
@@ -785,13 +912,20 @@ public class NIOHTTPServer
     }
 
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return the server version string (e.g., "1.8.0")
+     */
     @Override
     public String getVersion() {
         return VERSION.version();
     }
 
     /**
-     * @return the name of the object
+     * {@inheritDoc}
+     *
+     * @return the server name (e.g., "NOYFB")
      */
     @Override
     public String getName() {
