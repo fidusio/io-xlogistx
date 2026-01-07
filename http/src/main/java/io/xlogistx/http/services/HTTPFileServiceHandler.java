@@ -39,7 +39,7 @@ public class HTTPFileServiceHandler
 
         if (htmlURI != null && fileSystem != null && fileSystem != FileSystems.getDefault()) {
             // need to copy the jar content to FileSystem
-            if (log.isEnabled()) log.getLogger().info("htmt_uri: " + htmlURI);
+            if (log.isEnabled()) log.getLogger().info("html_uri: " + htmlURI);
 
             InputStream is = null;
             ZipInputStream zis = null;

@@ -91,7 +91,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.1");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.2");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -103,6 +103,7 @@ public class NIOHTTPServer
     private final InstanceFactory.Creator<PlainSessionCallback> httpIC = HTTPSession::new;
     private final InstanceFactory.Creator<SSLSessionCallback> httpsIC = HTTPsSession::new;
     private volatile URLMatcher urlMatcher;
+    //private final String pathMatch = ".well-known";
     private int sslPort = -1;
 
 
@@ -159,11 +160,20 @@ public class NIOHTTPServer
         private boolean httpsRedirect()
                 throws IOException {
             if (urlMatcher != null) {
+                String uri = hph.getRequest().getURI();
+                System.out.println(uri);
+                if(uri != null)
+                    if (uri.toLowerCase().contains(".well-known"))
+                        return false;
+                    else {
+                        System.out.println(uri + " does not contains .well-known");
+                    }
+
                 IPAddress ipAddress = IPAddress.parse(hph.getRequest().getHeaders().getValue("host"));
                 if(urlMatcher.isValid(ipAddress.getInetAddress())) {
                     HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
                     redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
-                    String uri = hph.getRequest().getURI();
+
 
                     String url = URIScheme.HTTPS.getName() + "://" + ipAddress.getInetAddress() + (sslPort > 0 ? ":" + sslPort : "");
 
