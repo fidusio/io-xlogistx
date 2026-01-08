@@ -30,6 +30,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.app.AppVersionDAO;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
+import org.zoxweb.shared.filters.MatchPatternFilter;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.IPAddress;
@@ -91,7 +92,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.2");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.3");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -102,7 +103,8 @@ public class NIOHTTPServer
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.Creator<PlainSessionCallback> httpIC = HTTPSession::new;
     private final InstanceFactory.Creator<SSLSessionCallback> httpsIC = HTTPsSession::new;
-    private volatile URLMatcher urlMatcher;
+    private volatile URLMatcher urlHostRedirect;
+    private volatile MatchPatternFilter redirectExclusionFilter;
     //private final String pathMatch = ".well-known";
     private int sslPort = -1;
 
@@ -159,18 +161,16 @@ public class NIOHTTPServer
 
         private boolean httpsRedirect()
                 throws IOException {
-            if (urlMatcher != null) {
+            if (urlHostRedirect != null) {
                 String uri = hph.getRequest().getURI();
                 System.out.println(uri);
-                if(uri != null)
-                    if (uri.toLowerCase().contains(".well-known"))
-                        return false;
-                    else {
-                        System.out.println(uri + " does not contains .well-known");
-                    }
+                if (uri != null && redirectExclusionFilter != null && redirectExclusionFilter.match(uri)) {
+                    return false;
+                }
+
 
                 IPAddress ipAddress = IPAddress.parse(hph.getRequest().getHeaders().getValue("host"));
-                if(urlMatcher.isValid(ipAddress.getInetAddress())) {
+                if (urlHostRedirect.isValid(ipAddress.getInetAddress())) {
                     HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
                     redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
 
@@ -440,8 +440,7 @@ public class NIOHTTPServer
 
         switch (hph.getProtocol()) {
             case HTTPS:
-            case HTTP:
-            {
+            case HTTP: {
                 // HTTP protocol processing
                 try {
 
@@ -796,9 +795,14 @@ public class NIOHTTPServer
             }
 
 
-            if (config.getProperties().getValue("https_redirect") !=null && sslPort > 0) {
-                urlMatcher = new URLMatcher(config.getProperties().getValue("https_redirect"));
-                logger.getLogger().info("https redirect @ " + urlMatcher);
+            NVGenericMap redirectConfig = config.getProperties().getNV("redirect_config");
+            if (redirectConfig != null && sslPort > 0) {
+                urlHostRedirect = new URLMatcher(redirectConfig.getValue("domains"));
+                String exclusionConfig = redirectConfig.getValue("exclusion-filter");
+                if (exclusionConfig != null) {
+                    redirectExclusionFilter = MatchPatternFilter.createMatchFilter(exclusionConfig);
+                }
+                logger.getLogger().info("https redirect @ " + urlHostRedirect + " exclusion " + redirectExclusionFilter);
             }
 
 

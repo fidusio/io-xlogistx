@@ -26,8 +26,10 @@
     "on-shutdown": {
       "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
     },
-    "https_redirect" : "localhost"
-
+    "redirect_config": {
+      "domains": "localhost",
+      "exclusion-filter": "-i -r *.well-known*"
+    }
   },
   "connections": [
     {
@@ -189,8 +191,8 @@
       ],
       "properties": {
         "base_folder": "/webs/xlogistx.io",
-
-        #"html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
+        #
+        "html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
         "default_file": "index.html",
         "caching": true
       }

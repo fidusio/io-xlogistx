@@ -46,14 +46,14 @@ public class HTTPUploadHandler
             throw new HTTPCallException("Storage location not available!", HTTPStatusCode.NOT_FOUND);
 
 
-        HTTPMessageConfig hmciRequest = (HTTPMessageConfig) hph.getRequest(true);
-        if (hmciRequest.isTransferChunked()) {
+        HTTPMessageConfigInterface requestConfig = hph.getRequest(true);
+        if (requestConfig.isTransferChunked()) {
             return chunkedHandle(hph);
         }
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
 
-        NVGenericMap parameters = hmciRequest.getParameters();
+        NVGenericMap parameters = requestConfig.getParameters();
 
         NamedValue<InputStream> fileData = parameters.getNV("file");
         String fileLocation = parameters.getValue("file-location");
@@ -125,11 +125,11 @@ public class HTTPUploadHandler
             throw new HTTPCallException("Storage location not available!", HTTPStatusCode.NOT_FOUND);
 
 
-        HTTPMessageConfigInterface hmciRequest = hph.getRequest(true);
+        HTTPMessageConfigInterface requestConfig = hph.getRequest(true);
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
 
-        NVGenericMap parameters = hmciRequest.getParameters();
+        NVGenericMap parameters = requestConfig.getParameters();
 
         NamedValue<InputStream> fileData = parameters.getNV("file");
         OutputStream fos = null;
