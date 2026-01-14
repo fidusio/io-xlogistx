@@ -65,12 +65,6 @@
             <version>${ehcache-org.version}</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>io.xlogistx</groupId>-->
-<!--            <artifactId>xlogistx-opsec</artifactId>-->
-<!--            <version>${xlogistx.version}</version>-->
-<!--        </dependency>-->
-
     </dependencies>
 
 </project>

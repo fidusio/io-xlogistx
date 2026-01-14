@@ -22,7 +22,9 @@
         <connection>scm:git:https://github.com/fidusio/io-xlogistx.git</connection>
         <developerConnection>scm:git:git@github.com:fidusio/io-xlogistx.git</developerConnection>
     </scm>
-
+    <properties>
+        <xlogistx.version>1.0.0</xlogistx.version>
+    </properties>
 
     <modules>
         <module>common</module>
@@ -31,11 +33,11 @@
         <module>core</module>
         <module>opsec</module>
         <module>gui-audio</module>
+        <module>no-sneak</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
-
 
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
@@ -75,44 +77,51 @@
                 <version>${websocket.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-http</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-common</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-core</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
 
-            <!--    <dependency>-->
-            <!--      <groupId>org.jsoup</groupId>-->
-            <!--      <artifactId>jsoup</artifactId>-->
-            <!--      <version>${jsoup.version}</version>-->
-            <!--    </dependency>-->
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-gui-audio</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
 
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-opsec</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
 
-            <!--      <dependency>-->
-            <!--          <groupId>javax.cache</groupId>-->
-            <!--          <artifactId>cache-api</artifactId>-->
-            <!--          <version>${javax-cache.version}</version>-->
-            <!--      </dependency>-->
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-shiro</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-no-sneak</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
 
-            <!--      <dependency>-->
-            <!--          <groupId>com.google.code.gson</groupId>-->
-            <!--          <artifactId>gson</artifactId>-->
-            <!--          <version>${gson.version}</version>-->
-            <!--      </dependency>-->
-
-
-            <!--            <dependency>-->
-            <!--                <groupId>jakarta.mail</groupId>-->
-            <!--                <artifactId>jakarta.mail-api</artifactId>-->
-            <!--                <version>${jakarta-mail.version}</version>-->
-            <!--            </dependency>-->
 
             <dependency>
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>${snakeyaml.version}</version>
             </dependency>
-
-            <!--            <dependency>-->
-            <!--                <groupId>com.squareup.okhttp3</groupId>-->
-            <!--                <artifactId>okhttp-jvm</artifactId>-->
-            <!--                <version>${okhttp.version}</version>-->
-            <!--            </dependency>-->
 
             <dependency>
                 <groupId>dnsjava</groupId>

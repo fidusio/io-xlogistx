@@ -92,7 +92,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.3");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.6");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -141,7 +141,7 @@ public class NIOHTTPServer
                             IOUtil.close(this);
 
                         if (logger.isEnabled())
-                            logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
+                            logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
                     }
                 } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
@@ -246,7 +246,7 @@ public class NIOHTTPServer
                         IOUtil.close(this);
 
                     if (logger.isEnabled())
-                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress().getHostAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
+                        logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
                 } else {
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }

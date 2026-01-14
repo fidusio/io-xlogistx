@@ -14,7 +14,6 @@
     <packaging>jar</packaging>
 
     <properties>
-<!--        <password4j.version>1.8.4</password4j.version>-->
     </properties>
 
     <build>
@@ -55,7 +54,6 @@
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-core</artifactId>
-            <version>${xlogistx.version}</version>
         </dependency>
 
 
@@ -86,12 +84,10 @@
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-common</artifactId>
-            <version>${xlogistx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-shiro</artifactId>
-            <version>${xlogistx.version}</version>
         </dependency>
 
         <dependency>
