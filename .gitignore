@@ -60,6 +60,9 @@ bin
 target
 .DS_Store
 .claude
+tmpclaude*
+CLAUDE.md
+ACTION-PLAN.md
 
 
 
