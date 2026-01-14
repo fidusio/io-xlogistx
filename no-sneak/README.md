@@ -21,6 +21,12 @@ io.xlogistx.nosneak
 
 ## Building
 
+```bash
+mvn clean install -pl no-sneak -am
+```
+
+---
+
 # SSL/TLS & PQC Scanner Requirements Document
 
 ## Project Overview
