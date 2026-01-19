@@ -25,7 +25,7 @@ public class PasswordToHash {
             String algo = args[index++];
             String rawPassword = index < args.length ? args[index] : null;
 
-            CredentialHasher<CIPassword> credentialHasher = SecUtil.SINGLETON.lookupCredentialHasher(algo);
+            CredentialHasher<CIPassword> credentialHasher = SecUtil.lookupCredentialHasher(algo);
             if(credentialHasher == null)
                 throw new IllegalArgumentException("invalid aglo: " +algo);
 
@@ -56,16 +56,16 @@ public class PasswordToHash {
 
             }
 
-            System.out.println(Arrays.toString(SecUtil.SINGLETON.credentialHasherAlgorithms()));
+            System.out.println(Arrays.toString(SecUtil.credentialHasherAlgorithms()));
 
             for(int i = 0; i < 5; i++) {
                 CIPassword passwordDAO = credentialHasher.hash(rawPassword);
                 System.out.println(passwordDAO.toCanonicalID());
-                SecUtil.SINGLETON.validatePassword(passwordDAO, rawPassword);
+                SecUtil.validatePassword(passwordDAO, rawPassword);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            error("error " +  Arrays.toString(SecUtil.SINGLETON.credentialHasherAlgorithms()), -1);
+            error("error " +  Arrays.toString(SecUtil.credentialHasherAlgorithms()), -1);
 
         }
 

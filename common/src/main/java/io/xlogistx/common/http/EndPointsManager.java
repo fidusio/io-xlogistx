@@ -42,7 +42,7 @@ public class EndPointsManager {
         uri = SharedStringUtil.toTrimmedLowerCase(uri);
         SUS.checkIfNulls("Mapping parameters can't be null", uri, hep);
         EndPointMeta epm = new EndPointMeta(hep, mh);
-        SecUtil.SINGLETON.applyAndCacheSecurityProfile(mh.methodAnnotations.method, null);
+        SecUtil.applyAndCacheSecurityProfile(mh.methodAnnotations.method, null);
         uriEndPointMeta.put(uri, epm);
         return epm;
     }
@@ -120,7 +120,7 @@ public class EndPointsManager {
                 hep.setPaths(uris);
 
             } else if (a instanceof SecurityProp) {
-                SecUtil.SINGLETON.applySecurityProp(hep, (SecurityProp) a);
+                SecUtil.applySecurityProp(hep, (SecurityProp) a);
             }
         }
         return updatePaths(baseURI, hep);
@@ -193,7 +193,7 @@ public class EndPointsManager {
 
                 HTTPEndPoint hep = new HTTPEndPoint();
                 hep.setBeanClassName(wsBean.getClass().getName());
-                SecUtil.SINGLETON.applySecurityProp(hep, sp);
+                SecUtil.applySecurityProp(hep, sp);
                 //classHEP = applyAnnotations(baseURI, classHEP, classAnnotationMap.getClassAnnotations(), false);
                 log.getLogger().info("Inner web socket " + wsBean.getClass());
                 ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(), EndPointProp.class);

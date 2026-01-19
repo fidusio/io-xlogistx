@@ -92,7 +92,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.6");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.8");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -747,7 +747,7 @@ public class NIOHTTPServer
                                 String trustStorePassword = sslConfig.getValue("truststore_password");
                                 String trustStoreFilename = sslConfig.getValue("truststore_file");
                                 String protocol = sslConfig.getValue("protocol");
-                                SSLContext sslContext = SecUtil.SINGLETON.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
+                                SSLContext sslContext = SecUtil.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
                                         sslConfig.getValue("keystore_type"),
                                         ksPassword.toCharArray(),
                                         aliasPassword != null ? aliasPassword.toCharArray() : null,

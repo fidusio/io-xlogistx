@@ -80,7 +80,7 @@ public class WSCache {
 //                        if (ReflectionUtil.doesMethodSupportParameters(false, m, wsmt.getMandatoryParameterType()))
 //                        {
 //                            // cache the security profile of the method;
-//                            SecUtil.SINGLETON.applyAndCacheSecurityProfile(m, null);
+//                            SecUtil.applyAndCacheSecurityProfile(m, null);
 //                            ret.put(wsmt, m);
 //                            break;
 //                        }
@@ -111,7 +111,7 @@ public class WSCache {
 
                             if (ReflectionUtil.doesMethodSupportParameters(true, m, classes.toArray(new Class<?>[0]))) {
                                 // cache the security profile of the method;
-                                SecUtil.SINGLETON.applyAndCacheSecurityProfile(m, null);
+                                SecUtil.applyAndCacheSecurityProfile(m, null);
 
 //                            StringBuilder canID = new StringBuilder(wsmt.name());
 //

@@ -18,14 +18,14 @@ public class ShiroInvoker
     @Override
     public <V> V invoke(boolean authCheck, boolean strict, Object bean, Method method, Object... parameters) throws InvocationTargetException, IllegalAccessException {
         if(authCheck)
-            ShiroUtil.authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
+            ShiroUtil.authorizationCheckPoint(SecUtil.lookupCachedResourceSecurity(method));
         return (V) ReflectionUtil.invokeMethod(strict, bean, method, parameters);
     }
 
     @Override
     public <V> V invoke(boolean authCheck, Object bean, ReflectionUtil.MethodAnnotations methodAnnotations, Map<String, Object> parameters) throws InvocationTargetException, IllegalAccessException {
         if(authCheck)
-            ShiroUtil.authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(methodAnnotations.method));
+            ShiroUtil.authorizationCheckPoint(SecUtil.lookupCachedResourceSecurity(methodAnnotations.method));
 
         return (V)ReflectionUtil.invokeMethod(bean, methodAnnotations, parameters);
     }

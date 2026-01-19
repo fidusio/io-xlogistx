@@ -35,7 +35,7 @@ public class ArgonTest {
 
         String hashedPassword = hash.getResult();
         System.out.println(hashedPassword);
-        CIPassword ciPassword =  SecUtil.SINGLETON.fromCanonicalID(hashedPassword);
+        CIPassword ciPassword =  SecUtil.fromCanonicalID(hashedPassword);
         System.out.println(GSONUtil.toJSONDefault(ciPassword,true));
 
 
@@ -70,7 +70,7 @@ public class ArgonTest {
 
         int length = 3;
 
-        CredentialHasher<CIPassword> argonHasher =  SecUtil.SINGLETON.lookupCredentialHasher("argon2");
+        CredentialHasher<CIPassword> argonHasher =  SecUtil.lookupCredentialHasher("argon2");
         CIPassword ciPassword = argonHasher.hash(password);//ArgonPasswordHasher.Argon2.argon2idHash(password, hashLength, salt, memory, iterations, parallelism);
         rc.reset().start();
         boolean valid = false;
@@ -109,7 +109,7 @@ public class ArgonTest {
 
         String argon2CanID  = hash.getResult();
         System.out.println("Password4J generated: " + argon2CanID);
-        CredentialHasher<CIPassword> argonHasher =  SecUtil.SINGLETON.lookupCredentialHasher("argon2");
+        CredentialHasher<CIPassword> argonHasher =  SecUtil.lookupCredentialHasher("argon2");
         CIPassword ciPassword = argonHasher.fromCanonicalID(argon2CanID);
         assert argonHasher.validate(ciPassword, password);
     }

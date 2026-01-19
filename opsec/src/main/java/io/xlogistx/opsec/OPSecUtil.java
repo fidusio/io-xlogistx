@@ -140,8 +140,8 @@ public class OPSecUtil {
 //        System.out.println("OPSecUtil ready");
 //        System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
         // add any new provider
-//        SecUtil.SINGLETON.addProvider(BC_PROVIDER);
-//        SecUtil.SINGLETON.addProvider(BC_CHRYSTAL_PROVIDER);
+//        SecUtil.addProvider(BC_PROVIDER);
+//        SecUtil.addProvider(BC_CHRYSTAL_PROVIDER);
 //        BC_PROVIDER.getServices();
 //        BC_CHRYSTAL_PROVIDER.getServices();
 //        for (Provider prov : Security.getProviders())
@@ -151,7 +151,7 @@ public class OPSecUtil {
 //        }
 
         loadProviders();
-        SecUtil.SINGLETON.addCredentialHasher(new ArgonPasswordHasher());
+        SecUtil.addCredentialHasher(new ArgonPasswordHasher());
 
     }
 
@@ -161,9 +161,9 @@ public class OPSecUtil {
     }
 
     public synchronized void reloadProviders() {
-        boolean stat = SecUtil.SINGLETON.removeProvider(BC_CKD_PROVIDER);
+        boolean stat = SecUtil.removeProvider(BC_CKD_PROVIDER);
         log.getLogger().info("Provider " + BC_CKD_PROVIDER + " removed: " + stat);
-        stat = SecUtil.SINGLETON.removeProvider(BC_PROVIDER);
+        stat = SecUtil.removeProvider(BC_PROVIDER);
         log.getLogger().info("Provider " + BC_PROVIDER + " removed: " + stat);
 
         loadProviders();
@@ -171,20 +171,20 @@ public class OPSecUtil {
 
     public synchronized void loadProviders() {
 
-        if (SecUtil.SINGLETON.getProvider(BC_PROVIDER) == null) {
+        if (SecUtil.getProvider(BC_PROVIDER) == null) {
             Provider prov = new BouncyCastleProvider();
-            SecUtil.SINGLETON.addProvider(prov);
+            SecUtil.addProvider(prov);
             checkProviderExists(BC_PROVIDER);
         }
-        if (SecUtil.SINGLETON.getProvider(BC_CKD_PROVIDER) == null) {
+        if (SecUtil.getProvider(BC_CKD_PROVIDER) == null) {
             Provider prov = new BouncyCastlePQCProvider();
-            SecUtil.SINGLETON.addProvider(prov);
+            SecUtil.addProvider(prov);
             checkProviderExists(BC_CKD_PROVIDER);
         }
     }
 
     private static void checkProviderExists(String providerName) {
-        Provider provider = SecUtil.SINGLETON.getProvider(providerName);
+        Provider provider = SecUtil.getProvider(providerName);
         if (provider != null)
             log.getLogger().info("Provider Loaded: " + SUS.toCanonicalID('-', provider.getName(), provider.getVersion(), provider.getInfo()));
         else
@@ -237,7 +237,7 @@ public class OPSecUtil {
 
     public KeyPair generateKeyPair(String keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
+        return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.defaultSecureRandom());
     }
 
     public X509CertificateHolder generateIntermediateCA(
@@ -317,7 +317,7 @@ public class OPSecUtil {
         Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration));
 
         // Generate serial number
-        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+        BigInteger serial = new BigInteger(64, SecUtil.defaultSecureRandom());
 
         // Create certificate builder
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
@@ -376,7 +376,7 @@ public class OPSecUtil {
         Date notAfter = new Date(now + Const.TimeInMillis.DAY.mult(days));
 
         // Generate serial number
-        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+        BigInteger serial = new BigInteger(64, SecUtil.defaultSecureRandom());
 
         // Create certificate builder
         JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
@@ -433,7 +433,7 @@ public class OPSecUtil {
         Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration));
 
         // Generate serial number
-        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+        BigInteger serial = new BigInteger(64, SecUtil.defaultSecureRandom());
 
         // Create certificate builder
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
@@ -494,7 +494,7 @@ public class OPSecUtil {
 
     public KeyPair generateKeyPair(CanonicalID keyType, String provider)
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.SINGLETON.defaultSecureRandom());
+        return CryptoUtil.generateKeyPair(keyType, provider, SecUtil.defaultSecureRandom());
     }
 
     public X509Certificate generateSelfSignedCertificate(KeyPair keyPair, X500Name issuer, X500Name subject, String duration) throws Exception {
@@ -505,7 +505,7 @@ public class OPSecUtil {
         Date notAfter = new Date(notBefore.getTime() + Const.TimeInMillis.toMillis(duration)); // 1 year
 
         // Create the certificate builder
-        BigInteger serial = new BigInteger(64, SecUtil.SINGLETON.defaultSecureRandom());
+        BigInteger serial = new BigInteger(64, SecUtil.defaultSecureRandom());
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
                 issuer,
                 serial,
@@ -1110,14 +1110,14 @@ public class OPSecUtil {
     public SecretKeyWithEncapsulation generateCKEncryptionKey(PublicKey publicKey)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
         KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
-        keyGen.init(new KEMGenerateSpec(publicKey, "AES"), SecUtil.SINGLETON.defaultSecureRandom());
+        keyGen.init(new KEMGenerateSpec(publicKey, "AES"), SecUtil.defaultSecureRandom());
         return (SecretKeyWithEncapsulation) keyGen.generateKey();
     }
 
     public SecretKeyWithEncapsulation extractCKDecryptionKey(PrivateKey privateKey, byte[] encapsulatedKey)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
         KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
-        keyGen.init(new KEMExtractSpec(privateKey, encapsulatedKey, "AES"), SecUtil.SINGLETON.defaultSecureRandom());
+        keyGen.init(new KEMExtractSpec(privateKey, encapsulatedKey, "AES"), SecUtil.defaultSecureRandom());
         return (SecretKeyWithEncapsulation) keyGen.generateKey();
     }
 
@@ -1130,7 +1130,7 @@ public class OPSecUtil {
     public byte[] encryptCKAESKey(PublicKey publicKey, SecretKey aesKey)
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException {
         Cipher kyberWrapCipher = Cipher.getInstance("Kyber", "BCPQC");
-        kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, SecUtil.SINGLETON.defaultSecureRandom());
+        kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, SecUtil.defaultSecureRandom());
         return kyberWrapCipher.wrap(aesKey);
     }
 

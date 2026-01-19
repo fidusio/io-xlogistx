@@ -92,7 +92,7 @@ public class DNSSimple {
             DNSUDPNIOProtocol.log.setEnabled(true);
             //syncProcessing()
             NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
-            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSUDPNIOFactory.SINGLETON);
+            nioSocket.addDatagramSocket(new InetSocketAddress(port), new DNSUDPNIOProtocol(TaskUtil.defaultTaskProcessor()));
 
 
         } catch (Exception e) {

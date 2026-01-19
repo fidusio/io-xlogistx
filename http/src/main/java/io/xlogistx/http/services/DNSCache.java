@@ -75,17 +75,11 @@ public class DNSCache
             DNSRegistrar.SINGLETON.setResolver(resolver);
 
             boolean parallel = getProperties().getValue("parallel", false);
-            if (parallel) {
-                if (nioSocket.getScheduler() != null) {
-                    DNSUDPNIOFactory.SINGLETON.getProperties().build(GetNameValue.create("executor", nioSocket.getExecutor()));
 
-                    log.getLogger().info("We have to setup the executor " + DNSUDPNIOFactory.SINGLETON.getProperties().getNV("executor"));
-                }
-            }
             DNSUDPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
             DNSTCPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
 
-            nioSocket.addDatagramSocket(new InetSocketAddress(port), DNSUDPNIOFactory.SINGLETON);
+            nioSocket.addDatagramSocket(new InetSocketAddress(port), new DNSUDPNIOProtocol(nioSocket.getExecutor()));
             log.getLogger().info("UDP DNS service started on port " + port);
             NVGenericMap dnsCache = getProperties().getNV("cache");
             if (dnsCache != null)

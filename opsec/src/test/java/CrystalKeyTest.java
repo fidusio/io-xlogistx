@@ -230,7 +230,7 @@ public class CrystalKeyTest {
 
         // Generate Dilithium key pair
         KeyPairGenerator kpg = KeyPairGenerator.getInstance(OPSecUtil.CD_NAME, OPSecUtil.BC_CKD_PROVIDER);
-        kpg.initialize(DilithiumParameterSpec.dilithium2, SecUtil.SINGLETON.defaultSecureRandom());
+        kpg.initialize(DilithiumParameterSpec.dilithium2, SecUtil.defaultSecureRandom());
         KeyPair kp = kpg.generateKeyPair();
         PublicKey pub = kp.getPublic();
         PrivateKey priv = kp.getPrivate();

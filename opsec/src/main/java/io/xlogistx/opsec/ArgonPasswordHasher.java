@@ -134,7 +134,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
         }
 
         static byte[] argon2idHash(byte[] password, int hashLength, int saltLength, int memory, int rounds, int parallelism) {
-            return argon2idHash(password, hashLength, SecUtil.SINGLETON.generateRandomBytes(saltLength), memory, rounds, parallelism);
+            return argon2idHash(password, hashLength, SecUtil.generateRandomBytes(saltLength), memory, rounds, parallelism);
         }
 
         static byte[] argon2idHash(String password, int hashLength, byte[] salt, int memory, int rounds, int parallelism) {
@@ -191,7 +191,7 @@ public class ArgonPasswordHasher extends PasswordHasher {
     public CIPassword hash(byte[] password) {
 
         CIPassword result = new CIPassword();
-        byte[] salt = SecUtil.SINGLETON.generateRandomBytes(saltLength);
+        byte[] salt = SecUtil.generateRandomBytes(saltLength);
         byte[] hash = Argon2.argon2idHash(password, hashLength, salt, memory, getRounds(), parallelism);
         result.setAlgorithm("argon2id");
         result.setVersion("" + Argon2.VERSION.VAL);

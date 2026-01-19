@@ -18,7 +18,7 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
     private static final SimpleCredentialsMatcher SIMPLE_C_M = new SimpleCredentialsMatcher();
 
 //    public CredentialsInfoMatcher() {
-//        SecUtil.SINGLETON.addCredentialHasher(new SHAPasswordHasher(8196))
+//        SecUtil.addCredentialHasher(new SHAPasswordHasher(8196))
 //                .addCredentialHasher(new BCryptPasswordHasher(10));
 //    }
 
@@ -31,7 +31,7 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
             if (info.getCredentials() instanceof CIPassword) {
                 ciPassword = (CIPassword) info.getCredentials();
             } else if (info.getCredentials() instanceof String) {
-                ciPassword = SecUtil.SINGLETON.fromCanonicalID((String) info.getCredentials());
+                ciPassword = SecUtil.fromCanonicalID((String) info.getCredentials());
             }
 
             if (ciPassword != null) {
@@ -56,7 +56,7 @@ public class CredentialsInfoMatcher implements CredentialsMatcher {
                     password = (String) token.getCredentials();
                 }
 
-                return SecUtil.SINGLETON.isPasswordValid(ciPassword, password);
+                return SecUtil.isPasswordValid(ciPassword, password);
             } else if (info.getCredentials() instanceof SubjectAPIKey && token instanceof JWTAuthenticationToken) {
                 //if(log.isEnabled()) log.getLogger().info("JWTAuthenticationToken");
                 SubjectAPIKey sak = (SubjectAPIKey) info.getCredentials();

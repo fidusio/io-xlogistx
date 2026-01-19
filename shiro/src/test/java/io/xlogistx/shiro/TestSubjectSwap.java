@@ -71,7 +71,7 @@ public class TestSubjectSwap {
         CIPassword rootCIPassword = HashUtil.toBCryptPassword("secret1");
         String bcryptedPassword = rootCIPassword.toCanonicalID();
         log.getLogger().info(bcryptedPassword);
-        srs.addCredentialInfo("root", SecUtil.SINGLETON.fromCanonicalID(bcryptedPassword));
+        srs.addCredentialInfo("root", SecUtil.fromCanonicalID(bcryptedPassword));
 
 
 
@@ -93,8 +93,8 @@ public class TestSubjectSwap {
     {
         try {
 
-            SecUtil.SINGLETON.addCredentialHasher(new SHAPasswordHasher(8196))
-                    .addCredentialHasher(new BCryptPasswordHasher(10));
+            SecUtil.addCredentialHasher(new SHAPasswordHasher(8196));
+            SecUtil.addCredentialHasher(new BCryptPasswordHasher(10));
 
             domainSubjectSetup();
             RateCounter rc = new RateCounter("shiro");
