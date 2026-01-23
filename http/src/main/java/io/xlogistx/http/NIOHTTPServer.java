@@ -15,13 +15,13 @@ import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.BaseChannelOutputStream;
 import org.zoxweb.server.net.BaseSessionCallback;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.NIOSocketHandlerFactory;
-import org.zoxweb.server.net.PlainSessionCallback;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
-import org.zoxweb.server.net.ssl.SSLSessionCallback;
+import org.zoxweb.server.net.ssl.SSLSessionConfig;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
@@ -92,7 +92,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.8.8");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.9.0");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -101,8 +101,8 @@ public class NIOHTTPServer
     private EndPointsManager endPointsManager = null;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private volatile KAConfig kaConfig = null;
-    private final InstanceFactory.Creator<PlainSessionCallback> httpIC = HTTPSession::new;
-    private final InstanceFactory.Creator<SSLSessionCallback> httpsIC = HTTPsSession::new;
+    private final InstanceFactory.Creator<BaseSessionCallback<BaseChannelOutputStream>> httpIC = HTTPSession::new;
+    private final InstanceFactory.Creator<BaseSessionCallback<SSLSessionConfig>> httpsIC = HTTPsSession::new;
     private volatile URLMatcher urlHostRedirect;
     private volatile MatchPatternFilter redirectExclusionFilter;
     //private final String pathMatch = ".well-known";
@@ -116,11 +116,11 @@ public class NIOHTTPServer
      * optional HTTPS redirect checks, routing to the appropriate endpoint, and
      * managing connection keep-alive state.
      *
-     * @see PlainSessionCallback
+     * @see BaseSessionCallback
      * @see HTTPProtocolHandler
      */
     public class HTTPSession
-            extends PlainSessionCallback {
+            extends BaseSessionCallback<BaseChannelOutputStream> {
         protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP, kaConfig);
 
         @Override
@@ -163,13 +163,17 @@ public class NIOHTTPServer
                 throws IOException {
             if (urlHostRedirect != null) {
                 String uri = hph.getRequest().getURI();
-                System.out.println(uri);
+
                 if (uri != null && redirectExclusionFilter != null && redirectExclusionFilter.match(uri)) {
                     return false;
                 }
 
+                String host = hph.getRequest().getHeaders().getValue("host");
+                if(host == null)
+                    throw new HTTPCallException("Host header not found", HTTPStatusCode.BAD_REQUEST);
 
-                IPAddress ipAddress = IPAddress.parse(hph.getRequest().getHeaders().getValue("host"));
+                IPAddress ipAddress = IPAddress.parse(host);
+
                 if (urlHostRedirect.isValid(ipAddress.getInetAddress())) {
                     HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
                     redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
@@ -224,11 +228,11 @@ public class NIOHTTPServer
      * <p>Handles incoming HTTPS requests with the same request processing logic
      * as {@link HTTPSession} but over an encrypted SSL/TLS channel.
      *
-     * @see SSLSessionCallback
+     * @see BaseSessionCallback
      * @see HTTPProtocolHandler
      */
     public class HTTPsSession
-            extends SSLSessionCallback {
+            extends BaseSessionCallback<SSLSessionConfig> {
         protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS, kaConfig);
 
         @Override
@@ -292,6 +296,7 @@ public class NIOHTTPServer
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Throwable e) {
+        e.printStackTrace();
         if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
                 if (e instanceof InvocationTargetException) {
