@@ -16,6 +16,7 @@ public class DNSUDPNIOCallback
     public static final int DNS_BUFFER_SIZE = 4096;
     public static final LogWrapper log = new LogWrapper(DNSUDPNIOCallback.class).setEnabled(false);
 
+
     public DNSUDPNIOCallback(int port) {
         super(null, port, DNS_BUFFER_SIZE);
     }
@@ -32,7 +33,7 @@ public class DNSUDPNIOCallback
         // the dp.getBuffer() is already flipped
         byte[] data = ByteBufferUtil.allocateByteArray(dp.getBuffer(), false);
         try {
-            if (log.isEnabled()) log.getLogger().info("Data buffer size: " + data.length);
+            if (log.isEnabled()) log.getLogger().info(dp.getID() + " Data buffer size: " + data.length);
 
             queryMsg = new Message(data);
 

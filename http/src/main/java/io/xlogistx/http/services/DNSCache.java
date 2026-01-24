@@ -76,10 +76,13 @@ public class DNSCache
 
             boolean parallel = getProperties().getValue("parallel", false);
 
-            DNSUDPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
+            DNSUDPNIOCallback.log.setEnabled(getProperties().getValue("log-enabled", false));
             DNSTCPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
-
-            nioSocket.addDatagramSocket(new InetSocketAddress(port), new DNSUDPNIOProtocol(nioSocket.getExecutor()));
+            DNSUDPNIOCallback udpCallback = new DNSUDPNIOCallback(port);
+            if (parallel) {
+                udpCallback.setExecutor(nioSocket.getExecutor());
+            }
+            nioSocket.addDatagramSocket(udpCallback);
             log.getLogger().info("UDP DNS service started on port " + port);
             NVGenericMap dnsCache = getProperties().getNV("cache");
             if (dnsCache != null)
