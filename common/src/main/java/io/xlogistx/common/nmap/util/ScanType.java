@@ -1,4 +1,4 @@
-package io.xlogistx.common.nmap.scan;
+package io.xlogistx.common.nmap.util;
 
 /**
  * Enumeration of supported scan types.

@@ -1,7 +1,7 @@
 package io.xlogistx.common.nmap.output;
 
-import io.xlogistx.common.nmap.scan.PortResult;
-import io.xlogistx.common.nmap.scan.ScanResult;
+import io.xlogistx.common.nmap.util.PortResult;
+import io.xlogistx.common.nmap.util.ScanResult;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.io.IOException;

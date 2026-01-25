@@ -4,7 +4,7 @@ import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.config.PortSpecification;
 import io.xlogistx.common.nmap.config.TimingTemplate;
 import io.xlogistx.common.nmap.output.*;
-import io.xlogistx.common.nmap.scan.ScanType;
+import io.xlogistx.common.nmap.util.ScanType;
 import io.xlogistx.common.nmap.scan.tcp.TCPConnectScanEngine;
 import io.xlogistx.common.nmap.scan.udp.UDPScanEngine;
 import org.zoxweb.server.net.NIOChannelMonitor;
@@ -76,6 +76,8 @@ public class NMap {
                     .timeout(parsed.timeout)
                     .serviceDetection(parsed.serviceDetection)
                     .maxParallelism(parsed.parallelism)
+                    .skipHostDiscovery(parsed.skipHostDiscovery)
+                    .pingScanOnly(parsed.pingScanOnly)
                     .verbose(parsed.verbose);
 
             if (parsed.ports != null) {
@@ -120,7 +122,7 @@ public class NMap {
             scanner.close();
             nioSocket.close();
 
-            TaskUtil.waitIfBusy(50);
+
             System.out.println("Finished " + ScanReport.SCANNER_NAME + " at " + java.time.LocalDateTime.now() + " it took " + Const.TimeInMillis.toString(System.currentTimeMillis() - startTime));
             System.out.println("Finished " + GSONUtil.toJSONDefault(TaskUtil.info(), true));
             TaskUtil.waitIfBusyThenClose(50);
@@ -149,6 +151,14 @@ public class NMap {
                 parsed.scanType = ScanType.SYN;
             } else if (arg.equals("-sV")) {
                 parsed.serviceDetection = true;
+            } else if (arg.equals("-sn") || arg.equals("-sP")) {
+                // Ping scan only - no port scan
+                parsed.pingScanOnly = true;
+            }
+            // Host discovery options
+            else if (arg.equals("-Pn") || arg.equals("-PN")) {
+                // Skip host discovery - treat all hosts as online
+                parsed.skipHostDiscovery = true;
             }
             // Timing
             else if (arg.startsWith("-T")) {
@@ -293,6 +303,11 @@ public class NMap {
         System.out.println("  -sT             TCP Connect scan (default)");
         System.out.println("  -sU             UDP scan");
         System.out.println("  -sS             TCP SYN scan (requires privileges)");
+        System.out.println("  -sn             Ping scan only - disable port scan");
+        System.out.println();
+        System.out.println("HOST DISCOVERY:");
+        System.out.println("  -Pn             Skip host discovery (treat all hosts as online)");
+        System.out.println("  -sn             Ping scan - just discover hosts, no port scan");
         System.out.println();
         System.out.println("SERVICE/VERSION DETECTION:");
         System.out.println("  -sV             Probe open ports for service/version info");
@@ -322,6 +337,9 @@ public class NMap {
         System.out.println("  nmap -sU --top-ports 20 192.168.1.0/24");
         System.out.println("  nmap -T4 -sV -p1-1024 example.com");
         System.out.println("  nmap -oA scan_results 192.168.1.1");
+        System.out.println("  nmap -sn 192.168.1.0/24           # Discover hosts on network");
+        System.out.println("  nmap -Pn 192.168.1.1              # Skip host discovery");
+        System.out.println("  nmap 192.168.1.1-254              # Scan IP range");
         System.out.println();
         System.out.println("LEGACY FORMAT (still supported):");
         System.out.println("  nmap host=192.168.1.1 range=[1,1024] timeout=5");
@@ -336,6 +354,8 @@ public class NMap {
         int timeout = 5;
         int parallelism = 1024;
         boolean serviceDetection = false;
+        boolean skipHostDiscovery = false;
+        boolean pingScanOnly = false;
         boolean verbose = false;
         List<OutputFormat> outputFormats = new ArrayList<>();
         String normalFile;

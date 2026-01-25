@@ -2,8 +2,10 @@ package io.xlogistx.common.nmap.scan.udp;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
+import io.xlogistx.common.nmap.util.*;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
@@ -22,51 +24,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * UDP scan engine implementation.
- * Uses pure Java NIO DatagramChannel for non-blocking UDP scanning.
+ * UDP scan engine implementation using NIOSocket callbacks.
+ * Uses shared NIOSocket event loop for efficient non-blocking UDP scanning.
  */
 public class UDPScanEngine implements ScanEngine {
 
     public static final LogWrapper log = new LogWrapper(UDPScanEngine.class).setEnabled(false);
 
     private NMapConfig config;
-    private  ExecutorService executor;
+    private ExecutorService executor;
+    private NIOSocket nioSocket;
+    private UDPPortScanCallback scanCallback;
     private volatile boolean initialized = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicInteger activeScans = new AtomicInteger(0);
     private Semaphore parallelismLimiter;
 
     private final ConcurrentMap<String, List<CompletableFuture<PortResult>>> pendingByHost =
-        new ConcurrentHashMap<>();
+            new ConcurrentHashMap<>();
 
-    // UDP probe payloads for common services
-    private static final byte[] DNS_PROBE = new byte[]{
-        0x00, 0x00,  // Transaction ID
-        0x01, 0x00,  // Flags: standard query
-        0x00, 0x01,  // Questions: 1
-        0x00, 0x00,  // Answer RRs: 0
-        0x00, 0x00,  // Authority RRs: 0
-        0x00, 0x00,  // Additional RRs: 0
-        0x07, 'v', 'e', 'r', 's', 'i', 'o', 'n',  // Query: version
-        0x04, 'b', 'i', 'n', 'd',                  // .bind
-        0x00,        // Root
-        0x00, 0x10,  // Type: TXT
-        0x00, 0x03   // Class: CH
-    };
 
-    private static final byte[] SNMP_PROBE = new byte[]{
-        0x30, 0x26,              // Sequence
-        0x02, 0x01, 0x00,        // Version: 1
-        0x04, 0x06, 'p', 'u', 'b', 'l', 'i', 'c',  // Community: public
-        (byte) 0xa0, 0x19,       // Get-Request PDU
-        0x02, 0x04, 0x00, 0x00, 0x00, 0x00,  // Request ID
-        0x02, 0x01, 0x00,        // Error status
-        0x02, 0x01, 0x00,        // Error index
-        0x30, 0x0b,              // Varbind list
-        0x30, 0x09,              // Varbind
-        0x06, 0x05, 0x2b, 0x06, 0x01, 0x02, 0x01,  // OID: 1.3.6.1.2.1
-        0x05, 0x00               // Value: NULL
-    };
 
 
     @Override
@@ -76,13 +53,34 @@ public class UDPScanEngine implements ScanEngine {
 
     @Override
     public String getDescription() {
-        return "UDP Scan - Send UDP probes to detect open ports";
+        return "UDP Scan - NIO callback-based UDP probes to detect open ports";
     }
 
     @Override
     public boolean isAvailable() {
         // UDP scan is always available (no raw sockets required)
         return true;
+    }
+
+    @Override
+    public void setNIOSocket(NIOSocket nioSocket) {
+        this.nioSocket = nioSocket;
+
+        // Create and register the UDP scan callback
+        if (nioSocket != null && scanCallback == null) {
+            try {
+                scanCallback = new UDPPortScanCallback();
+                scanCallback.setExecutor(nioSocket.getExecutor());
+                nioSocket.addDatagramSocket(scanCallback);
+
+                if (log.isEnabled()) {
+                    log.getLogger().info("UDP scan callback registered with NIOSocket");
+                }
+            } catch (IOException e) {
+                log.getLogger().warning("Failed to register UDP callback: " + e.getMessage());
+                scanCallback = null;
+            }
+        }
     }
 
     @Override
@@ -97,7 +95,8 @@ public class UDPScanEngine implements ScanEngine {
         this.initialized = true;
 
         if (log.isEnabled()) {
-            log.getLogger().info("UDPScanEngine initialized");
+            log.getLogger().info("UDPScanEngine initialized with parallelism: " +
+                    config.getMaxParallelism());
         }
     }
 
@@ -111,12 +110,68 @@ public class UDPScanEngine implements ScanEngine {
             return closedFuture;
         }
 
-        return CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<PortResult> future = new CompletableFuture<>();
+
+        // Use NIOSocket callback if available, otherwise fall back to blocking approach
+        if (nioSocket != null && scanCallback != null) {
+            scanPortWithNIOSocket(host, port, future);
+        } else {
+            scanPortBlocking(host, port, future);
+        }
+
+        return future;
+    }
+
+    /**
+     * Scan port using NIOSocket callback pattern (non-blocking).
+     */
+    private void scanPortWithNIOSocket(String host, int port, CompletableFuture<PortResult> future) {
+        try {
+            parallelismLimiter.acquire();
+            activeScans.incrementAndGet();
+
+            int timeoutMs = config.getTimeoutSec() * 1000;
+            if (timeoutMs <= 0) {
+                timeoutMs = 10000; // 10 second default for UDP
+            }
+
+            if (log.isEnabled()) {
+                log.getLogger().info("Scanning UDP " + host + ":" + port + " with NIOSocket");
+            }
+
+            scanCallback.sendProbe(host, port, timeoutMs, result -> {
+                activeScans.decrementAndGet();
+                parallelismLimiter.release();
+                future.complete(result);
+            });
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            activeScans.decrementAndGet();
+            parallelismLimiter.release();
+            future.complete(PortResult.error(port, "udp", "interrupted"));
+        } catch (Exception e) {
+            activeScans.decrementAndGet();
+            parallelismLimiter.release();
+
+            if (log.isEnabled()) {
+                log.getLogger().warning("Error scanning UDP " + host + ":" + port + ": " + e.getMessage());
+            }
+
+            future.complete(PortResult.error(port, "udp", e.getMessage()));
+        }
+    }
+
+    /**
+     * Fallback blocking scan for when NIOSocket is not available.
+     */
+    private void scanPortBlocking(String host, int port, CompletableFuture<PortResult> future) {
+        CompletableFuture.supplyAsync(() -> {
             try {
                 parallelismLimiter.acquire();
                 activeScans.incrementAndGet();
                 try {
-                    return performUdpScan(host, port);
+                    return performBlockingUdpScan(host, port);
                 } finally {
                     activeScans.decrementAndGet();
                     parallelismLimiter.release();
@@ -125,26 +180,15 @@ public class UDPScanEngine implements ScanEngine {
                 Thread.currentThread().interrupt();
                 return PortResult.error(port, "udp", "interrupted");
             }
-        }, executor);
+        }, executor).thenAccept(future::complete);
     }
 
-//    @Override
-//    public void asyncScanPort(String host, int port) {
-//
-//    }
-//
-//    @Override
-//    public void asyncScanHost(String host, List<Integer> ports) {
-//
-//    }
-
     /**
-     * Perform UDP scan using DatagramChannel.
+     * Blocking UDP scan for fallback mode.
      */
-    private PortResult performUdpScan(String host, int port) {
+    private PortResult performBlockingUdpScan(String host, int port) {
         long startTime = System.currentTimeMillis();
 
-        // UDP scans typically need longer timeouts
         int timeoutMs = config.getTimeoutSec() * 1000;
         if (timeoutMs <= 0) {
             timeoutMs = 10000; // 10 second default for UDP
@@ -183,10 +227,10 @@ public class UDPScanEngine implements ScanEngine {
                 // No response - could be open or filtered
                 long responseTime = System.currentTimeMillis() - startTime;
                 return PortResult.builder(port, "udp")
-                    .state(PortState.OPEN_FILTERED)
-                    .reason("no-response")
-                    .responseTime(responseTime)
-                    .build();
+                        .state(PortState.OPEN_FILTERED)
+                        .reason("no-response")
+                        .responseTime(responseTime)
+                        .build();
             }
 
             Set<SelectionKey> keys = selector.selectedKeys();
@@ -208,20 +252,20 @@ public class UDPScanEngine implements ScanEngine {
                             buffer.get(data);
 
                             return PortResult.builder(port, "udp")
-                                .state(PortState.OPEN)
-                                .reason("udp-response")
-                                .responseTime(responseTime)
-                                .banner(new String(data).trim())
-                                .build();
+                                    .state(PortState.OPEN)
+                                    .reason("udp-response")
+                                    .responseTime(responseTime)
+                                    .banner(new String(data).trim())
+                                    .build();
                         }
                     } catch (PortUnreachableException e) {
                         // ICMP port unreachable - port is closed
                         long responseTime = System.currentTimeMillis() - startTime;
                         return PortResult.builder(port, "udp")
-                            .state(PortState.CLOSED)
-                            .reason("port-unreach")
-                            .responseTime(responseTime)
-                            .build();
+                                .state(PortState.CLOSED)
+                                .reason("port-unreach")
+                                .responseTime(responseTime)
+                                .build();
                     }
                 }
             }
@@ -229,36 +273,36 @@ public class UDPScanEngine implements ScanEngine {
             // No response after selection
             long responseTime = System.currentTimeMillis() - startTime;
             return PortResult.builder(port, "udp")
-                .state(PortState.OPEN_FILTERED)
-                .reason("no-response")
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.OPEN_FILTERED)
+                    .reason("no-response")
+                    .responseTime(responseTime)
+                    .build();
 
         } catch (PortUnreachableException e) {
             // ICMP port unreachable - port is closed
             long responseTime = System.currentTimeMillis() - startTime;
             return PortResult.builder(port, "udp")
-                .state(PortState.CLOSED)
-                .reason("port-unreach")
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.CLOSED)
+                    .reason("port-unreach")
+                    .responseTime(responseTime)
+                    .build();
         } catch (IOException e) {
             long responseTime = System.currentTimeMillis() - startTime;
             String reason = e.getMessage();
 
             if (reason != null && reason.toLowerCase().contains("unreachable")) {
                 return PortResult.builder(port, "udp")
-                    .state(PortState.CLOSED)
-                    .reason("port-unreach")
-                    .responseTime(responseTime)
-                    .build();
+                        .state(PortState.CLOSED)
+                        .reason("port-unreach")
+                        .responseTime(responseTime)
+                        .build();
             }
 
             return PortResult.builder(port, "udp")
-                .state(PortState.OPEN_FILTERED)
-                .reason("error: " + reason)
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.OPEN_FILTERED)
+                    .reason("error: " + reason)
+                    .responseTime(responseTime)
+                    .build();
         } finally {
             IOUtil.close(selector, channel);
         }
@@ -270,16 +314,14 @@ public class UDPScanEngine implements ScanEngine {
     private byte[] getProbeForPort(int port) {
         switch (port) {
             case 53:    // DNS
-                return DNS_PROBE;
+                return PacketDataConst.DNS_PROBE;
             case 161:   // SNMP
             case 162:
-                return SNMP_PROBE;
+                return PacketDataConst.SNMP_PROBE;
             default:
                 return Const.EMPTY_BYTE_ARRAY;
         }
     }
-
-
 
     @Override
     public CompletableFuture<ScanResult> scanHost(String host, List<Integer> ports) {
@@ -296,6 +338,9 @@ public class UDPScanEngine implements ScanEngine {
         List<CompletableFuture<PortResult>> futures = new ArrayList<>();
 
         for (int port : ports) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Scanning UDP port " + port);
+            }
             CompletableFuture<PortResult> future = scanPort(host, port);
             futures.add(future);
 
@@ -316,7 +361,7 @@ public class UDPScanEngine implements ScanEngine {
         pendingByHost.put(host, futures);
 
         CompletableFuture<Void> allOf = CompletableFuture.allOf(
-            futures.toArray(new CompletableFuture[0])
+                futures.toArray(new CompletableFuture[0])
         );
 
         return allOf.thenApply(v -> {
@@ -329,6 +374,9 @@ public class UDPScanEngine implements ScanEngine {
             for (CompletableFuture<PortResult> future : futures) {
                 try {
                     PortResult result = future.get();
+                    if (log.isEnabled()) {
+                        log.getLogger().info("Result: " + result);
+                    }
                     results.add(result);
                     if (result.isOpen() || result.isClosed()) {
                         hostUp = true;
@@ -341,23 +389,23 @@ public class UDPScanEngine implements ScanEngine {
             }
 
             return ScanResult.builder(host)
-                .resolveAddress()
-                .hostUp(hostUp)
-                .hostUpReason(hostUp ? "udp-response" : "no-response")
-                .startTime(startTime)
-                .endTime(endTime)
-                .portResults(results)
-                .build();
+                    .resolveAddress()
+                    .hostUp(hostUp)
+                    .hostUpReason(hostUp ? "udp-response" : "no-response")
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .portResults(results)
+                    .build();
         }).exceptionally(e -> {
             pendingByHost.remove(host);
 
             return ScanResult.builder(host)
-                .resolveAddress()
-                .hostUp(false)
-                .hostUpReason("error: " + e.getMessage())
-                .startTime(startTime)
-                .endTime(System.currentTimeMillis())
-                .build();
+                    .resolveAddress()
+                    .hostUp(false)
+                    .hostUpReason("error: " + e.getMessage())
+                    .startTime(startTime)
+                    .endTime(System.currentTimeMillis())
+                    .build();
         });
     }
 
@@ -380,20 +428,12 @@ public class UDPScanEngine implements ScanEngine {
 
     @Override
     public void close() {
-        if (!closed.getAndSet(true))
+        if (!closed.getAndSet(true)) {
             stop();
-
-//        if (executor != null) {
-//            executor.shutdown();
-//            try {
-//                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-//                    executor.shutdownNow();
-//                }
-//            } catch (InterruptedException e) {
-//                executor.shutdownNow();
-//                Thread.currentThread().interrupt();
-//            }
-//        }
+            // Close the scan callback
+            IOUtil.close(scanCallback);
+            scanCallback = null;
+        }
     }
 
     @Override

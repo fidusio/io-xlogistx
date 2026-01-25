@@ -1,8 +1,8 @@
 package io.xlogistx.common.nmap.output;
 
-import io.xlogistx.common.nmap.scan.PortResult;
-import io.xlogistx.common.nmap.scan.PortState;
-import io.xlogistx.common.nmap.scan.ScanResult;
+import io.xlogistx.common.nmap.util.PortResult;
+import io.xlogistx.common.nmap.util.PortState;
+import io.xlogistx.common.nmap.util.ScanResult;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.io.IOException;
@@ -77,9 +77,12 @@ public class NormalFormatter implements OutputFormatter {
         }
 
         sb.append("Host is up");
-        if (host.getHostUpReason() != null) {
-            sb.append(" (").append(host.getHostUpReason()).append(")");
+        // Show latency in seconds like real nmap
+        long latencyMs = host.getDurationMs();
+        if (latencyMs > 0) {
+            sb.append(" (").append(String.format("%.4fs latency", latencyMs / 1000.0)).append(")");
         }
+        sb.append(".");
         sb.append(LINE_SEP);
 
         // Port summary

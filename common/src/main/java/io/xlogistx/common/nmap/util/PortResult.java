@@ -1,4 +1,4 @@
-package io.xlogistx.common.nmap.scan;
+package io.xlogistx.common.nmap.util;
 
 import io.xlogistx.common.nmap.service.ServiceMatch;
 

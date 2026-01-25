@@ -3,7 +3,7 @@ package io.xlogistx.common.nmap.os;
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.discovery.DiscoveryResult;
 import io.xlogistx.common.nmap.discovery.ICMPPing;
-import io.xlogistx.common.nmap.scan.PortResult;
+import io.xlogistx.common.nmap.util.PortResult;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.util.List;

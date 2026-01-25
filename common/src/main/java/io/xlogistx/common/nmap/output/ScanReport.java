@@ -1,10 +1,9 @@
 package io.xlogistx.common.nmap.output;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
-import io.xlogistx.common.nmap.scan.PortResult;
-import io.xlogistx.common.nmap.scan.PortState;
-import io.xlogistx.common.nmap.scan.ScanResult;
-import io.xlogistx.common.nmap.scan.ScanType;
+import io.xlogistx.common.nmap.util.PortResult;
+import io.xlogistx.common.nmap.util.PortState;
+import io.xlogistx.common.nmap.util.ScanResult;
 
 import java.time.Instant;
 import java.time.ZoneId;

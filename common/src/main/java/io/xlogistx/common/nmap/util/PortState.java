@@ -1,4 +1,4 @@
-package io.xlogistx.common.nmap.scan;
+package io.xlogistx.common.nmap.util;
 
 /**
  * Port state enumeration matching nmap's port state classifications.

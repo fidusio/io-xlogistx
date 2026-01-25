@@ -1,6 +1,9 @@
 package io.xlogistx.common.nmap.scan;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
+import io.xlogistx.common.nmap.util.PortResult;
+import io.xlogistx.common.nmap.util.ScanResult;
+import io.xlogistx.common.nmap.util.ScanType;
 import org.zoxweb.server.net.NIOSocket;
 
 import java.io.Closeable;

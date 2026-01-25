@@ -1,6 +1,6 @@
 package io.xlogistx.common.nmap.scan.raw;
 
-import io.xlogistx.common.nmap.scan.ScanType;
+import io.xlogistx.common.nmap.util.ScanType;
 
 /**
  * TCP FIN scan engine.

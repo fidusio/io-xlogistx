@@ -1,7 +1,7 @@
 package io.xlogistx.common.nmap.scan.tcp;
 
-import io.xlogistx.common.nmap.scan.PortResult;
-import io.xlogistx.common.nmap.scan.PortState;
+import io.xlogistx.common.nmap.util.PortResult;
+import io.xlogistx.common.nmap.util.PortState;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.common.TCPSessionCallback;

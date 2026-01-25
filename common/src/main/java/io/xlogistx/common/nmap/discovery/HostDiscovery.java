@@ -21,7 +21,8 @@ public class HostDiscovery {
         this.methods = new ArrayList<>();
         this.executor = executor;
 
-        // Register default methods
+        // Register default methods - ARP first for local networks
+        methods.add(new ARPPing(executor));
         methods.add(new TCPPing(executor));
         methods.add(new ICMPPing(executor));
     }
@@ -72,28 +73,78 @@ public class HostDiscovery {
     }
 
     /**
-     * Discover multiple hosts
+     * Discover multiple hosts using batch ARP discovery for efficiency.
+     * First does batch ARP trigger, then falls back to individual methods.
      */
     public CompletableFuture<Map<String, DiscoveryResult>> discoverAll(
             List<String> hosts, NMapConfig config) {
 
-        Map<String, CompletableFuture<DiscoveryResult>> futures = new LinkedHashMap<>();
-
-        for (String host : hosts) {
-            futures.put(host, discover(host, config));
+        // Skip host discovery if configured
+        if (config.isSkipHostDiscovery()) {
+            Map<String, DiscoveryResult> results = new LinkedHashMap<>();
+            for (String host : hosts) {
+                results.put(host, DiscoveryResult.up("user-set", "skip", 0));
+            }
+            return CompletableFuture.completedFuture(results);
         }
 
+        // Use batch ARP discovery for efficiency
         return CompletableFuture.supplyAsync(() -> {
             Map<String, DiscoveryResult> results = new LinkedHashMap<>();
-            for (Map.Entry<String, CompletableFuture<DiscoveryResult>> entry : futures.entrySet()) {
-                try {
-                    results.put(entry.getKey(),
-                        entry.getValue().get(config.getTimeoutSec() * 2, TimeUnit.SECONDS));
-                } catch (Exception e) {
-                    results.put(entry.getKey(),
-                        DiscoveryResult.down("error: " + e.getMessage(), "error"));
+
+            // Step 1: Batch ARP discovery for all hosts
+            ARPPing arpPing = null;
+            for (DiscoveryMethod method : methods) {
+                if (method instanceof ARPPing) {
+                    arpPing = (ARPPing) method;
+                    break;
                 }
             }
+
+            Set<String> hostsFoundByArp = new HashSet<>();
+            if (arpPing != null) {
+                try {
+                    Map<String, DiscoveryResult> arpResults = arpPing.batchDiscover(hosts, config)
+                        .get(config.getTimeoutSec() * 2, TimeUnit.SECONDS);
+
+                    for (Map.Entry<String, DiscoveryResult> entry : arpResults.entrySet()) {
+                        if (entry.getValue().isHostUp()) {
+                            results.put(entry.getKey(), entry.getValue());
+                            hostsFoundByArp.add(entry.getKey());
+                        }
+                    }
+                } catch (Exception e) {
+                    if (log.isEnabled()) {
+                        log.getLogger().info("Batch ARP discovery failed: " + e.getMessage());
+                    }
+                }
+            }
+
+            // Step 2: For hosts not found by ARP, try other methods in parallel
+            List<String> remainingHosts = new ArrayList<>();
+            for (String host : hosts) {
+                if (!hostsFoundByArp.contains(host)) {
+                    remainingHosts.add(host);
+                }
+            }
+
+            if (!remainingHosts.isEmpty()) {
+                Map<String, CompletableFuture<DiscoveryResult>> futures = new LinkedHashMap<>();
+                for (String host : remainingHosts) {
+                    futures.put(host, discover(host, config));
+                }
+
+                for (Map.Entry<String, CompletableFuture<DiscoveryResult>> entry : futures.entrySet()) {
+                    try {
+                        DiscoveryResult result = entry.getValue().get(config.getTimeoutSec(), TimeUnit.SECONDS);
+                        results.put(entry.getKey(), result);
+                    } catch (Exception e) {
+                        results.put(entry.getKey(),
+                            DiscoveryResult.down("error: " + e.getMessage(), "error"));
+                    }
+                }
+            }
+
             return results;
         }, executor);
     }

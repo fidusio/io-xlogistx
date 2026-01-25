@@ -1,6 +1,6 @@
 package io.xlogistx.common.nmap.config;
 
-import io.xlogistx.common.nmap.scan.ScanType;
+import io.xlogistx.common.nmap.util.ScanType;
 import io.xlogistx.common.nmap.output.OutputFormat;
 
 import java.util.EnumSet;
@@ -32,6 +32,7 @@ public class NMapConfig {
     private final boolean osDetection;
     private final boolean hostDiscovery;
     private final boolean skipHostDiscovery;
+    private final boolean pingScanOnly;
     private final boolean verboseOutput;
     private final boolean debugOutput;
 
@@ -60,6 +61,7 @@ public class NMapConfig {
         this.osDetection = builder.osDetection;
         this.hostDiscovery = builder.hostDiscovery;
         this.skipHostDiscovery = builder.skipHostDiscovery;
+        this.pingScanOnly = builder.pingScanOnly;
         this.verboseOutput = builder.verboseOutput;
         this.debugOutput = builder.debugOutput;
         this.outputFormats = builder.outputFormats.isEmpty()
@@ -85,6 +87,7 @@ public class NMapConfig {
     public boolean isOsDetection() { return osDetection; }
     public boolean isHostDiscovery() { return hostDiscovery; }
     public boolean isSkipHostDiscovery() { return skipHostDiscovery; }
+    public boolean isPingScanOnly() { return pingScanOnly; }
     public boolean isVerboseOutput() { return verboseOutput; }
     public boolean isDebugOutput() { return debugOutput; }
     public Set<OutputFormat> getOutputFormats() { return outputFormats; }
@@ -130,6 +133,7 @@ public class NMapConfig {
         private boolean osDetection = false;
         private boolean hostDiscovery = true;
         private boolean skipHostDiscovery = false;
+        private boolean pingScanOnly = false;
         private boolean verboseOutput = false;
         private boolean debugOutput = false;
         private Set<OutputFormat> outputFormats = EnumSet.noneOf(OutputFormat.class);
@@ -224,6 +228,11 @@ public class NMapConfig {
 
         public Builder skipHostDiscovery(boolean skip) {
             this.skipHostDiscovery = skip;
+            return this;
+        }
+
+        public Builder pingScanOnly(boolean enable) {
+            this.pingScanOnly = enable;
             return this;
         }
 

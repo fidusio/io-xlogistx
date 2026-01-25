@@ -4,11 +4,13 @@ import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.config.PortSpecification;
 import io.xlogistx.common.nmap.config.TargetSpecification;
 import io.xlogistx.common.nmap.config.TimingTemplate;
+import io.xlogistx.common.nmap.discovery.DiscoveryResult;
+import io.xlogistx.common.nmap.discovery.HostDiscovery;
 import io.xlogistx.common.nmap.output.OutputFormat;
 import io.xlogistx.common.nmap.output.ScanReport;
 import io.xlogistx.common.nmap.scan.ScanEngine;
-import io.xlogistx.common.nmap.scan.ScanResult;
-import io.xlogistx.common.nmap.scan.ScanType;
+import io.xlogistx.common.nmap.util.ScanResult;
+import io.xlogistx.common.nmap.util.ScanType;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
@@ -35,6 +37,7 @@ public class NMapScanner implements Closeable {
     private final NMapConfig config;
     private final Map<ScanType, ScanEngine> engines;
     private final ExecutorService executor;
+    private final HostDiscovery hostDiscovery;
     private NIOSocket nioSocket;
     private volatile boolean running = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -48,6 +51,7 @@ public class NMapScanner implements Closeable {
         this.engines = new EnumMap<>(ScanType.class);
         this.executor = executor;
         this.nioSocket = nioSocket;
+        this.hostDiscovery = new HostDiscovery(executor);
     }
 
     /**
@@ -139,13 +143,13 @@ public class NMapScanner implements Closeable {
         return scanStreaming(new ConsumerCallback<ScanResult>() {
             @Override
             public void accept(ScanResult result) {
-                log.getLogger().info("Scan result: " + result);
+                if(log.isEnabled())  log.getLogger().info("Scan result: " + result);
                 results.add(result);
             }
 
             @Override
             public void exception(Exception e) {
-                log.getLogger().info("Scan error: " + e.getMessage());
+                if(log.isEnabled()) log.getLogger().info("Scan error: " + e.getMessage());
             }
         }).thenApply(v -> {
             long endTime = System.currentTimeMillis();
@@ -185,6 +189,11 @@ public class NMapScanner implements Closeable {
 
         running = true;
 
+        // Handle ping scan only mode (-sn)
+        if (config.isPingScanOnly()) {
+            return scanPingOnly(callback);
+        }
+
         // Get the primary scan engine
         ScanType primaryType = config.getPrimaryScanType();
         ScanEngine engine = engines.get(primaryType);
@@ -212,25 +221,49 @@ public class NMapScanner implements Closeable {
         TargetSpecification targets = config.getTargets();
         List<Integer> portsToScan = getPortsForEngine(engine);
         List<CompletableFuture<Void>> completionFutures = new ArrayList<>();
+        final ScanEngine finalEngine = engine;
 
         for (String target : targets.getTargets()) {
-            if (log.isEnabled()) {
-                log.getLogger().info("Scanning " + target + " with " + portsToScan.size() + " ports");
-            }
+            // Create future for this host
+            CompletableFuture<Void> hostFuture;
 
-            // Scan host and invoke callback when complete - no blocking
-            CompletableFuture<Void> hostFuture = engine.scanHost(target, portsToScan)
-                .thenAccept(result -> {
-                    try {
-                        callback.accept(result);
-                    } catch (Exception e) {
-                        log.getLogger().warning("Callback error for " + target + ": " + e.getMessage());
-                    }
-                })
-                .exceptionally(e -> {
-                    callback.exception(e instanceof Exception ? (Exception) e : new Exception(e));
-                    return null;
-                });
+            if (config.isSkipHostDiscovery()) {
+                // Skip host discovery (-Pn), scan directly
+                if (log.isEnabled()) {
+                    log.getLogger().info("Scanning " + target + " with " + portsToScan.size() + " ports (skip discovery)");
+                }
+                hostFuture = scanHostDirect(finalEngine, target, portsToScan, callback);
+            } else {
+                // Do host discovery first
+                hostFuture = hostDiscovery.discover(target, config)
+                    .thenCompose(discoveryResult -> {
+                        if (discoveryResult.isHostUp()) {
+                            if (log.isEnabled()) {
+                                log.getLogger().info("Host " + target + " is up (" + discoveryResult.getMethod() +
+                                    "), scanning " + portsToScan.size() + " ports");
+                            }
+                            return scanHostDirect(finalEngine, target, portsToScan, callback);
+                        } else {
+                            // Host is down - report it
+                            if (log.isEnabled()) {
+                                log.getLogger().info("Host " + target + " is down (" + discoveryResult.getReason() + ")");
+                            }
+                            ScanResult downResult = ScanResult.builder(target)
+                                .resolveAddress()
+                                .hostUp(false)
+                                .hostUpReason(discoveryResult.getReason())
+                                .startTime(System.currentTimeMillis())
+                                .endTime(System.currentTimeMillis())
+                                .build();
+                            try {
+                                callback.accept(downResult);
+                            } catch (Exception e) {
+                                log.getLogger().warning("Callback error for " + target + ": " + e.getMessage());
+                            }
+                            return CompletableFuture.completedFuture(null);
+                        }
+                    });
+            }
 
             completionFutures.add(hostFuture);
         }
@@ -238,6 +271,67 @@ public class NMapScanner implements Closeable {
         // Return a future that completes when ALL hosts are done (but doesn't block)
         return CompletableFuture.allOf(completionFutures.toArray(new CompletableFuture[0]))
             .whenComplete((v, e) -> running = false);
+    }
+
+    /**
+     * Perform ping scan only - just host discovery, no port scanning.
+     * Only reports hosts that are UP (responding).
+     * Uses batch discovery for better efficiency with multiple hosts.
+     */
+    private CompletableFuture<Void> scanPingOnly(ConsumerCallback<ScanResult> callback) {
+        TargetSpecification targets = config.getTargets();
+        List<String> allTargets = targets.getTargets();
+
+        // Use batch discovery for efficiency
+        return hostDiscovery.discoverAll(allTargets, config)
+            .thenAccept(results -> {
+                long now = System.currentTimeMillis();
+                for (Map.Entry<String, DiscoveryResult> entry : results.entrySet()) {
+                    String target = entry.getKey();
+                    DiscoveryResult discoveryResult = entry.getValue();
+
+                    // Only report hosts that are UP
+                    if (discoveryResult.isHostUp()) {
+                        ScanResult result = ScanResult.builder(target)
+                            .resolveAddress()
+                            .hostUp(true)
+                            .hostUpReason(discoveryResult.getMethod() + " (" + discoveryResult.getReason() + ")")
+                            .startTime(now - discoveryResult.getLatencyMs())
+                            .endTime(now)
+                            .build();
+                        try {
+                            callback.accept(result);
+                        } catch (Exception e) {
+                            log.getLogger().warning("Callback error for " + target + ": " + e.getMessage());
+                        }
+                    }
+                    // Skip hosts that are down - don't report them
+                }
+            })
+            .exceptionally(e -> {
+                callback.exception(e instanceof Exception ? (Exception) e : new Exception(e));
+                return null;
+            })
+            .whenComplete((v, e) -> running = false);
+    }
+
+    /**
+     * Scan a host directly without host discovery.
+     */
+    private CompletableFuture<Void> scanHostDirect(ScanEngine engine, String target,
+            List<Integer> portsToScan, ConsumerCallback<ScanResult> callback) {
+        return engine.scanHost(target, portsToScan)
+            .thenAccept(result -> {
+                try {
+                    callback.accept(result);
+                } catch (Exception e) {
+                    log.getLogger().warning("Callback error for " + target + ": " + e.getMessage());
+                }
+            })
+            .exceptionally(e -> {
+                callback.exception(e instanceof Exception ? (Exception) e : new Exception(e));
+                return null;
+            });
     }
 
     /**
@@ -249,7 +343,12 @@ public class NMapScanner implements Closeable {
         if (engine.getScanType().isTcp()) {
             return ports.getTcpPortList();
         } else if (engine.getScanType().isUdp()) {
-            return ports.getUdpPortList();
+            List<Integer> udpPorts = ports.getUdpPortList();
+            if (udpPorts.isEmpty()) {
+                // Use default top UDP ports when none specified
+                return PortSpecification.topUdpPorts(20).getUdpPortList();
+            }
+            return udpPorts;
         }
 
         // Default to TCP ports
