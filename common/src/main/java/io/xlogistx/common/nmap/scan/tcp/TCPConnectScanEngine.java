@@ -2,43 +2,35 @@ package io.xlogistx.common.nmap.scan.tcp;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
 import io.xlogistx.common.nmap.scan.*;
-import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.shared.net.IPAddress;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * TCP Connect scan engine implementation.
- * Uses pure Java NIO for non-blocking TCP connections to determine port state.
+ * TCP Connect scan engine implementation using NIOSocket callbacks.
+ * Uses shared NIOSocket event loop for efficient non-blocking TCP connections.
  */
 public class TCPConnectScanEngine implements ScanEngine {
 
     public static final LogWrapper log = new LogWrapper(TCPConnectScanEngine.class).setEnabled(false);
 
     private NMapConfig config;
-    private  ExecutorService executor;
+    private ExecutorService executor;
+    private NIOSocket nioSocket;
     private volatile boolean initialized = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicInteger activeScans = new AtomicInteger(0);
     private Semaphore parallelismLimiter;
     private boolean grabBanner = true;
 
-
     // Track pending results by host
     private final ConcurrentMap<String, List<CompletableFuture<PortResult>>> pendingByHost =
-        new ConcurrentHashMap<>();
-
-    private final List<PortResult> portScanResults = Collections.synchronizedList(new ArrayList<>());
+            new ConcurrentHashMap<>();
 
     @Override
     public ScanType getScanType() {
@@ -47,13 +39,18 @@ public class TCPConnectScanEngine implements ScanEngine {
 
     @Override
     public String getDescription() {
-        return "TCP Connect Scan - Full TCP connection to each port";
+        return "TCP Connect Scan - NIO callback-based TCP connection to each port";
     }
 
     @Override
     public boolean isAvailable() {
         // TCP connect scan is always available (no raw sockets required)
         return true;
+    }
+
+    @Override
+    public void setNIOSocket(NIOSocket nioSocket) {
+        this.nioSocket = nioSocket;
     }
 
     @Override
@@ -70,7 +67,7 @@ public class TCPConnectScanEngine implements ScanEngine {
 
         if (log.isEnabled()) {
             log.getLogger().info("TCPConnectScanEngine initialized with parallelism: " +
-                config.getMaxParallelism());
+                    config.getMaxParallelism());
         }
     }
 
@@ -84,206 +81,172 @@ public class TCPConnectScanEngine implements ScanEngine {
             return closedFuture;
         }
 
-        return CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<PortResult> future = new CompletableFuture<>();
+
+        // Use NIOSocket if available, otherwise fall back to blocking approach
+        if (nioSocket != null) {
+            scanPortWithNIOSocket(host, port, future);
+        } else {
+            scanPortBlocking(host, port, future);
+        }
+
+        return future;
+    }
+
+    /**
+     * Scan port using NIOSocket callback pattern (non-blocking).
+     */
+    private void scanPortWithNIOSocket(String host, int port, CompletableFuture<PortResult> future) {
+        try {
+            parallelismLimiter.acquire();
+            activeScans.incrementAndGet();
+
+            IPAddress address = new IPAddress(host, port);
+            TCPPortScanCallback callback = new TCPPortScanCallback(
+                    address,
+                    result -> {
+                        activeScans.decrementAndGet();
+                        parallelismLimiter.release();
+                        future.complete(result);
+                    },
+                    grabBanner
+            );
+
+            int timeoutSec = config.getTimeoutSec();
+            if (timeoutSec <= 0) {
+                timeoutSec = 5;
+            }
+
+            if (log.isEnabled()) {
+                log.getLogger().info("Scanning " + host + ":" + port + " with NIOSocket");
+            }
+
+            nioSocket.addClientSocket(callback, timeoutSec);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            activeScans.decrementAndGet();
+            parallelismLimiter.release();
+            future.complete(PortResult.error(port, "tcp", "interrupted"));
+        } catch (Exception e) {
+            activeScans.decrementAndGet();
+            parallelismLimiter.release();
+
+            if (log.isEnabled()) {
+                log.getLogger().warning("Error scanning " + host + ":" + port + ": " + e.getMessage());
+            }
+
+            future.complete(PortResult.error(port, "tcp", e.getMessage()));
+        }
+    }
+
+    /**
+     * Fallback blocking scan for when NIOSocket is not available.
+     */
+    private void scanPortBlocking(String host, int port, CompletableFuture<PortResult> future) {
+        CompletableFuture.supplyAsync(() -> {
             try {
-                log.getLogger().info("1-Semaphore permits: " + parallelismLimiter.availablePermits());
                 parallelismLimiter.acquire();
-                log.getLogger().info("2-Semaphore permits: " + parallelismLimiter.availablePermits());
                 activeScans.incrementAndGet();
                 try {
-                    return performTcpConnect(host, port);
+                    return performBlockingTcpConnect(host, port);
                 } finally {
                     activeScans.decrementAndGet();
                     parallelismLimiter.release();
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
                 Thread.currentThread().interrupt();
                 return PortResult.error(port, "tcp", "interrupted");
             }
-        }, executor);
+        }, executor).thenAccept(future::complete);
     }
 
-//    @Override
-//    public void asyncScanPort(String host, int port) {
-//        executor.submit(new CallableConsumer<PortResult>() {
-//
-//            /**
-//             * Performs this operation on the given argument.
-//             *
-//             * @param o the input argument
-//             */
-//            @Override
-//            public void accept(PortResult o) {
-//                portScanResults.add(o);
-//            }
-//
-//            public void exception(Exception e){
-//                PortResult.error(port, "tcp", "interrupted");
-//            }
-//
-//            /**
-//             * Computes a result, or throws an exception if unable to do so.
-//             *
-//             * @return computed result
-//             * @throws Exception if unable to compute a result
-//             */
-//            @Override
-//            public PortResult call() throws Exception {
-//
-//                activeScans.incrementAndGet();
-//                try {
-//                    return performTcpConnect(host, port);
-//                } finally {
-//                    activeScans.decrementAndGet();
-//                }
-//            }
-//
-//        });
-//    }
-
-//    @Override
-//    public void asyncScanHost(String host, List<Integer> ports) {
-//
-//    }
-
     /**
-     * Perform TCP connect scan using NIO SocketChannel.
+     * Blocking TCP connect for fallback mode.
      */
-    private PortResult performTcpConnect(String host, int port) {
+    private PortResult performBlockingTcpConnect(String host, int port) {
         long startTime = System.currentTimeMillis();
         int timeoutMs = config.getTimeoutSec() * 1000;
         if (timeoutMs <= 0) {
             timeoutMs = 5000;
         }
 
-        SocketChannel channel = null;
-        Selector selector = null;
+        java.nio.channels.SocketChannel channel = null;
+        java.nio.channels.Selector selector = null;
 
         try {
-            channel = SocketChannel.open();
+            channel = java.nio.channels.SocketChannel.open();
             channel.configureBlocking(false);
-            selector = Selector.open();
+            selector = java.nio.channels.Selector.open();
 
-            // Start connection
-            InetSocketAddress address = new InetSocketAddress(host, port);
-            //boolean connected = channel.connect(address);
+            java.net.InetSocketAddress address = new java.net.InetSocketAddress(host, port);
 
             if (!channel.connect(address)) {
-                // Connection in progress, wait for completion
-                channel.register(selector, SelectionKey.OP_CONNECT);
-
+                channel.register(selector, java.nio.channels.SelectionKey.OP_CONNECT);
                 int readyCount = selector.select(timeoutMs);
 
                 if (readyCount == 0) {
-                    // Timeout - port is filtered
                     long responseTime = System.currentTimeMillis() - startTime;
                     return PortResult.builder(port, "tcp")
-                        .state(PortState.FILTERED)
-                        .reason("no-response")
-                        .responseTime(responseTime)
-                        .build();
+                            .state(PortState.FILTERED)
+                            .reason("no-response")
+                            .responseTime(responseTime)
+                            .build();
                 }
 
-                Set<SelectionKey> keys = selector.selectedKeys();
-                Iterator<SelectionKey> iter = keys.iterator();
-
-                while (iter.hasNext()) {
-                    SelectionKey key = iter.next();
-                    iter.remove();
-
+                for (java.nio.channels.SelectionKey key : selector.selectedKeys()) {
                     if (key.isConnectable()) {
                         try {
                             if (channel.finishConnect()) {
-                                // Connection successful - port is open
                                 long responseTime = System.currentTimeMillis() - startTime;
-                                return createOpenResult(port, responseTime, channel);
+                                return PortResult.builder(port, "tcp")
+                                        .state(PortState.OPEN)
+                                        .reason("syn-ack")
+                                        .responseTime(responseTime)
+                                        .build();
                             }
-                        } catch (IOException e) {
-                            // Connection refused or reset - port is closed
+                        } catch (java.io.IOException e) {
                             long responseTime = System.currentTimeMillis() - startTime;
                             return createClosedResult(port, responseTime, e);
                         }
                     }
                 }
             } else {
-                // Immediate connection - port is open
                 long responseTime = System.currentTimeMillis() - startTime;
-                return createOpenResult(port, responseTime, channel);
+                return PortResult.builder(port, "tcp")
+                        .state(PortState.OPEN)
+                        .reason("syn-ack")
+                        .responseTime(responseTime)
+                        .build();
             }
 
-            // Fallback
             long responseTime = System.currentTimeMillis() - startTime;
             return PortResult.builder(port, "tcp")
-                .state(PortState.UNKNOWN)
-                .reason("unknown")
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.UNKNOWN)
+                    .reason("unknown")
+                    .responseTime(responseTime)
+                    .build();
 
         } catch (java.net.ConnectException e) {
-            // Connection refused - port is closed
             long responseTime = System.currentTimeMillis() - startTime;
             return createClosedResult(port, responseTime, e);
-        } catch (java.net.NoRouteToHostException e) {
-            // No route - host is unreachable
-            long responseTime = System.currentTimeMillis() - startTime;
-            return PortResult.builder(port, "tcp")
-                .state(PortState.FILTERED)
-                .reason("no-route")
-                .responseTime(responseTime)
-                .build();
-        } catch (SocketTimeoutException e) {
-            // Timeout - port is filtered
-            long responseTime = System.currentTimeMillis() - startTime;
-            return PortResult.builder(port, "tcp")
-                .state(PortState.FILTERED)
-                .reason("timeout")
-                .responseTime(responseTime)
-                .build();
-        } catch (IOException e) {
+        } catch (java.io.IOException e) {
             long responseTime = System.currentTimeMillis() - startTime;
             String reason = e.getMessage();
-
-            // Analyze the exception to determine port state
-            if (reason != null && reason.toLowerCase().contains("refused")) {
-                return createClosedResult(port, responseTime, e);
-            } else if (reason != null && reason.toLowerCase().contains("reset")) {
+            if (reason != null && (reason.toLowerCase().contains("refused") ||
+                    reason.toLowerCase().contains("reset"))) {
                 return createClosedResult(port, responseTime, e);
             }
-
             return PortResult.builder(port, "tcp")
-                .state(PortState.FILTERED)
-                .reason("error: " + reason)
-                .responseTime(responseTime)
-                .build();
+                    .state(PortState.FILTERED)
+                    .reason("error: " + reason)
+                    .responseTime(responseTime)
+                    .build();
         } finally {
-            IOUtil.close(selector, channel);
+            org.zoxweb.server.io.IOUtil.close(selector, channel);
         }
     }
 
-    /**
-     * Create an OPEN port result with optional banner grabbing.
-     */
-    private PortResult createOpenResult(int port, long responseTime, SocketChannel channel) {
-        PortResult.Builder builder = PortResult.builder(port, "tcp")
-            .state(PortState.OPEN)
-            .reason("syn-ack")
-            .responseTime(responseTime);
-
-        // Try to grab banner if service detection is enabled
-        if (grabBanner && channel != null && channel.isConnected()) {
-            String banner = tryGrabBanner(channel);
-            if (banner != null && !banner.isEmpty()) {
-                builder.banner(banner);
-            }
-        }
-
-        return builder.build();
-    }
-
-    /**
-     * Create a CLOSED port result.
-     */
     private PortResult createClosedResult(int port, long responseTime, Exception e) {
         String reason = "conn-refused";
         if (e != null && e.getMessage() != null) {
@@ -291,50 +254,12 @@ public class TCPConnectScanEngine implements ScanEngine {
                 reason = "reset";
             }
         }
-
         return PortResult.builder(port, "tcp")
-            .state(PortState.CLOSED)
-            .reason(reason)
-            .responseTime(responseTime)
-            .build();
+                .state(PortState.CLOSED)
+                .reason(reason)
+                .responseTime(responseTime)
+                .build();
     }
-
-    /**
-     * Try to grab a service banner from the connection.
-     */
-    private String tryGrabBanner(SocketChannel channel) {
-        if (channel == null || !channel.isConnected()) {
-            return null;
-        }
-
-        Selector readSelector = null;
-        try {
-            ByteBuffer buffer = ByteBuffer.allocate(1024);
-
-            readSelector = Selector.open();
-            channel.register(readSelector, SelectionKey.OP_READ);
-            int ready = readSelector.select(1000); // 1 second timeout for banner
-
-            if (ready > 0) {
-                int bytesRead = channel.read(buffer);
-                if (bytesRead > 0) {
-                    buffer.flip();
-                    byte[] data = new byte[buffer.remaining()];
-                    buffer.get(data);
-                    return new String(data).trim();
-                }
-            }
-        } catch (Exception e) {
-            if (log.isEnabled()) {
-                log.getLogger().fine("Banner grab failed: " + e.getMessage());
-            }
-        } finally {
-            IOUtil.close(readSelector);
-        }
-
-        return null;
-    }
-
 
     @Override
     public CompletableFuture<ScanResult> scanHost(String host, List<Integer> ports) {
@@ -348,11 +273,12 @@ public class TCPConnectScanEngine implements ScanEngine {
 
         long startTime = System.currentTimeMillis();
 
-        // Create futures for all port scans
         List<CompletableFuture<PortResult>> futures = new ArrayList<>();
 
         for (int port : ports) {
-            log.getLogger().info("Scanning on port " + port);
+            if (log.isEnabled()) {
+                log.getLogger().info("Scanning port " + port);
+            }
             CompletableFuture<PortResult> future = scanPort(host, port);
             futures.add(future);
 
@@ -367,26 +293,25 @@ public class TCPConnectScanEngine implements ScanEngine {
             }
         }
 
-        // Store pending futures for this host
         pendingByHost.put(host, futures);
 
-        // Combine all futures
         CompletableFuture<Void> allOf = CompletableFuture.allOf(
-            futures.toArray(new CompletableFuture[0])
+                futures.toArray(new CompletableFuture[0])
         );
 
         return allOf.thenApply(v -> {
             long endTime = System.currentTimeMillis();
             pendingByHost.remove(host);
 
-            // Collect results
             List<PortResult> results = new ArrayList<>();
             boolean hostUp = false;
 
             for (CompletableFuture<PortResult> future : futures) {
                 try {
                     PortResult result = future.get();
-                    log.getLogger().info("after get " + result);
+                    if (log.isEnabled()) {
+                        log.getLogger().info("Result: " + result);
+                    }
                     results.add(result);
                     if (result.isOpen() || result.isClosed()) {
                         hostUp = true;
@@ -398,33 +323,29 @@ public class TCPConnectScanEngine implements ScanEngine {
                 }
             }
 
-            // Build scan result
             return ScanResult.builder(host)
-                .resolveAddress()
-                .hostUp(hostUp)
-                .hostUpReason(hostUp ? "tcp-response" : "no-response")
-                .startTime(startTime)
-                .endTime(endTime)
-                .portResults(results)
-                .build();
+                    .resolveAddress()
+                    .hostUp(hostUp)
+                    .hostUpReason(hostUp ? "tcp-response" : "no-response")
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .portResults(results)
+                    .build();
         }).exceptionally(e -> {
             pendingByHost.remove(host);
 
-            // Return a result indicating scan failure
             return ScanResult.builder(host)
-                .resolveAddress()
-                .hostUp(false)
-                .hostUpReason("error: " + e.getMessage())
-                .startTime(startTime)
-                .endTime(System.currentTimeMillis())
-                .build();
+                    .resolveAddress()
+                    .hostUp(false)
+                    .hostUpReason("error: " + e.getMessage())
+                    .startTime(startTime)
+                    .endTime(System.currentTimeMillis())
+                    .build();
         });
     }
 
     @Override
     public void stop() {
-//        log.getLogger().info("Stopping engine ...");
-        // Cancel all pending scans
         for (List<CompletableFuture<PortResult>> futures : pendingByHost.values()) {
             for (CompletableFuture<PortResult> future : futures) {
                 if (!future.isDone()) {
@@ -433,7 +354,6 @@ public class TCPConnectScanEngine implements ScanEngine {
             }
         }
         pendingByHost.clear();
-//        log.getLogger().info("Stopping engine finished ...");
     }
 
     @Override
@@ -443,28 +363,15 @@ public class TCPConnectScanEngine implements ScanEngine {
 
     @Override
     public void close() {
-        if (!closed.getAndSet(false))
+        if (!closed.getAndSet(true)) {
             stop();
-
-//        if (executor != null) {
-//            executor.shutdown();
-//            try {
-//                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-//                    executor.shutdownNow();
-//                }
-//            } catch (InterruptedException e) {
-//                executor.shutdownNow();
-//                Thread.currentThread().interrupt();
-//            }
-//        }
+        }
     }
 
     @Override
     public ExecutorService getExecutor() {
         return executor;
     }
-
-
 
     private void checkInitialized() {
         if (!initialized) {

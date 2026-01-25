@@ -8,6 +8,7 @@ import io.xlogistx.common.nmap.scan.ScanType;
 import io.xlogistx.common.nmap.scan.tcp.TCPConnectScanEngine;
 import io.xlogistx.common.nmap.scan.udp.UDPScanEngine;
 import org.zoxweb.server.net.NIOChannelMonitor;
+import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.util.Const;
@@ -74,7 +75,7 @@ public class NMap {
                     .timing(parsed.timing)
                     .timeout(parsed.timeout)
                     .serviceDetection(parsed.serviceDetection)
-//                    .maxParallelism(64)
+                    .maxParallelism(parsed.parallelism)
                     .verbose(parsed.verbose);
 
             if (parsed.ports != null) {
@@ -89,8 +90,11 @@ public class NMap {
 
             NMapConfig config = configBuilder.build();
 
-            // Create and configure scanner
-            NMapScanner scanner = NMapScanner.create(TaskUtil.defaultTaskProcessor(), config);
+            // Create NIOSocket for efficient callback-based scanning
+            NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+
+            // Create and configure scanner with NIOSocket
+            NMapScanner scanner = NMapScanner.create(TaskUtil.defaultTaskProcessor(), config, nioSocket);
 
             // Register engines based on scan type
             if (parsed.scanType == ScanType.TCP_CONNECT || parsed.scanType.isTcp()) {
@@ -114,6 +118,7 @@ public class NMap {
 
             // Cleanup
             scanner.close();
+            nioSocket.close();
 
             TaskUtil.waitIfBusy(50);
             System.out.println("Finished " + ScanReport.SCANNER_NAME + " at " + java.time.LocalDateTime.now() + " it took " + Const.TimeInMillis.toString(System.currentTimeMillis() - startTime));
@@ -160,6 +165,10 @@ public class NMap {
             // Timeout
             else if (arg.equals("--timeout") && i + 1 < args.length) {
                 parsed.timeout = Integer.parseInt(args[++i]);
+            }
+            // Parallelism
+            else if ((arg.equals("--max-parallelism") || arg.equals("-P")) && i + 1 < args.length) {
+                parsed.parallelism = Integer.parseInt(args[++i]);
             }
             // Verbose
             else if (arg.equals("-v") || arg.equals("--verbose")) {
@@ -293,8 +302,10 @@ public class NMap {
         System.out.println("  --top-ports <n> Scan n most common ports");
         System.out.println();
         System.out.println("TIMING AND PERFORMANCE:");
-        System.out.println("  -T<0-5>         Timing template (0=paranoid, 5=insane)");
-        System.out.println("  --timeout <sec> Connection timeout in seconds");
+        System.out.println("  -T<0-5>             Timing template (0=paranoid, 5=insane)");
+        System.out.println("  --timeout <sec>     Connection timeout in seconds");
+        System.out.println("  --max-parallelism <n>  Maximum concurrent scans (default: 1024)");
+        System.out.println("  -P <n>              Alias for --max-parallelism");
         System.out.println();
         System.out.println("OUTPUT:");
         System.out.println("  -v              Verbose output");
@@ -323,6 +334,7 @@ public class NMap {
         int topPorts = 0;
         TimingTemplate timing = TimingTemplate.T3;
         int timeout = 5;
+        int parallelism = 1024;
         boolean serviceDetection = false;
         boolean verbose = false;
         List<OutputFormat> outputFormats = new ArrayList<>();

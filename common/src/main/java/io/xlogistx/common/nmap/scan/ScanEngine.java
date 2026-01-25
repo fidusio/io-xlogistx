@@ -1,6 +1,7 @@
 package io.xlogistx.common.nmap.scan;
 
 import io.xlogistx.common.nmap.config.NMapConfig;
+import org.zoxweb.server.net.NIOSocket;
 
 import java.io.Closeable;
 import java.util.List;
@@ -93,4 +94,15 @@ public interface ScanEngine extends Closeable {
     void close();
 
     ExecutorService getExecutor();
+
+    /**
+     * Set the NIOSocket for engines that use NIO callback-based scanning.
+     * This allows engines to use the shared NIOSocket event loop instead of
+     * creating per-port Selectors.
+     *
+     * @param nioSocket the shared NIOSocket instance
+     */
+    default void setNIOSocket(NIOSocket nioSocket) {
+        // Default no-op for engines that don't need NIOSocket
+    }
 }

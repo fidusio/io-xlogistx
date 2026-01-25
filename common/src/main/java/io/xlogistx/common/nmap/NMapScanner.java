@@ -10,6 +10,7 @@ import io.xlogistx.common.nmap.scan.ScanEngine;
 import io.xlogistx.common.nmap.scan.ScanResult;
 import io.xlogistx.common.nmap.scan.ScanType;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.task.ConsumerCallback;
 
@@ -34,21 +35,19 @@ public class NMapScanner implements Closeable {
     private final NMapConfig config;
     private final Map<ScanType, ScanEngine> engines;
     private final ExecutorService executor;
+    private NIOSocket nioSocket;
     private volatile boolean running = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private NMapScanner(ExecutorService executor, NMapConfig config) {
+        this(executor, config, null);
+    }
+
+    private NMapScanner(ExecutorService executor, NMapConfig config, NIOSocket nioSocket) {
         this.config = config;
         this.engines = new EnumMap<>(ScanType.class);
         this.executor = executor;
-//        this.executor = Executors.newFixedThreadPool(
-//            Math.max(4, config.getMaxParallelism() / 10),
-//            r -> {
-//                Thread t = new Thread(r, "NMapScanner-Worker");
-//                t.setDaemon(true);
-//                return t;
-//            }
-//        );
+        this.nioSocket = nioSocket;
     }
 
     /**
@@ -58,13 +57,53 @@ public class NMapScanner implements Closeable {
         return new NMapScanner(executor, config);
     }
 
+    /**
+     * Create a scanner with the given configuration and NIOSocket.
+     * Using NIOSocket enables efficient callback-based scanning with a shared event loop.
+     *
+     * @param executor the executor service for async operations
+     * @param config the scan configuration
+     * @param nioSocket the shared NIOSocket instance for callback-based scanning
+     */
+    public static NMapScanner create(ExecutorService executor, NMapConfig config, NIOSocket nioSocket) {
+        return new NMapScanner(executor, config, nioSocket);
+    }
 
     /**
-     * Register a scan engine for a specific scan type
+     * Set the NIOSocket for callback-based scanning.
+     * This will be passed to engines that support NIOSocket.
+     *
+     * @param nioSocket the shared NIOSocket instance
+     */
+    public void setNIOSocket(NIOSocket nioSocket) {
+        this.nioSocket = nioSocket;
+        // Update existing engines with the new NIOSocket
+        for (ScanEngine engine : engines.values()) {
+            engine.setNIOSocket(nioSocket);
+        }
+    }
+
+    /**
+     * Get the NIOSocket instance.
+     *
+     * @return the NIOSocket, or null if not configured
+     */
+    public NIOSocket getNIOSocket() {
+        return nioSocket;
+    }
+
+
+    /**
+     * Register a scan engine for a specific scan type.
+     * If NIOSocket is configured, it will be passed to the engine for
+     * efficient callback-based scanning.
      */
     public NMapScanner registerEngine(ScanEngine engine) {
-        // Pass null for NIOSocket since engines use pure Java NIO internally
         engine.init(TaskUtil.defaultTaskProcessor(), config);
+        // Pass NIOSocket to engine if available
+        if (nioSocket != null) {
+            engine.setNIOSocket(nioSocket);
+        }
         engines.put(engine.getScanType(), engine);
         return this;
     }
@@ -286,6 +325,7 @@ public class NMapScanner implements Closeable {
     public static class Builder {
         private final NMapConfig.Builder configBuilder = NMapConfig.builder();
         private final List<ScanEngine> customEngines = new ArrayList<>();
+        private NIOSocket nioSocket;
 
         public Builder target(String target) {
             configBuilder.target(target);
@@ -347,7 +387,17 @@ public class NMapScanner implements Closeable {
             return this;
         }
 
-
+        /**
+         * Set the NIOSocket for efficient callback-based scanning.
+         * This enables the scanner to use a shared event loop instead of
+         * creating per-port selectors.
+         *
+         * @param nioSocket the shared NIOSocket instance
+         */
+        public Builder nioSocket(NIOSocket nioSocket) {
+            this.nioSocket = nioSocket;
+            return this;
+        }
 
         public Builder registerEngine(ScanEngine engine) {
             this.customEngines.add(engine);
@@ -356,7 +406,7 @@ public class NMapScanner implements Closeable {
 
         public NMapScanner build(ExecutorService executorService) {
             NMapConfig config = configBuilder.build();
-            NMapScanner scanner = NMapScanner.create(executorService, config);
+            NMapScanner scanner = NMapScanner.create(executorService, config, nioSocket);
 
             // Register custom engines
             for (ScanEngine engine : customEngines) {
