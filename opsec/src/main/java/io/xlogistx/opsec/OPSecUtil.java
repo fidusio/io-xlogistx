@@ -25,6 +25,7 @@ import org.bouncycastle.jcajce.SecretKeyWithEncapsulation;
 import org.bouncycastle.jcajce.spec.KEMExtractSpec;
 import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -47,6 +48,7 @@ import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.security.SShURI;
+import org.zoxweb.shared.security.SecTag;
 import org.zoxweb.shared.util.*;
 
 import javax.crypto.*;
@@ -66,10 +68,16 @@ import java.util.List;
 
 
 public class OPSecUtil {
+//    static {
+//        java.util.logging.Logger.getLogger("org.bouncycastle.jsse")
+//                .setLevel(java.util.logging.Level.SEVERE);
+//    }
+
     public static final LogWrapper log = new LogWrapper(OPSecUtil.class).setEnabled(false);
 
     public static final String BC_PROVIDER = "BC";
     public static final String BC_CKD_PROVIDER = "BCPQC";
+    public static final String BC_BCJSSE = "BCJSSE";
     public static final String CK_NAME = "KYBER";
     public static final String CD_NAME = "DILITHIUM";
 
@@ -132,26 +140,13 @@ public class OPSecUtil {
 
     private OPSecUtil() {
 
-//        System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
-//
-//        // just wait after for the providers to propagate
-//        TaskUtil.sleep(Const.TimeInMillis.SECOND.MILLIS*3);
-//
-//        System.out.println("OPSecUtil ready");
-//        System.out.println(SecUtil.SINGLETON.secProvidersToString(false));
-        // add any new provider
-//        SecUtil.addProvider(BC_PROVIDER);
-//        SecUtil.addProvider(BC_CHRYSTAL_PROVIDER);
-//        BC_PROVIDER.getServices();
-//        BC_CHRYSTAL_PROVIDER.getServices();
-//        for (Provider prov : Security.getProviders())
-//        {
-//            if (prov.equals(BC_PROVIDER) || prov.equals(BC_CHRYSTAL_PROVIDER))
-//                log.getLogger().info("\n"+SecUtil.SINGLETON.secProviderToString(prov, false));
-//        }
+        java.util.logging.Logger bcLogger = java.util.logging.Logger.getLogger("org.bouncycastle");
+        bcLogger.setLevel(java.util.logging.Level.SEVERE);
+        bcLogger.setUseParentHandlers(false);  // Prevents parent loggers from handling
 
         loadProviders();
         SecUtil.addCredentialHasher(new ArgonPasswordHasher());
+
 
     }
 
@@ -165,6 +160,8 @@ public class OPSecUtil {
         log.getLogger().info("Provider " + BC_CKD_PROVIDER + " removed: " + stat);
         stat = SecUtil.removeProvider(BC_PROVIDER);
         log.getLogger().info("Provider " + BC_PROVIDER + " removed: " + stat);
+        stat = SecUtil.removeProvider(BC_BCJSSE);
+        log.getLogger().info("Provider " + BC_BCJSSE + " removed: " + stat);
 
         loadProviders();
     }
@@ -173,8 +170,18 @@ public class OPSecUtil {
 
         if (SecUtil.getProvider(BC_PROVIDER) == null) {
             Provider prov = new BouncyCastleProvider();
-            SecUtil.addProvider(prov);
+            SecUtil.addProviderAt(prov, 1);
+//            SecUtil.addProvider(prov);
             checkProviderExists(BC_PROVIDER);
+        }
+
+        if (SecUtil.getProvider(BC_BCJSSE) == null) {
+            Provider prov = new BouncyCastleJsseProvider();
+            SecUtil.addProviderAt(prov, 2);
+//            SecUtil.addProvider(prov);
+            checkProviderExists(BC_BCJSSE);
+            SecTag.REGISTRAR.registerValue(new SecTag(BC_BCJSSE, SecTag.TagID.X509));
+            SecTag.REGISTRAR.registerValue(new SecTag(BC_BCJSSE, SecTag.TagID.TLS));
         }
         if (SecUtil.getProvider(BC_CKD_PROVIDER) == null) {
             Provider prov = new BouncyCastlePQCProvider();
@@ -574,7 +581,7 @@ public class OPSecUtil {
         int keyUsageBits = 0;
         for (String prop : props) {
             KeyUsageType keyUsage = KeyUsageType.lookup(prop);
-            if(keyUsage != null)
+            if (keyUsage != null)
                 keyUsageBits |= keyUsage.getValue().getPadBits();
 
 //            switch (prop.toLowerCase()) {
@@ -1183,7 +1190,6 @@ public class OPSecUtil {
     public X509CRLEntry[] getRevokedCerts(X509CRL crl) {
         return crl.getRevokedCertificates().toArray(new X509CRLEntry[0]);
     }
-
 
 }
 

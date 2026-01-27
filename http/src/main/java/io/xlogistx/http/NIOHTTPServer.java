@@ -4,6 +4,8 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
+import io.xlogistx.opsec.BCSSLGroupSetter;
+import io.xlogistx.opsec.OPSecUtil;
 import io.xlogistx.shiro.ShiroInvoker;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
@@ -51,8 +53,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.CIPHERS;
-import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
+import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 
 
 /**
@@ -92,7 +93,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.PROTOCOLS;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.9.2");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::1.9.5");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -655,6 +656,7 @@ public class NIOHTTPServer
     public void start() throws IOException, GeneralSecurityException {
 
         TaskUtil.registerMainThread();
+        OPSecUtil.singleton();
         String msg = "";
         NVGenericMap keepAliveConfig = null;
         if (config != null && !isClosed.get()) {
@@ -752,7 +754,7 @@ public class NIOHTTPServer
                                 String trustStorePassword = sslConfig.getValue("truststore_password");
                                 String trustStoreFilename = sslConfig.getValue("truststore_file");
                                 String protocol = sslConfig.getValue("protocol");
-                                SSLContext sslContext = SecUtil.initSSLContext(protocol, null, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
+                                SSLContext sslContext = SecUtil.initSSLContext(protocol, OPSecUtil.BC_BCJSSE, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
                                         sslConfig.getValue("keystore_type"),
                                         ksPassword.toCharArray(),
                                         aliasPassword != null ? aliasPassword.toCharArray() : null,
@@ -760,9 +762,17 @@ public class NIOHTTPServer
                                         trustStorePassword != null ? trustStorePassword.toCharArray() : null);
                                 NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));
                                 NVStringList ciphers = ((NVStringList) sslConfig.get(CIPHERS));
-                                SSLNIOSocketHandlerFactory sslnioSocketHandlerFactory = new SSLNIOSocketHandlerFactory(new SSLContextInfo(sslContext,
+                                NVStringList groups = ((NVStringList) sslConfig.get(GROUPS));
+                                SSLContextInfo sslContextInfo = new SSLContextInfo(sslContext,
                                         protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
-                                        ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null),
+                                        ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null);
+
+                                // add ssl group setter here
+                                if(groups != null && groups.getValues().length > 0) {
+                                    sslContextInfo.setSSLGroupSetter(new BCSSLGroupSetter(groups.getValues()));
+                                }
+
+                                SSLNIOSocketHandlerFactory sslnioSocketHandlerFactory = new SSLNIOSocketHandlerFactory(sslContextInfo,
                                         httpsIC);
                                 if (sslConfig.get("simple_state_machine") != null) {
                                     NVBoolean ssm = (NVBoolean) sslConfig.get("simple_state_machine");

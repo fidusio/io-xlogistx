@@ -62,6 +62,18 @@
         //          "TLSv1.3"
         //        ],
         "ciphers": [
+        ],
+        "groups:": [
+          "X25519MLKEM768",
+          // PQC hybrid (browser default)
+          "SecP256r1MLKEM768",
+          // PQC hybrid (FIPS)
+          "SecP384r1MLKEM1024",
+          // PQC hybrid (high security)
+          "x25519",
+          // Classical fallback
+          "secp256r1",
+          "secp384r1"
         ]
       }
     }
