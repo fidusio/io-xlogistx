@@ -43,7 +43,7 @@ public class DNSRegistrar
 
     private Resolver resolver = null;
 
-    private DNSRegistrar() {
+    public DNSRegistrar() {
         super(new LinkedHashMap<>());
         keyFilter = ToDNSEntry;
     }

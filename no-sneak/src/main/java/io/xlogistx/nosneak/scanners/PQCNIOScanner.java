@@ -188,6 +188,17 @@ public class PQCNIOScanner extends TCPSessionCallback {
                     PQCScanResult.SignatureType sigType = parseSignatureType(certAnalysis[0]);
                     builder.certSignature(sigType, certAnalysis[1]);
                     builder.certPublicKey(certAnalysis[2], Integer.parseInt(certAnalysis[3]));
+
+                    // Certificate validity information
+                    builder.certValidity(leafCert);
+
+                    // Verify certificate chain signature
+                    boolean chainValid = verifyCertificateChain(chain);
+                    builder.certChainValid(chainValid);
+
+                    // CRL check is optional and requires network access
+                    // Set to null (not checked) by default
+                    // builder.certRevoked(null);
                 }
             }
 
@@ -228,6 +239,45 @@ public class PQCNIOScanner extends TCPSessionCallback {
                 log.getLogger().info("Failed to convert certificate chain: " + e.getMessage());
             }
             return null;
+        }
+    }
+
+    /**
+     * Verify the certificate chain signatures.
+     * Each certificate in the chain should be signed by the next certificate (its issuer).
+     *
+     * @param chain the certificate chain (leaf first, root last)
+     * @return true if chain is valid, false otherwise
+     */
+    private boolean verifyCertificateChain(X509Certificate[] chain) {
+        if (chain == null || chain.length == 0) {
+            return false;
+        }
+
+        try {
+            for (int i = 0; i < chain.length - 1; i++) {
+                X509Certificate cert = chain[i];
+                X509Certificate issuer = chain[i + 1];
+
+                // Verify that cert was signed by issuer
+                cert.verify(issuer.getPublicKey());
+            }
+
+            // For the last cert (root or intermediate), we just check it's self-signed
+            // or trust it as an anchor (in production, you'd check against a trust store)
+            X509Certificate lastCert = chain[chain.length - 1];
+            if (lastCert.getSubjectX500Principal().equals(lastCert.getIssuerX500Principal())) {
+                // Self-signed - verify signature
+                lastCert.verify(lastCert.getPublicKey());
+            }
+            // If not self-signed, we assume it chains to a trusted root we don't have
+
+            return true;
+        } catch (Exception e) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Certificate chain verification failed: " + e.getMessage());
+            }
+            return false;
         }
     }
 

@@ -1,11 +1,7 @@
 package io.xlogistx.nosneak.scanners;
 
-import org.zoxweb.shared.util.Identifier;
-import org.zoxweb.shared.util.NVBoolean;
-import org.zoxweb.shared.util.NVEnum;
-import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.NVInt;
-import org.zoxweb.shared.util.NVLong;
+import org.zoxweb.server.util.DateUtil;
+import org.zoxweb.shared.util.*;
 
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
@@ -121,6 +117,15 @@ public class PQCScanResult implements Identifier<String> {
     private boolean certPqcReady;
     private X509Certificate[] certificateChain;
 
+    // Certificate validity
+    private long certNotBefore;      // Timestamp when certificate becomes valid
+    private long certNotAfter;       // Timestamp when certificate expires
+    private boolean certTimeValid;   // Whether current time is within validity period
+    private Boolean certChainValid;  // null=not checked, true=chain verified, false=invalid chain
+    private Boolean certRevoked;     // null=not checked, true=revoked, false=not revoked
+    private String certSubject;      // Certificate subject DN
+    private String certIssuer;       // Certificate issuer DN
+
     // Overall status
     private PQCStatus overallStatus;
     private List<String> recommendations;
@@ -211,6 +216,34 @@ public class PQCScanResult implements Identifier<String> {
         return certificateChain;
     }
 
+    public long getCertNotBefore() {
+        return certNotBefore;
+    }
+
+    public long getCertNotAfter() {
+        return certNotAfter;
+    }
+
+    public boolean isCertTimeValid() {
+        return certTimeValid;
+    }
+
+    public Boolean isCertChainValid() {
+        return certChainValid;
+    }
+
+    public Boolean isCertRevoked() {
+        return certRevoked;
+    }
+
+    public String getCertSubject() {
+        return certSubject;
+    }
+
+    public String getCertIssuer() {
+        return certIssuer;
+    }
+
     public PQCStatus getOverallStatus() {
         return overallStatus;
     }
@@ -250,6 +283,24 @@ public class PQCScanResult implements Identifier<String> {
             sb.append("  certSignature=").append(certSignatureType).append(" (").append(certSignatureAlgorithm).append(")\n");
             sb.append("  certPublicKey=").append(certPublicKeyType).append(" (").append(certPublicKeySize).append(" bits)\n");
             sb.append("  certPqcReady=").append(certPqcReady).append("\n");
+            // Certificate validity info
+            if (certSubject != null) {
+                sb.append("  certSubject='").append(certSubject).append("'\n");
+            }
+            if (certIssuer != null) {
+                sb.append("  certIssuer='").append(certIssuer).append("'\n");
+            }
+            if (certNotBefore > 0) {
+                sb.append("  certNotBefore=").append(new java.util.Date(certNotBefore)).append("\n");
+                sb.append("  certNotAfter=").append(new java.util.Date(certNotAfter)).append("\n");
+                sb.append("  certTimeValid=").append(certTimeValid).append("\n");
+            }
+            if (certChainValid != null) {
+                sb.append("  certChainValid=").append(certChainValid).append("\n");
+            }
+            if (certRevoked != null) {
+                sb.append("  certRevoked=").append(certRevoked).append("\n");
+            }
             sb.append("  overallStatus=").append(overallStatus).append("\n");
             if (!recommendations.isEmpty()) {
                 sb.append("  recommendations=[\n");
@@ -274,7 +325,7 @@ public class PQCScanResult implements Identifier<String> {
         // Connection info
         nvgm.add("host", host);
         nvgm.add(new NVInt("port", port));
-        nvgm.build("id", getID());
+        nvgm.build("scanId", getID());
         nvgm.add(new NVLong("scanTimeMs", scanTimeMs));
         nvgm.add(new NVBoolean("success", success));
         if (errorMessage != null) {
@@ -324,6 +375,28 @@ public class PQCScanResult implements Identifier<String> {
             nvgm.add(new NVInt("certPublicKeySize", certPublicKeySize));
         }
         nvgm.add(new NVBoolean("certPqcReady", certPqcReady));
+
+
+        // Certificate validity
+        if (certNotBefore > 0) {
+            nvgm.add(new NVPair("certNotBefore",  DateUtil.DEFAULT_GMT_MILLIS.format(certNotBefore)));
+        }
+        if (certNotAfter > 0) {
+            nvgm.add(new NVPair("certNotAfter", DateUtil.DEFAULT_GMT_MILLIS.format(certNotAfter)));
+        }
+        nvgm.add(new NVBoolean("certTimeValid", certTimeValid));
+        if (certChainValid != null) {
+            nvgm.add(new NVBoolean("certChainValid", certChainValid));
+        }
+        if (certRevoked != null) {
+            nvgm.add(new NVBoolean("certRevoked", certRevoked));
+        }
+        if (certSubject != null) {
+            nvgm.add("certSubject", certSubject);
+        }
+        if (certIssuer != null) {
+            nvgm.add("certIssuer", certIssuer);
+        }
 
         // Overall status
         if (overallStatus != null) {
@@ -418,6 +491,49 @@ public class PQCScanResult implements Identifier<String> {
 
         public Builder certificateChain(X509Certificate[] chain) {
             result.certificateChain = chain;
+            return this;
+        }
+
+        /**
+         * Set certificate validity information from the leaf certificate.
+         * Automatically extracts notBefore, notAfter, subject, issuer and validates time.
+         *
+         * @param cert the leaf certificate
+         * @return this builder
+         */
+        public Builder certValidity(X509Certificate cert) {
+            if (cert != null) {
+                result.certNotBefore = cert.getNotBefore().getTime();
+                result.certNotAfter = cert.getNotAfter().getTime();
+                result.certSubject = cert.getSubjectX500Principal().getName();
+                result.certIssuer = cert.getIssuerX500Principal().getName();
+
+                // Check if certificate is currently valid (time-wise)
+                long now = System.currentTimeMillis();
+                result.certTimeValid = now >= result.certNotBefore && now <= result.certNotAfter;
+            }
+            return this;
+        }
+
+        /**
+         * Set whether the certificate chain was successfully verified.
+         *
+         * @param valid true if chain is valid, false if invalid, null if not checked
+         * @return this builder
+         */
+        public Builder certChainValid(Boolean valid) {
+            result.certChainValid = valid;
+            return this;
+        }
+
+        /**
+         * Set whether the certificate was found to be revoked (via CRL or OCSP).
+         *
+         * @param revoked true if revoked, false if not revoked, null if not checked
+         * @return this builder
+         */
+        public Builder certRevoked(Boolean revoked) {
+            result.certRevoked = revoked;
             return this;
         }
 
