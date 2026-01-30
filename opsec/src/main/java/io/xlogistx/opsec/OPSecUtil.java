@@ -1191,5 +1191,188 @@ public class OPSecUtil {
         return crl.getRevokedCertificates().toArray(new X509CRLEntry[0]);
     }
 
+    // ==================== PQC Analysis Utilities ====================
+
+    /**
+     * Known PQC hybrid key exchange algorithms (TLS NamedGroup values)
+     */
+    public static final String[] PQC_HYBRID_KEY_EXCHANGES = {
+        "X25519MLKEM768",       // X25519 + ML-KEM-768
+        "SecP256r1MLKEM768",    // ECDH P-256 + ML-KEM-768
+        "X25519Kyber768",       // X25519 + Kyber-768 (older name)
+        "SecP256r1Kyber768",    // ECDH P-256 + Kyber-768 (older name)
+        "X448MLKEM1024",        // X448 + ML-KEM-1024
+        "SecP384r1MLKEM1024",   // ECDH P-384 + ML-KEM-1024
+    };
+
+    /**
+     * Classical ECDHE key exchange algorithms
+     */
+    public static final String[] CLASSICAL_ECDHE = {
+        "x25519", "X25519",
+        "x448", "X448",
+        "secp256r1", "SecP256r1", "P-256",
+        "secp384r1", "SecP384r1", "P-384",
+        "secp521r1", "SecP521r1", "P-521",
+    };
+
+    /**
+     * PQC signature algorithms (ML-DSA / Dilithium)
+     */
+    public static final String[] PQC_SIGNATURE_ALGORITHMS = {
+        "ML-DSA-44", "ML-DSA-65", "ML-DSA-87",
+        "DILITHIUM2", "DILITHIUM3", "DILITHIUM5",
+        "Dilithium2", "Dilithium3", "Dilithium5",
+        "FALCON-512", "FALCON-1024",
+        "Falcon-512", "Falcon-1024",
+        "SPHINCS+", "SLH-DSA",
+    };
+
+    /**
+     * Check if a key exchange algorithm is PQC hybrid
+     * @param algorithm the key exchange algorithm name
+     * @return true if PQC hybrid
+     */
+    public boolean isPQCHybridKeyExchange(String algorithm) {
+        if (algorithm == null) return false;
+        String upper = algorithm.toUpperCase();
+        for (String pqc : PQC_HYBRID_KEY_EXCHANGES) {
+            if (upper.contains(pqc.toUpperCase())) {
+                return true;
+            }
+        }
+        // Also check for generic ML-KEM or Kyber in name
+        return upper.contains("MLKEM") || upper.contains("ML-KEM") || upper.contains("KYBER");
+    }
+
+    /**
+     * Check if a key exchange algorithm is classical ECDHE
+     * @param algorithm the key exchange algorithm name
+     * @return true if classical ECDHE
+     */
+    public boolean isClassicalECDHE(String algorithm) {
+        if (algorithm == null) return false;
+        String upper = algorithm.toUpperCase();
+        // First check it's not PQC hybrid
+        if (isPQCHybridKeyExchange(algorithm)) {
+            return false;
+        }
+        for (String ecdhe : CLASSICAL_ECDHE) {
+            if (upper.contains(ecdhe.toUpperCase())) {
+                return true;
+            }
+        }
+        return upper.contains("ECDHE") || upper.contains("ECDH");
+    }
+
+    /**
+     * Check if a signature algorithm is PQC
+     * @param algorithm the signature algorithm name (e.g., from certificate)
+     * @return true if PQC signature
+     */
+    public boolean isPQCSignatureAlgorithm(String algorithm) {
+        if (algorithm == null) return false;
+        String upper = algorithm.toUpperCase();
+        for (String pqc : PQC_SIGNATURE_ALGORITHMS) {
+            if (upper.contains(pqc.toUpperCase())) {
+                return true;
+            }
+        }
+        return upper.contains("ML-DSA") || upper.contains("MLDSA") ||
+               upper.contains("DILITHIUM") || upper.contains("FALCON") ||
+               upper.contains("SPHINCS") || upper.contains("SLH-DSA");
+    }
+
+    /**
+     * Classify a key exchange algorithm
+     * @param algorithm the algorithm name
+     * @return classification string: "PQC_HYBRID", "ECDHE", "DHE", "RSA", or "UNKNOWN"
+     */
+    public String classifyKeyExchange(String algorithm) {
+        if (algorithm == null) return "UNKNOWN";
+        String upper = algorithm.toUpperCase();
+
+        if (isPQCHybridKeyExchange(algorithm)) {
+            return "PQC_HYBRID";
+        }
+        if (isClassicalECDHE(algorithm)) {
+            return "ECDHE";
+        }
+        if (upper.contains("DHE") || upper.contains("DH_") || upper.contains("FFDHE")) {
+            return "DHE";
+        }
+        if (upper.contains("RSA") && !upper.contains("ECDSA")) {
+            return "RSA";
+        }
+        return "UNKNOWN";
+    }
+
+    /**
+     * Classify a signature algorithm
+     * @param algorithm the algorithm name (e.g., "SHA256withECDSA")
+     * @return classification string: "PQC_SIGNATURE", "ECDSA", "RSA", "EDDSA", or "UNKNOWN"
+     */
+    public String classifySignatureAlgorithm(String algorithm) {
+        if (algorithm == null) return "UNKNOWN";
+        String upper = algorithm.toUpperCase();
+
+        if (isPQCSignatureAlgorithm(algorithm)) {
+            return "PQC_SIGNATURE";
+        }
+        if (upper.contains("ECDSA") || upper.contains("EC")) {
+            return "ECDSA";
+        }
+        if (upper.contains("ED25519") || upper.contains("ED448") || upper.contains("EDDSA")) {
+            return "EDDSA";
+        }
+        if (upper.contains("RSA")) {
+            return "RSA";
+        }
+        return "UNKNOWN";
+    }
+
+    /**
+     * Check if TLS version supports PQC (requires TLS 1.3)
+     * @param tlsVersion the TLS version string
+     * @return true if TLS 1.3 or higher
+     */
+    public boolean isTlsVersionPqcCapable(String tlsVersion) {
+        if (tlsVersion == null) return false;
+        return tlsVersion.contains("1.3") || tlsVersion.contains("1.4");
+    }
+
+    /**
+     * Analyze a certificate's signature algorithm for PQC readiness
+     * @param cert the X509 certificate
+     * @return array: [signatureType, signatureAlgorithm, publicKeyType, publicKeySize]
+     */
+    public String[] analyzeCertificatePQC(X509Certificate cert) {
+        if (cert == null) return new String[]{"UNKNOWN", "UNKNOWN", "UNKNOWN", "0"};
+
+        String sigAlg = cert.getSigAlgName();
+        String sigType = classifySignatureAlgorithm(sigAlg);
+
+        String pubKeyAlg = cert.getPublicKey().getAlgorithm();
+        String pubKeyType = classifySignatureAlgorithm(pubKeyAlg);
+
+        int keySize = 0;
+        try {
+            if (cert.getPublicKey() instanceof java.security.interfaces.RSAPublicKey) {
+                keySize = ((java.security.interfaces.RSAPublicKey) cert.getPublicKey()).getModulus().bitLength();
+            } else if (cert.getPublicKey() instanceof java.security.interfaces.ECPublicKey) {
+                java.security.interfaces.ECPublicKey ecKey = (java.security.interfaces.ECPublicKey) cert.getPublicKey();
+                keySize = ecKey.getParams().getOrder().bitLength();
+            } else {
+                // For PQC or other keys, estimate from encoded length
+                keySize = cert.getPublicKey().getEncoded().length * 8;
+            }
+        } catch (Exception e) {
+            // Ignore, keySize stays 0
+        }
+
+        return new String[]{sigType, sigAlg, pubKeyType, String.valueOf(keySize)};
+    }
+
 }
+
 
