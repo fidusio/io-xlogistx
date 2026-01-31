@@ -7,6 +7,7 @@ import org.bouncycastle.util.Integers;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Hashtable;
@@ -26,25 +27,26 @@ public class PQCTlsClient extends DefaultTlsClient {
     private volatile int negotiatedKeyExchange;
     private volatile Certificate serverCertificate;
     private volatile boolean handshakeComplete;
-    private final String serverHostname;
+    private final InetSocketAddress ipAddress;
 
     /**
      * Create a PQC-capable TLS client
-     * @param hostname the server hostname for SNI
+     * @param ipAddress the server hostname for SNI
      */
-    public PQCTlsClient(String hostname) {
-        super(createCrypto());
-        this.serverHostname = hostname;
+    public PQCTlsClient(InetSocketAddress ipAddress) {
+        this(createCrypto(), ipAddress);
     }
 
     /**
      * Create a PQC-capable TLS client with custom crypto
      * @param crypto the TLS crypto instance
-     * @param hostname the server hostname for SNI
+     * @param ipAddress the server hostname for SNI
      */
-    public PQCTlsClient(TlsCrypto crypto, String hostname) {
+    public PQCTlsClient(TlsCrypto crypto, InetSocketAddress ipAddress) {
         super(crypto);
-        this.serverHostname = hostname;
+
+
+        this.ipAddress = ipAddress;
     }
 
     private static TlsCrypto createCrypto() {
@@ -53,20 +55,17 @@ public class PQCTlsClient extends DefaultTlsClient {
 
     @Override
     protected Vector<ServerName> getSNIServerNames() {
-        if (serverHostname != null && !serverHostname.isEmpty()) {
-            Vector<ServerName> serverNames = new Vector<>();
-            serverNames.add(new ServerName(NameType.host_name, serverHostname.getBytes(StandardCharsets.US_ASCII)));
-            return serverNames;
-        }
-        return null;
+        Vector<ServerName> serverNames = new Vector<>();
+        serverNames.add(new ServerName(NameType.host_name, ipAddress.getHostName().getBytes(StandardCharsets.US_ASCII)));
+        return serverNames;
     }
 
     @Override
     protected ProtocolVersion[] getSupportedVersions() {
         // Support TLS 1.2 and 1.3 to detect what server supports
         return new ProtocolVersion[]{
-            ProtocolVersion.TLSv13,
-            ProtocolVersion.TLSv12
+                ProtocolVersion.TLSv13,
+                ProtocolVersion.TLSv12
         };
     }
 
@@ -75,18 +74,18 @@ public class PQCTlsClient extends DefaultTlsClient {
         // TLS 1.3 cipher suites (required for PQC)
         // Plus TLS 1.2 cipher suites for fallback detection
         return new int[]{
-            // TLS 1.3 cipher suites
-            CipherSuite.TLS_AES_256_GCM_SHA384,
-            CipherSuite.TLS_AES_128_GCM_SHA256,
-            CipherSuite.TLS_CHACHA20_POLY1305_SHA256,
+                // TLS 1.3 cipher suites
+                CipherSuite.TLS_AES_256_GCM_SHA384,
+                CipherSuite.TLS_AES_128_GCM_SHA256,
+                CipherSuite.TLS_CHACHA20_POLY1305_SHA256,
 
-            // TLS 1.2 cipher suites (for fallback/detection)
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-            CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+                // TLS 1.2 cipher suites (for fallback/detection)
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+                CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+                CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+                CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
         };
     }
 
@@ -132,7 +131,7 @@ public class PQCTlsClient extends DefaultTlsClient {
         this.negotiatedCipherSuite = selectedCipherSuite;
         if (log.isEnabled()) {
             log.getLogger().info("Server selected cipher suite: " +
-                getCipherSuiteName(selectedCipherSuite) + " (0x" + Integer.toHexString(selectedCipherSuite) + ")");
+                    getCipherSuiteName(selectedCipherSuite) + " (0x" + Integer.toHexString(selectedCipherSuite) + ")");
         }
     }
 
@@ -174,7 +173,7 @@ public class PQCTlsClient extends DefaultTlsClient {
                 serverCertificate = tlsServerCertificate.getCertificate();
                 if (log.isEnabled()) {
                     log.getLogger().info("Received server certificate chain with " +
-                        (serverCertificate != null ? serverCertificate.getLength() : 0) + " certificates");
+                            (serverCertificate != null ? serverCertificate.getLength() : 0) + " certificates");
                 }
             }
 
@@ -203,7 +202,7 @@ public class PQCTlsClient extends DefaultTlsClient {
 
         if (log.isEnabled()) {
             log.getLogger().info("processServerExtensions called, extensions: " +
-                (serverExtensions != null ? serverExtensions.keySet() : "null"));
+                    (serverExtensions != null ? serverExtensions.keySet() : "null"));
         }
 
         if (serverExtensions == null) {
@@ -221,8 +220,8 @@ public class PQCTlsClient extends DefaultTlsClient {
                 this.negotiatedKeyExchange = keyShareEntry.getNamedGroup();
                 if (log.isEnabled()) {
                     log.getLogger().info("Server key_share group: " + getNamedGroupName(negotiatedKeyExchange) +
-                        " (0x" + Integer.toHexString(negotiatedKeyExchange) + ")" +
-                        " PQC: " + isPQCHybridGroup(negotiatedKeyExchange));
+                            " (0x" + Integer.toHexString(negotiatedKeyExchange) + ")" +
+                            " PQC: " + isPQCHybridGroup(negotiatedKeyExchange));
                 }
             } else {
                 if (log.isEnabled()) {
@@ -311,21 +310,33 @@ public class PQCTlsClient extends DefaultTlsClient {
     public static String getCipherSuiteName(int cipherSuite) {
         switch (cipherSuite) {
             // TLS 1.3
-            case CipherSuite.TLS_AES_128_GCM_SHA256: return "TLS_AES_128_GCM_SHA256";
-            case CipherSuite.TLS_AES_256_GCM_SHA384: return "TLS_AES_256_GCM_SHA384";
-            case CipherSuite.TLS_CHACHA20_POLY1305_SHA256: return "TLS_CHACHA20_POLY1305_SHA256";
-            case CipherSuite.TLS_AES_128_CCM_SHA256: return "TLS_AES_128_CCM_SHA256";
-            case CipherSuite.TLS_AES_128_CCM_8_SHA256: return "TLS_AES_128_CCM_8_SHA256";
+            case CipherSuite.TLS_AES_128_GCM_SHA256:
+                return "TLS_AES_128_GCM_SHA256";
+            case CipherSuite.TLS_AES_256_GCM_SHA384:
+                return "TLS_AES_256_GCM_SHA384";
+            case CipherSuite.TLS_CHACHA20_POLY1305_SHA256:
+                return "TLS_CHACHA20_POLY1305_SHA256";
+            case CipherSuite.TLS_AES_128_CCM_SHA256:
+                return "TLS_AES_128_CCM_SHA256";
+            case CipherSuite.TLS_AES_128_CCM_8_SHA256:
+                return "TLS_AES_128_CCM_8_SHA256";
 
             // TLS 1.2 ECDHE
-            case CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256: return "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256";
-            case CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384: return "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384";
-            case CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256: return "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
-            case CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384: return "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384";
-            case CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: return "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256";
-            case CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256: return "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256";
+            case CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+                return "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256";
+            case CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+                return "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384";
+            case CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+                return "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+            case CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+                return "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384";
+            case CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:
+                return "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256";
+            case CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:
+                return "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256";
 
-            default: return "CIPHER_0x" + Integer.toHexString(cipherSuite);
+            default:
+                return "CIPHER_0x" + Integer.toHexString(cipherSuite);
         }
     }
 
@@ -335,28 +346,45 @@ public class PQCTlsClient extends DefaultTlsClient {
     public static String getNamedGroupName(int namedGroup) {
         switch (namedGroup) {
             // PQC Hybrid
-            case NamedGroup.X25519MLKEM768: return "X25519MLKEM768";
-            case NamedGroup.SecP256r1MLKEM768: return "SecP256r1MLKEM768";
-            case NamedGroup.SecP384r1MLKEM1024: return "SecP384r1MLKEM1024";
-            case NamedGroup.MLKEM512: return "MLKEM512";
-            case NamedGroup.MLKEM768: return "MLKEM768";
-            case NamedGroup.MLKEM1024: return "MLKEM1024";
+            case NamedGroup.X25519MLKEM768:
+                return "X25519MLKEM768";
+            case NamedGroup.SecP256r1MLKEM768:
+                return "SecP256r1MLKEM768";
+            case NamedGroup.SecP384r1MLKEM1024:
+                return "SecP384r1MLKEM1024";
+            case NamedGroup.MLKEM512:
+                return "MLKEM512";
+            case NamedGroup.MLKEM768:
+                return "MLKEM768";
+            case NamedGroup.MLKEM1024:
+                return "MLKEM1024";
 
             // Classical ECDHE
-            case NamedGroup.x25519: return "x25519";
-            case NamedGroup.x448: return "x448";
-            case NamedGroup.secp256r1: return "secp256r1";
-            case NamedGroup.secp384r1: return "secp384r1";
-            case NamedGroup.secp521r1: return "secp521r1";
+            case NamedGroup.x25519:
+                return "x25519";
+            case NamedGroup.x448:
+                return "x448";
+            case NamedGroup.secp256r1:
+                return "secp256r1";
+            case NamedGroup.secp384r1:
+                return "secp384r1";
+            case NamedGroup.secp521r1:
+                return "secp521r1";
 
             // FFDHE
-            case NamedGroup.ffdhe2048: return "ffdhe2048";
-            case NamedGroup.ffdhe3072: return "ffdhe3072";
-            case NamedGroup.ffdhe4096: return "ffdhe4096";
-            case NamedGroup.ffdhe6144: return "ffdhe6144";
-            case NamedGroup.ffdhe8192: return "ffdhe8192";
+            case NamedGroup.ffdhe2048:
+                return "ffdhe2048";
+            case NamedGroup.ffdhe3072:
+                return "ffdhe3072";
+            case NamedGroup.ffdhe4096:
+                return "ffdhe4096";
+            case NamedGroup.ffdhe6144:
+                return "ffdhe6144";
+            case NamedGroup.ffdhe8192:
+                return "ffdhe8192";
 
-            default: return "GROUP_0x" + Integer.toHexString(namedGroup);
+            default:
+                return "GROUP_0x" + Integer.toHexString(namedGroup);
         }
     }
 

@@ -39,6 +39,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
     // State tracking
     private volatile boolean completed = false;
 
+
     /**
      * Create a PQC NIO scanner for the given target
      *
@@ -59,7 +60,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
     protected void connectedFinished() throws IOException {
         if (completed) return;
 
-        SocketChannel channel = (SocketChannel) getChannel();
+        SocketChannel channel = getChannel();
         String hostname = getRemoteAddress().getHostName();
 
         if (log.isEnabled()) {
@@ -68,7 +69,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
         }
 
         // Initialize PQC session config and state machine
-        pqcConfig = new PQCSessionConfig(hostname);
+        pqcConfig = new PQCSessionConfig(getRemoteAddress());
         pqcConfig.channel = channel;
         stateMachine = new PQCSSLStateMachine(pqcConfig);
 

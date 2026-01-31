@@ -9,6 +9,7 @@ import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.http.URIScheme;
 import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.ResourceManager;
@@ -19,37 +20,40 @@ import java.util.concurrent.CompletableFuture;
 
 public class QDZChecker {
 
-    private DNSRegistrar dnsRegistrar;
-    public QDZChecker()
-    {
+
+
+    public QDZChecker() {
         try {
-            dnsRegistrar = DNSRegistrar.SINGLETON.setResolver("8.8.8.8");
+            if(DNSRegistrar.SINGLETON.getResolver() == null) DNSRegistrar.SINGLETON.setResolver(DNSRegistrar.DEFAULT_RESOLVER);
         } catch (UnknownHostException e) {
             e.printStackTrace();
             throw new IllegalArgumentException(e);
         }
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "check-qdz", uris = "/check-qdz/{domain}/{port}/{timeout}")
-    public NVGenericMap checkQDZ(@ParamProp(name = "domain") String domain, @ParamProp(name = "port")int port, @ParamProp(name = "timeout", optional = true) int timeout) {
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "check-qdz", uris = "/check-qdz/{domain}/{timeout}")
+    public NVGenericMap checkQDZ(@ParamProp(name = "domain") String domain, @ParamProp(name = "timeout", optional = true) int timeout) {
 
 
         CompletableFuture<NVGenericMap> future = new CompletableFuture<>();
 
-        IPAddress ip = new IPAddress(domain, port);
+        IPAddress ip = IPAddress.parse(domain);
+        if (ip.isPrivateIP())
+            throw new APIException("NoSneaking on my private ips: " + ip + " try https://api.xlogistx.io/domain.com[:443 if no port default 443]", HTTPStatusCode.UNAUTHORIZED.CODE);
+        if (ip.getPort() == -1)
+            ip.setPort(URIScheme.HTTPS.getValue());
         PQCNIOScanner scanner = new PQCNIOScanner(ip, result -> {
             //future.whenComplete(result.toNVGenericMap(false), null);
             future.complete(result.toNVGenericMap(true));
         });
-        scanner.dnsResolver(dnsRegistrar);
+        scanner.dnsResolver(DNSRegistrar.SINGLETON);
 
         scanner.timeoutInSec(5);
         try {
             getNIOSocket().addClientSocket(scanner);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             //e.printStackTrace();
-            throw new APIException("remote host error: " + ip + " try https://api.xlogistx.io/domain.com/443", HTTPStatusCode.NOT_FOUND.CODE);
+            throw new APIException("remote host error: " + ip + " try https://api.xlogistx.io/domain.com[:443 if no port default 443]", HTTPStatusCode.NOT_FOUND.CODE);
         }
 
         NVGenericMap response = future.join();

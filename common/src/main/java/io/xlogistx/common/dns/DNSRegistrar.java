@@ -19,6 +19,8 @@ public class DNSRegistrar
     extends RegistrarMap<String, InetAddress, DNSRegistrar>
     implements DNSResolverInt
 {
+
+    public static final String DEFAULT_RESOLVER = "8.8.8.8";
     public static final DataEncoder<String, String> ToDNSEntry = (s) ->{
         s = DataEncoder.StringLower.encode(s);
         if(SUS.isNotEmpty(s))
@@ -43,7 +45,7 @@ public class DNSRegistrar
 
     private Resolver resolver = null;
 
-    public DNSRegistrar() {
+    private DNSRegistrar() {
         super(new LinkedHashMap<>());
         keyFilter = ToDNSEntry;
     }

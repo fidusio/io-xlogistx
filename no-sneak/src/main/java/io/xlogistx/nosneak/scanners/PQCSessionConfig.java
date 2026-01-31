@@ -7,6 +7,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.util.CloseableType;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,18 +44,18 @@ public class PQCSessionConfig implements CloseableType {
     public final AtomicBoolean handshakeComplete = new AtomicBoolean(false);
 
     // Hostname for SNI
-    private final String hostname;
+    private final InetSocketAddress hostname;
 
-    public PQCSessionConfig(String hostname) {
+    public PQCSessionConfig(InetSocketAddress hostname) {
         this.hostname = hostname;
         // Allocate buffers - 16KB is standard TLS record size
-        this.inNetData = ByteBuffer.allocate(16384);
-        this.outNetData = ByteBuffer.allocate(16384);
-        this.inAppData = ByteBuffer.allocate(16384);
+        this.inNetData = ByteBufferUtil.allocateByteBuffer(16384);
+        this.outNetData = ByteBufferUtil.allocateByteBuffer(16384);
+        this.inAppData = ByteBufferUtil.allocateByteBuffer(16384);
     }
 
     public String getHostname() {
-        return hostname;
+        return hostname.getHostName();
     }
 
     /**
@@ -134,14 +135,15 @@ public class PQCSessionConfig implements CloseableType {
             if (tlsProtocol != null) {
                 try {
                     tlsProtocol.close();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             IOUtil.close(channel);
             ByteBufferUtil.cache(inNetData, outNetData, inAppData);
 
-            if (log.isEnabled()) {
-                log.getLogger().info("PQCSessionConfig closed for " + hostname);
-            }
+
+            if (log.isEnabled()) log.getLogger().info("PQCSessionConfig closed for " + hostname);
+
         }
     }
 

@@ -93,6 +93,7 @@ public class PQCScanResult implements Identifier<String> {
     private int port;
     private long scanTimeMs;
     private boolean success;
+    private boolean secure;  // true if TLS/SSL encryption detected
     private String errorMessage;
 
     // TLS version
@@ -158,6 +159,10 @@ public class PQCScanResult implements Identifier<String> {
 
     public boolean isSuccess() {
         return success;
+    }
+
+    public boolean isSecure() {
+        return secure;
     }
 
     public String getErrorMessage() {
@@ -270,6 +275,7 @@ public class PQCScanResult implements Identifier<String> {
         sb.append("  host='").append(host).append(':').append(port).append("'\n");
         sb.append("  id='").append(getID()).append("'\n");
         sb.append("  success=").append(success);
+        sb.append(", secure=").append(secure);
         if (!success && errorMessage != null) {
             sb.append(", error='").append(errorMessage).append("'");
         }
@@ -325,92 +331,99 @@ public class PQCScanResult implements Identifier<String> {
         // Connection info
         nvgm.add("host", host);
         nvgm.add(new NVInt("port", port));
-        nvgm.build("scanId", getID());
-        nvgm.add(new NVLong("scanTimeMs", scanTimeMs));
+        nvgm.build("scan-id", getID());
+        nvgm.add(new NVLong("scan-time-in-ms", scanTimeMs));
         nvgm.add(new NVBoolean("success", success));
+
+        if (eAsS)
+            nvgm.add(new NVPair("secure", isSecure() ? Const.Bool.YES.getName() : Const.Bool.NO.getName()));
+        else
+            nvgm.add(new NVBoolean("secure", isSecure()));
+
+
         if (errorMessage != null) {
-            nvgm.add("errorMessage", errorMessage);
+            nvgm.add("error-message", errorMessage);
         }
 
         // TLS version
         if (tlsVersion != null) {
-            nvgm.add("tlsVersion", tlsVersion);
+            nvgm.add("tls-version", tlsVersion);
         }
-        nvgm.add(new NVBoolean("tlsVersionPqcCapable", tlsVersionPqcCapable));
+        nvgm.add(new NVBoolean("tls-version-pqc-capable", tlsVersionPqcCapable));
 
         // Key exchange
         if (keyExchangeType != null) {
             if (eAsS)
-                nvgm.add("keyExchangeType", keyExchangeType.name());
+                nvgm.add("key-exchange-type", keyExchangeType.name());
             else
-                nvgm.add(new NVEnum("keyExchangeType", keyExchangeType));
+                nvgm.add(new NVEnum("key-exchange-type", keyExchangeType));
         }
         if (keyExchangeAlgorithm != null) {
-            nvgm.add("keyExchangeAlgorithm", keyExchangeAlgorithm);
+            nvgm.add("key-exchange-algorithm", keyExchangeAlgorithm);
         }
         if (keyExchangeKeySize > 0) {
-            nvgm.add(new NVInt("keyExchangeKeySize", keyExchangeKeySize));
+            nvgm.add(new NVInt("key-exchange-key-size", keyExchangeKeySize));
         }
-        nvgm.add(new NVBoolean("keyExchangePqcReady", keyExchangePqcReady));
+        nvgm.add(new NVBoolean("key-exchange-pqc-ready", keyExchangePqcReady));
 
         // Cipher suite
         if (cipherSuite != null) {
-            nvgm.add("cipherSuite", cipherSuite);
+            nvgm.add("cipher-suite", cipherSuite);
         }
 
         // Certificate info
         if (certSignatureType != null) {
             if (eAsS)
-                nvgm.add("certSignatureType", certSignatureType.name());
+                nvgm.add("cert-signature-type", certSignatureType.name());
             else
-                nvgm.add(new NVEnum("certSignatureType", certSignatureType));
+                nvgm.add(new NVEnum("cert-signature-type", certSignatureType));
         }
         if (certSignatureAlgorithm != null) {
-            nvgm.add("certSignatureAlgorithm", certSignatureAlgorithm);
+            nvgm.add("cert-signature-algorithm", certSignatureAlgorithm);
         }
         if (certPublicKeyType != null) {
-            nvgm.add("certPublicKeyType", certPublicKeyType);
+            nvgm.add("cert-public-key-type", certPublicKeyType);
         }
         if (certPublicKeySize > 0) {
-            nvgm.add(new NVInt("certPublicKeySize", certPublicKeySize));
+            nvgm.add(new NVInt("cert-public-key-size", certPublicKeySize));
         }
-        nvgm.add(new NVBoolean("certPqcReady", certPqcReady));
-
+        nvgm.add(new NVBoolean("cert-pqc-ready", certPqcReady));
 
         // Certificate validity
         if (certNotBefore > 0) {
-            nvgm.add(new NVPair("certNotBefore",  DateUtil.DEFAULT_GMT_MILLIS.format(certNotBefore)));
+            nvgm.add(new NVPair("cert-not-before", DateUtil.DEFAULT_GMT_MILLIS.format(certNotBefore)));
         }
         if (certNotAfter > 0) {
-            nvgm.add(new NVPair("certNotAfter", DateUtil.DEFAULT_GMT_MILLIS.format(certNotAfter)));
+            nvgm.add(new NVPair("cert-not-after", DateUtil.DEFAULT_GMT_MILLIS.format(certNotAfter)));
         }
-        nvgm.add(new NVBoolean("certTimeValid", certTimeValid));
+        nvgm.add(new NVBoolean("cert-time-valid", certTimeValid));
         if (certChainValid != null) {
-            nvgm.add(new NVBoolean("certChainValid", certChainValid));
+            nvgm.add(new NVBoolean("cert-chain-valid", certChainValid));
         }
         if (certRevoked != null) {
-            nvgm.add(new NVBoolean("certRevoked", certRevoked));
+            nvgm.add(new NVBoolean("cert-revoked", certRevoked));
         }
         if (certSubject != null) {
-            nvgm.add("certSubject", certSubject);
+            nvgm.add("cert-subject", certSubject);
         }
         if (certIssuer != null) {
-            nvgm.add("certIssuer", certIssuer);
+            nvgm.add("cert-issuer", certIssuer);
         }
 
         // Overall status
         if (overallStatus != null) {
             if (eAsS)
-                nvgm.add("overallStatus", overallStatus.name());
+                nvgm.add("overall-status", overallStatus.name());
             else
-                nvgm.add(new NVEnum("overallStatus", overallStatus));
+                nvgm.add(new NVEnum("overall-status", overallStatus));
         }
 
-        // Recommendations as a nested NVGenericMap with indexed keys
+        // Recommendations as a nested NVGenericMap with meaningful keys
         if (recommendations != null && !recommendations.isEmpty()) {
             NVGenericMap recsMap = new NVGenericMap("recommendations");
-            for (int i = 0; i < recommendations.size(); i++) {
-                recsMap.add("" + i, recommendations.get(i));
+            for (String rec : recommendations) {
+                String key = deriveRecommendationKey(rec);
+                recsMap.add(key, rec);
             }
             nvgm.add(recsMap);
         }
@@ -418,6 +431,19 @@ public class PQCScanResult implements Identifier<String> {
         return nvgm;
     }
 
+    /**
+     * Derive a meaningful key name from the recommendation text.
+     */
+    private String deriveRecommendationKey(String recommendation) {
+        if (recommendation.contains("TLS 1.3")) {
+            return "upgrade-tls-version";
+        } else if (recommendation.contains("PQC hybrid key exchange")) {
+            return "enable-pqc-key-exchange";
+        } else if (recommendation.contains("PQC certificates")) {
+            return "upgrade-to-pqc-certificate";
+        }
+        return "recommendation";
+    }
 
     /**
      * Builder for PQCScanResult
@@ -439,12 +465,14 @@ public class PQCScanResult implements Identifier<String> {
 
         public Builder success(boolean success) {
             result.success = success;
+            result.secure = success;  // TLS handshake success means port is secure
             return this;
         }
 
         public Builder errorMessage(String errorMessage) {
             result.errorMessage = errorMessage;
             result.success = false;
+            result.secure = false;
             result.overallStatus = PQCStatus.ERROR;
             return this;
         }

@@ -85,7 +85,7 @@ public class PQCScannerTest {
             OutputStream out = socket.getOutputStream();
 
             // Create BC TLS client and custom protocol
-            PQCTlsClient tlsClient = new PQCTlsClient(host);
+            PQCTlsClient tlsClient = new PQCTlsClient(new InetSocketAddress(host, port));
             PQCTlsClientProtocol protocol = new PQCTlsClientProtocol(in, out);
 
             // Perform handshake
@@ -413,25 +413,61 @@ public class PQCScannerTest {
         assertEquals("PQCScanResult", nvgm.getName());
         assertEquals("google.com", nvgm.getValue("host"));
         assertEquals(443, (int) nvgm.getValue("port"));
-        assertEquals(150L, (long) nvgm.getValue("scanTimeMs"));
+        assertEquals(150L, (long) nvgm.getValue("scan-time-in-ms"));
         assertEquals(true, nvgm.getValue("success"));
-        assertEquals("TLSv1.3", nvgm.getValue("tlsVersion"));
-        assertEquals(true, nvgm.getValue("tlsVersionPqcCapable"));
+        assertEquals("TLSv1.3", nvgm.getValue("tls-version"));
+        assertEquals(true, nvgm.getValue("tls-version-pqc-capable"));
         // NVEnum stores the actual enum value, not a String
-        assertEquals(PQCScanResult.KeyExchangeType.PQC_HYBRID, nvgm.getValue("keyExchangeType"));
-        assertEquals("X25519MLKEM768", nvgm.getValue("keyExchangeAlgorithm"));
-        assertEquals(true, nvgm.getValue("keyExchangePqcReady"));
-        assertEquals("TLS_AES_256_GCM_SHA384", nvgm.getValue("cipherSuite"));
-        assertEquals(PQCScanResult.SignatureType.ECDSA, nvgm.getValue("certSignatureType"));
-        assertEquals("SHA256withECDSA", nvgm.getValue("certSignatureAlgorithm"));
-        assertEquals("ECDSA", nvgm.getValue("certPublicKeyType"));
-        assertEquals(256, (int) nvgm.getValue("certPublicKeySize"));
-        assertEquals(PQCScanResult.PQCStatus.READY, nvgm.getValue("overallStatus"));
+        assertEquals(PQCScanResult.KeyExchangeType.PQC_HYBRID, nvgm.getValue("key-exchange-type"));
+        assertEquals("X25519MLKEM768", nvgm.getValue("key-exchange-algorithm"));
+        assertEquals(true, nvgm.getValue("key-exchange-pqc-ready"));
+        assertEquals("TLS_AES_256_GCM_SHA384", nvgm.getValue("cipher-suite"));
+        assertEquals(PQCScanResult.SignatureType.ECDSA, nvgm.getValue("cert-signature-type"));
+        assertEquals("SHA256withECDSA", nvgm.getValue("cert-signature-algorithm"));
+        assertEquals("ECDSA", nvgm.getValue("cert-public-key-type"));
+        assertEquals(256, (int) nvgm.getValue("cert-public-key-size"));
+        assertEquals(PQCScanResult.PQCStatus.READY, nvgm.getValue("overall-status"));
 
         // Print JSON representation
         String json = org.zoxweb.server.util.GSONUtil.toJSONDefault(nvgm, true);
         System.out.println("PQCScanResult as NVGenericMap JSON:\n" + json);
 
         System.out.println("testPQCScanResultToNVGenericMap passed!");
+    }
+
+    /**
+     * Test scanning a non-TLS port (HTTP port 80).
+     * Expected: success=false, secure=false, error message indicating TLS failure.
+     */
+    @Test
+    void testScanNonTLSPort() throws Exception {
+        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+
+        try {
+            IPAddress address = new IPAddress("google.com", 80);
+            PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
+                log.getLogger().info("Port 80 scan result:\n" + result);
+                resultRef.set(result);
+                latch.countDown();
+            });
+            scanner.dnsResolver(DNSRegistrar.SINGLETON);
+            scanner.timeoutInSec(10);
+
+            nioSocket.addClientSocket(scanner);
+            boolean completed = latch.await(15, java.util.concurrent.TimeUnit.SECONDS);
+
+            assertTrue(completed, "Scan should complete within timeout");
+            PQCScanResult result = resultRef.get();
+            assertNotNull(result, "Result should not be null");
+            assertFalse(result.isSuccess(), "Scan should fail on non-TLS port");
+            assertFalse(result.isSecure(), "Port 80 should not be secure");
+            assertNotNull(result.getErrorMessage(), "Error message should be present");
+
+            log.getLogger().info("testScanNonTLSPort passed - port 80 correctly identified as non-secure");
+        } finally {
+            nioSocket.close();
+        }
     }
 }
