@@ -470,4 +470,131 @@ public class PQCScannerTest {
             nioSocket.close();
         }
     }
+
+    /**
+     * Test PQCNIOScanner with PQCScanOptions - comprehensive scan including
+     * revocation checking, cipher enumeration, and protocol version testing.
+     */
+    @Test
+    void testPQCNIOScannerWithOptions() throws Exception {
+        // Create options with all features enabled
+        PQCScanOptions options = PQCScanOptions.builder()
+                .checkRevocation(true)
+                .revocationTimeoutMs(10000)
+                .enumerateCiphers(true)
+                .testProtocolVersions(true)
+                .testTLS10(true)
+                .testTLS11(true)
+                .testSSLv3(false)
+                .build();
+
+        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+
+        try {
+            IPAddress address = new IPAddress("google.com", 443);
+            PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
+                log.getLogger().info("PQCNIOScanner with options result:\n" + result);
+                resultRef.set(result);
+                latch.countDown();
+            }, options);
+            scanner.dnsResolver(DNSRegistrar.SINGLETON);
+            scanner.timeoutInSec(60); // Longer timeout for additional scans
+
+            nioSocket.addClientSocket(scanner);
+            boolean completed = latch.await(90, java.util.concurrent.TimeUnit.SECONDS);
+
+            assertTrue(completed, "Scan should complete within timeout");
+            PQCScanResult result = resultRef.get();
+            assertNotNull(result, "Result should not be null");
+            assertTrue(result.isSuccess(), "Scan should succeed: " + result.getErrorMessage());
+            assertNotNull(result.getTlsVersion(), "TLS version should be captured");
+            assertNotNull(result.getCipherSuite(), "Cipher suite should be captured");
+
+            // Verify additional features were executed
+            log.getLogger().info("========== PQCNIOScanner with Options Result ==========");
+            log.getLogger().info("Host: " + result.getHost() + ":" + result.getPort());
+            log.getLogger().info("TLS Version: " + result.getTlsVersion());
+            log.getLogger().info("Cipher Suite: " + result.getCipherSuite());
+            log.getLogger().info("Key Exchange: " + result.getKeyExchangeType() + " (" + result.getKeyExchangeAlgorithm() + ")");
+
+            // Revocation check results
+            log.getLogger().info("Revocation Method: " + result.getRevocationMethod());
+            log.getLogger().info("Cert Revoked: " + result.isCertRevoked());
+            if (result.getRevocationError() != null) {
+                log.getLogger().info("Revocation Error: " + result.getRevocationError());
+            }
+
+            // Cipher enumeration results
+            if (result.getSupportedCipherSuites() != null) {
+                log.getLogger().info("Supported Cipher Suites: " + result.getSupportedCipherSuites().size());
+                for (CipherSuiteEnumerator.CipherInfo cipher : result.getSupportedCipherSuites()) {
+                    log.getLogger().info("  - " + cipher.getName() + " [" + cipher.getStrength() + "]");
+                }
+                log.getLogger().info("Server Cipher Preference: " + result.getServerCipherPreference());
+            }
+
+            // Protocol version results
+            if (result.getSupportedProtocolVersions() != null) {
+                log.getLogger().info("Supported Protocol Versions: " + result.getSupportedProtocolVersions());
+                log.getLogger().info("SSLv3 Supported: " + result.isSslv3Supported());
+                log.getLogger().info("Deprecated Protocols: " + result.isDeprecatedProtocolsSupported());
+            }
+
+            log.getLogger().info("Overall Status: " + result.getOverallStatus());
+            log.getLogger().info("Recommendations: " + result.getRecommendations());
+            log.getLogger().info("========================================================");
+
+        } finally {
+            nioSocket.close();
+        }
+    }
+
+    /**
+     * Test PQCNIOScanner with revocation checking only.
+     */
+    @Test
+    void testPQCNIOScannerWithRevocationOnly() throws Exception {
+        PQCScanOptions options = PQCScanOptions.builder()
+                .checkRevocation(true)
+                .revocationTimeoutMs(15000)
+                .build();
+
+        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+
+        try {
+            IPAddress address = new IPAddress("cloudflare.com", 443);
+            PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
+                resultRef.set(result);
+                latch.countDown();
+            }, options);
+            scanner.dnsResolver(DNSRegistrar.SINGLETON);
+            scanner.timeoutInSec(30);
+
+            nioSocket.addClientSocket(scanner);
+            boolean completed = latch.await(45, java.util.concurrent.TimeUnit.SECONDS);
+
+            assertTrue(completed, "Scan should complete within timeout");
+            PQCScanResult result = resultRef.get();
+            assertNotNull(result, "Result should not be null");
+            assertTrue(result.isSuccess(), "Scan should succeed: " + result.getErrorMessage());
+
+            // Verify revocation was checked
+            log.getLogger().info("=== Revocation Check Results ===");
+            log.getLogger().info("Host: " + result.getHost());
+            log.getLogger().info("Revocation Method: " + result.getRevocationMethod());
+            log.getLogger().info("Cert Revoked: " + result.isCertRevoked());
+
+            // Revocation method should be set if check was performed
+            if (result.getRevocationMethod() != null) {
+                assertNotNull(result.isCertRevoked(), "Cert revoked status should be set");
+            }
+
+        } finally {
+            nioSocket.close();
+        }
+    }
 }

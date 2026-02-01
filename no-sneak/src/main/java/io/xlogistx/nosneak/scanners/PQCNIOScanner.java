@@ -16,6 +16,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -28,10 +32,18 @@ public class PQCNIOScanner extends TCPSessionCallback {
 
     private final Consumer<PQCScanResult> resultCallback;
     private final long startTime;
+    private final PQCScanOptions options;
 
     // State machine and config
     private PQCSessionConfig pqcConfig;
     private PQCSSLStateMachine stateMachine;
+
+    // Revocation checker (uses NIO HTTP for CRL/OCSP)
+    private NIORevocationChecker revocationChecker;
+
+    // Blocking scanners for cipher/protocol testing (run in thread pool)
+    private CipherSuiteEnumerator cipherEnumerator;
+    private ProtocolVersionTester protocolTester;
 
     // State machine callback - processes state transitions
     private final Consumer<PQCSessionConfig> smCallback = this::onStateTransition;
@@ -41,15 +53,45 @@ public class PQCNIOScanner extends TCPSessionCallback {
 
 
     /**
-     * Create a PQC NIO scanner for the given target
+     * Create a PQC NIO scanner for the given target with default options.
      *
      * @param address        target address (host:port)
      * @param resultCallback callback to receive scan result
      */
     public PQCNIOScanner(IPAddress address, Consumer<PQCScanResult> resultCallback) {
+        this(address, resultCallback, PQCScanOptions.defaults());
+    }
+
+    /**
+     * Create a PQC NIO scanner for the given target with custom options.
+     *
+     * @param address        target address (host:port)
+     * @param resultCallback callback to receive scan result
+     * @param options        scan options controlling optional features
+     */
+    public PQCNIOScanner(IPAddress address, Consumer<PQCScanResult> resultCallback, PQCScanOptions options) {
         super(address);
         this.resultCallback = resultCallback;
         this.startTime = System.currentTimeMillis();
+        this.options = options != null ? options : PQCScanOptions.defaults();
+        initializeScanners();
+    }
+
+    /**
+     * Initialize scanners based on options.
+     */
+    private void initializeScanners() {
+        if (options.isCheckRevocation()) {
+            revocationChecker = new NIORevocationChecker(options.getRevocationTimeoutMs());
+        }
+
+        if (options.isEnumerateCiphers()) {
+            cipherEnumerator = new CipherSuiteEnumerator();
+        }
+
+        if (options.isTestProtocolVersions()) {
+            protocolTester = new ProtocolVersionTester();
+        }
     }
 
     /**
@@ -177,9 +219,10 @@ public class PQCNIOScanner extends TCPSessionCallback {
             builder.keyExchange(keyExchangeType, keyExchangeAlg);
 
             // Certificate analysis
+            X509Certificate[] chain = null;
             Certificate serverCert = tlsClient.getServerCertificate();
             if (serverCert != null && serverCert.getLength() > 0) {
-                X509Certificate[] chain = convertCertificateChain(serverCert);
+                chain = convertCertificateChain(serverCert);
                 builder.certificateChain(chain);
 
                 if (chain != null && chain.length > 0) {
@@ -196,29 +239,142 @@ public class PQCNIOScanner extends TCPSessionCallback {
                     // Verify certificate chain signature
                     boolean chainValid = verifyCertificateChain(chain);
                     builder.certChainValid(chainValid);
-
-                    // CRL check is optional and requires network access
-                    // Set to null (not checked) by default
-                    // builder.certRevoked(null);
                 }
             }
 
-            PQCScanResult result = builder.build();
-
-            if (log.isEnabled()) {
-                log.getLogger().info("NIO Scan complete: " + result);
-            }
-
-            resultCallback.accept(result);
+            // Run additional NIO scans in parallel based on options
+            runAdditionalScans(builder, hostname, port, chain);
 
         } catch (Exception e) {
             if (log.isEnabled()) {
                 log.getLogger().info("Error processing handshake result: " + e.getMessage());
             }
             completeWithError("Error processing result: " + e.getMessage());
-        } finally {
-            IOUtil.close(this);
         }
+    }
+
+    /**
+     * Run additional scans (revocation, cipher enumeration, protocol testing) in parallel.
+     */
+    private void runAdditionalScans(PQCScanResult.Builder builder, String hostname, int port,
+                                     X509Certificate[] chain) {
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+        int timeout = options.getEnumerationTimeoutMs();
+
+        // Certificate revocation check (uses NIO HTTP)
+        CompletableFuture<OPSecUtil.RevocationResult> revocationFuture = null;
+        if (options.isCheckRevocation() && revocationChecker != null && chain != null && chain.length > 0) {
+            X509Certificate cert = chain[0];
+            X509Certificate issuer = chain.length > 1 ? chain[1] : null;
+            revocationFuture = revocationChecker.checkRevocationAsync(cert, issuer);
+            futures.add(revocationFuture);
+        }
+
+        // Cipher enumeration (blocking, run in thread pool)
+        CompletableFuture<CipherSuiteEnumerator.EnumerationResult> cipherFuture = null;
+        if (options.isEnumerateCiphers() && cipherEnumerator != null) {
+            cipherFuture = CompletableFuture.supplyAsync(() ->
+                    cipherEnumerator.enumerate(hostname, port, timeout,
+                            options.isIncludeWeakCiphers(),
+                            options.isIncludeInsecureCiphers()));
+            futures.add(cipherFuture);
+        }
+
+        // Protocol version testing (blocking, run in thread pool)
+        CompletableFuture<ProtocolVersionTester.VersionTestResult> protocolFuture = null;
+        if (options.isTestProtocolVersions() && protocolTester != null) {
+            protocolFuture = CompletableFuture.supplyAsync(() ->
+                    protocolTester.testAllVersions(hostname, port, timeout,
+                            options.isTestSSLv3(),
+                            options.isTestTLS10(),
+                            options.isTestTLS11()));
+            futures.add(protocolFuture);
+        }
+
+        // If no additional scans, complete immediately
+        if (futures.isEmpty()) {
+            completeWithResult(builder.build());
+            return;
+        }
+
+        // Wait for all futures and combine results
+        final CompletableFuture<OPSecUtil.RevocationResult> revFuture = revocationFuture;
+        final CompletableFuture<CipherSuiteEnumerator.EnumerationResult> cipFuture = cipherFuture;
+        final CompletableFuture<ProtocolVersionTester.VersionTestResult> protFuture = protocolFuture;
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .orTimeout(options.getConnectTimeoutMs() * 2L, TimeUnit.MILLISECONDS)
+                .whenComplete((v, ex) -> {
+                    // Apply revocation result
+                    if (revFuture != null) {
+                        try {
+                            OPSecUtil.RevocationResult revResult = revFuture.getNow(null);
+                            if (revResult != null) {
+                                builder.revocationResult(revResult);
+                            }
+                        } catch (Exception e) {
+                            if (log.isEnabled()) {
+                                log.getLogger().info("Failed to get revocation result: " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    // Apply cipher enumeration result
+                    if (cipFuture != null) {
+                        try {
+                            CipherSuiteEnumerator.EnumerationResult cipResult = cipFuture.getNow(null);
+                            if (cipResult != null) {
+                                builder.supportedCipherSuites(cipResult.getSupportedCiphers());
+                                builder.serverCipherPreference(cipResult.hasServerCipherPreference());
+                            }
+                        } catch (Exception e) {
+                            if (log.isEnabled()) {
+                                log.getLogger().info("Failed to get cipher result: " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    // Apply protocol version result
+                    if (protFuture != null) {
+                        try {
+                            ProtocolVersionTester.VersionTestResult protResult = protFuture.getNow(null);
+                            if (protResult != null && protResult.isSuccess()) {
+                                builder.supportedProtocolVersions(protResult.getSupportedVersions());
+                                builder.sslv3Supported(protResult.isSslv3Supported());
+                                builder.deprecatedProtocolsSupported(protResult.isDeprecatedProtocolsSupported());
+                            }
+                        } catch (Exception e) {
+                            if (log.isEnabled()) {
+                                log.getLogger().info("Failed to get protocol result: " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    completeWithResult(builder.build());
+                });
+    }
+
+    /**
+     * Complete the scan with a result and cleanup.
+     */
+    private void completeWithResult(PQCScanResult result) {
+        if (log.isEnabled()) {
+            log.getLogger().info("NIO Scan complete: " + result);
+        }
+
+        resultCallback.accept(result);
+        shutdownScanners();
+        IOUtil.close(this);
+    }
+
+    /**
+     * Shutdown scanners.
+     */
+    private void shutdownScanners() {
+        if (revocationChecker != null) {
+            revocationChecker.shutdown();
+        }
+        // CipherSuiteEnumerator and ProtocolVersionTester are stateless, no shutdown needed
     }
 
     /**
@@ -331,6 +487,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
                 .build();
 
         resultCallback.accept(result);
+        shutdownScanners();
         IOUtil.close(this);
     }
 
@@ -350,6 +507,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
     @Override
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {
+            shutdownScanners();
             if (stateMachine != null) {
                 try {
                     stateMachine.close();

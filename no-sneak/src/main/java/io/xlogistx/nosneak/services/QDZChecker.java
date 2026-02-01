@@ -3,6 +3,7 @@ package io.xlogistx.nosneak.services;
 import io.xlogistx.common.dns.DNSRegistrar;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.nosneak.scanners.PQCNIOScanner;
+import io.xlogistx.nosneak.scanners.PQCScanOptions;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
@@ -42,13 +43,26 @@ public class QDZChecker {
             throw new APIException("NoSneaking on my private ips: " + ip + " try https://api.xlogistx.io/domain.com[:443 if no port default 443]", HTTPStatusCode.UNAUTHORIZED.CODE);
         if (ip.getPort() == -1)
             ip.setPort(URIScheme.HTTPS.getValue());
+
+
+        PQCScanOptions options = PQCScanOptions.builder()
+                .checkRevocation(true)
+                .revocationTimeoutMs(10000)
+                .enumerateCiphers(true)
+                .testProtocolVersions(true)
+                .testTLS10(true)
+                .testTLS11(true)
+                .testSSLv3(false)
+                .build();
         PQCNIOScanner scanner = new PQCNIOScanner(ip, result -> {
             //future.whenComplete(result.toNVGenericMap(false), null);
             future.complete(result.toNVGenericMap(true));
-        });
+        }, options);
         scanner.dnsResolver(DNSRegistrar.SINGLETON);
 
         scanner.timeoutInSec(5);
+
+
         try {
             getNIOSocket().addClientSocket(scanner);
         } catch (IOException e) {

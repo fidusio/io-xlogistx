@@ -127,6 +127,21 @@ public class PQCScanResult implements Identifier<String> {
     private String certSubject;      // Certificate subject DN
     private String certIssuer;       // Certificate issuer DN
 
+    // Revocation details
+    private String revocationMethod;      // "OCSP", "CRL", or "NONE"
+    private String revocationError;       // Error message if revocation check failed
+    private Long revocationDate;          // Timestamp when certificate was revoked (if revoked)
+    private String revocationReason;      // CRL reason code (e.g., "KEY_COMPROMISE")
+
+    // Cipher suite enumeration results
+    private List<CipherSuiteEnumerator.CipherInfo> supportedCipherSuites;
+    private Boolean serverCipherPreference;
+
+    // Protocol version testing results
+    private List<String> supportedProtocolVersions;
+    private boolean sslv3Supported;
+    private boolean deprecatedProtocolsSupported;
+
     // Overall status
     private PQCStatus overallStatus;
     private List<String> recommendations;
@@ -249,6 +264,42 @@ public class PQCScanResult implements Identifier<String> {
         return certIssuer;
     }
 
+    public String getRevocationMethod() {
+        return revocationMethod;
+    }
+
+    public String getRevocationError() {
+        return revocationError;
+    }
+
+    public Long getRevocationDate() {
+        return revocationDate;
+    }
+
+    public String getRevocationReason() {
+        return revocationReason;
+    }
+
+    public List<CipherSuiteEnumerator.CipherInfo> getSupportedCipherSuites() {
+        return supportedCipherSuites;
+    }
+
+    public Boolean getServerCipherPreference() {
+        return serverCipherPreference;
+    }
+
+    public List<String> getSupportedProtocolVersions() {
+        return supportedProtocolVersions;
+    }
+
+    public boolean isSslv3Supported() {
+        return sslv3Supported;
+    }
+
+    public boolean isDeprecatedProtocolsSupported() {
+        return deprecatedProtocolsSupported;
+    }
+
     public PQCStatus getOverallStatus() {
         return overallStatus;
     }
@@ -306,6 +357,32 @@ public class PQCScanResult implements Identifier<String> {
             }
             if (certRevoked != null) {
                 sb.append("  certRevoked=").append(certRevoked).append("\n");
+            }
+            // Revocation details
+            if (revocationMethod != null) {
+                sb.append("  revocationMethod=").append(revocationMethod).append("\n");
+            }
+            if (revocationError != null) {
+                sb.append("  revocationError='").append(revocationError).append("'\n");
+            }
+            if (revocationDate != null) {
+                sb.append("  revocationDate=").append(new java.util.Date(revocationDate)).append("\n");
+            }
+            if (revocationReason != null) {
+                sb.append("  revocationReason=").append(revocationReason).append("\n");
+            }
+            // Cipher suite enumeration
+            if (supportedCipherSuites != null && !supportedCipherSuites.isEmpty()) {
+                sb.append("  supportedCipherSuites=[").append(supportedCipherSuites.size()).append(" ciphers]\n");
+                if (serverCipherPreference != null) {
+                    sb.append("  serverCipherPreference=").append(serverCipherPreference).append("\n");
+                }
+            }
+            // Protocol version testing
+            if (supportedProtocolVersions != null && !supportedProtocolVersions.isEmpty()) {
+                sb.append("  supportedProtocolVersions=").append(supportedProtocolVersions).append("\n");
+                sb.append("  sslv3Supported=").append(sslv3Supported).append("\n");
+                sb.append("  deprecatedProtocolsSupported=").append(deprecatedProtocolsSupported).append("\n");
             }
             sb.append("  overallStatus=").append(overallStatus).append("\n");
             if (!recommendations.isEmpty()) {
@@ -409,6 +486,44 @@ public class PQCScanResult implements Identifier<String> {
         if (certIssuer != null) {
             nvgm.add("cert-issuer", certIssuer);
         }
+
+        // Revocation details
+        if (revocationMethod != null) {
+            nvgm.add("revocation-method", revocationMethod);
+        }
+        if (revocationError != null) {
+            nvgm.add("revocation-error", revocationError);
+        }
+        if (revocationDate != null) {
+            nvgm.add(new NVPair("revocation-date", DateUtil.DEFAULT_GMT_MILLIS.format(revocationDate)));
+        }
+        if (revocationReason != null) {
+            nvgm.add("revocation-reason", revocationReason);
+        }
+
+        // Cipher suite enumeration
+        if (supportedCipherSuites != null && !supportedCipherSuites.isEmpty()) {
+            NVGenericMapList ciphersList = new NVGenericMapList("supported-cipher-suites");
+            for (CipherSuiteEnumerator.CipherInfo cipher : supportedCipherSuites) {
+                NVGenericMap cipherMap = new NVGenericMap();
+                cipherMap.add("name", cipher.getName());
+                cipherMap.add("strength", cipher.getStrength().name());
+                cipherMap.add("key-exchange", cipher.getKeyExchange());
+                cipherMap.add(new NVBoolean("forward-secrecy", cipher.hasForwardSecrecy()));
+                ciphersList.add(cipherMap);
+            }
+            nvgm.add(ciphersList);
+        }
+        if (serverCipherPreference != null) {
+            nvgm.add(new NVBoolean("server-cipher-preference", serverCipherPreference));
+        }
+
+        // Protocol version testing
+        if (supportedProtocolVersions != null && !supportedProtocolVersions.isEmpty()) {
+            nvgm.add(new NVStringList("supported-protocol-versions", supportedProtocolVersions));
+        }
+        nvgm.add(new NVBoolean("sslv3-supported", sslv3Supported));
+        nvgm.add(new NVBoolean("deprecated-protocols-supported", deprecatedProtocolsSupported));
 
         // Overall status
         if (overallStatus != null) {
@@ -562,6 +677,133 @@ public class PQCScanResult implements Identifier<String> {
          */
         public Builder certRevoked(Boolean revoked) {
             result.certRevoked = revoked;
+            return this;
+        }
+
+        /**
+         * Set the revocation check method used.
+         *
+         * @param method "OCSP", "CRL", or "NONE"
+         * @return this builder
+         */
+        public Builder revocationMethod(String method) {
+            result.revocationMethod = method;
+            return this;
+        }
+
+        /**
+         * Set the revocation check error message.
+         *
+         * @param error error message if revocation check failed
+         * @return this builder
+         */
+        public Builder revocationError(String error) {
+            result.revocationError = error;
+            return this;
+        }
+
+        /**
+         * Set the revocation date.
+         *
+         * @param date timestamp when certificate was revoked
+         * @return this builder
+         */
+        public Builder revocationDate(Long date) {
+            result.revocationDate = date;
+            return this;
+        }
+
+        /**
+         * Set the revocation reason.
+         *
+         * @param reason CRL reason code (e.g., "KEY_COMPROMISE")
+         * @return this builder
+         */
+        public Builder revocationReason(String reason) {
+            result.revocationReason = reason;
+            return this;
+        }
+
+        /**
+         * Set all revocation fields from a RevocationResult.
+         *
+         * @param revResult the revocation check result
+         * @return this builder
+         */
+        public Builder revocationResult(io.xlogistx.opsec.OPSecUtil.RevocationResult revResult) {
+            if (revResult != null) {
+                result.revocationMethod = revResult.getMethod();
+                result.revocationError = revResult.getErrorMessage();
+                result.revocationDate = revResult.getRevocationDate();
+                result.revocationReason = revResult.getRevocationReason();
+
+                switch (revResult.getStatus()) {
+                    case GOOD:
+                        result.certRevoked = false;
+                        break;
+                    case REVOKED:
+                        result.certRevoked = true;
+                        break;
+                    default:
+                        result.certRevoked = null; // UNKNOWN or ERROR
+                        break;
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Set the supported cipher suites from enumeration.
+         *
+         * @param ciphers list of supported cipher suites
+         * @return this builder
+         */
+        public Builder supportedCipherSuites(List<CipherSuiteEnumerator.CipherInfo> ciphers) {
+            result.supportedCipherSuites = ciphers;
+            return this;
+        }
+
+        /**
+         * Set whether the server enforces cipher preference.
+         *
+         * @param preference true if server enforces preference
+         * @return this builder
+         */
+        public Builder serverCipherPreference(Boolean preference) {
+            result.serverCipherPreference = preference;
+            return this;
+        }
+
+        /**
+         * Set the supported protocol versions from testing.
+         *
+         * @param versions list of supported version names (e.g., "TLSv1.3", "TLSv1.2")
+         * @return this builder
+         */
+        public Builder supportedProtocolVersions(List<String> versions) {
+            result.supportedProtocolVersions = versions;
+            return this;
+        }
+
+        /**
+         * Set whether SSLv3 is supported (security risk).
+         *
+         * @param supported true if SSLv3 is supported
+         * @return this builder
+         */
+        public Builder sslv3Supported(boolean supported) {
+            result.sslv3Supported = supported;
+            return this;
+        }
+
+        /**
+         * Set whether deprecated protocols are supported.
+         *
+         * @param supported true if TLS 1.0, TLS 1.1, or SSLv3 is supported
+         * @return this builder
+         */
+        public Builder deprecatedProtocolsSupported(boolean supported) {
+            result.deprecatedProtocolsSupported = supported;
             return this;
         }
 

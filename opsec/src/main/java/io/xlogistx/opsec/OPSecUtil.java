@@ -7,9 +7,7 @@ import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.keyprovider.FileKeyPairProvider;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
-import org.bouncycastle.asn1.ASN1EncodableVector;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -20,7 +18,9 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.cert.ocsp.*;
 import org.bouncycastle.jcajce.SecretKeyWithEncapsulation;
 import org.bouncycastle.jcajce.spec.KEMExtractSpec;
 import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
@@ -32,6 +32,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8DecryptorProviderBuilder;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.InputDecryptorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -41,6 +42,7 @@ import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
 import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
+import org.bouncycastle.tls.CipherSuite;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
@@ -80,6 +82,147 @@ public class OPSecUtil {
     public static final String BC_BCJSSE = "BCJSSE";
     public static final String CK_NAME = "KYBER";
     public static final String CD_NAME = "DILITHIUM";
+
+    // OID Constants for certificate extensions
+    public static final String OID_CRL_DISTRIBUTION_POINTS = "2.5.29.31";
+    public static final String OID_AUTHORITY_INFO_ACCESS = "1.3.6.1.5.5.7.1.1";
+    public static final String OID_OCSP = "1.3.6.1.5.5.7.48.1";
+    public static final String OID_CA_ISSUERS = "1.3.6.1.5.5.7.48.2";
+    // TLS 1.3 cipher suites (always AEAD)
+    public static final int[] ALL_TLS13_CIPHERS = {
+            CipherSuite.TLS_AES_256_GCM_SHA384,
+            CipherSuite.TLS_AES_128_GCM_SHA256,
+            CipherSuite.TLS_CHACHA20_POLY1305_SHA256,
+            CipherSuite.TLS_AES_128_CCM_SHA256,
+            CipherSuite.TLS_AES_128_CCM_8_SHA256
+    };
+
+    // TLS 1.2 strong cipher suites (GCM, ChaCha20)
+    public static final int[] ALL_TLS12_STRONG = {
+            // ECDHE with ECDSA
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+            // ECDHE with RSA
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+            // DHE with RSA
+            CipherSuite.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+    };
+
+    // TLS 1.2 weak cipher suites (CBC modes, older ciphers)
+    public static final int[] ALL_TLS12_WEAK = {
+            // ECDHE with CBC (acceptable but not ideal)
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+            // DHE with CBC
+            CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+            // RSA key exchange (no forward secrecy)
+            CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_RSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
+            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
+            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
+            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
+            // 3DES (weak)
+            CipherSuite.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            CipherSuite.TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+            CipherSuite.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+    };
+
+    // Insecure cipher suites (should not be used)
+    public static final int[] ALL_TLS12_INSECURE = {
+            // NULL encryption
+            CipherSuite.TLS_RSA_WITH_NULL_SHA256,
+            CipherSuite.TLS_RSA_WITH_NULL_SHA,
+            CipherSuite.TLS_RSA_WITH_NULL_MD5,
+            // RC4
+            CipherSuite.TLS_RSA_WITH_RC4_128_SHA,
+            CipherSuite.TLS_RSA_WITH_RC4_128_MD5,
+            // Anonymous (no authentication)
+            CipherSuite.TLS_DH_anon_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_DH_anon_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_DH_anon_WITH_AES_256_CBC_SHA256,
+            CipherSuite.TLS_DH_anon_WITH_AES_128_CBC_SHA256,
+    };
+
+    /**
+     * Certificate revocation status
+     */
+    public enum RevocationStatus {
+        /** Certificate is not revoked */
+        GOOD,
+        /** Certificate is revoked */
+        REVOKED,
+        /** Revocation status could not be determined */
+        UNKNOWN,
+        /** Error occurred during revocation check */
+        ERROR
+    }
+
+    /**
+     * Result of a certificate revocation check
+     */
+    public static class RevocationResult {
+        private final RevocationStatus status;
+        private final String method;          // "OCSP", "CRL", or "NONE"
+        private final String errorMessage;
+        private final Long revocationDate;    // null if not revoked
+        private final String revocationReason; // CRL reason code if revoked
+
+        public RevocationResult(RevocationStatus status, String method, String errorMessage,
+                               Long revocationDate, String revocationReason) {
+            this.status = status;
+            this.method = method;
+            this.errorMessage = errorMessage;
+            this.revocationDate = revocationDate;
+            this.revocationReason = revocationReason;
+        }
+
+        public static RevocationResult good(String method) {
+            return new RevocationResult(RevocationStatus.GOOD, method, null, null, null);
+        }
+
+        public static RevocationResult revoked(String method, Long revocationDate, String reason) {
+            return new RevocationResult(RevocationStatus.REVOKED, method, null, revocationDate, reason);
+        }
+
+        public static RevocationResult unknown(String method, String message) {
+            return new RevocationResult(RevocationStatus.UNKNOWN, method, message, null, null);
+        }
+
+        public static RevocationResult error(String method, String message) {
+            return new RevocationResult(RevocationStatus.ERROR, method, message, null, null);
+        }
+
+        public RevocationStatus getStatus() { return status; }
+        public String getMethod() { return method; }
+        public String getErrorMessage() { return errorMessage; }
+        public Long getRevocationDate() { return revocationDate; }
+        public String getRevocationReason() { return revocationReason; }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("RevocationResult{status=").append(status);
+            sb.append(", method=").append(method);
+            if (errorMessage != null) sb.append(", error=").append(errorMessage);
+            if (revocationDate != null) sb.append(", date=").append(new java.util.Date(revocationDate));
+            if (revocationReason != null) sb.append(", reason=").append(revocationReason);
+            return sb.append("}").toString();
+        }
+    }
 
     public enum KeyUsageType
             implements GetNameValue<KeyUsage> {
@@ -1371,6 +1514,562 @@ public class OPSecUtil {
         }
 
         return new String[]{sigType, sigAlg, pubKeyType, String.valueOf(keySize)};
+    }
+
+    // ==================== CRL/OCSP Revocation Checking ====================
+
+    /**
+     * Extract CRL Distribution Point URLs from a certificate.
+     *
+     * @param cert the X509 certificate
+     * @return list of CRL distribution point URLs (may be empty)
+     */
+    public List<String> extractCRLDistributionPoints(X509Certificate cert) {
+        List<String> urls = new ArrayList<>();
+        if (cert == null) return urls;
+
+        try {
+            byte[] extValue = cert.getExtensionValue(OID_CRL_DISTRIBUTION_POINTS);
+            if (extValue == null) return urls;
+
+            ASN1InputStream asn1In = new ASN1InputStream(extValue);
+            ASN1OctetString octetString = (ASN1OctetString) asn1In.readObject();
+            asn1In.close();
+
+            ASN1InputStream asn1In2 = new ASN1InputStream(octetString.getOctets());
+            ASN1Sequence seq = (ASN1Sequence) asn1In2.readObject();
+            asn1In2.close();
+
+            CRLDistPoint distPoint = CRLDistPoint.getInstance(seq);
+            for (DistributionPoint dp : distPoint.getDistributionPoints()) {
+                DistributionPointName dpName = dp.getDistributionPoint();
+                if (dpName != null && dpName.getType() == DistributionPointName.FULL_NAME) {
+                    GeneralNames generalNames = (GeneralNames) dpName.getName();
+                    for (GeneralName gn : generalNames.getNames()) {
+                        if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                            String url = gn.getName().toString();
+                            urls.add(url);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Error extracting CRL Distribution Points: " + e.getMessage());
+            }
+        }
+        return urls;
+    }
+
+    /**
+     * Extract OCSP Responder URLs from a certificate's Authority Information Access extension.
+     *
+     * @param cert the X509 certificate
+     * @return list of OCSP responder URLs (may be empty)
+     */
+    public List<String> extractOCSPResponderURLs(X509Certificate cert) {
+        List<String> urls = new ArrayList<>();
+        if (cert == null) return urls;
+
+        try {
+            byte[] extValue = cert.getExtensionValue(OID_AUTHORITY_INFO_ACCESS);
+            if (extValue == null) return urls;
+
+            ASN1InputStream asn1In = new ASN1InputStream(extValue);
+            ASN1OctetString octetString = (ASN1OctetString) asn1In.readObject();
+            asn1In.close();
+
+            ASN1InputStream asn1In2 = new ASN1InputStream(octetString.getOctets());
+            ASN1Sequence seq = (ASN1Sequence) asn1In2.readObject();
+            asn1In2.close();
+
+            AuthorityInformationAccess aia = AuthorityInformationAccess.getInstance(seq);
+            for (AccessDescription ad : aia.getAccessDescriptions()) {
+                if (ad.getAccessMethod().equals(AccessDescription.id_ad_ocsp)) {
+                    GeneralName gn = ad.getAccessLocation();
+                    if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                        urls.add(gn.getName().toString());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Error extracting OCSP URLs: " + e.getMessage());
+            }
+        }
+        return urls;
+    }
+
+    /**
+     * Extract CA Issuer URLs from a certificate's Authority Information Access extension.
+     *
+     * @param cert the X509 certificate
+     * @return list of CA issuer URLs (may be empty)
+     */
+    public List<String> extractCAIssuerURLs(X509Certificate cert) {
+        List<String> urls = new ArrayList<>();
+        if (cert == null) return urls;
+
+        try {
+            byte[] extValue = cert.getExtensionValue(OID_AUTHORITY_INFO_ACCESS);
+            if (extValue == null) return urls;
+
+            ASN1InputStream asn1In = new ASN1InputStream(extValue);
+            ASN1OctetString octetString = (ASN1OctetString) asn1In.readObject();
+            asn1In.close();
+
+            ASN1InputStream asn1In2 = new ASN1InputStream(octetString.getOctets());
+            ASN1Sequence seq = (ASN1Sequence) asn1In2.readObject();
+            asn1In2.close();
+
+            AuthorityInformationAccess aia = AuthorityInformationAccess.getInstance(seq);
+            for (AccessDescription ad : aia.getAccessDescriptions()) {
+                if (ad.getAccessMethod().equals(AccessDescription.id_ad_caIssuers)) {
+                    GeneralName gn = ad.getAccessLocation();
+                    if (gn.getTagNo() == GeneralName.uniformResourceIdentifier) {
+                        urls.add(gn.getName().toString());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Error extracting CA Issuer URLs: " + e.getMessage());
+            }
+        }
+        return urls;
+    }
+
+    /**
+     * Check certificate revocation status via CRL.
+     *
+     * @param cert the certificate to check
+     * @param crlUrl the CRL distribution point URL
+     * @param timeoutMs connection timeout in milliseconds
+     * @return RevocationResult indicating the status
+     */
+    public RevocationResult checkCRL(X509Certificate cert, String crlUrl, int timeoutMs) {
+        if (cert == null) {
+            return RevocationResult.error("CRL", "Certificate is null");
+        }
+        if (crlUrl == null || crlUrl.isEmpty()) {
+            return RevocationResult.error("CRL", "CRL URL is null or empty");
+        }
+
+        try {
+            java.net.URL url = new java.net.URL(crlUrl);
+            java.net.URLConnection conn = url.openConnection();
+            conn.setConnectTimeout(timeoutMs);
+            conn.setReadTimeout(timeoutMs);
+
+            try (InputStream is = conn.getInputStream()) {
+                X509CRL crl = readCRL(is);
+
+                X509CRLEntry entry = crl.getRevokedCertificate(cert.getSerialNumber());
+                if (entry != null) {
+                    Long revDate = entry.getRevocationDate() != null ? entry.getRevocationDate().getTime() : null;
+                    String reason = entry.getRevocationReason() != null ? entry.getRevocationReason().name() : "UNSPECIFIED";
+                    return RevocationResult.revoked("CRL", revDate, reason);
+                }
+                return RevocationResult.good("CRL");
+            }
+        } catch (java.net.SocketTimeoutException e) {
+            return RevocationResult.error("CRL", "Timeout connecting to CRL: " + crlUrl);
+        } catch (Exception e) {
+            return RevocationResult.error("CRL", "Error checking CRL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check certificate revocation status via OCSP.
+     *
+     * @param cert the certificate to check
+     * @param issuerCert the issuer certificate (needed to verify OCSP response)
+     * @param ocspUrl the OCSP responder URL
+     * @param timeoutMs connection timeout in milliseconds
+     * @return RevocationResult indicating the status
+     */
+    public RevocationResult checkOCSP(X509Certificate cert, X509Certificate issuerCert,
+                                      String ocspUrl, int timeoutMs) {
+        if (cert == null) {
+            return RevocationResult.error("OCSP", "Certificate is null");
+        }
+        if (issuerCert == null) {
+            return RevocationResult.error("OCSP", "Issuer certificate is null");
+        }
+        if (ocspUrl == null || ocspUrl.isEmpty()) {
+            return RevocationResult.error("OCSP", "OCSP URL is null or empty");
+        }
+
+        try {
+            // Build OCSP request
+            DigestCalculatorProvider digCalcProv = new org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder()
+                    .setProvider(BC_PROVIDER).build();
+            CertificateID certId = new CertificateID(
+                    digCalcProv.get(CertificateID.HASH_SHA1),
+                    new JcaX509CertificateHolder(issuerCert),
+                    cert.getSerialNumber()
+            );
+
+            OCSPReqBuilder reqBuilder = new OCSPReqBuilder();
+            reqBuilder.addRequest(certId);
+            OCSPReq ocspReq = reqBuilder.build();
+
+            // Send OCSP request
+            byte[] ocspReqData = ocspReq.getEncoded();
+
+            java.net.URL url = new java.net.URL(ocspUrl);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(timeoutMs);
+            conn.setReadTimeout(timeoutMs);
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/ocsp-request");
+            conn.setRequestProperty("Accept", "application/ocsp-response");
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(ocspReqData);
+            }
+
+            // Read OCSP response
+            byte[] respData;
+            try (InputStream is = conn.getInputStream();
+                 ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    baos.write(buffer, 0, bytesRead);
+                }
+                respData = baos.toByteArray();
+            }
+
+            OCSPResp ocspResp = new OCSPResp(respData);
+            if (ocspResp.getStatus() != OCSPResp.SUCCESSFUL) {
+                return RevocationResult.error("OCSP", "OCSP response status: " + ocspResp.getStatus());
+            }
+
+            BasicOCSPResp basicResp = (BasicOCSPResp) ocspResp.getResponseObject();
+            if (basicResp == null) {
+                return RevocationResult.error("OCSP", "No basic OCSP response");
+            }
+
+            // Check all single responses
+            for (SingleResp singleResp : basicResp.getResponses()) {
+                CertificateStatus certStatus = singleResp.getCertStatus();
+                if (certStatus == CertificateStatus.GOOD) {
+                    return RevocationResult.good("OCSP");
+                } else if (certStatus instanceof RevokedStatus) {
+                    RevokedStatus revokedStatus = (RevokedStatus) certStatus;
+                    Long revDate = revokedStatus.getRevocationTime() != null ?
+                            revokedStatus.getRevocationTime().getTime() : null;
+                    String reason = "UNSPECIFIED";
+                    if (revokedStatus.hasRevocationReason()) {
+                        reason = getRevocationReasonString(revokedStatus.getRevocationReason());
+                    }
+                    return RevocationResult.revoked("OCSP", revDate, reason);
+                } else if (certStatus instanceof UnknownStatus) {
+                    return RevocationResult.unknown("OCSP", "Certificate status unknown to OCSP responder");
+                }
+            }
+
+            return RevocationResult.unknown("OCSP", "No matching response found");
+
+        } catch (java.net.SocketTimeoutException e) {
+            return RevocationResult.error("OCSP", "Timeout connecting to OCSP responder: " + ocspUrl);
+        } catch (Exception e) {
+            return RevocationResult.error("OCSP", "Error checking OCSP: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Convert OCSP/CRL revocation reason code to string.
+     */
+    private String getRevocationReasonString(int reason) {
+        switch (reason) {
+            case 0: return "UNSPECIFIED";
+            case 1: return "KEY_COMPROMISE";
+            case 2: return "CA_COMPROMISE";
+            case 3: return "AFFILIATION_CHANGED";
+            case 4: return "SUPERSEDED";
+            case 5: return "CESSATION_OF_OPERATION";
+            case 6: return "CERTIFICATE_HOLD";
+            case 8: return "REMOVE_FROM_CRL";
+            case 9: return "PRIVILEGE_WITHDRAWN";
+            case 10: return "AA_COMPROMISE";
+            default: return "UNKNOWN(" + reason + ")";
+        }
+    }
+
+    /**
+     * Check certificate revocation status using the best available method.
+     * Tries OCSP first (faster), then falls back to CRL.
+     *
+     * @param cert the certificate to check
+     * @param issuerCert the issuer certificate (may be null if only CRL is available)
+     * @param timeoutMs connection timeout in milliseconds
+     * @return RevocationResult indicating the status
+     */
+    public RevocationResult checkRevocation(X509Certificate cert, X509Certificate issuerCert, int timeoutMs) {
+        if (cert == null) {
+            return RevocationResult.error("NONE", "Certificate is null");
+        }
+
+        // Try OCSP first (faster, more current)
+        if (issuerCert != null) {
+            List<String> ocspUrls = extractOCSPResponderURLs(cert);
+            for (String ocspUrl : ocspUrls) {
+                RevocationResult result = checkOCSP(cert, issuerCert, ocspUrl, timeoutMs);
+                if (result.getStatus() != RevocationStatus.ERROR) {
+                    return result;
+                }
+                // If error, try next URL or fall back to CRL
+            }
+        }
+
+        // Fall back to CRL
+        List<String> crlUrls = extractCRLDistributionPoints(cert);
+        for (String crlUrl : crlUrls) {
+            RevocationResult result = checkCRL(cert, crlUrl, timeoutMs);
+            if (result.getStatus() != RevocationStatus.ERROR) {
+                return result;
+            }
+            // If error, try next URL
+        }
+
+        // No working revocation method found
+        if (extractOCSPResponderURLs(cert).isEmpty() && crlUrls.isEmpty()) {
+            return RevocationResult.unknown("NONE", "No CRL or OCSP information in certificate");
+        }
+        return RevocationResult.error("NONE", "All revocation checks failed");
+    }
+
+    // ==================== Cipher Suite Classification ====================
+
+    /**
+     * Cipher suite strength classification
+     */
+    public enum CipherStrength {
+        /** Modern, secure cipher suite (AES-GCM, ChaCha20) */
+        STRONG,
+        /** Acceptable cipher suite (AES-CBC with HMAC) */
+        ACCEPTABLE,
+        /** Weak cipher suite (3DES, RC4) */
+        WEAK,
+        /** Insecure cipher suite (NULL, export, DES) */
+        INSECURE,
+        /** Unknown cipher suite */
+        UNKNOWN
+    }
+
+    /**
+     * Parsed cipher suite components
+     */
+    public static class CipherComponents {
+        public final String name;
+        public final String keyExchange;
+        public final String authentication;
+        public final String encryption;
+        public final String mac;
+        public final CipherStrength strength;
+        public final boolean forwardSecrecy;
+
+        public CipherComponents(String name, String keyExchange, String authentication,
+                               String encryption, String mac, CipherStrength strength, boolean forwardSecrecy) {
+            this.name = name;
+            this.keyExchange = keyExchange;
+            this.authentication = authentication;
+            this.encryption = encryption;
+            this.mac = mac;
+            this.strength = strength;
+            this.forwardSecrecy = forwardSecrecy;
+        }
+    }
+
+    /**
+     * Classify cipher suite strength by name.
+     *
+     * @param cipherSuiteName the cipher suite name (e.g., "TLS_AES_256_GCM_SHA384")
+     * @return the strength classification
+     */
+    public CipherStrength classifyCipherSuiteStrength(String cipherSuiteName) {
+        if (cipherSuiteName == null) return CipherStrength.UNKNOWN;
+
+        String upper = cipherSuiteName.toUpperCase();
+
+        // Insecure ciphers
+        if (upper.contains("NULL") || upper.contains("EXPORT") ||
+            upper.contains("_DES_") || upper.contains("ANON") ||
+            upper.contains("MD5") || upper.contains("RC2")) {
+            return CipherStrength.INSECURE;
+        }
+
+        // Weak ciphers
+        if (upper.contains("3DES") || upper.contains("RC4") ||
+            upper.contains("IDEA") || upper.contains("SEED") ||
+            upper.contains("CAMELLIA")) {
+            return CipherStrength.WEAK;
+        }
+
+        // Strong TLS 1.3 ciphers
+        if (upper.startsWith("TLS_AES_") || upper.startsWith("TLS_CHACHA20_")) {
+            return CipherStrength.STRONG;
+        }
+
+        // Strong ciphers with GCM or ChaCha20
+        if (upper.contains("GCM") || upper.contains("CHACHA20") || upper.contains("CCM")) {
+            return CipherStrength.STRONG;
+        }
+
+        // AES-CBC is acceptable
+        if (upper.contains("AES") && upper.contains("CBC")) {
+            return CipherStrength.ACCEPTABLE;
+        }
+
+        // Other AES modes
+        if (upper.contains("AES")) {
+            return CipherStrength.ACCEPTABLE;
+        }
+
+        return CipherStrength.UNKNOWN;
+    }
+
+    /**
+     * Parse cipher suite name into components.
+     *
+     * @param cipherSuiteName the cipher suite name
+     * @return parsed components
+     */
+    public CipherComponents parseCipherSuite(String cipherSuiteName) {
+        if (cipherSuiteName == null) {
+            return new CipherComponents("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN",
+                    CipherStrength.UNKNOWN, false);
+        }
+
+        String upper = cipherSuiteName.toUpperCase();
+        CipherStrength strength = classifyCipherSuiteStrength(cipherSuiteName);
+
+        // TLS 1.3 cipher suites (simpler format: TLS_AES_256_GCM_SHA384)
+        if (upper.startsWith("TLS_AES_") || upper.startsWith("TLS_CHACHA20_")) {
+            String encryption = extractEncryption(upper);
+            String mac = extractMAC(upper);
+            // TLS 1.3 always uses ephemeral key exchange
+            return new CipherComponents(cipherSuiteName, "ECDHE/DHE", "Cert", encryption, mac, strength, true);
+        }
+
+        // TLS 1.2 and earlier (format: TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384)
+        String keyExchange = extractKeyExchange(upper);
+        String authentication = extractAuthentication(upper);
+        String encryption = extractEncryption(upper);
+        String mac = extractMAC(upper);
+        boolean forwardSecrecy = upper.contains("DHE") || upper.contains("ECDHE");
+
+        return new CipherComponents(cipherSuiteName, keyExchange, authentication, encryption, mac,
+                strength, forwardSecrecy);
+    }
+
+    private String extractKeyExchange(String cipherName) {
+        if (cipherName.contains("ECDHE")) return "ECDHE";
+        if (cipherName.contains("DHE") || cipherName.contains("EDH")) return "DHE";
+        if (cipherName.contains("ECDH")) return "ECDH";
+        if (cipherName.contains("DH_")) return "DH";
+        if (cipherName.contains("RSA")) return "RSA";
+        if (cipherName.contains("PSK")) return "PSK";
+        if (cipherName.contains("SRP")) return "SRP";
+        return "UNKNOWN";
+    }
+
+    private String extractAuthentication(String cipherName) {
+        if (cipherName.contains("_RSA_") || cipherName.contains("RSA_WITH")) return "RSA";
+        if (cipherName.contains("ECDSA")) return "ECDSA";
+        if (cipherName.contains("DSS")) return "DSS";
+        if (cipherName.contains("ANON")) return "ANON";
+        if (cipherName.contains("PSK")) return "PSK";
+        return "RSA";
+    }
+
+    private String extractEncryption(String cipherName) {
+        if (cipherName.contains("CHACHA20_POLY1305")) return "CHACHA20-POLY1305";
+        if (cipherName.contains("AES_256_GCM")) return "AES-256-GCM";
+        if (cipherName.contains("AES_128_GCM")) return "AES-128-GCM";
+        if (cipherName.contains("AES_256_CCM")) return "AES-256-CCM";
+        if (cipherName.contains("AES_128_CCM")) return "AES-128-CCM";
+        if (cipherName.contains("AES_256_CBC")) return "AES-256-CBC";
+        if (cipherName.contains("AES_128_CBC")) return "AES-128-CBC";
+        if (cipherName.contains("AES256")) return "AES-256";
+        if (cipherName.contains("AES128") || cipherName.contains("AES_")) return "AES-128";
+        if (cipherName.contains("3DES")) return "3DES";
+        if (cipherName.contains("DES_")) return "DES";
+        if (cipherName.contains("RC4")) return "RC4";
+        if (cipherName.contains("NULL")) return "NULL";
+        return "UNKNOWN";
+    }
+
+    private String extractMAC(String cipherName) {
+        if (cipherName.contains("SHA384")) return "SHA384";
+        if (cipherName.contains("SHA256")) return "SHA256";
+        if (cipherName.contains("SHA1") || cipherName.endsWith("SHA")) return "SHA1";
+        if (cipherName.contains("MD5")) return "MD5";
+        if (cipherName.contains("GCM") || cipherName.contains("CCM") || cipherName.contains("POLY1305")) {
+            return "AEAD";
+        }
+        return "UNKNOWN";
+    }
+
+    // ==================== Protocol Version Classification ====================
+
+    /**
+     * Protocol version security classification
+     */
+    public enum ProtocolSecurity {
+        /** Secure protocol (TLS 1.2, TLS 1.3) */
+        SECURE,
+        /** Deprecated protocol (TLS 1.0, TLS 1.1) */
+        DEPRECATED,
+        /** Critical security risk (SSLv2, SSLv3) */
+        CRITICAL,
+        /** Unknown protocol */
+        UNKNOWN
+    }
+
+    /**
+     * Classify protocol version security.
+     *
+     * @param protocolVersion the protocol version string (e.g., "TLSv1.3", "SSLv3")
+     * @return security classification
+     */
+    public ProtocolSecurity classifyProtocolVersionSecurity(String protocolVersion) {
+        if (protocolVersion == null) return ProtocolSecurity.UNKNOWN;
+
+        String normalized = protocolVersion.toUpperCase().replace(" ", "");
+
+        // TLS 1.3 and TLS 1.2 are secure
+        if (normalized.contains("1.3") || normalized.contains("1.2")) {
+            return ProtocolSecurity.SECURE;
+        }
+
+        // TLS 1.0 and TLS 1.1 are deprecated
+        if (normalized.contains("1.1") || normalized.contains("1.0")) {
+            return ProtocolSecurity.DEPRECATED;
+        }
+
+        // SSLv3 and SSLv2 are critical security risks
+        if (normalized.contains("SSL") || normalized.contains("V3") || normalized.contains("V2")) {
+            return ProtocolSecurity.CRITICAL;
+        }
+
+        return ProtocolSecurity.UNKNOWN;
+    }
+
+    /**
+     * Check if a protocol version supports PQC key exchange.
+     *
+     * @param protocolVersion the protocol version string
+     * @return true if the protocol can support PQC (TLS 1.3 only)
+     */
+    public boolean protocolSupportsPQC(String protocolVersion) {
+        if (protocolVersion == null) return false;
+        String normalized = protocolVersion.toUpperCase().replace(" ", "");
+        return normalized.contains("1.3");
     }
 
 }
