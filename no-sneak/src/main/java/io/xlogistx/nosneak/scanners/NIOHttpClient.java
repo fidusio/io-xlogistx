@@ -4,7 +4,6 @@ import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -39,6 +38,7 @@ public class NIOHttpClient {
             t.setDaemon(true);
             return t;
         });
+        //this.executor = TaskUtil.defaultTaskProcessor();
     }
 
     /**

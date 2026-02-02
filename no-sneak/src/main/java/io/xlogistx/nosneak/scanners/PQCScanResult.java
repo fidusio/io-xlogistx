@@ -91,7 +91,7 @@ public class PQCScanResult implements Identifier<String> {
     // Connection info
     private String host;
     private int port;
-    private long scanTimeMs;
+    protected long scanTimeMs;
     private boolean success;
     private boolean secure;  // true if TLS/SSL encryption detected
     private String errorMessage;

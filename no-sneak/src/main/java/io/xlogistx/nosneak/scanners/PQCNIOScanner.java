@@ -361,7 +361,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
         if (log.isEnabled()) {
             log.getLogger().info("NIO Scan complete: " + result);
         }
-
+        result.scanTimeMs = System.currentTimeMillis() - startTime;
         resultCallback.accept(result);
         shutdownScanners();
         IOUtil.close(this);

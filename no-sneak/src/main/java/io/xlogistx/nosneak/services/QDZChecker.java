@@ -32,8 +32,8 @@ public class QDZChecker {
         }
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "check-qdz", uris = "/check-qdz/{domain}/{timeout}")
-    public NVGenericMap checkQDZ(@ParamProp(name = "domain") String domain, @ParamProp(name = "timeout", optional = true) int timeout) {
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "check-qdz", uris = "/check-qdz/{domain}/{detailed}")
+    public NVGenericMap checkQDZ(@ParamProp(name = "domain") String domain, @ParamProp(name = "detailed", optional = true) boolean detailed) {
 
 
         CompletableFuture<NVGenericMap> future = new CompletableFuture<>();
@@ -45,7 +45,7 @@ public class QDZChecker {
             ip.setPort(URIScheme.HTTPS.getValue());
 
 
-        PQCScanOptions options = PQCScanOptions.builder()
+        PQCScanOptions options = detailed ? PQCScanOptions.builder()
                 .checkRevocation(true)
                 .revocationTimeoutMs(10000)
                 .enumerateCiphers(true)
@@ -53,7 +53,7 @@ public class QDZChecker {
                 .testTLS10(true)
                 .testTLS11(true)
                 .testSSLv3(false)
-                .build();
+                .build() : null;
         PQCNIOScanner scanner = new PQCNIOScanner(ip, result -> {
             //future.whenComplete(result.toNVGenericMap(false), null);
             future.complete(result.toNVGenericMap(true));
