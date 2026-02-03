@@ -189,7 +189,7 @@ public class UDPPortScanCallback extends UDPSessionCallback {
      * Handle ICMP errors or exceptions.
      */
     @Override
-    public void exception(Exception e) {
+    public void exception(Throwable e) {
         if (log.isEnabled()) {
             log.getLogger().info("UDP callback exception: " + e.getMessage());
         }

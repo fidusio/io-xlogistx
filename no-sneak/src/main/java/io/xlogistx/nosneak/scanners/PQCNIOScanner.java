@@ -257,7 +257,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
      * Run additional scans (revocation, cipher enumeration, protocol testing) in parallel.
      */
     private void runAdditionalScans(PQCScanResult.Builder builder, String hostname, int port,
-                                     X509Certificate[] chain) {
+                                    X509Certificate[] chain) {
         List<CompletableFuture<?>> futures = new ArrayList<>();
         int timeout = options.getEnumerationTimeoutMs();
 
@@ -493,11 +493,10 @@ public class PQCNIOScanner extends TCPSessionCallback {
 
 
     @Override
-    public void exception(Exception e) {
+    public void exception(Throwable e) {
         if (completed) return;
 
-//        if (log.isEnabled())
-        {
+        if (log.isEnabled()) {
             log.getLogger().info("Connection exception: " + e.getMessage());
         }
 

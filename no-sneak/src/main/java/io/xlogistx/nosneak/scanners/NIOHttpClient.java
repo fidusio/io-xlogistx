@@ -1,9 +1,11 @@
 package io.xlogistx.nosneak.scanners;
 
+import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.task.TaskUtil;
 
-import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -14,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,12 +34,12 @@ public class NIOHttpClient {
 
     public NIOHttpClient(int timeoutMs) {
         this.timeoutMs = timeoutMs;
-        this.executor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "NIOHttpClient-worker");
-            t.setDaemon(true);
-            return t;
-        });
-        //this.executor = TaskUtil.defaultTaskProcessor();
+//        this.executor = Executors.newCachedThreadPool(r -> {
+//            Thread t = new Thread(r, "NIOHttpClient-worker");
+//            t.setDaemon(true);
+//            return t;
+//        });
+        this.executor = TaskUtil.defaultTaskProcessor();
     }
 
     /**
@@ -61,11 +62,25 @@ public class NIOHttpClient {
             this.errorMessage = errorMessage;
         }
 
-        public int getStatusCode() { return statusCode; }
-        public byte[] getBody() { return body; }
-        public String getErrorMessage() { return errorMessage; }
-        public boolean isSuccess() { return statusCode >= 200 && statusCode < 300; }
-        public boolean isError() { return errorMessage != null; }
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public byte[] getBody() {
+            return body;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public boolean isSuccess() {
+            return statusCode >= 200 && statusCode < 300;
+        }
+
+        public boolean isError() {
+            return errorMessage != null;
+        }
     }
 
     /**
@@ -141,6 +156,9 @@ public class NIOHttpClient {
         SocketChannel channel = null;
         Selector selector = null;
 
+        ByteBuffer readBuffer = null;
+        UByteArrayOutputStream responseBuffer  = null;
+
         try {
             channel = SocketChannel.open();
             channel.configureBlocking(false);
@@ -151,8 +169,8 @@ public class NIOHttpClient {
 
             long deadline = System.currentTimeMillis() + timeoutMs;
             ByteBuffer writeBuffer = ByteBuffer.wrap(request);
-            ByteArrayOutputStream responseBuffer = new ByteArrayOutputStream();
-            ByteBuffer readBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
+            responseBuffer = ByteBufferUtil.allocateUBAOS(1024);
+            readBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
             boolean connected = false;
             boolean requestSent = false;
@@ -214,6 +232,8 @@ public class NIOHttpClient {
             return new HttpResponse("Request failed: " + e.getMessage());
         } finally {
             IOUtil.close(selector, channel);
+            ByteBufferUtil.cache(readBuffer);
+            ByteBufferUtil.cache(responseBuffer);
         }
     }
 
@@ -258,7 +278,8 @@ public class NIOHttpClient {
      * Shutdown the HTTP client executor.
      */
     public void shutdown() {
-        executor.shutdown();
+        if (executor != TaskUtil.defaultTaskProcessor())
+            executor.shutdown();
         try {
             executor.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException ignored) {

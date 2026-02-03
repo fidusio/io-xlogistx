@@ -109,7 +109,7 @@ public class TCPPortScanCallback extends TCPSessionCallback {
      * Determines port state based on exception type.
      */
     @Override
-    public void exception(Exception e) {
+    public void exception(Throwable e) {
         if (completed) return;
         completed = true;
 

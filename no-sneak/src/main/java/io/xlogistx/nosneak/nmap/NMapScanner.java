@@ -147,7 +147,7 @@ public class NMapScanner implements Closeable {
             }
 
             @Override
-            public void exception(Exception e) {
+            public void exception(Throwable e) {
                 if(log.isEnabled()) log.getLogger().info("Scan error: " + e.getMessage());
             }
         }).thenApply(v -> {
