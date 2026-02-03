@@ -94,7 +94,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.0.2");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.0.4");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -108,7 +108,6 @@ public class NIOHTTPServer
     private volatile URLMatcher urlHostRedirect;
     private volatile MatchPatternFilter redirectExclusionFilter;
     private volatile HTTPNIOSocket httpNIOSocket;
-    //private final String pathMatch = ".well-known";
     private int sslPort = -1;
 
 
@@ -177,7 +176,7 @@ public class NIOHTTPServer
 
                 IPAddress ipAddress = IPAddress.parse(host);
 
-                if (urlHostRedirect.isValid(ipAddress.getInetAddress())) {
+                if (ipAddress != null && urlHostRedirect.isValid(ipAddress.getInetAddress())) {
                     HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
                     redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
 
