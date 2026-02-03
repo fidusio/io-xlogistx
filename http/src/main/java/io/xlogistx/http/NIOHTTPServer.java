@@ -13,6 +13,7 @@ import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPHeaderParser;
+import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
@@ -106,6 +107,7 @@ public class NIOHTTPServer
     private final InstanceFactory.Creator<BaseSessionCallback<SSLSessionConfig>> httpsIC = HTTPsSession::new;
     private volatile URLMatcher urlHostRedirect;
     private volatile MatchPatternFilter redirectExclusionFilter;
+    private volatile HTTPNIOSocket httpNIOSocket;
     //private final String pathMatch = ".well-known";
     private int sslPort = -1;
 
@@ -634,6 +636,10 @@ public class NIOHTTPServer
         nioSocket.close();
     }
 
+    public HTTPNIOSocket getHTTPNIOSocket() {
+        return httpNIOSocket;
+    }
+
     /**
      * Initializes and starts the HTTP server.
      *
@@ -705,6 +711,8 @@ public class NIOHTTPServer
                     TaskUtil.setTaskProcessorThreadCount(getConfig().getThreadPoolSize());
                 nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
             }
+
+            httpNIOSocket = new HTTPNIOSocket(getNIOSocket());
 
 
             ResourceManager.SINGLETON.register(ResourceManager.Resource.HTTP_SERVER, this);

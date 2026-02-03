@@ -4,7 +4,7 @@ import io.xlogistx.common.dns.DNSRegistrar;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.nosneak.scanners.PQCNIOScanner;
 import io.xlogistx.nosneak.scanners.PQCScanOptions;
-import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.api.APIException;
@@ -57,14 +57,14 @@ public class QDZChecker {
         PQCNIOScanner scanner = new PQCNIOScanner(ip, result -> {
             //future.whenComplete(result.toNVGenericMap(false), null);
             future.complete(result.toNVGenericMap(true));
-        }, options);
+        }, options, HTTPNIOSocket());
         scanner.dnsResolver(DNSRegistrar.SINGLETON);
 
-        scanner.timeoutInSec(5);
+        scanner.timeoutInSec(10);
 
 
         try {
-            getNIOSocket().addClientSocket(scanner);
+            HTTPNIOSocket().getNIOSocket().addClientSocket(scanner);
         } catch (IOException e) {
             //e.printStackTrace();
             throw new APIException("remote host error: " + ip + " try https://api.xlogistx.io/domain.com[:443 if no port default 443]", HTTPStatusCode.NOT_FOUND.CODE);
@@ -76,8 +76,11 @@ public class QDZChecker {
         return response;
     }
 
-    private NIOSocket getNIOSocket() {
+    private HTTPNIOSocket HTTPNIOSocket() {
         NIOHTTPServer niohttpServer = ResourceManager.lookupResource(ResourceManager.Resource.HTTP_SERVER);
-        return niohttpServer.getNIOSocket();
+        return niohttpServer.getHTTPNIOSocket();
     }
+
+
+
 }

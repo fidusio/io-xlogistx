@@ -4,6 +4,7 @@ import io.xlogistx.nosneak.scanners.PQCConnectionHelper.PQCHandshakeState;
 import io.xlogistx.opsec.OPSecUtil;
 import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.crypto.TlsCertificate;
+import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.common.TCPSessionCallback;
@@ -33,12 +34,13 @@ public class PQCNIOScanner extends TCPSessionCallback {
     private final Consumer<PQCScanResult> resultCallback;
     private final long startTime;
     private final PQCScanOptions options;
+    private final HTTPNIOSocket httpNIOSocket;
 
     // State machine and config
     private PQCSessionConfig pqcConfig;
     private PQCSSLStateMachine stateMachine;
 
-    // Revocation checker (uses NIO HTTP for CRL/OCSP)
+    // Revocation checker (uses HTTPURLCallback + HTTPNIOSocket for CRL/OCSP)
     private NIORevocationChecker revocationChecker;
 
     // Blocking scanners for cipher/protocol testing (run in thread pool)
@@ -57,9 +59,10 @@ public class PQCNIOScanner extends TCPSessionCallback {
      *
      * @param address        target address (host:port)
      * @param resultCallback callback to receive scan result
+     * @param httpNIOSocket      the NIOSocket for async HTTP operations
      */
-    public PQCNIOScanner(IPAddress address, Consumer<PQCScanResult> resultCallback) {
-        this(address, resultCallback, PQCScanOptions.defaults());
+    public PQCNIOScanner(IPAddress address, Consumer<PQCScanResult> resultCallback, HTTPNIOSocket httpNIOSocket) {
+        this(address, resultCallback, null, httpNIOSocket);
     }
 
     /**
@@ -68,12 +71,14 @@ public class PQCNIOScanner extends TCPSessionCallback {
      * @param address        target address (host:port)
      * @param resultCallback callback to receive scan result
      * @param options        scan options controlling optional features
+     * @param httpNIOSocket      the NIOSocket for async HTTP operations
      */
-    public PQCNIOScanner(IPAddress address, Consumer<PQCScanResult> resultCallback, PQCScanOptions options) {
+    public PQCNIOScanner(IPAddress address, Consumer<PQCScanResult> resultCallback, PQCScanOptions options, HTTPNIOSocket httpNIOSocket) {
         super(address);
         this.resultCallback = resultCallback;
         this.startTime = System.currentTimeMillis();
         this.options = options != null ? options : PQCScanOptions.defaults();
+        this.httpNIOSocket = httpNIOSocket;
         initializeScanners();
     }
 
@@ -81,8 +86,8 @@ public class PQCNIOScanner extends TCPSessionCallback {
      * Initialize scanners based on options.
      */
     private void initializeScanners() {
-        if (options.isCheckRevocation()) {
-            revocationChecker = new NIORevocationChecker(options.getRevocationTimeoutMs());
+        if (options.isCheckRevocation() && httpNIOSocket != null) {
+            revocationChecker = new NIORevocationChecker(httpNIOSocket);
         }
 
         if (options.isEnumerateCiphers()) {

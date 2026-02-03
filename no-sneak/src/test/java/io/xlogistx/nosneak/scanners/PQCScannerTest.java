@@ -2,8 +2,11 @@ package io.xlogistx.nosneak.scanners;
 
 import io.xlogistx.common.dns.DNSRegistrar;
 import io.xlogistx.opsec.OPSecUtil;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.zoxweb.server.http.HTTPNIOSocket;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
@@ -15,7 +18,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,12 +38,15 @@ public class PQCScannerTest {
             "https://10.0.0.8",
             "https://dbs.xlogistx.io");
 
+    private static HTTPNIOSocket httpNIOSocket;
+
 
     @BeforeAll
-    static void setup() throws UnknownHostException {
+    static void setup() throws IOException {
         // Initialize OPSecUtil to load BC providers
         OPSecUtil.singleton();
         DNSRegistrar.SINGLETON.setResolver("10.0.0.1");
+        httpNIOSocket = new HTTPNIOSocket(new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler()));
     }
 
     @Test
@@ -235,56 +240,7 @@ public class PQCScannerTest {
         System.out.println("PQCTlsClient helper tests passed!");
     }
 
-    /**
-     * Test PQCScanner with NIOSocket callback pattern
-     */
-//    @Test
-//    void testPQCScannerWithNIOSocket() throws Exception {
-//        String host = "cloudflare.com";
-//        int port = 443;
-//
-//        //CountDownLatch latch = new CountDownLatch(1);
-//        AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
-//
-//        // Create NIOSocket event loop
-//        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
-//
-//        try {
-//            IPAddress address = new IPAddress(host, port);
-//            PQCScanner scanner = new PQCScanner(address, result -> {
-//                System.out.println("NIOSocket scan result: " + result);
-//                resultRef.set(result);
-//                //latch.countDown();
-//            });
-//            long ts =  System.currentTimeMillis();
-//            // Add scanner to NIOSocket - this initiates the connection
-//            nioSocket.addClientSocket(scanner, 30);
-//
-//            // Wait for completion (30 second timeout)
-//            TaskUtil.waitIfBusy(50);
-//            //boolean completed = latch.await(30, TimeUnit.SECONDS);
-//            //assertTrue(completed, "Scan should complete within timeout");
-//            ts = System.currentTimeMillis() - ts;
-//
-//            PQCScanResult result = resultRef.get();
-//            assertNotNull(result, "Result should not be null");
-//            assertTrue(result.isSuccess(), "Scan should succeed");
-//            assertNotNull(result.getTlsVersion(), "TLS version should be captured");
-//            assertNotNull(result.getCipherSuite(), "Cipher suite should be captured");
-//
-//            System.out.println("========== NIOSocket PQCScanner Result ==========");
-//            System.out.println("Host: " + result.getHost() + ":" + result.getPort() + " It took:" + Const.TimeInMillis.toString(ts));
-//            System.out.println("TLS Version: " + result.getTlsVersion());
-//            System.out.println("Cipher Suite: " + result.getCipherSuite());
-//            System.out.println("Key Exchange: " + result.getKeyExchangeType() + " (" + result.getKeyExchangeAlgorithm() + ")");
-//            System.out.println("PQC Ready: " + result.isKeyExchangePqcReady());
-//            System.out.println("Overall Status: " + result.getOverallStatus());
-//            System.out.println("=================================================");
-//
-//        } finally {
-//            nioSocket.close();
-//        }
-//    }
+
 
     /**
      * Test PQCNIOScanner with state machine pattern (fully non-blocking)
@@ -301,27 +257,13 @@ public class PQCScannerTest {
         //java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
 
         // Create NIOSocket event loop
-        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+
         long overAllTS = System.currentTimeMillis();
         AtomicInteger counter = new AtomicInteger();
         try {
             for (IPAddress address : serversToTest) {
                 System.out.println(address);
-//                try {
-//                    long start = System.currentTimeMillis();
-//                    InetAddress resolved = DNSRegistrar.SINGLETON.resolveIPA(address.getInetAddress());
-//
-//                    if (resolved == null) {
-//                        System.out.println("DNS resolution for " + address.getInetAddress() + " failed. it took: " + Const.TimeInMillis.toString(System.currentTimeMillis() - start));
-//                        counter.incrementAndGet();
-//                        continue;
-//                    }
-//
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                    counter.incrementAndGet();
-//                    continue;
-//                }
+
 
                 long ts = System.currentTimeMillis();
                 PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
@@ -345,14 +287,14 @@ public class PQCScannerTest {
                     counter.incrementAndGet();
                     //latch.countDown();
 
-                });
+                }, httpNIOSocket);
                 scanner.dnsResolver(DNSRegistrar.SINGLETON);
                 scanner.timeoutInSec(5);
 
 
                 // Add scanner to NIOSocket - this initiates the connection
                 try {
-                    nioSocket.addClientSocket(scanner);
+                    httpNIOSocket.getNIOSocket().addClientSocket(scanner);
                 }
                 catch (IOException e) {
 
@@ -388,7 +330,7 @@ public class PQCScannerTest {
             System.out.println("========== PQCNIOScanner State Machine Result ==========  took overAll: " + Const.TimeInMillis.toString(System.currentTimeMillis() - overAllTS));
 
         } finally {
-            nioSocket.close();
+
         }
     }
 
@@ -441,7 +383,7 @@ public class PQCScannerTest {
      */
     @Test
     void testScanNonTLSPort() throws Exception {
-        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+
         java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
         java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
 
@@ -451,11 +393,11 @@ public class PQCScannerTest {
                 log.getLogger().info("Port 80 scan result:\n" + result);
                 resultRef.set(result);
                 latch.countDown();
-            });
+            }, httpNIOSocket);
             scanner.dnsResolver(DNSRegistrar.SINGLETON);
             scanner.timeoutInSec(10);
 
-            nioSocket.addClientSocket(scanner);
+            httpNIOSocket.getNIOSocket().addClientSocket(scanner);
             boolean completed = latch.await(15, java.util.concurrent.TimeUnit.SECONDS);
 
             assertTrue(completed, "Scan should complete within timeout");
@@ -467,7 +409,7 @@ public class PQCScannerTest {
 
             log.getLogger().info("testScanNonTLSPort passed - port 80 correctly identified as non-secure");
         } finally {
-            nioSocket.close();
+
         }
     }
 
@@ -488,7 +430,7 @@ public class PQCScannerTest {
                 .testSSLv3(false)
                 .build();
 
-        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+
         java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
         java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
 
@@ -498,11 +440,11 @@ public class PQCScannerTest {
                 log.getLogger().info("PQCNIOScanner with options result:\n" + result);
                 resultRef.set(result);
                 latch.countDown();
-            }, options);
+            }, options, httpNIOSocket);
             scanner.dnsResolver(DNSRegistrar.SINGLETON);
             scanner.timeoutInSec(60); // Longer timeout for additional scans
 
-            nioSocket.addClientSocket(scanner);
+            httpNIOSocket.getNIOSocket().addClientSocket(scanner);
             boolean completed = latch.await(90, java.util.concurrent.TimeUnit.SECONDS);
 
             assertTrue(completed, "Scan should complete within timeout");
@@ -547,7 +489,7 @@ public class PQCScannerTest {
             log.getLogger().info("========================================================");
 
         } finally {
-            nioSocket.close();
+
         }
     }
 
@@ -561,7 +503,7 @@ public class PQCScannerTest {
                 .revocationTimeoutMs(15000)
                 .build();
 
-        NIOSocket nioSocket = new NIOSocket(TaskUtil.defaultTaskProcessor(), TaskUtil.defaultTaskScheduler());
+
         java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
         java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
 
@@ -570,11 +512,11 @@ public class PQCScannerTest {
             PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
                 resultRef.set(result);
                 latch.countDown();
-            }, options);
+            }, options, httpNIOSocket);
             scanner.dnsResolver(DNSRegistrar.SINGLETON);
             scanner.timeoutInSec(30);
 
-            nioSocket.addClientSocket(scanner);
+            httpNIOSocket.getNIOSocket().addClientSocket(scanner);
             boolean completed = latch.await(45, java.util.concurrent.TimeUnit.SECONDS);
 
             assertTrue(completed, "Scan should complete within timeout");
@@ -594,7 +536,13 @@ public class PQCScannerTest {
             }
 
         } finally {
-            nioSocket.close();
+
         }
+    }
+
+    @AfterAll
+    static void tearDownAll() {
+        IOUtil.close(httpNIOSocket.getNIOSocket());
+        TaskUtil.close();;
     }
 }
