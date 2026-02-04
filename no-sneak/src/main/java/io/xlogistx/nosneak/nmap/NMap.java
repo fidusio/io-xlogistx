@@ -4,14 +4,13 @@ import io.xlogistx.nosneak.nmap.config.NMapConfig;
 import io.xlogistx.nosneak.nmap.config.PortSpecification;
 import io.xlogistx.nosneak.nmap.config.TimingTemplate;
 import io.xlogistx.nosneak.nmap.output.*;
-import io.xlogistx.nosneak.nmap.util.ScanType;
 import io.xlogistx.nosneak.nmap.scan.tcp.TCPConnectScanEngine;
 import io.xlogistx.nosneak.nmap.scan.udp.UDPScanEngine;
+import io.xlogistx.nosneak.nmap.util.ScanType;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.net.NIOChannelMonitor;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.util.Const;
 
 import java.io.FileWriter;
@@ -126,7 +125,7 @@ public class NMap {
 
 
             System.out.println("Finished " + ScanReport.SCANNER_NAME + " at " + java.time.LocalDateTime.now() + " it took " + Const.TimeInMillis.toString(System.currentTimeMillis() - startTime));
-            System.out.println("Finished " + GSONUtil.toJSONDefault(TaskUtil.info(), true));
+            //System.out.println("Finished " + GSONUtil.toJSONDefault(TaskUtil.info(), true));
 
             TaskUtil.waitIfBusyThenClose(100);
             IOUtil.close(nioSocket);

@@ -1292,29 +1292,6 @@ public class OPSecUtil {
     }
 
 
-//    public static PrivateKey extractKCPrivateKeyFromEncoded(byte[] encodedKey) {
-//        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(encodedKey);
-//        KeyFactory keyFactory = null;
-//        try {
-//            keyFactory = KeyFactory.getInstance("KYBER", "BCPQC");
-//            return keyFactory.generatePrivate(pkcs8EncodedKeySpec);
-//        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
-//
-//    public static PublicKey exctractCKPublicKeyFromEncoded(byte[] encodedKey) {
-//        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(encodedKey);
-//        try {
-//            KeyFactory keyFactory = KeyFactory.getInstance("KYBER", "BCPQC");
-//            return keyFactory.generatePublic(x509EncodedKeySpec);
-//        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
-
 
     public KeyPair generateKeyPair(String type, String provider, AlgorithmParameterSpec keySpec, SecureRandom random)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {

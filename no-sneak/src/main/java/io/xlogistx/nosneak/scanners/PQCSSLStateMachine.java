@@ -152,31 +152,6 @@ public class PQCSSLStateMachine
                     // Write to network channel
                     ByteBuffer writeBuffer = ByteBuffer.wrap(outputData, 0, read);
                     int totalWritten = ByteBufferUtil.write(config.channel, writeBuffer, false);
-                    ;
-
-
-                    // Loop until all bytes are written (handle non-blocking writes)
-//                    int attempts = 0;
-//                    while (writeBuffer.hasRemaining() && attempts < 100) {
-//                        int written = config.channel.write(writeBuffer);
-//
-//                        totalWritten += written;
-//                        if (written == 0) {
-//                            // Channel not ready, brief pause
-//                            attempts++;
-//
-//                            log.getLogger().info("NEED_WRITE no ready attempt: " + attempts);
-//                            try { Thread.sleep(1); } catch (InterruptedException ie) { break; }
-//                        }
-//                    }
-
-                    // Loop until all bytes are written (handle non-blocking writes)
-
-
-//                    while (writeBuffer.hasRemaining() ) {
-//                        int written = ByteBufferUtil.write(config.channel, writeBuffer, false);
-//                        totalWritten += written;
-//                    }
 
                     if (log.isEnabled()) {
                         log.getLogger().info("NEED_WRITE: Wrote " + totalWritten + "/" + read + " bytes to channel");

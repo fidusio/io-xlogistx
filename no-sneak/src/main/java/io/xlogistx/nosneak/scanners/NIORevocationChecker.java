@@ -68,8 +68,8 @@ public class NIORevocationChecker {
      * Check certificate via OCSP asynchronously.
      */
     public CompletableFuture<RevocationResult> checkOCSPAsync(X509Certificate cert,
-                                                               X509Certificate issuerCert,
-                                                               String ocspUrl) {
+                                                              X509Certificate issuerCert,
+                                                              String ocspUrl) {
         CompletableFuture<RevocationResult> future = new CompletableFuture<>();
         try {
             // Build OCSP request
@@ -90,6 +90,7 @@ public class NIORevocationChecker {
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.buildHMCI(ocspUrl, HTTPMethod.POST, false);
             hmci.setContentType("application/ocsp-request");
             hmci.setContent(ocspReqData);
+            System.out.println(hmci.toURLInfo());
 
             HTTPURLCallback huc = new HTTPURLCallback(hmci, new ConsumerCallback<HTTPResponse>() {
                 @Override
@@ -99,12 +100,12 @@ public class NIORevocationChecker {
 
                 @Override
                 public void exception(Throwable e) {
-                    if (log.isEnabled())
-                        log.getLogger().info("OCSP request failed: " + e.getMessage());
+                    //if (log.isEnabled())
+                    log.getLogger().info("OCSP request failed: " + e.getMessage());
                     future.complete(RevocationResult.error("OCSP", "Request failed: " + e.getMessage()));
                 }
             });
-            huc.timeoutInSec(10);
+            //huc.timeoutInSec(10);
 
             httpNioSocket.send(huc);
 
@@ -230,17 +231,28 @@ public class NIORevocationChecker {
 
     private String getRevocationReasonString(int reason) {
         switch (reason) {
-            case 0: return "UNSPECIFIED";
-            case 1: return "KEY_COMPROMISE";
-            case 2: return "CA_COMPROMISE";
-            case 3: return "AFFILIATION_CHANGED";
-            case 4: return "SUPERSEDED";
-            case 5: return "CESSATION_OF_OPERATION";
-            case 6: return "CERTIFICATE_HOLD";
-            case 8: return "REMOVE_FROM_CRL";
-            case 9: return "PRIVILEGE_WITHDRAWN";
-            case 10: return "AA_COMPROMISE";
-            default: return "UNKNOWN(" + reason + ")";
+            case 0:
+                return "UNSPECIFIED";
+            case 1:
+                return "KEY_COMPROMISE";
+            case 2:
+                return "CA_COMPROMISE";
+            case 3:
+                return "AFFILIATION_CHANGED";
+            case 4:
+                return "SUPERSEDED";
+            case 5:
+                return "CESSATION_OF_OPERATION";
+            case 6:
+                return "CERTIFICATE_HOLD";
+            case 8:
+                return "REMOVE_FROM_CRL";
+            case 9:
+                return "PRIVILEGE_WITHDRAWN";
+            case 10:
+                return "AA_COMPROMISE";
+            default:
+                return "UNKNOWN(" + reason + ")";
         }
     }
 
