@@ -3,16 +3,12 @@ package io.xlogistx.nosneak.scanners;
 import io.xlogistx.opsec.OPSecUtil;
 import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.ProtocolVersion;
-import org.bouncycastle.tls.crypto.TlsCertificate;
 import org.zoxweb.server.http.HTTPNIOSocket;
-import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.net.DNSResolverInt;
 import org.zoxweb.shared.net.IPAddress;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,9 +26,9 @@ import java.util.function.Consumer;
  *   mother.start();
  * </pre>
  */
-public class ScannerMotherCallback implements ScanCallback {
+public class PQCCallback implements ScanCallback {
 
-    public static final LogWrapper log = new LogWrapper(ScannerMotherCallback.class).setEnabled(false);
+    public static final LogWrapper log = new LogWrapper(PQCCallback.class).setEnabled(false);
 
     private final IPAddress address;
     private final Consumer<PQCScanResult> userCallback;
@@ -64,8 +60,8 @@ public class ScannerMotherCallback implements ScanCallback {
     // Completion guard
     private volatile boolean delivered = false;
 
-    public ScannerMotherCallback(IPAddress address, Consumer<PQCScanResult> userCallback,
-                                 PQCScanOptions options, HTTPNIOSocket httpNIOSocket) {
+    public PQCCallback(IPAddress address, Consumer<PQCScanResult> userCallback,
+                       PQCScanOptions options, HTTPNIOSocket httpNIOSocket) {
         this.address = address;
         this.userCallback = userCallback;
         this.options = options != null ? options : PQCScanOptions.defaults();
@@ -76,7 +72,7 @@ public class ScannerMotherCallback implements ScanCallback {
     /**
      * Set the DNS resolver for address resolution.
      */
-    public ScannerMotherCallback dnsResolver(DNSResolverInt resolver) {
+    public PQCCallback dnsResolver(DNSResolverInt resolver) {
         this.dnsResolver = resolver;
         return this;
     }
@@ -84,7 +80,7 @@ public class ScannerMotherCallback implements ScanCallback {
     /**
      * Set the connection timeout in seconds.
      */
-    public ScannerMotherCallback timeoutInSec(int seconds) {
+    public PQCCallback timeoutInSec(int seconds) {
         this.timeoutSec = seconds;
         return this;
     }

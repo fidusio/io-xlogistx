@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test ScannerMotherCallback against real TLS servers.
  */
-public class ScannerMotherCallbackTest {
+public class PQCCallbackTest {
 
-    public static final LogWrapper log = new LogWrapper(ScannerMotherCallbackTest.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(PQCCallbackTest.class).setEnabled(true);
 
     private static final IPAddress[] serversToTest = IPAddress.parseList(
             "https://xlogistx.io",
@@ -53,7 +53,7 @@ public class ScannerMotherCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("google.com", 443);
-        ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+        PQCCallback mother = new PQCCallback(address, result -> {
             log.getLogger().info("Basic scan result:\n" + result);
             resultRef.set(result);
             latch.countDown();
@@ -96,7 +96,7 @@ public class ScannerMotherCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("google.com", 443);
-        ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+        PQCCallback mother = new PQCCallback(address, result -> {
             log.getLogger().info("Comprehensive scan result:\n" + result);
             resultRef.set(result);
             latch.countDown();
@@ -156,7 +156,7 @@ public class ScannerMotherCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("cloudflare.com", 443);
-        ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+        PQCCallback mother = new PQCCallback(address, result -> {
             resultRef.set(result);
             latch.countDown();
         }, options, httpNIOSocket);
@@ -183,7 +183,7 @@ public class ScannerMotherCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("google.com", 80);
-        ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+        PQCCallback mother = new PQCCallback(address, result -> {
             log.getLogger().info("Port 80 scan result:\n" + result);
             resultRef.set(result);
             latch.countDown();
@@ -213,7 +213,7 @@ public class ScannerMotherCallbackTest {
             log.getLogger().info("Scanning: " + address);
 
             long ts = System.currentTimeMillis();
-            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+            PQCCallback mother = new PQCCallback(address, result -> {
                 log.getLogger().info("Result for " + result.getHost() + ":" + result.getPort() +
                         " - " + result.getOverallStatus() + " in " +
                         Const.TimeInMillis.toString(System.currentTimeMillis() - ts));

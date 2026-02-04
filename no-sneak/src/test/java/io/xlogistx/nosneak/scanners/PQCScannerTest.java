@@ -225,7 +225,7 @@ public class PQCScannerTest {
                 System.out.println(address);
 
                 long ts = System.currentTimeMillis();
-                ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+                PQCCallback mother = new PQCCallback(address, result -> {
                     log.getLogger().info("ScannerMotherCallback result: \n" + result);
 
                     assertNotNull(result, "Result should not be null");
@@ -321,7 +321,7 @@ public class PQCScannerTest {
 
         try {
             IPAddress address = new IPAddress("google.com", 80);
-            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+            PQCCallback mother = new PQCCallback(address, result -> {
                 log.getLogger().info("Port 80 scan result:\n" + result);
                 resultRef.set(result);
                 latch.countDown();
@@ -368,7 +368,7 @@ public class PQCScannerTest {
 
         try {
             IPAddress address = new IPAddress("google.com", 443);
-            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+            PQCCallback mother = new PQCCallback(address, result -> {
                 log.getLogger().info("ScannerMotherCallback with options result:\n" + result);
                 resultRef.set(result);
                 latch.countDown();
@@ -441,7 +441,7 @@ public class PQCScannerTest {
 
         try {
             IPAddress address = new IPAddress("cloudflare.com", 443);
-            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+            PQCCallback mother = new PQCCallback(address, result -> {
                 resultRef.set(result);
                 latch.countDown();
             }, options, httpNIOSocket);

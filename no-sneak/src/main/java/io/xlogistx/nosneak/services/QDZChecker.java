@@ -3,7 +3,7 @@ package io.xlogistx.nosneak.services;
 import io.xlogistx.common.dns.DNSRegistrar;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.nosneak.scanners.PQCScanOptions;
-import io.xlogistx.nosneak.scanners.ScannerMotherCallback;
+import io.xlogistx.nosneak.scanners.PQCCallback;
 import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
@@ -54,7 +54,7 @@ public class QDZChecker {
                 .testTLS11(true)
                 .testSSLv3(false)
                 .build() : null;
-        ScannerMotherCallback mother = new ScannerMotherCallback(ip, result -> {
+        PQCCallback mother = new PQCCallback(ip, result -> {
             future.complete(result.toNVGenericMap(true));
         }, options, HTTPNIOSocket());
         mother.dnsResolver(DNSRegistrar.SINGLETON);
