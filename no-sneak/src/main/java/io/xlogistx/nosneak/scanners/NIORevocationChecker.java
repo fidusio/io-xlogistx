@@ -19,7 +19,7 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * NIO-based certificate revocation checker using HTTPURLCallback + HTTPNIOSocket
@@ -38,39 +38,43 @@ public class NIORevocationChecker {
     }
 
     /**
-     * Check certificate revocation asynchronously.
+     * Check certificate revocation using direct callbacks.
      * Tries OCSP first, falls back to CRL.
+     *
+     * @param cert     the certificate to check
+     * @param issuer   the issuer certificate (may be null)
+     * @param callback receives the revocation result
      */
-    public CompletableFuture<RevocationResult> checkRevocationAsync(X509Certificate cert, X509Certificate issuerCert) {
+    public void checkRevocation(X509Certificate cert, X509Certificate issuer,
+                                Consumer<RevocationResult> callback) {
         if (cert == null) {
-            return CompletableFuture.completedFuture(
-                    RevocationResult.error("NONE", "Certificate is null"));
+            callback.accept(RevocationResult.error("NONE", "Certificate is null"));
+            return;
         }
 
         // Try OCSP first if issuer cert is available
         List<String> ocspUrls = opsecUtil.extractOCSPResponderURLs(cert);
-        if (issuerCert != null && !ocspUrls.isEmpty()) {
-            return checkOCSPAsync(cert, issuerCert, ocspUrls.get(0))
-                    .thenCompose(result -> {
-                        if (result.getStatus() != RevocationStatus.ERROR) {
-                            return CompletableFuture.completedFuture(result);
-                        }
-                        // OCSP failed, try CRL
-                        return checkCRLAsync(cert);
-                    });
+        if (issuer != null && !ocspUrls.isEmpty()) {
+            checkOCSP(cert, issuer, ocspUrls.get(0), ocspResult -> {
+                if (ocspResult.getStatus() != RevocationStatus.ERROR) {
+                    callback.accept(ocspResult);
+                } else {
+                    // OCSP failed, try CRL
+                    checkCRL(cert, callback);
+                }
+            });
+            return;
         }
 
         // No OCSP, try CRL
-        return checkCRLAsync(cert);
+        checkCRL(cert, callback);
     }
 
     /**
-     * Check certificate via OCSP asynchronously.
+     * Check certificate via OCSP.
      */
-    public CompletableFuture<RevocationResult> checkOCSPAsync(X509Certificate cert,
-                                                              X509Certificate issuerCert,
-                                                              String ocspUrl) {
-        CompletableFuture<RevocationResult> future = new CompletableFuture<>();
+    private void checkOCSP(X509Certificate cert, X509Certificate issuerCert,
+                           String ocspUrl, Consumer<RevocationResult> callback) {
         try {
             // Build OCSP request
             DigestCalculatorProvider digCalcProv = new JcaDigestCalculatorProviderBuilder()
@@ -90,74 +94,60 @@ public class NIORevocationChecker {
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.buildHMCI(ocspUrl, HTTPMethod.POST, false);
             hmci.setContentType("application/ocsp-request");
             hmci.setContent(ocspReqData);
-            System.out.println(hmci.toURLInfo());
 
             HTTPURLCallback huc = new HTTPURLCallback(hmci, new ConsumerCallback<HTTPResponse>() {
                 @Override
                 public void accept(HTTPResponse response) {
-                    future.complete(parseOCSPResponse(response));
+                    callback.accept(parseOCSPResponse(response));
                 }
 
                 @Override
                 public void exception(Throwable e) {
-                    //if (log.isEnabled())
-                    log.getLogger().info("OCSP request failed: " + e.getMessage());
-                    future.complete(RevocationResult.error("OCSP", "Request failed: " + e.getMessage()));
+                    if (log.isEnabled())
+                        log.getLogger().info("OCSP request failed: " + e.getMessage());
+                    callback.accept(RevocationResult.error("OCSP", "Request failed: " + e.getMessage()));
                 }
             });
-            //huc.timeoutInSec(10);
 
             httpNioSocket.send(huc);
-
         } catch (Exception e) {
             if (log.isEnabled())
                 log.getLogger().info("OCSP request build failed: " + e.getMessage());
-            future.complete(RevocationResult.error("OCSP", "Failed to build OCSP request: " + e.getMessage()));
+            callback.accept(RevocationResult.error("OCSP", "Failed to build OCSP request: " + e.getMessage()));
         }
-        return future;
     }
 
     /**
-     * Check certificate via CRL asynchronously.
+     * Check certificate via CRL.
      */
-    public CompletableFuture<RevocationResult> checkCRLAsync(X509Certificate cert) {
+    private void checkCRL(X509Certificate cert, Consumer<RevocationResult> callback) {
         List<String> crlUrls = opsecUtil.extractCRLDistributionPoints(cert);
         if (crlUrls.isEmpty()) {
-            return CompletableFuture.completedFuture(
-                    RevocationResult.unknown("NONE", "No CRL distribution points in certificate"));
+            callback.accept(RevocationResult.unknown("NONE", "No CRL distribution points in certificate"));
+            return;
         }
 
-        return checkCRLAsync(cert, crlUrls.get(0));
-    }
-
-    /**
-     * Check certificate against a specific CRL URL asynchronously.
-     */
-    public CompletableFuture<RevocationResult> checkCRLAsync(X509Certificate cert, String crlUrl) {
-        CompletableFuture<RevocationResult> future = new CompletableFuture<>();
         try {
-            HTTPURLCallback huc = new HTTPURLCallback(crlUrl, new ConsumerCallback<HTTPResponse>() {
+            HTTPURLCallback huc = new HTTPURLCallback(crlUrls.get(0), new ConsumerCallback<HTTPResponse>() {
                 @Override
                 public void accept(HTTPResponse response) {
-                    future.complete(parseCRLResponse(cert, response));
+                    callback.accept(parseCRLResponse(cert, response));
                 }
 
                 @Override
                 public void exception(Throwable e) {
                     if (log.isEnabled())
                         log.getLogger().info("CRL request failed: " + e.getMessage());
-                    future.complete(RevocationResult.error("CRL", "Request failed: " + e.getMessage()));
+                    callback.accept(RevocationResult.error("CRL", "Request failed: " + e.getMessage()));
                 }
             });
 
             httpNioSocket.send(huc);
-
         } catch (Exception e) {
             if (log.isEnabled())
                 log.getLogger().info("CRL request failed: " + e.getMessage());
-            future.complete(RevocationResult.error("CRL", "Failed to send CRL request: " + e.getMessage()));
+            callback.accept(RevocationResult.error("CRL", "Failed to send CRL request: " + e.getMessage()));
         }
-        return future;
     }
 
     private RevocationResult parseOCSPResponse(HTTPResponse response) {

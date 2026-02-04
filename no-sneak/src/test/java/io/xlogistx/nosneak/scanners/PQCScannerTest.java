@@ -20,7 +20,10 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -116,7 +119,7 @@ public class PQCScannerTest {
                     .tlsVersion(tlsClient.getNegotiatedVersionString())
                     .cipherSuite(tlsClient.getNegotiatedCipherSuiteName());
 
-            PQCScanResult.KeyExchangeType keyExchangeType = parseKeyExchangeType(kexType);
+            PQCScanResult.KeyExchangeType keyExchangeType = PQCNIOScanner.parseKeyExchangeType(kexType);
             builder.keyExchange(keyExchangeType, kexAlg);
 
             // Certificate analysis
@@ -130,7 +133,7 @@ public class PQCScannerTest {
                         new java.io.ByteArrayInputStream(tlsCerts[0].getEncoded()));
 
                 String[] certAnalysis = opsec.analyzeCertificatePQC(leafCert);
-                PQCScanResult.SignatureType sigType = parseSignatureType(certAnalysis[0]);
+                PQCScanResult.SignatureType sigType = PQCNIOScanner.parseSignatureType(certAnalysis[0]);
                 builder.certSignature(sigType, certAnalysis[1]);
                 builder.certPublicKey(certAnalysis[2], Integer.parseInt(certAnalysis[3]));
 
@@ -149,38 +152,6 @@ public class PQCScannerTest {
             assertTrue(result.isSuccess());
 
             // Close is inherited from TlsProtocol
-        }
-    }
-
-    private PQCScanResult.KeyExchangeType parseKeyExchangeType(String type) {
-        if (type == null) return PQCScanResult.KeyExchangeType.UNKNOWN;
-        switch (type) {
-            case "PQC_HYBRID":
-                return PQCScanResult.KeyExchangeType.PQC_HYBRID;
-            case "ECDHE":
-                return PQCScanResult.KeyExchangeType.ECDHE;
-            case "DHE":
-                return PQCScanResult.KeyExchangeType.DHE;
-            case "RSA":
-                return PQCScanResult.KeyExchangeType.RSA;
-            default:
-                return PQCScanResult.KeyExchangeType.UNKNOWN;
-        }
-    }
-
-    private PQCScanResult.SignatureType parseSignatureType(String type) {
-        if (type == null) return PQCScanResult.SignatureType.UNKNOWN;
-        switch (type) {
-            case "PQC_SIGNATURE":
-                return PQCScanResult.SignatureType.PQC_SIGNATURE;
-            case "ECDSA":
-                return PQCScanResult.SignatureType.ECDSA;
-            case "RSA":
-                return PQCScanResult.SignatureType.RSA;
-            case "EDDSA":
-                return PQCScanResult.SignatureType.EDDSA;
-            default:
-                return PQCScanResult.SignatureType.UNKNOWN;
         }
     }
 
@@ -243,31 +214,19 @@ public class PQCScannerTest {
 
 
     /**
-     * Test PQCNIOScanner with state machine pattern (fully non-blocking)
+     * Test PQCNIOScanner with ScanCallback pattern (handshake only, fully non-blocking)
      */
     @Test
     void testPQCNIOScannerWithStateMachine() throws Exception {
-
-
-        // Enable logging for debugging (disabled for normal tests)
-        // PQCNIOScanner.log.setEnabled(true);
-        // PQCSSLStateMachine.log.setEnabled(true);
-
-        //AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
-        //java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-
-        // Create NIOSocket event loop
-
         long overAllTS = System.currentTimeMillis();
         AtomicInteger counter = new AtomicInteger();
         try {
             for (IPAddress address : serversToTest) {
                 System.out.println(address);
 
-
                 long ts = System.currentTimeMillis();
-                PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
-                    log.getLogger().info("PQCNIOScanner (state machine) result: \n" + result);
+                ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+                    log.getLogger().info("ScannerMotherCallback result: \n" + result);
 
                     assertNotNull(result, "Result should not be null");
                     if (result.isSuccess()) {
@@ -275,7 +234,7 @@ public class PQCScannerTest {
                         assertNotNull(result.getTlsVersion(), "TLS version should be captured");
                         assertNotNull(result.getCipherSuite(), "Cipher suite should be captured");
 
-                        log.getLogger().info("========== PQCNIOScanner State Machine Result ==========");
+                        log.getLogger().info("========== ScannerMotherCallback Result ==========");
                         log.getLogger().info("Host: " + result.getHost() + ":" + result.getPort() + " It took: " + Const.TimeInMillis.toString(System.currentTimeMillis() - ts));
                         log.getLogger().info("TLS Version: " + result.getTlsVersion());
                         log.getLogger().info("Cipher Suite: " + result.getCipherSuite());
@@ -285,49 +244,22 @@ public class PQCScannerTest {
                         log.getLogger().info("========================================================");
                     }
                     counter.incrementAndGet();
-                    //latch.countDown();
+                }, null, httpNIOSocket);
+                mother.dnsResolver(DNSRegistrar.SINGLETON);
+                mother.timeoutInSec(5);
 
-                }, httpNIOSocket);
-                scanner.dnsResolver(DNSRegistrar.SINGLETON);
-                scanner.timeoutInSec(5);
-
-
-                // Add scanner to NIOSocket - this initiates the connection
                 try {
-                    httpNIOSocket.getNIOSocket().addClientSocket(scanner);
-                }
-                catch (IOException e) {
-
+                    mother.start();
+                } catch (IOException e) {
                     counter.incrementAndGet();
-                    log.getLogger().info(e + " "  + Const.TimeInMillis.toString(System.currentTimeMillis() - ts));
+                    log.getLogger().info(e + " " + Const.TimeInMillis.toString(System.currentTimeMillis() - ts));
                 }
-
-                // Wait for completion with proper synchronization
-                //boolean completed = latch.await(30, java.util.concurrent.TimeUnit.SECONDS);
-                //assertTrue(completed, "Scan should complete within timeout");
-
-
-//                PQCScanResult result = resultRef.get();
-//                assertNotNull(result, "Result should not be null");
-//                assertTrue(result.isSuccess(), "Scan should succeed");
-//                assertNotNull(result.getTlsVersion(), "TLS version should be captured");
-//                assertNotNull(result.getCipherSuite(), "Cipher suite should be captured");
-//
-//                System.out.println("========== PQCNIOScanner State Machine Result ==========");
-//                System.out.println("Host: " + result.getHost() + ":" + result.getPort() + " It took:" + Const.TimeInMillis.toString(ts));
-//                System.out.println("TLS Version: " + result.getTlsVersion());
-//                System.out.println("Cipher Suite: " + result.getCipherSuite());
-//                System.out.println("Key Exchange: " + result.getKeyExchangeType() + " (" + result.getKeyExchangeAlgorithm() + ")");
-//                System.out.println("PQC Ready: " + result.isKeyExchangePqcReady());
-//                System.out.println("Overall Status: " + result.getOverallStatus());
-//                System.out.println("========================================================");
             }
 
             while (counter.get() < serversToTest.length)
                 TaskUtil.sleep(25);
 
-
-            System.out.println("========== PQCNIOScanner State Machine Result ==========  took overAll: " + Const.TimeInMillis.toString(System.currentTimeMillis() - overAllTS));
+            System.out.println("========== ScannerMotherCallback Result ==========  took overAll: " + Const.TimeInMillis.toString(System.currentTimeMillis() - overAllTS));
 
         } finally {
 
@@ -384,21 +316,21 @@ public class PQCScannerTest {
     @Test
     void testScanNonTLSPort() throws Exception {
 
-        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-        java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         try {
             IPAddress address = new IPAddress("google.com", 80);
-            PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
+            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
                 log.getLogger().info("Port 80 scan result:\n" + result);
                 resultRef.set(result);
                 latch.countDown();
-            }, httpNIOSocket);
-            scanner.dnsResolver(DNSRegistrar.SINGLETON);
-            scanner.timeoutInSec(10);
+            }, null, httpNIOSocket);
+            mother.dnsResolver(DNSRegistrar.SINGLETON);
+            mother.timeoutInSec(10);
+            mother.start();
 
-            httpNIOSocket.getNIOSocket().addClientSocket(scanner);
-            boolean completed = latch.await(15, java.util.concurrent.TimeUnit.SECONDS);
+            boolean completed = latch.await(15, TimeUnit.SECONDS);
 
             assertTrue(completed, "Scan should complete within timeout");
             PQCScanResult result = resultRef.get();
@@ -414,7 +346,7 @@ public class PQCScannerTest {
     }
 
     /**
-     * Test PQCNIOScanner with PQCScanOptions - comprehensive scan including
+     * Test ScannerMotherCallback with PQCScanOptions - comprehensive scan including
      * revocation checking, cipher enumeration, and protocol version testing.
      */
     @Test
@@ -431,21 +363,21 @@ public class PQCScannerTest {
                 .build();
 
 
-        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-        java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         try {
             IPAddress address = new IPAddress("google.com", 443);
-            PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
-                log.getLogger().info("PQCNIOScanner with options result:\n" + result);
+            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
+                log.getLogger().info("ScannerMotherCallback with options result:\n" + result);
                 resultRef.set(result);
                 latch.countDown();
             }, options, httpNIOSocket);
-            scanner.dnsResolver(DNSRegistrar.SINGLETON);
-            scanner.timeoutInSec(60); // Longer timeout for additional scans
+            mother.dnsResolver(DNSRegistrar.SINGLETON);
+            mother.timeoutInSec(60);
+            mother.start();
 
-            httpNIOSocket.getNIOSocket().addClientSocket(scanner);
-            boolean completed = latch.await(90, java.util.concurrent.TimeUnit.SECONDS);
+            boolean completed = latch.await(90, TimeUnit.SECONDS);
 
             assertTrue(completed, "Scan should complete within timeout");
             PQCScanResult result = resultRef.get();
@@ -455,7 +387,7 @@ public class PQCScannerTest {
             assertNotNull(result.getCipherSuite(), "Cipher suite should be captured");
 
             // Verify additional features were executed
-            log.getLogger().info("========== PQCNIOScanner with Options Result ==========");
+            log.getLogger().info("========== ScannerMotherCallback with Options Result ==========");
             log.getLogger().info("Host: " + result.getHost() + ":" + result.getPort());
             log.getLogger().info("TLS Version: " + result.getTlsVersion());
             log.getLogger().info("Cipher Suite: " + result.getCipherSuite());
@@ -494,7 +426,7 @@ public class PQCScannerTest {
     }
 
     /**
-     * Test PQCNIOScanner with revocation checking only.
+     * Test ScannerMotherCallback with revocation checking only.
      */
     @Test
     void testPQCNIOScannerWithRevocationOnly() throws Exception {
@@ -504,20 +436,20 @@ public class PQCScannerTest {
                 .build();
 
 
-        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-        java.util.concurrent.atomic.AtomicReference<PQCScanResult> resultRef = new java.util.concurrent.atomic.AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         try {
             IPAddress address = new IPAddress("cloudflare.com", 443);
-            PQCNIOScanner scanner = new PQCNIOScanner(address, result -> {
+            ScannerMotherCallback mother = new ScannerMotherCallback(address, result -> {
                 resultRef.set(result);
                 latch.countDown();
             }, options, httpNIOSocket);
-            scanner.dnsResolver(DNSRegistrar.SINGLETON);
-            scanner.timeoutInSec(30);
+            mother.dnsResolver(DNSRegistrar.SINGLETON);
+            mother.timeoutInSec(30);
+            mother.start();
 
-            httpNIOSocket.getNIOSocket().addClientSocket(scanner);
-            boolean completed = latch.await(45, java.util.concurrent.TimeUnit.SECONDS);
+            boolean completed = latch.await(45, TimeUnit.SECONDS);
 
             assertTrue(completed, "Scan should complete within timeout");
             PQCScanResult result = resultRef.get();
