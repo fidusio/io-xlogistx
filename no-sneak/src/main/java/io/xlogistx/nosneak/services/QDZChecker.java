@@ -1,9 +1,10 @@
 package io.xlogistx.nosneak.services;
 
+import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.dns.DNSRegistrar;
 import io.xlogistx.http.NIOHTTPServer;
+import io.xlogistx.nosneak.scanners.PQCScanCallback;
 import io.xlogistx.nosneak.scanners.PQCScanOptions;
-import io.xlogistx.nosneak.scanners.PQCCallback;
 import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
@@ -18,14 +19,17 @@ import org.zoxweb.shared.util.ResourceManager;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class QDZChecker {
+public class QDZChecker
+        extends PropertyContainer<NVGenericMap> {
 
-
+    private final AtomicLong scanCount = new AtomicLong(1000);
 
     public QDZChecker() {
         try {
-            if(DNSRegistrar.SINGLETON.getResolver() == null) DNSRegistrar.SINGLETON.setResolver(DNSRegistrar.DEFAULT_RESOLVER);
+            if (DNSRegistrar.SINGLETON.getResolver() == null)
+                DNSRegistrar.SINGLETON.setResolver(DNSRegistrar.DEFAULT_RESOLVER);
         } catch (UnknownHostException e) {
             e.printStackTrace();
             throw new IllegalArgumentException(e);
@@ -54,14 +58,17 @@ public class QDZChecker {
                 .testTLS11(true)
                 .testSSLv3(false)
                 .build() : null;
-        PQCCallback mother = new PQCCallback(ip, result -> {
+
+        PQCScanCallback scanCallback = new PQCScanCallback(ip, result -> {
+            result.scanCount = scanCount.incrementAndGet();
             future.complete(result.toNVGenericMap(true));
         }, options, HTTPNIOSocket());
-        mother.dnsResolver(DNSRegistrar.SINGLETON);
-        mother.timeoutInSec(10);
+
+        scanCallback.dnsResolver(DNSRegistrar.SINGLETON);
+        scanCallback.timeoutInSec(10);
 
         try {
-            mother.start();
+            scanCallback.start();
         } catch (IOException e) {
             throw new APIException("remote host error: " + ip + " try https://api.xlogistx.io/domain.com[:443 if no port default 443]", HTTPStatusCode.NOT_FOUND.CODE);
         }
@@ -78,5 +85,16 @@ public class QDZChecker {
     }
 
 
-
+    @Override
+    protected void refreshProperties() {
+        try {
+            if (getProperties().getNV("start-count-at") != null) {
+                long startCountingAt = (long)getProperties().getValueAsLong("start-count-at");
+                if (startCountingAt > 0)
+                    scanCount.set(startCountingAt);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

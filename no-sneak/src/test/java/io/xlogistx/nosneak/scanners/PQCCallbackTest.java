@@ -53,7 +53,7 @@ public class PQCCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("google.com", 443);
-        PQCCallback mother = new PQCCallback(address, result -> {
+        PQCScanCallback mother = new PQCScanCallback(address, result -> {
             log.getLogger().info("Basic scan result:\n" + result);
             resultRef.set(result);
             latch.countDown();
@@ -96,7 +96,7 @@ public class PQCCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("google.com", 443);
-        PQCCallback mother = new PQCCallback(address, result -> {
+        PQCScanCallback mother = new PQCScanCallback(address, result -> {
             log.getLogger().info("Comprehensive scan result:\n" + result);
             resultRef.set(result);
             latch.countDown();
@@ -156,7 +156,7 @@ public class PQCCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("cloudflare.com", 443);
-        PQCCallback mother = new PQCCallback(address, result -> {
+        PQCScanCallback mother = new PQCScanCallback(address, result -> {
             resultRef.set(result);
             latch.countDown();
         }, options, httpNIOSocket);
@@ -183,7 +183,7 @@ public class PQCCallbackTest {
         AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
 
         IPAddress address = new IPAddress("google.com", 80);
-        PQCCallback mother = new PQCCallback(address, result -> {
+        PQCScanCallback mother = new PQCScanCallback(address, result -> {
             log.getLogger().info("Port 80 scan result:\n" + result);
             resultRef.set(result);
             latch.countDown();
@@ -213,7 +213,7 @@ public class PQCCallbackTest {
             log.getLogger().info("Scanning: " + address);
 
             long ts = System.currentTimeMillis();
-            PQCCallback mother = new PQCCallback(address, result -> {
+            PQCScanCallback mother = new PQCScanCallback(address, result -> {
                 log.getLogger().info("Result for " + result.getHost() + ":" + result.getPort() +
                         " - " + result.getOverallStatus() + " in " +
                         Const.TimeInMillis.toString(System.currentTimeMillis() - ts));

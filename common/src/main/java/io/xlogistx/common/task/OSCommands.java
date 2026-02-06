@@ -2,6 +2,7 @@ package io.xlogistx.common.task;
 
 
 import org.zoxweb.server.util.RuntimeUtil;
+import org.zoxweb.shared.task.RunnableProperties;
 import org.zoxweb.shared.util.NVGenericMap;
 
 import java.util.List;

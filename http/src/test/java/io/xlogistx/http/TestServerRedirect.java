@@ -3,6 +3,7 @@ package io.xlogistx.http;
 import org.zoxweb.server.http.OkHTTPCall;
 import org.zoxweb.shared.http.HTTPMessageConfig;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
+import org.zoxweb.shared.http.HTTPResponseData;
 
 public class TestServerRedirect {
 
@@ -16,7 +17,8 @@ public class TestServerRedirect {
                 hmci.setSecureCheckEnabled(false);
                 hmci.setRedirectEnabled(false);
                 OkHTTPCall okHTTPCall = new OkHTTPCall(hmci);
-                System.out.println(okHTTPCall.sendRequest());
+                HTTPResponseData hrd = okHTTPCall.sendRequest();
+                System.out.println(hrd);
 
             } catch (Exception e) {
                 e.printStackTrace();

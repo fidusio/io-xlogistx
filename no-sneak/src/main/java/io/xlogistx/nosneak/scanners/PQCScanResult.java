@@ -109,6 +109,7 @@ public class PQCScanResult implements Identifier<String> {
     // Cipher suite
     private String cipherSuite;
     private String scanID;
+    public  long scanCount;
 
     // Certificate info
     private SignatureType certSignatureType;
@@ -409,6 +410,7 @@ public class PQCScanResult implements Identifier<String> {
         nvgm.add("host", host);
         nvgm.add(new NVInt("port", port));
         nvgm.build("scan-id", getID());
+        nvgm.build(new NVLong("total-scanned", scanCount));
         nvgm.add(new NVLong("scan-time-in-ms", scanTimeMs));
         nvgm.add(new NVBoolean("success", success));
 

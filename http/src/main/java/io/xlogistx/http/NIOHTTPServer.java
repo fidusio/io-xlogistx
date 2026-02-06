@@ -94,7 +94,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.0.5");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.0.8");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -108,6 +108,7 @@ public class NIOHTTPServer
     private volatile URLMatcher urlHostRedirect;
     private volatile MatchPatternFilter redirectExclusionFilter;
     private volatile HTTPNIOSocket httpNIOSocket;
+    private volatile String redirectLocationURL;
     private int sslPort = -1;
 
 
@@ -164,7 +165,8 @@ public class NIOHTTPServer
         private boolean httpsRedirect()
                 throws IOException {
             if (urlHostRedirect != null) {
-                String uri = hph.getRequest().getURI();
+                String  uri = hph.getRequest().getURI();
+                System.out.println(uri);
 
                 if (uri != null && redirectExclusionFilter != null && redirectExclusionFilter.match(uri)) {
                     return false;
@@ -174,28 +176,25 @@ public class NIOHTTPServer
                 if(host == null)
                     throw new HTTPCallException("Host header not found", HTTPStatusCode.BAD_REQUEST);
 
-                IPAddress ipAddress = IPAddress.parse(host);
 
-                if (ipAddress != null && urlHostRedirect.isValid(ipAddress.getInetAddress())) {
+
+                if (SUS.isNotEmpty(redirectLocationURL))
+                {
                     HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
                     redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
 
 
-                    String url = URIScheme.HTTPS.getName() + "://" + ipAddress.getInetAddress() + (sslPort > 0 ? ":" + sslPort : "");
+                    String url = redirectLocationURL + (sslPort > 0 ? ":" + sslPort : "") + uri;
 
-                    if (uri == null)
-                        uri = "/";
 
-                    if (!uri.startsWith("/"))
-                        uri = "/" + uri;
 
-                    redirect308.getHeaders().add(HTTPHeader.LOCATION, url + uri);
+                    redirect308.getHeaders().add(HTTPHeader.LOCATION, url);
                     HTTPUtil.formatResponse(redirect308, hph.getResponseStream());
                     hph.getResponseStream(true).writeTo(get());
                     IOUtil.close(this);
                     return true;
                 }
-                throw new HTTPCallException("Invalid HTTP URL: " + ipAddress.getInetAddress());
+                throw new HTTPCallException("Invalid HTTP URL: " + uri);
             }
             return false;
         }
@@ -825,6 +824,7 @@ public class NIOHTTPServer
                     redirectExclusionFilter = MatchPatternFilter.createMatchFilter(exclusionConfig);
                 }
                 logger.getLogger().info("https redirect @ " + urlHostRedirect + " exclusion " + redirectExclusionFilter);
+                redirectLocationURL = redirectConfig.getValue("location");
             }
 
 

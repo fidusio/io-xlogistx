@@ -3,14 +3,13 @@ package io.xlogistx.common.cron;
 import com.cronutils.model.definition.CronDefinition;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.parser.CronParser;
-import io.xlogistx.common.task.RunnableProperties;
 import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.shared.task.RunnableProperties;
 import org.zoxweb.shared.util.Appointment;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.SharedUtil;
 import org.zoxweb.shared.util.WaitTime;
-
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;

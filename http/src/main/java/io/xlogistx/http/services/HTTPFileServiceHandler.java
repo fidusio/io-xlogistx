@@ -3,11 +3,14 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.CachedPathMatcher;
+import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.JarTool;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
+import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.*;
 
@@ -91,9 +94,21 @@ public class HTTPFileServiceHandler
 
         Path filePath = cpm.findIn(getBaseFolder(), filename);
         if (filePath == null) {
-            if (log.isEnabled())
-                log.getLogger().info("File Not Found:" + filename);
-            throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
+            //if (log.isEnabled())
+            log.getLogger().info("File Not Found:" + filename);
+
+
+            SimpleMessage sm = new SimpleMessage();
+            sm.setError(filename + " not found");
+            sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
+            HTTPMessageConfigInterface hmci = new HTTPMessageConfig();
+            hmci.setContent(GSONUtil.toJSONDefault(sm));
+            hmci = HTTPUtil.buildResponse(hmci, HTTPStatusCode.NOT_FOUND, HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8,
+                    HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                    HTTPConst.CommonHeader.EXPIRES_ZERO);
+
+            return hmci;
+//            throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
         }
 
 

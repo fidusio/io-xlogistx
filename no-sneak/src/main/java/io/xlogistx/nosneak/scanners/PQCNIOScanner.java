@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * Integrates with NIOSocket for fully async TLS handshake with PQC support.
  * <p>
  * This class handles only the TLS handshake. Phase 2 tasks (revocation,
- * cipher enumeration, version testing) are managed by {@link PQCCallback}.
+ * cipher enumeration, version testing) are managed by {@link PQCScanCallback}.
  */
 public class PQCNIOScanner extends TCPSessionCallback {
 

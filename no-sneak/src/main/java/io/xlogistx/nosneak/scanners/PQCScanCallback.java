@@ -26,9 +26,9 @@ import java.util.function.Consumer;
  *   mother.start();
  * </pre>
  */
-public class PQCCallback implements ScanCallback {
+public class PQCScanCallback implements ScanCallback {
 
-    public static final LogWrapper log = new LogWrapper(PQCCallback.class).setEnabled(false);
+    public static final LogWrapper log = new LogWrapper(PQCScanCallback.class).setEnabled(false);
 
     private final IPAddress address;
     private final Consumer<PQCScanResult> userCallback;
@@ -60,8 +60,8 @@ public class PQCCallback implements ScanCallback {
     // Completion guard
     private volatile boolean delivered = false;
 
-    public PQCCallback(IPAddress address, Consumer<PQCScanResult> userCallback,
-                       PQCScanOptions options, HTTPNIOSocket httpNIOSocket) {
+    public PQCScanCallback(IPAddress address, Consumer<PQCScanResult> userCallback,
+                           PQCScanOptions options, HTTPNIOSocket httpNIOSocket) {
         this.address = address;
         this.userCallback = userCallback;
         this.options = options != null ? options : PQCScanOptions.defaults();
@@ -72,7 +72,7 @@ public class PQCCallback implements ScanCallback {
     /**
      * Set the DNS resolver for address resolution.
      */
-    public PQCCallback dnsResolver(DNSResolverInt resolver) {
+    public PQCScanCallback dnsResolver(DNSResolverInt resolver) {
         this.dnsResolver = resolver;
         return this;
     }
@@ -80,7 +80,7 @@ public class PQCCallback implements ScanCallback {
     /**
      * Set the connection timeout in seconds.
      */
-    public PQCCallback timeoutInSec(int seconds) {
+    public PQCScanCallback timeoutInSec(int seconds) {
         this.timeoutSec = seconds;
         return this;
     }

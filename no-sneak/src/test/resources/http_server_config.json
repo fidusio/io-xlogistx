@@ -28,6 +28,7 @@
     },
     "redirect_config": {
       "domains": "localhost",
+      "location" : "https//xlogistx.io",
       "exclusion-filter": "-i -r *.well-known*"
     }
   },
@@ -100,7 +101,10 @@
       "bean": "io.xlogistx.http.services.CurrentTimestamp"
     },
     {
-      "bean": "io.xlogistx.nosneak.services.QDZChecker"
+      "bean": "io.xlogistx.nosneak.services.QDZChecker",
+      "properties": {
+        "start-count-at": 1279
+      }
     },
     {
       "bean": "io.xlogistx.http.services.TestEndPoint"
