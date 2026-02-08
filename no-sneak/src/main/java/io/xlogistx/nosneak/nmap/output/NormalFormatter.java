@@ -85,6 +85,12 @@ public class NormalFormatter implements OutputFormatter {
         sb.append(".");
         sb.append(LINE_SEP);
 
+        // Show MAC address if available (from ARP discovery)
+        if (host.getMacAddress() != null) {
+            sb.append("MAC Address: ").append(host.getMacAddress().toUpperCase());
+            sb.append(LINE_SEP);
+        }
+
         // Port summary
         int open = host.getOpenPortCount();
         int closed = host.getClosedPortCount();

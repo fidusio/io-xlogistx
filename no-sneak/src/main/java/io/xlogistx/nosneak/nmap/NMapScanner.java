@@ -291,13 +291,16 @@ public class NMapScanner implements Closeable {
 
                     // Only report hosts that are UP
                     if (discoveryResult.isHostUp()) {
-                        ScanResult result = ScanResult.builder(target)
+                        ScanResult.Builder builder = ScanResult.builder(target)
                             .resolveAddress()
                             .hostUp(true)
                             .hostUpReason(discoveryResult.getMethod() + " (" + discoveryResult.getReason() + ")")
                             .startTime(now - discoveryResult.getLatencyMs())
-                            .endTime(now)
-                            .build();
+                            .endTime(now);
+                        if (discoveryResult.getMacAddress() != null) {
+                            builder.macAddress(discoveryResult.getMacAddress());
+                        }
+                        ScanResult result = builder.build();
                         try {
                             callback.accept(result);
                         } catch (Exception e) {

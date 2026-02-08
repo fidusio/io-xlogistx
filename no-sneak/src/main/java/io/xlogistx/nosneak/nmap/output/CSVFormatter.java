@@ -27,7 +27,7 @@ public class CSVFormatter implements OutputFormatter {
         StringBuilder sb = new StringBuilder();
 
         // Header row
-        sb.append("host,ip,hostname,port,protocol,state,service,product,version,banner,response_time_ms");
+        sb.append("host,ip,hostname,mac,port,protocol,state,service,product,version,banner,response_time_ms");
         sb.append(LINE_SEP);
 
         // Data rows - one per port
@@ -62,6 +62,10 @@ public class CSVFormatter implements OutputFormatter {
 
         // hostname
         appendField(sb, host.getHostname());
+        sb.append(DELIMITER);
+
+        // mac
+        appendField(sb, host.getMacAddress() != null ? host.getMacAddress().toUpperCase() : null);
         sb.append(DELIMITER);
 
         if (port != null) {

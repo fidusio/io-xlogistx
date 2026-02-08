@@ -23,8 +23,8 @@ public class ARPPing implements DiscoveryMethod {
 
     private final ExecutorService executor;
 
-    // Cache of known hosts from ARP table
-    private static final Set<String> arpCache = new HashSet<>();
+    // Cache of known hosts from ARP table: IP -> MAC address
+    private static final Map<String, String> arpCache = new HashMap<>();
     private static long lastArpRefresh = 0;
     private static final long ARP_CACHE_TTL = 5000; // 5 seconds - refresh more often during scanning
 
@@ -71,12 +71,12 @@ public class ARPPing implements DiscoveryMethod {
                 InetAddress addr = InetAddress.getByName(host);
                 String ip = addr.getHostAddress();
 
-                if (arpCache.contains(ip)) {
+                if (arpCache.containsKey(ip)) {
                     long latency = System.currentTimeMillis() - start;
                     if (log.isEnabled()) {
                         log.getLogger().info("ARP: " + host + " found in ARP cache");
                     }
-                    return DiscoveryResult.up("arp-response", "arp", latency);
+                    return DiscoveryResult.up("arp-response", "arp", latency, arpCache.get(ip));
                 }
 
                 // Step 3: Also try isReachable which may use ICMP
@@ -168,8 +168,9 @@ public class ARPPing implements DiscoveryMethod {
                     new InputStreamReader(process.getInputStream()))) {
 
                 String line;
+                boolean isWindows = os.contains("windows");
                 while ((line = reader.readLine()) != null) {
-                    // Parse IP addresses from ARP output
+                    // Parse IP and MAC addresses from ARP output
                     // Windows format: "  10.0.0.1            00-1a-2b-3c-4d-5e     dynamic"
                     // Linux format:   "10.0.0.1              ether   00:1a:2b:3c:4d:5e   C   eth0"
 
@@ -178,7 +179,22 @@ public class ARPPing implements DiscoveryMethod {
                         String potentialIp = parts[0];
                         // Check if it looks like an IP address
                         if (potentialIp.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}")) {
-                            arpCache.add(potentialIp);
+                            // Extract MAC address
+                            String mac = null;
+                            if (isWindows && parts.length >= 2) {
+                                // Windows: MAC is in parts[1], format 00-1a-2b-3c-4d-5e
+                                String candidate = parts[1];
+                                if (candidate.matches("[0-9a-fA-F]{2}(-[0-9a-fA-F]{2}){5}")) {
+                                    mac = candidate.replace('-', ':').toLowerCase();
+                                }
+                            } else if (parts.length >= 3) {
+                                // Linux: MAC is in parts[2], format 00:1a:2b:3c:4d:5e
+                                String candidate = parts[2];
+                                if (candidate.matches("[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}")) {
+                                    mac = candidate.toLowerCase();
+                                }
+                            }
+                            arpCache.put(potentialIp, mac);
                         }
                     }
                 }
@@ -194,11 +210,11 @@ public class ARPPing implements DiscoveryMethod {
     }
 
     /**
-     * Get all known hosts from ARP cache.
+     * Get all known hosts from ARP cache (IP -> MAC address).
      */
-    public static Set<String> getArpCacheHosts() {
+    public static Map<String, String> getArpCacheHosts() {
         refreshArpCache();
-        return new HashSet<>(arpCache);
+        return new HashMap<>(arpCache);
     }
 
     /**
@@ -273,8 +289,8 @@ public class ARPPing implements DiscoveryMethod {
             batchTriggerArp(hosts, config.getTimeoutSec() * 1000);
             long triggerDuration = System.currentTimeMillis() - triggerStart;
 
-            // Step 2: Check which hosts are in ARP cache
-            Set<String> cachedHosts = getArpCacheHosts();
+            // Step 2: Check which hosts are in ARP cache (IP -> MAC)
+            Map<String, String> cachedHosts = getArpCacheHosts();
 
             // Estimate per-host latency based on trigger duration / hosts found
             // This is approximate since we don't know exact response times for each host
@@ -283,7 +299,7 @@ public class ARPPing implements DiscoveryMethod {
                 try {
                     InetAddress addr = InetAddress.getByName(host);
                     String ip = addr.getHostAddress();
-                    if (cachedHosts.contains(ip)) {
+                    if (cachedHosts.containsKey(ip)) {
                         foundCount++;
                     }
                 } catch (Exception ignored) {
@@ -298,9 +314,10 @@ public class ARPPing implements DiscoveryMethod {
                     InetAddress addr = InetAddress.getByName(host);
                     String ip = addr.getHostAddress();
 
-                    if (cachedHosts.contains(ip)) {
-                        // Use estimated latency for ARP-discovered hosts
-                        results.put(host, DiscoveryResult.up("arp-response", "arp", estimatedLatencyMs));
+                    if (cachedHosts.containsKey(ip)) {
+                        // Use estimated latency for ARP-discovered hosts, include MAC
+                        String mac = cachedHosts.get(ip);
+                        results.put(host, DiscoveryResult.up("arp-response", "arp", estimatedLatencyMs, mac));
                     }
                 } catch (Exception ignored) {
                 }

@@ -123,6 +123,9 @@ public class JSONFormatter implements OutputFormatter {
         if (host.getHostUpReason() != null) {
             hostJson.put("hostUpReason", host.getHostUpReason());
         }
+        if (host.getMacAddress() != null) {
+            hostJson.put("macAddress", host.getMacAddress().toUpperCase());
+        }
 
         hostJson.put("startTime", host.getStartTimeMs());
         hostJson.put("endTime", host.getEndTimeMs());

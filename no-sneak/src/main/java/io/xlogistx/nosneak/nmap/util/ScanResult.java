@@ -16,6 +16,7 @@ public class ScanResult {
     private final String hostname;         // Resolved hostname (if available)
     private final boolean hostUp;          // Host discovery result
     private final String hostUpReason;     // How we determined host is up
+    private final String macAddress;       // MAC address (from ARP, if available)
     private final long startTimeMs;
     private final long endTimeMs;
     private final List<PortResult> portResults;
@@ -28,6 +29,7 @@ public class ScanResult {
         this.hostname = builder.hostname;
         this.hostUp = builder.hostUp;
         this.hostUpReason = builder.hostUpReason;
+        this.macAddress = builder.macAddress;
         this.startTimeMs = builder.startTimeMs;
         this.endTimeMs = builder.endTimeMs;
         this.portResults = Collections.unmodifiableList(new ArrayList<>(builder.portResults));
@@ -43,6 +45,7 @@ public class ScanResult {
     public String getHostname() { return hostname; }
     public boolean isHostUp() { return hostUp; }
     public String getHostUpReason() { return hostUpReason; }
+    public String getMacAddress() { return macAddress; }
     public long getStartTimeMs() { return startTimeMs; }
     public long getEndTimeMs() { return endTimeMs; }
     public List<PortResult> getPortResults() { return portResults; }
@@ -159,6 +162,7 @@ public class ScanResult {
         private String hostname;
         private boolean hostUp = true;
         private String hostUpReason = "user-set";
+        private String macAddress;
         private long startTimeMs = System.currentTimeMillis();
         private long endTimeMs = System.currentTimeMillis();
         private List<PortResult> portResults = new ArrayList<>();
@@ -186,6 +190,11 @@ public class ScanResult {
 
         public Builder hostUpReason(String reason) {
             this.hostUpReason = reason;
+            return this;
+        }
+
+        public Builder macAddress(String macAddress) {
+            this.macAddress = macAddress;
             return this;
         }
 

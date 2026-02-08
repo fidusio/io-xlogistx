@@ -92,6 +92,14 @@ public class XMLFormatter implements OutputFormatter {
         attr(sb, "addrtype", "ipv4");
         sb.append("/>").append(LINE_SEP);
 
+        // MAC Address
+        if (host.getMacAddress() != null) {
+            sb.append(INDENT).append(INDENT).append("<address");
+            attr(sb, "addr", host.getMacAddress().toUpperCase());
+            attr(sb, "addrtype", "mac");
+            sb.append("/>").append(LINE_SEP);
+        }
+
         // Hostnames
         if (host.getHostname() != null) {
             sb.append(INDENT).append(INDENT).append("<hostnames>").append(LINE_SEP);
