@@ -4,6 +4,7 @@ import org.bouncycastle.tls.DefaultTlsClient;
 import org.bouncycastle.tls.TlsClientProtocol;
 import org.bouncycastle.tls.TlsFatalAlert;
 import org.zoxweb.server.io.ByteBufferUtil;
+import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.common.TCPSessionCallback;
 import org.zoxweb.shared.net.IPAddress;
@@ -33,8 +34,17 @@ public abstract class TLSProbeCallback extends TCPSessionCallback {
     private final ByteBuffer readBuffer = ByteBufferUtil.allocateByteBuffer(16384);
     private volatile boolean completed = false;
 
+    private volatile SelectionKey selectionKey;
+
     protected TLSProbeCallback(IPAddress address) {
         super(address);
+        closeableDelegate.setDelegate(()->{
+            if (selectionKey != null) {
+                selectionKey.cancel();
+            }
+            IOUtil.close(getChannel());
+            ByteBufferUtil.cache(readBuffer);
+        });
     }
 
     /**
@@ -81,6 +91,13 @@ public abstract class TLSProbeCallback extends TCPSessionCallback {
     public void accept(SelectionKey key) {
         if (completed) return;
 
+        if(this.selectionKey != null && this.selectionKey != key) {
+            log.getLogger().info("Key Mismatch current " + this.selectionKey + " new key " + key);
+
+        }
+
+        this.selectionKey = key;
+
         try {
             if (key.isReadable() && protocol != null) {
                 SocketChannel channel = (SocketChannel) key.channel();
@@ -88,6 +105,7 @@ public abstract class TLSProbeCallback extends TCPSessionCallback {
                 int bytesRead = channel.read(readBuffer);
 
                 if (bytesRead == -1) {
+                    key.cancel();
                     complete();
                     onProbeFailure(new IOException("Connection closed by peer"));
                     return;
@@ -112,9 +130,11 @@ public abstract class TLSProbeCallback extends TCPSessionCallback {
             }
         } catch (TlsFatalAlert e) {
             // Expected for probe rejections (e.g., handshake_failure, protocol_version)
+            key.cancel();
             complete();
             onProbeFailure(e);
         } catch (Exception e) {
+            key.cancel();
             complete();
             onProbeFailure(e);
         }
@@ -161,11 +181,4 @@ public abstract class TLSProbeCallback extends TCPSessionCallback {
         }
     }
 
-    @Override
-    public void close() throws IOException {
-        if (!isClosed.getAndSet(true)) {
-            ByteBufferUtil.cache(readBuffer);
-            super.close();
-        }
-    }
 }

@@ -1,7 +1,7 @@
 package io.xlogistx.http.websocket;
 
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.io.BytesArray;
 
 import javax.websocket.PongMessage;
 import java.nio.ByteBuffer;

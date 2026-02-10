@@ -109,7 +109,8 @@ public class DNSRegistrar
      * @return the first IP address, or null if not found
      * @throws IOException if DNS query fails
      */
-    public IPAddress resolveIPA(String domainName) throws IOException {
+    @Override
+    public IPAddress resolveIPAddress(String domainName) throws IOException {
         InetAddress ret = resolve(domainName, false);
         if(ret == null)
             throw new UnknownHostException(domainName);

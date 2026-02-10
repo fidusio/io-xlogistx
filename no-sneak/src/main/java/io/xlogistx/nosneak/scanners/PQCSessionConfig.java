@@ -4,7 +4,8 @@ import org.bouncycastle.tls.TlsClientProtocol;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.util.CloseableType;
+import org.zoxweb.shared.io.CloseableType;
+import org.zoxweb.shared.io.CloseableTypeDelegate;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -39,9 +40,10 @@ public class PQCSessionConfig implements CloseableType {
     public volatile PQCConnectionHelper connectionHelper;
 
     // State tracking
-    private final AtomicBoolean isClosed = new AtomicBoolean(false);
+
     public final AtomicBoolean handshakeStarted = new AtomicBoolean(false);
     public final AtomicBoolean handshakeComplete = new AtomicBoolean(false);
+    private final CloseableTypeDelegate closeableDelegate = new CloseableTypeDelegate(this);
 
     // Hostname for SNI
     private final InetSocketAddress hostname;
@@ -52,6 +54,21 @@ public class PQCSessionConfig implements CloseableType {
         this.inNetData = ByteBufferUtil.allocateByteBuffer(16384);
         this.outNetData = ByteBufferUtil.allocateByteBuffer(16384);
         this.inAppData = ByteBufferUtil.allocateByteBuffer(16384);
+
+        closeableDelegate.setDelegate(()->{
+            if (tlsProtocol != null) {
+                try {
+                    tlsProtocol.close();
+                } catch (Exception ignored) {
+                    ignored.printStackTrace();
+                }
+            }
+            IOUtil.close(channel);
+            ByteBufferUtil.cache(inNetData, outNetData, inAppData);
+
+
+            if (log.isEnabled()) log.getLogger().info("PQCSessionConfig closed for " + hostname);
+        });
     }
 
     public String getHostname() {
@@ -131,24 +148,11 @@ public class PQCSessionConfig implements CloseableType {
 
     @Override
     public void close() {
-        if (!isClosed.getAndSet(true)) {
-            if (tlsProtocol != null) {
-                try {
-                    tlsProtocol.close();
-                } catch (Exception ignored) {
-                }
-            }
-            IOUtil.close(channel);
-            ByteBufferUtil.cache(inNetData, outNetData, inAppData);
-
-
-            if (log.isEnabled()) log.getLogger().info("PQCSessionConfig closed for " + hostname);
-
-        }
+        IOUtil.close(closeableDelegate);
     }
 
     @Override
     public boolean isClosed() {
-        return isClosed.get();
+        return closeableDelegate.isClosed();
     }
 }

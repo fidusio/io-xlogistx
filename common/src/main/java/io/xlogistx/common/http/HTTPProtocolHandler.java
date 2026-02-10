@@ -9,6 +9,7 @@ import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.BaseChannelOutputStream;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.io.CloseableType;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.*;
 

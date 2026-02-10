@@ -4,7 +4,7 @@ import io.xlogistx.common.http.HTTPProtocolHandler;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.HTTPWSProto;
-import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.io.BytesArray;
 import org.zoxweb.shared.util.NotSupportedException;
 
 import javax.websocket.EncodeException;

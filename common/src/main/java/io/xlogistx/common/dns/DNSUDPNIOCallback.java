@@ -75,6 +75,11 @@ public class DNSUDPNIOCallback
             ByteBufferUtil.cache(data);
         }
     }
+
+    @Override
+    public void exception(Throwable e) {
+
+    }
 }
 
 

@@ -94,7 +94,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.0.8");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.0");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -221,6 +221,11 @@ public class NIOHTTPServer
         public boolean isClosed() {
             return hph.isClosed();
         }
+
+        @Override
+        public void exception(Throwable e) {
+
+        }
     }
 
     /**
@@ -268,7 +273,9 @@ public class NIOHTTPServer
 
         }
 
-        public void exception(Exception e) {
+
+        @Override
+        public void exception(Throwable e) {
             if (logger.isEnabled()) logger.getLogger().info("" + e);
         }
 
@@ -294,6 +301,8 @@ public class NIOHTTPServer
         public boolean isClosed() {
             return hph.isClosed();
         }
+
+
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Throwable e) {

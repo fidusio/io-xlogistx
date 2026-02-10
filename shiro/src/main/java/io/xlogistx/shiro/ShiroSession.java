@@ -4,8 +4,8 @@ import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.CloseableTypeRunnable;
 import org.zoxweb.shared.protocol.ProtoSession;
-import org.zoxweb.shared.util.CloseableTypeHolder;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NamedValue;
 
@@ -22,7 +22,7 @@ public class ShiroSession<V>
 
     private final Subject subject;
     private final NVGenericMap properties = new NVGenericMap("properties");
-    private final CloseableTypeHolder cth;
+    private final CloseableTypeRunnable cth;
     private final Supplier<Boolean> canCloseDecisionMaker;
     private final Set<AutoCloseable> autoCloseables = new LinkedHashSet<>();
 
@@ -44,7 +44,7 @@ public class ShiroSession<V>
 
         this.subject.getSession().setAttribute(SHIRO_SESSION, this);
 
-        cth = new CloseableTypeHolder((Runnable) ()-> {
+        cth = new CloseableTypeRunnable((Runnable) ()-> {
             NamedValue<SubjectSwap> ss = getProperties().getNV(SubjectSwap.SUBJECT_SWAP);
             if(ss != null && ss.getValue() != null)
                 ss.getValue().close();

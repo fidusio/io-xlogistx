@@ -5,7 +5,7 @@ import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.io.BytesArray;
 import org.zoxweb.shared.util.SUS;
 
 import javax.websocket.*;

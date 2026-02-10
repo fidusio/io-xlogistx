@@ -40,6 +40,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
 
     // State tracking
     private volatile boolean completed = false;
+    private volatile SelectionKey selectionKey;
 
     /**
      * Create a PQC NIO scanner for the given target.
@@ -51,6 +52,25 @@ public class PQCNIOScanner extends TCPSessionCallback {
         super(address);
         this.scanCallback = scanCallback;
         this.startTime = System.currentTimeMillis();
+        closeableDelegate.setDelegate(()->{
+            if (selectionKey != null) {
+                selectionKey.cancel();
+            }
+            if (stateMachine != null) {
+                try {
+                    stateMachine.close();
+                } catch (Exception ignored) {
+                    ignored.printStackTrace();
+                }
+            }
+            if (pqcConfig != null) {
+                // pqcConfig.close() already closes the channel and caches buffers
+                IOUtil.close(pqcConfig);
+            } else {
+                IOUtil.close(getChannel());
+            }
+            IOUtil.close(getOutputStream());
+        });
     }
 
     /**
@@ -113,6 +133,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
     @Override
     public void accept(SelectionKey key) {
         if (completed) return;
+        this.selectionKey = key;
 
         try {
             if (key.isReadable() && stateMachine != null) {
@@ -122,7 +143,8 @@ public class PQCNIOScanner extends TCPSessionCallback {
                 int bytesRead = channel.read(pqcConfig.inNetData);
 
                 if (bytesRead == -1) {
-                    // Channel closed
+                    // Channel closed - cancel key before cleanup
+                    key.cancel();
                     completeWithError("Connection closed by peer");
                     return;
                 }
@@ -136,6 +158,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
             if (log.isEnabled()) {
                 log.getLogger().info("Error processing SelectionKey: " + e.getMessage());
             }
+            key.cancel();
             completeWithError(e.getMessage());
         }
     }
@@ -183,21 +206,6 @@ public class PQCNIOScanner extends TCPSessionCallback {
         completeWithError(e.getMessage());
     }
 
-    @Override
-    public void close() throws IOException {
-        if (!isClosed.getAndSet(true)) {
-            if (stateMachine != null) {
-                try {
-                    stateMachine.close();
-                } catch (Exception ignored) {
-                }
-            }
-            if (pqcConfig != null) {
-                pqcConfig.close();
-            }
-            IOUtil.close(getChannel(), getOutputStream());
-        }
-    }
 
     public boolean isCompleted() {
         return completed;

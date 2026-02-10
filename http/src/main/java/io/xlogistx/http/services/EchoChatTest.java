@@ -4,7 +4,7 @@ import io.xlogistx.http.websocket.WSPongMessage;
 import io.xlogistx.http.websocket.WSRemoteEndPoint;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.util.BytesArray;
+import org.zoxweb.shared.io.BytesArray;
 import org.zoxweb.shared.util.SUS;
 
 import javax.websocket.*;
