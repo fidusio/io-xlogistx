@@ -3,9 +3,9 @@ package io.xlogistx.common.dns;
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.ProtocolHandler;
+import org.zoxweb.shared.io.SharedIOUtil;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -31,7 +31,7 @@ public class DNSTCPNIOProtocol extends ProtocolHandler {
 
     @Override
     protected void close_internal() throws IOException {
-        IOUtil.close(phSChannel);
+        SharedIOUtil.close(phSChannel);
         if (phSK != null) {
             getSelectorController().cancelSelectionKey(phSK);
         }
@@ -85,7 +85,7 @@ public class DNSTCPNIOProtocol extends ProtocolHandler {
 
         } catch (IOException e) {
             if (log.isEnabled()) log.getLogger().info("Error processing TCP DNS request: " + e.getMessage());
-            IOUtil.close(this);
+            SharedIOUtil.close(this);
         }
     }
 

@@ -3,7 +3,7 @@ package io.xlogistx.nosneak.scanners;
 import io.xlogistx.nosneak.scanners.PQCConnectionHelper.PQCHandshakeState;
 import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.crypto.TlsCertificate;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.common.TCPSessionCallback;
 import org.zoxweb.shared.net.IPAddress;
@@ -65,11 +65,11 @@ public class PQCNIOScanner extends TCPSessionCallback {
             }
             if (pqcConfig != null) {
                 // pqcConfig.close() already closes the channel and caches buffers
-                IOUtil.close(pqcConfig);
+                SharedIOUtil.close(pqcConfig);
             } else {
-                IOUtil.close(getChannel());
+                SharedIOUtil.close(getChannel());
             }
-            IOUtil.close(getOutputStream());
+            SharedIOUtil.close(getOutputStream());
         });
     }
 
@@ -179,7 +179,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
             }
             scanCallback.onError("Error processing result: " + e.getMessage());
         } finally {
-            IOUtil.close(this);
+            SharedIOUtil.close(this);
         }
     }
 
@@ -191,7 +191,7 @@ public class PQCNIOScanner extends TCPSessionCallback {
         completed = true;
 
         scanCallback.onError(errorMessage);
-        IOUtil.close(this);
+        SharedIOUtil.close(this);
     }
 
 

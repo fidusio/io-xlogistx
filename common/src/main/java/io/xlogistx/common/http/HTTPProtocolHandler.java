@@ -4,7 +4,7 @@ package io.xlogistx.common.http;
 import org.zoxweb.server.http.HTTPRawMessage;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.BaseChannelOutputStream;
@@ -116,7 +116,7 @@ public class HTTPProtocolHandler
     @Override
     public synchronized void close() throws IOException {
         if (!closed.getAndSet(true)) {
-            IOUtil.close(getConnectionSession(), getOutputStream());
+            SharedIOUtil.close(getConnectionSession(), getOutputStream());
             ByteBufferUtil.cache(responseStream, rawRequest.getDataStream());
             expire();
         }

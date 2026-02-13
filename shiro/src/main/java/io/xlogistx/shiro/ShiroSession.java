@@ -3,8 +3,8 @@ package io.xlogistx.shiro;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ThreadContext;
-import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.shared.io.CloseableTypeRunnable;
+import org.zoxweb.shared.io.CloseableTypeDelegate;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NamedValue;
@@ -22,7 +22,7 @@ public class ShiroSession<V>
 
     private final Subject subject;
     private final NVGenericMap properties = new NVGenericMap("properties");
-    private final CloseableTypeRunnable cth;
+    private final CloseableTypeDelegate ctd;
     private final Supplier<Boolean> canCloseDecisionMaker;
     private final Set<AutoCloseable> autoCloseables = new LinkedHashSet<>();
 
@@ -44,14 +44,14 @@ public class ShiroSession<V>
 
         this.subject.getSession().setAttribute(SHIRO_SESSION, this);
 
-        cth = new CloseableTypeRunnable((Runnable) ()-> {
+        ctd = new CloseableTypeDelegate(()-> {
             NamedValue<SubjectSwap> ss = getProperties().getNV(SubjectSwap.SUBJECT_SWAP);
             if(ss != null && ss.getValue() != null)
                 ss.getValue().close();
             subject.logout();
             AutoCloseable[] toClose = autoCloseables.toArray(new AutoCloseable[0]);
-            IOUtil.close(toClose);
-         });
+            SharedIOUtil.close(toClose);
+         }, false);
         this.canCloseDecisionMaker = canCloseDecisionMaker;
 
     }
@@ -117,7 +117,7 @@ public class ShiroSession<V>
      */
     @Override
     public void close() throws IOException {
-        cth.close();
+        ctd.close();
     }
 
     /**
@@ -142,7 +142,7 @@ public class ShiroSession<V>
      */
     @Override
     public boolean isClosed() {
-        return cth.isClosed();
+        return ctd.isClosed();
     }
 
     /**

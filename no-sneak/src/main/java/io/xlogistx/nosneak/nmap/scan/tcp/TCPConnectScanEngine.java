@@ -7,6 +7,7 @@ import io.xlogistx.nosneak.nmap.util.PortState;
 import io.xlogistx.nosneak.nmap.util.ScanResult;
 import io.xlogistx.nosneak.nmap.util.ScanType;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.net.IPAddress;
 
@@ -247,7 +248,7 @@ public class TCPConnectScanEngine implements ScanEngine {
                     .responseTime(responseTime)
                     .build();
         } finally {
-            org.zoxweb.server.io.IOUtil.close(selector, channel);
+            SharedIOUtil.close(selector, channel);
         }
     }
 

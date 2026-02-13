@@ -4,7 +4,7 @@ import org.bouncycastle.tls.DefaultTlsClient;
 import org.bouncycastle.tls.TlsClientProtocol;
 import org.bouncycastle.tls.TlsFatalAlert;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.common.TCPSessionCallback;
 import org.zoxweb.shared.net.IPAddress;
@@ -42,7 +42,7 @@ public abstract class TLSProbeCallback extends TCPSessionCallback {
             if (selectionKey != null) {
                 selectionKey.cancel();
             }
-            IOUtil.close(getChannel());
+            SharedIOUtil.close(getChannel());
             ByteBufferUtil.cache(readBuffer);
         });
     }

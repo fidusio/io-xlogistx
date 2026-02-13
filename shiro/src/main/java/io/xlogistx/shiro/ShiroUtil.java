@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 ZoxWeb.com LLC.
+ * Copyright (c) 2012-2026 ZoxWeb.com LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,6 +19,7 @@ package io.xlogistx.shiro;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
+import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -77,6 +78,14 @@ public class ShiroUtil {
         return false;
     }
 
+
+    public static void login(AuthenticationToken token) {
+        try {
+            subject().login(token);
+        } catch (AuthenticationException e) {
+            throw new AccessException(e.getMessage());
+        }
+    }
 
     public static void setSecurityManager(SecurityManager securityManager) {
         SecurityUtils.setSecurityManager(securityManager);

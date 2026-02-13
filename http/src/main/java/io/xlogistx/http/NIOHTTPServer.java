@@ -17,11 +17,14 @@ import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
+import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.BaseChannelOutputStream;
 import org.zoxweb.server.net.BaseSessionCallback;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.net.NIOSocketHandlerFactory;
+import org.zoxweb.server.net.common.CommonChannelOutputStream;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionConfig;
@@ -94,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.0");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.3");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -141,7 +144,7 @@ public class NIOHTTPServer
                         incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
 
                         if (hph.isExpired())
-                            IOUtil.close(this);
+                            SharedIOUtil.close(this);
 
                         if (logger.isEnabled())
                             logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
@@ -152,7 +155,7 @@ public class NIOHTTPServer
             } catch (Exception e) {
                 if (logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
-                IOUtil.close(this);
+                SharedIOUtil.close(this);
                 // we should close
             } finally {
                 HTTPProtocolHandler hphToRemove = (HTTPProtocolHandler) ThreadContext.remove(HTTPProtocolHandler.SESSION_CONTEXT);
@@ -191,7 +194,7 @@ public class NIOHTTPServer
                     redirect308.getHeaders().add(HTTPHeader.LOCATION, url);
                     HTTPUtil.formatResponse(redirect308, hph.getResponseStream());
                     hph.getResponseStream(true).writeTo(get());
-                    IOUtil.close(this);
+                    SharedIOUtil.close(this);
                     return true;
                 }
                 throw new HTTPCallException("Invalid HTTP URL: " + uri);
@@ -214,7 +217,7 @@ public class NIOHTTPServer
          */
         @Override
         public void close() throws IOException {
-            IOUtil.close(hph, protocolHandler);
+            SharedIOUtil.close(hph, protocolHandler);
         }
 
         @Override
@@ -253,7 +256,7 @@ public class NIOHTTPServer
                     incomingData(this, getEndPointsManager(), hph.setOutputStream(get()));
                     // processing finished
                     if (hph.isExpired())
-                        IOUtil.close(this);
+                        SharedIOUtil.close(this);
 
                     if (logger.isEnabled())
                         logger.getLogger().info(SharedUtil.toCanonicalID(':', "http", getRemoteAddress(), hph.getRequest(true) != null ? hph.getRequest(true).getURI() : ""));
@@ -261,9 +264,9 @@ public class NIOHTTPServer
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
             } catch (Exception e) {
-                if (logger.isEnabled()) e.printStackTrace();
+                //if (logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
-                IOUtil.close(this);
+                SharedIOUtil.close(this);
                 // we should close
             } finally {
                 HTTPProtocolHandler hphToRemove = (HTTPProtocolHandler) ThreadContext.remove(HTTPProtocolHandler.SESSION_CONTEXT);
@@ -294,7 +297,7 @@ public class NIOHTTPServer
          */
         @Override
         public void close() throws IOException {
-            IOUtil.close(hph, protocolHandler);
+            SharedIOUtil.close(hph, protocolHandler);
         }
 
         @Override
@@ -306,39 +309,40 @@ public class NIOHTTPServer
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Throwable e) {
-        e.printStackTrace();
+        if(logger.isEnabled()) logger.getLogger().info("hph isClosed " + hph.isClosed());
         if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
                 if (e instanceof InvocationTargetException) {
                     e = ((InvocationTargetException) e).getTargetException();
                 }
-
+                UByteArrayOutputStream responseStream = null;
                 if (e instanceof AccessException) {
-                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
+                    responseStream = HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 } else if (e instanceof HTTPCallException) {
 
-                    HTTPUtil.formatErrorResponse((HTTPCallException) e, hph.getResponseStream(),
+                    responseStream = HTTPUtil.formatErrorResponse((HTTPCallException) e, hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 } else if (e instanceof AuthenticationException) {
-                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
+                    responseStream = HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 } else if (e instanceof Error) {
-                    e.printStackTrace();
-                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.INTERNAL_SERVER_ERROR), hph.getResponseStream(),
+                    responseStream = HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.INTERNAL_SERVER_ERROR), hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 } else {
-                    HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse("" + e, HTTPStatusCode.BAD_REQUEST), hph.getResponseStream(),
+                    responseStream = HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse("" + e, HTTPStatusCode.BAD_REQUEST), hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);
                 }
                 try {
                     //logger.getLogger().info(hph.getResponseStream().toString());
-                    hph.getResponseStream(true).writeTo(os);
+//                    hph.getResponseStream(true).writeTo(os);
+                    responseStream.writeTo(os);
+                    if(logger.isEnabled()) logger.getLogger().info("After error response write " + ((CommonChannelOutputStream)os).isClosed());
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -405,8 +409,12 @@ public class NIOHTTPServer
                     /**
                      * session cookie check
                      */
+
                     try {
-                        GetNameValue<String> cookieHeader = hph.getRequest().getHeaders().lookup(HTTPHeader.COOKIE);
+                        GetNameValue<String> cookieHeader = hph.
+                                getRequest(true).
+                                getHeaders().
+                                lookup(HTTPHeader.COOKIE);
                         if (cookieHeader != null) {
                             NamedValue<?> cookie = HTTPHeaderParser.parseHeader(cookieHeader);
                             if (cookie != null) {
@@ -418,11 +426,12 @@ public class NIOHTTPServer
                             }
                         }
                     } catch (Exception ex) {
-                        ex.printStackTrace();
+
                     }
 
                     if (!ShiroUtil.subject().isAuthenticated()) {
-                        ShiroUtil.subject().login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+                        ShiroUtil.login(ShiroUtil.httpAuthorizationToAuthToken(httpAuthorization));
+
                         if (logger.isEnabled())
                             logger.getLogger().info("subject : " + ShiroUtil.subject().getPrincipal() + " login: " + ShiroUtil.subject().isAuthenticated());
                     }
@@ -433,7 +442,8 @@ public class NIOHTTPServer
 
                     if (hph.getRequest(true).isTransferChunked() && protoSession == null) {
                         hph.setConnectionSession(new ShiroSession<>(ShiroUtil.subject(), null, hph::isRequestComplete));
-                        logger.getLogger().info("TRANSFER-CHUNKED subject : " + ShiroUtil.subject().getPrincipal() + " login: " + ShiroUtil.subject().isAuthenticated());
+                        if (logger.isEnabled())
+                            logger.getLogger().info("TRANSFER-CHUNKED subject : " + ShiroUtil.subject().getPrincipal() + " login: " + ShiroUtil.subject().isAuthenticated());
                     }
 
                     // need to add session here
@@ -530,7 +540,7 @@ public class NIOHTTPServer
 
 
 //                        if (!hph.reset() && hph.isHTTPProtocol())
-//                            IOUtil.close(hph);
+//                            SharedIOUtil.close(hph);
 //                        if (hph.getRequest().isTransferChunked())
 //                            if (hph.isRequestComplete())
 //                                hph.reset();
@@ -551,7 +561,7 @@ public class NIOHTTPServer
 
 
                             if (protoSession.canClose()) {
-                                protoSession.close();
+                                SharedIOUtil.close(protoSession);
                                 hph.reset();
                             }
 //                            ThreadContext.unbindSubject();

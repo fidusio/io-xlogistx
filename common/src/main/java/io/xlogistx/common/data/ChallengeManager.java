@@ -1,7 +1,8 @@
 package io.xlogistx.common.data;
 
-import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -74,7 +75,7 @@ public class ChallengeManager {
         {
             removeChallenge(id);
             // cancel the appointment
-            IOUtil.close(challenge.getAppointment());
+            SharedIOUtil.close(challenge.getAppointment());
             validation = challenge.getResult() == result;
             log.info(challenge.getId() + " validation status " + validation);
         }
@@ -91,7 +92,7 @@ public class ChallengeManager {
         {
             removeChallenge(id);
             // cancel the appointment
-            IOUtil.close(challenge.getAppointment());
+            SharedIOUtil.close(challenge.getAppointment());
             validation = ("" + challenge.getResult()).equalsIgnoreCase(result);
             log.info(challenge.getId() + " validation status " + validation);
         }

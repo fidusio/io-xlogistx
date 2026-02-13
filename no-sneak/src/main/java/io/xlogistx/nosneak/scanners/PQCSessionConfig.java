@@ -2,7 +2,7 @@ package io.xlogistx.nosneak.scanners;
 
 import org.bouncycastle.tls.TlsClientProtocol;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.io.CloseableType;
 import org.zoxweb.shared.io.CloseableTypeDelegate;
@@ -43,7 +43,7 @@ public class PQCSessionConfig implements CloseableType {
 
     public final AtomicBoolean handshakeStarted = new AtomicBoolean(false);
     public final AtomicBoolean handshakeComplete = new AtomicBoolean(false);
-    private final CloseableTypeDelegate closeableDelegate = new CloseableTypeDelegate(this);
+    private final CloseableTypeDelegate closeableDelegate = new CloseableTypeDelegate(this, true);
 
     // Hostname for SNI
     private final InetSocketAddress hostname;
@@ -51,9 +51,9 @@ public class PQCSessionConfig implements CloseableType {
     public PQCSessionConfig(InetSocketAddress hostname) {
         this.hostname = hostname;
         // Allocate buffers - 16KB is standard TLS record size
-        this.inNetData = ByteBufferUtil.allocateByteBuffer(16384);
-        this.outNetData = ByteBufferUtil.allocateByteBuffer(16384);
-        this.inAppData = ByteBufferUtil.allocateByteBuffer(16384);
+        this.inNetData = ByteBufferUtil.allocateByteBuffer(SharedIOUtil.K_16);
+        this.outNetData = ByteBufferUtil.allocateByteBuffer(SharedIOUtil.K_16);
+        this.inAppData = ByteBufferUtil.allocateByteBuffer(SharedIOUtil.K_16);
 
         closeableDelegate.setDelegate(()->{
             if (tlsProtocol != null) {
@@ -63,7 +63,7 @@ public class PQCSessionConfig implements CloseableType {
                     ignored.printStackTrace();
                 }
             }
-            IOUtil.close(channel);
+            SharedIOUtil.close(channel);
             ByteBufferUtil.cache(inNetData, outNetData, inAppData);
 
 
@@ -148,7 +148,7 @@ public class PQCSessionConfig implements CloseableType {
 
     @Override
     public void close() {
-        IOUtil.close(closeableDelegate);
+        SharedIOUtil.close(closeableDelegate);
     }
 
     @Override

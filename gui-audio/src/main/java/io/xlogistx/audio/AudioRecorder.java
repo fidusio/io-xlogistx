@@ -1,6 +1,6 @@
 package io.xlogistx.audio;
 
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 
@@ -95,7 +95,7 @@ implements AutoCloseable, Runnable
             {
                 dataLine.stop();
             }
-            IOUtil.close(dataLine);
+            SharedIOUtil.close(dataLine);
         }
     }
 

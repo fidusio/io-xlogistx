@@ -1,16 +1,14 @@
 package io.xlogistx.shared.net;
 
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.net.IPAddress;
 
 import java.net.Socket;
 
 public class ConnectionTest {
 
-    public static void main(String ...args)
-    {
-        try
-        {
+    public static void main(String... args) {
+        try {
             int index = 0;
             IPAddress address = new IPAddress(args[index++]);
             System.out.println("Connecting to " + address);
@@ -19,11 +17,9 @@ public class ConnectionTest {
 
             socket.getInputStream();
 
-            IOUtil.close(socket);
+            SharedIOUtil.close(socket);
 
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

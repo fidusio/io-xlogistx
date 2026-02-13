@@ -7,7 +7,7 @@ import io.xlogistx.nosneak.nmap.output.*;
 import io.xlogistx.nosneak.nmap.scan.tcp.TCPConnectScanEngine;
 import io.xlogistx.nosneak.nmap.scan.udp.UDPScanEngine;
 import io.xlogistx.nosneak.nmap.util.ScanType;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.net.NIOChannelMonitor;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
@@ -119,7 +119,7 @@ public class NMap {
             outputResults(report, parsed);
 
             // Cleanup
-            IOUtil.close(scanner);
+            SharedIOUtil.close(scanner);
 
 
 
@@ -128,7 +128,7 @@ public class NMap {
             //System.out.println("Finished " + GSONUtil.toJSONDefault(TaskUtil.info(), true));
 
             TaskUtil.waitIfBusyThenClose(100);
-            IOUtil.close(nioSocket);
+            SharedIOUtil.close(nioSocket);
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

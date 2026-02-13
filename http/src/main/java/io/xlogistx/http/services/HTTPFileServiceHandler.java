@@ -5,6 +5,7 @@ import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.CachedPathMatcher;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.JarTool;
@@ -59,7 +60,7 @@ public class HTTPFileServiceHandler
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                IOUtil.close(is, zis);
+                SharedIOUtil.close(is, zis);
             }
             if (log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
 

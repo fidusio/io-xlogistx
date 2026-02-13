@@ -6,7 +6,7 @@ import io.xlogistx.nosneak.nmap.util.PortResult;
 import io.xlogistx.nosneak.nmap.util.PortState;
 import io.xlogistx.nosneak.nmap.util.ScanResult;
 import io.xlogistx.nosneak.nmap.util.ScanType;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.IOException;
@@ -235,7 +235,7 @@ public abstract class RawScanEngine implements ScanEngine {
                     .responseTime(responseTime)
                     .build();
         } finally {
-            IOUtil.close(selector, channel);
+            SharedIOUtil.close(selector, channel);
         }
     }
 
@@ -332,7 +332,7 @@ public abstract class RawScanEngine implements ScanEngine {
                     }
                 }
             } finally {
-                IOUtil.close(readSelector);
+                SharedIOUtil.close(readSelector);
             }
         } catch (Exception e) {
             // Banner grab failed, that's ok

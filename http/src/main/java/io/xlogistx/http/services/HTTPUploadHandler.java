@@ -5,6 +5,7 @@ import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.common.http.HTTPRawHandler;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.DateUtil;
 import org.zoxweb.server.util.GSONUtil;
@@ -189,7 +190,7 @@ public class HTTPUploadHandler
             int chunkSize = fileData.getValue().available();
             totalCopied += IOUtil.relayStreams(md, fileData.getValue(), fos);
             fileData.getProperties().build(new NVLong("total-copied", totalCopied));
-            IOUtil.close(fileData.getValue());
+            SharedIOUtil.close(fileData.getValue());
 
             if (log.isEnabled())
                 log.getLogger().info("Total copied so far " + totalCopied + " chunkSize: " + chunkSize + " " + fileData.getProperties().getNV(ProtoMarker.LAST_CHUNK) +
@@ -200,8 +201,8 @@ public class HTTPUploadHandler
                 long delta = System.currentTimeMillis() - (long) fileData.getProperties().getValue("start-ts");
 
 
-                log.getLogger().info("last remaining raw data: " + hph.getRawRequest().getDataStream().size());
-                IOUtil.close(fos);
+                if (log.isEnabled()) log.getLogger().info("last remaining raw data: " + hph.getRawRequest().getDataStream().size());
+                SharedIOUtil.close(fos);
 
 
                 HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);

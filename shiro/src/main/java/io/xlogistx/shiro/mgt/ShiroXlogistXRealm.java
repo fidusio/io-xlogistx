@@ -340,7 +340,7 @@ public class ShiroXlogistXRealm
 //			}
 //			finally
 //			{
-//				IOUtil.close(ss);
+//				SharedIOUtil.close(ss);
 //			}
 //
 //			if (principalCollection != null)

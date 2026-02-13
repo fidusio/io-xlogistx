@@ -2,7 +2,7 @@ package io.xlogistx.nosneak.nmap.scan.tcp;
 
 import io.xlogistx.nosneak.nmap.util.PortResult;
 import io.xlogistx.nosneak.nmap.util.PortState;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.common.TCPSessionCallback;
 import org.zoxweb.shared.net.IPAddress;
@@ -80,7 +80,7 @@ public class TCPPortScanCallback extends TCPSessionCallback {
                 .build();
 
         resultConsumer.accept(result);
-        IOUtil.close(this);
+        SharedIOUtil.close(this);
     }
 
     /**
@@ -145,7 +145,7 @@ public class TCPPortScanCallback extends TCPSessionCallback {
                 .build();
 
         resultConsumer.accept(result);
-        IOUtil.close(this);
+        SharedIOUtil.close(this);
     }
 
     /**

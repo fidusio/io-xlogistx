@@ -8,8 +8,8 @@ import com.drew.metadata.Tag;
 import com.drew.metadata.exif.GpsDirectory;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
-import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SharedUtil;
@@ -86,7 +86,7 @@ public class ImageMetaReader {
         }
         finally
         {
-            IOUtil.close(is);
+            SharedIOUtil.close(is);
         }
 
     }

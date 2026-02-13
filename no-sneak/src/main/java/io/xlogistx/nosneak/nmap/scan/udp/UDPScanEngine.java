@@ -3,7 +3,7 @@ package io.xlogistx.nosneak.nmap.scan.udp;
 import io.xlogistx.nosneak.nmap.config.NMapConfig;
 import io.xlogistx.nosneak.nmap.scan.*;
 import io.xlogistx.nosneak.nmap.util.*;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.util.Const;
@@ -304,7 +304,7 @@ public class UDPScanEngine implements ScanEngine {
                     .responseTime(responseTime)
                     .build();
         } finally {
-            IOUtil.close(selector, channel);
+            SharedIOUtil.close(selector, channel);
         }
     }
 
@@ -432,7 +432,7 @@ public class UDPScanEngine implements ScanEngine {
         if (!closed.getAndSet(true)) {
             stop();
             // Close the scan callback
-            IOUtil.close(scanCallback);
+            SharedIOUtil.close(scanCallback);
             scanCallback = null;
         }
     }

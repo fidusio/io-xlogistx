@@ -1,6 +1,6 @@
 package io.xlogistx.opsec;
 
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.crypto.CredentialHasher;
@@ -51,7 +51,7 @@ public class PasswordToHash {
                         error("Password miss match", -1);
 
                     rawPassword = passwd1;
-                    IOUtil.close(scanner);
+                    SharedIOUtil.close(scanner);
                 }
 
             }

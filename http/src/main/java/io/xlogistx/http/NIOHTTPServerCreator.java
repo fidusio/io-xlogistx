@@ -1,6 +1,6 @@
 package io.xlogistx.http;
 
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.app.AppCreatorDefault;
 import org.zoxweb.shared.http.HTTPServerConfig;
@@ -39,7 +39,7 @@ public class NIOHTTPServerCreator
 
     @Override
     public void close() {
-        IOUtil.close(server);
+        SharedIOUtil.close(server);
     }
 
     public NIOSocket getNIOSocket() {

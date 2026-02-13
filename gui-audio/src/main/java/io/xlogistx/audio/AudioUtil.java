@@ -526,7 +526,7 @@ public class AudioUtil
 //        }
 //        finally
 //        {
-//            if(closeOS) IOUtil.close(os);
+//            if(closeOS) SharedIOUtil.close(os);
 //        }
 //    }
 

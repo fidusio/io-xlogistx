@@ -3,7 +3,7 @@ package io.xlogistx.opsec;
 
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.util.ParamUtil;
 
@@ -62,7 +62,7 @@ public class GeneratePEMAndCSR {
                 os = Files.newOutputStream(Paths.get((OPSecUtil.SINGLETON.outputFilename(outDir, filename + ".csr"))));
                 csrBAOS.writeTo(os);
             } finally {
-                IOUtil.close(os);
+                SharedIOUtil.close(os);
             }
 
             System.out.println("PEM and CSR files have been generated.\n");

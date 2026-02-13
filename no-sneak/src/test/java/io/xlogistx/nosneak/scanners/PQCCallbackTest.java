@@ -6,7 +6,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.http.HTTPNIOSocket;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.server.task.TaskUtil;
@@ -239,7 +239,7 @@ public class PQCCallbackTest {
 
     @AfterAll
     static void tearDownAll() {
-        IOUtil.close(httpNIOSocket.getNIOSocket());
+        SharedIOUtil.close(httpNIOSocket.getNIOSocket());
         TaskUtil.close();
     }
 }

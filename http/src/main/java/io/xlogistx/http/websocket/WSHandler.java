@@ -11,7 +11,7 @@ import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.http.HTTPHeaderParser;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
-import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
@@ -213,7 +213,7 @@ public class WSHandler
                                 e.printStackTrace();
                             }
                         }
-                        IOUtil.close(hph);
+                        SharedIOUtil.close(hph);
                         return;
                     case PING:
                         // we received a ping message
