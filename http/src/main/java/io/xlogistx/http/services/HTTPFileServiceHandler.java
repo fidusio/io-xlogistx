@@ -38,6 +38,7 @@ public class HTTPFileServiceHandler
     @Override
     protected void refreshProperties() {
         String htmlURI = getProperties().getValue("html_uri");
+        if (log.isEnabled()) log.getLogger().info("htm_uri: " + htmlURI);
         FileSystem fileSystem = ResourceManager.lookupResource(ResourceManager.Resource.FILE_SYSTEM);
         if (log.isEnabled()) log.getLogger().info("We have a file system: " + fileSystem);
 
@@ -62,11 +63,11 @@ public class HTTPFileServiceHandler
             } finally {
                 SharedIOUtil.close(is, zis);
             }
-            if (log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
 
         } else
             setBaseFolder(getProperties().getValue("base_folder"));
 
+        if (log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
 
     }
 

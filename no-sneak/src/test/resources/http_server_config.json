@@ -210,9 +210,9 @@
       ],
       "properties": {
         "base_folder": "/webs/xlogistx.io",
-        #
-        "html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
-        "default_file": "index.html",
+        #,
+        "html_uri": "file:///d:/dev/data/java/projects/rubuspi/rubuspi-html/target/rubuspi-html-1.0.0-SNAPSHOT.jar",
+        "default_file": "RubusPi.html",
         "caching": true
       }
     }
