@@ -2,10 +2,7 @@ package io.xlogistx.nosneak.nmap.scan.tcp;
 
 import io.xlogistx.nosneak.nmap.config.NMapConfig;
 import io.xlogistx.nosneak.nmap.scan.*;
-import io.xlogistx.nosneak.nmap.util.PortResult;
-import io.xlogistx.nosneak.nmap.util.PortState;
-import io.xlogistx.nosneak.nmap.util.ScanResult;
-import io.xlogistx.nosneak.nmap.util.ScanType;
+import io.xlogistx.nosneak.nmap.util.*;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.net.NIOSocket;
@@ -33,9 +30,8 @@ public class TCPConnectScanEngine implements ScanEngine {
     private Semaphore parallelismLimiter;
     private boolean grabBanner = true;
 
-    // Track pending results by host
-    private final ConcurrentMap<String, List<CompletableFuture<PortResult>>> pendingByHost =
-            new ConcurrentHashMap<>();
+    // Track pending results by host — allocated from ScanCache for centralized reset
+    private Map<String, List<CompletableFuture<PortResult>>> pendingByHost = new ConcurrentHashMap<>();
 
     @Override
     public ScanType getScanType() {
@@ -51,6 +47,11 @@ public class TCPConnectScanEngine implements ScanEngine {
     public boolean isAvailable() {
         // TCP connect scan is always available (no raw sockets required)
         return true;
+    }
+
+    @Override
+    public void setScanCache(ScanCache scanCache) {
+        this.pendingByHost = scanCache.newMap("tcp-pending");
     }
 
     @Override
@@ -129,9 +130,8 @@ public class TCPConnectScanEngine implements ScanEngine {
             nioSocket.addClientSocket(callback, timeoutSec);
 
         } catch (InterruptedException e) {
+            // acquire() threw before we incremented or acquired — don't release/decrement
             Thread.currentThread().interrupt();
-            activeScans.decrementAndGet();
-            parallelismLimiter.release();
             future.complete(PortResult.error(port, "tcp", "interrupted"));
         } catch (Exception e) {
             activeScans.decrementAndGet();
@@ -304,16 +304,26 @@ public class TCPConnectScanEngine implements ScanEngine {
                 futures.toArray(new CompletableFuture[0])
         );
 
-        return allOf.thenApply(v -> {
-            long endTime = System.currentTimeMillis();
+        return allOf.handle((v, ex) -> {
+            // Guaranteed cleanup — runs on both success and failure
             pendingByHost.remove(host);
+
+            if (ex != null) {
+                return ScanResult.builder(host)
+                        .resolveAddress()
+                        .hostUp(false)
+                        .hostUpReason("error: " + ex.getMessage())
+                        .startTime(startTime)
+                        .endTime(System.currentTimeMillis())
+                        .build();
+            }
+
+            long endTime = System.currentTimeMillis();
 
             List<PortResult> results = new ArrayList<>();
             boolean hostUp = false;
 
             for (CompletableFuture<PortResult> future : futures) {
-                // Use join() instead of get() - futures are already complete after allOf()
-                // join() throws unchecked CompletionException instead of checked exceptions
                 try {
                     PortResult result = future.join();
                     if (log.isEnabled()) {
@@ -337,16 +347,6 @@ public class TCPConnectScanEngine implements ScanEngine {
                     .startTime(startTime)
                     .endTime(endTime)
                     .portResults(results)
-                    .build();
-        }).exceptionally(e -> {
-            pendingByHost.remove(host);
-
-            return ScanResult.builder(host)
-                    .resolveAddress()
-                    .hostUp(false)
-                    .hostUpReason("error: " + e.getMessage())
-                    .startTime(startTime)
-                    .endTime(System.currentTimeMillis())
                     .build();
         });
     }

@@ -2,6 +2,7 @@ package io.xlogistx.nosneak.nmap.scan;
 
 import io.xlogistx.nosneak.nmap.config.NMapConfig;
 import io.xlogistx.nosneak.nmap.util.PortResult;
+import io.xlogistx.nosneak.nmap.util.ScanCache;
 import io.xlogistx.nosneak.nmap.util.ScanResult;
 import io.xlogistx.nosneak.nmap.util.ScanType;
 import org.zoxweb.server.net.NIOSocket;
@@ -107,5 +108,14 @@ public interface ScanEngine extends Closeable {
      */
     default void setNIOSocket(NIOSocket nioSocket) {
         // Default no-op for engines that don't need NIOSocket
+    }
+
+    /**
+     * Set the central ScanCache so this engine's maps are tracked for bulk reset.
+     *
+     * @param scanCache the shared ScanCache instance
+     */
+    default void setScanCache(ScanCache scanCache) {
+        // Default no-op for engines that don't use maps
     }
 }

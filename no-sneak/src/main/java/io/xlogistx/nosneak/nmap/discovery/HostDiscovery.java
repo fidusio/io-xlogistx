@@ -1,6 +1,7 @@
 package io.xlogistx.nosneak.nmap.discovery;
 
 import io.xlogistx.nosneak.nmap.config.NMapConfig;
+import io.xlogistx.nosneak.nmap.util.ScanCache;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.util.*;
@@ -15,14 +16,14 @@ public class HostDiscovery {
     public static final LogWrapper log = new LogWrapper(HostDiscovery.class).setEnabled(false);
 
     private final List<DiscoveryMethod> methods;
-    private final ExecutorService executor;
+    //private final ExecutorService executor;
 
-    public HostDiscovery(ExecutorService executor) {
+    public HostDiscovery(ExecutorService executor, ScanCache scanCache) {
         this.methods = new ArrayList<>();
-        this.executor = executor;
+        //  this.executor = executor;
 
         // Register default methods - ARP first for local networks
-        methods.add(new ARPPing(executor));
+        methods.add(new ARPPing(executor, scanCache));
         methods.add(new TCPPing(executor));
         methods.add(new ICMPPing(executor));
     }

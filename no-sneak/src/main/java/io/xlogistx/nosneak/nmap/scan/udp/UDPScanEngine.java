@@ -1,11 +1,11 @@
 package io.xlogistx.nosneak.nmap.scan.udp;
 
 import io.xlogistx.nosneak.nmap.config.NMapConfig;
-import io.xlogistx.nosneak.nmap.scan.*;
+import io.xlogistx.nosneak.nmap.scan.ScanEngine;
 import io.xlogistx.nosneak.nmap.util.*;
-import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
@@ -15,11 +15,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.*;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,14 +34,15 @@ public class UDPScanEngine implements ScanEngine {
     private NMapConfig config;
     private ExecutorService executor;
     private NIOSocket nioSocket;
+    private ScanCache scanCache;
     private UDPPortScanCallback scanCallback;
     private volatile boolean initialized = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicInteger activeScans = new AtomicInteger(0);
     private Semaphore parallelismLimiter;
 
-    private final ConcurrentMap<String, List<CompletableFuture<PortResult>>> pendingByHost =
-            new ConcurrentHashMap<>();
+    // Track pending results by host — allocated from ScanCache for centralized reset
+    private Map<String, List<CompletableFuture<PortResult>>> pendingByHost = new ConcurrentHashMap<>();
 
 
 
@@ -63,13 +64,19 @@ public class UDPScanEngine implements ScanEngine {
     }
 
     @Override
+    public void setScanCache(ScanCache scanCache) {
+        this.scanCache = scanCache;
+        this.pendingByHost = scanCache.newMap("udp-pending");
+    }
+
+    @Override
     public void setNIOSocket(NIOSocket nioSocket) {
         this.nioSocket = nioSocket;
 
         // Create and register the UDP scan callback
         if (nioSocket != null && scanCallback == null) {
             try {
-                scanCallback = new UDPPortScanCallback();
+                scanCallback = new UDPPortScanCallback(scanCache);
                 scanCallback.setExecutor(nioSocket.getExecutor());
                 nioSocket.addDatagramSocket(scanCallback);
 
@@ -146,9 +153,8 @@ public class UDPScanEngine implements ScanEngine {
             });
 
         } catch (InterruptedException e) {
+            // acquire() threw before we incremented or acquired — don't release/decrement
             Thread.currentThread().interrupt();
-            activeScans.decrementAndGet();
-            parallelismLimiter.release();
             future.complete(PortResult.error(port, "udp", "interrupted"));
         } catch (Exception e) {
             activeScans.decrementAndGet();
@@ -364,15 +370,26 @@ public class UDPScanEngine implements ScanEngine {
                 futures.toArray(new CompletableFuture[0])
         );
 
-        return allOf.thenApply(v -> {
-            long endTime = System.currentTimeMillis();
+        return allOf.handle((v, ex) -> {
+            // Guaranteed cleanup — runs on both success and failure
             pendingByHost.remove(host);
+
+            if (ex != null) {
+                return ScanResult.builder(host)
+                        .resolveAddress()
+                        .hostUp(false)
+                        .hostUpReason("error: " + ex.getMessage())
+                        .startTime(startTime)
+                        .endTime(System.currentTimeMillis())
+                        .build();
+            }
+
+            long endTime = System.currentTimeMillis();
 
             List<PortResult> results = new ArrayList<>();
             boolean hostUp = false;
 
             for (CompletableFuture<PortResult> future : futures) {
-                // Use join() instead of get() - futures are already complete after allOf()
                 try {
                     PortResult result = future.join();
                     if (log.isEnabled()) {
@@ -396,16 +413,6 @@ public class UDPScanEngine implements ScanEngine {
                     .startTime(startTime)
                     .endTime(endTime)
                     .portResults(results)
-                    .build();
-        }).exceptionally(e -> {
-            pendingByHost.remove(host);
-
-            return ScanResult.builder(host)
-                    .resolveAddress()
-                    .hostUp(false)
-                    .hostUpReason("error: " + e.getMessage())
-                    .startTime(startTime)
-                    .endTime(System.currentTimeMillis())
                     .build();
         });
     }

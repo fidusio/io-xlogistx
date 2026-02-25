@@ -1,8 +1,9 @@
 package io.xlogistx.nosneak.nmap.scan.udp;
 
+import io.xlogistx.nosneak.nmap.util.PacketDataConst;
 import io.xlogistx.nosneak.nmap.util.PortResult;
 import io.xlogistx.nosneak.nmap.util.PortState;
-import io.xlogistx.nosneak.nmap.util.PacketDataConst;
+import io.xlogistx.nosneak.nmap.util.ScanCache;
 import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.DataPacket;
@@ -15,7 +16,10 @@ import java.net.InetSocketAddress;
 import java.net.PortUnreachableException;
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -32,14 +36,22 @@ public class UDPPortScanCallback extends UDPSessionCallback {
     public static final LogWrapper log = new LogWrapper(UDPPortScanCallback.class).setEnabled(false);
     private static final int BUFFER_SIZE = 2048;
 
-    // Track pending scans by remote address
-    private final Map<InetSocketAddress, PendingScan> pendingScans = new ConcurrentHashMap<>();
+    // Track pending scans by remote address — allocated from ScanCache for centralized reset
+    private final Map<InetSocketAddress, PendingScan> pendingScans;
 
     // Scheduler for timeout handling
     private final ScheduledExecutorService timeoutScheduler;
     private final boolean ownScheduler;
 
-
+    /**
+     * Create a UDP port scan callback with a ScanCache for centralized map management.
+     */
+    public UDPPortScanCallback(ScanCache scanCache) {
+        super(null, 0, BUFFER_SIZE); // Bind to ephemeral port
+        this.pendingScans = scanCache != null ? scanCache.newMap("udp-scans") : new ConcurrentHashMap<>();
+        this.timeoutScheduler = TaskUtil.defaultTaskScheduler();
+        this.ownScheduler = false;
+    }
 
     /**
      * Create a UDP port scan callback.
@@ -47,6 +59,7 @@ public class UDPPortScanCallback extends UDPSessionCallback {
      */
     public UDPPortScanCallback(ScheduledExecutorService scheduler) {
         super(null, 0, BUFFER_SIZE); // Bind to ephemeral port
+        this.pendingScans = new ConcurrentHashMap<>();
         this.timeoutScheduler = scheduler;
         this.ownScheduler = false;
     }
@@ -56,16 +69,9 @@ public class UDPPortScanCallback extends UDPSessionCallback {
      */
     public UDPPortScanCallback() {
         super(null, 0, BUFFER_SIZE); // Bind to ephemeral port
-//        this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-//            Thread t = new Thread(r, "UDPScan-Timeout");
-//            t.setDaemon(true);
-//            return t;
-//        });
-//        this.ownScheduler = true;
-
-
+        this.pendingScans = new ConcurrentHashMap<>();
         this.timeoutScheduler = TaskUtil.defaultTaskScheduler();
-        this.ownScheduler = false ;
+        this.ownScheduler = false;
     }
 
     /**
@@ -136,6 +142,16 @@ public class UDPPortScanCallback extends UDPSessionCallback {
                         .responseTime(responseTime)
                         .build());
             }
+        } catch (RuntimeException e) {
+            // Catch-all: e.g. RejectedExecutionException from scheduler.schedule()
+            // Without this, the pendingScans entry is orphaned forever
+            pendingScans.remove(target);
+            long responseTime = System.currentTimeMillis() - startTime;
+            resultConsumer.accept(PortResult.builder(port, "udp")
+                    .state(PortState.OPEN_FILTERED)
+                    .reason("error: " + e.getMessage())
+                    .responseTime(responseTime)
+                    .build());
         }
     }
 

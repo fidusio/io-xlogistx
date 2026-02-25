@@ -9,6 +9,7 @@ import io.xlogistx.nosneak.nmap.discovery.HostDiscovery;
 import io.xlogistx.nosneak.nmap.output.OutputFormat;
 import io.xlogistx.nosneak.nmap.output.ScanReport;
 import io.xlogistx.nosneak.nmap.scan.ScanEngine;
+import io.xlogistx.nosneak.nmap.util.ScanCache;
 import io.xlogistx.nosneak.nmap.util.ScanResult;
 import io.xlogistx.nosneak.nmap.util.ScanType;
 import org.zoxweb.server.logging.LogWrapper;
@@ -37,6 +38,7 @@ public class NMapScanner implements Closeable {
     private final Map<ScanType, ScanEngine> engines;
     private final ExecutorService executor;
     private final HostDiscovery hostDiscovery;
+    private final ScanCache scanCache = new ScanCache();
     private NIOSocket nioSocket;
     private volatile boolean running = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -50,7 +52,7 @@ public class NMapScanner implements Closeable {
         this.engines = new EnumMap<>(ScanType.class);
         this.executor = executor;
         this.nioSocket = nioSocket;
-        this.hostDiscovery = new HostDiscovery(executor);
+        this.hostDiscovery = new HostDiscovery(executor, scanCache);
     }
 
     /**
@@ -102,6 +104,7 @@ public class NMapScanner implements Closeable {
      * efficient callback-based scanning.
      */
     public NMapScanner registerEngine(ScanEngine engine) {
+        engine.setScanCache(scanCache);
         engine.init(TaskUtil.defaultTaskProcessor(), config);
         // Pass NIOSocket to engine if available
         if (nioSocket != null) {
@@ -371,6 +374,13 @@ public class NMapScanner implements Closeable {
     }
 
     /**
+     * Reset all tracked maps in one shot.
+     */
+    public void resetCaches() {
+        scanCache.reset();
+    }
+
+    /**
      * Check if a scan is currently running
      */
     public boolean isRunning() {
@@ -411,9 +421,10 @@ public class NMapScanner implements Closeable {
 
     @Override
     public void close() {
-        if (!closed.getAndSet(true))
+        if (!closed.getAndSet(true)) {
             stop();
-
+            resetCaches();
+        }
     }
 
     /**

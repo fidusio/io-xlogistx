@@ -1,6 +1,7 @@
 package io.xlogistx.nosneak.nmap.discovery;
 
 import io.xlogistx.nosneak.nmap.config.NMapConfig;
+import io.xlogistx.nosneak.nmap.util.ScanCache;
 import org.zoxweb.server.logging.LogWrapper;
 
 import java.io.BufferedReader;
@@ -22,14 +23,11 @@ public class ARPPing implements DiscoveryMethod {
     public static final LogWrapper log = new LogWrapper(ARPPing.class).setEnabled(false);
 
     private final ExecutorService executor;
+    private final Map<String, String> arpCache;
 
-    // Cache of known hosts from ARP table: IP -> MAC address
-    private static final Map<String, String> arpCache = new HashMap<>();
-    private static long lastArpRefresh = 0;
-    private static final long ARP_CACHE_TTL = 5000; // 5 seconds - refresh more often during scanning
-
-    public ARPPing(ExecutorService executor) {
+    public ARPPing(ExecutorService executor, ScanCache scanCache) {
         this.executor = executor;
+        this.arpCache = scanCache.newMap("arp-cache");
     }
 
     @Override
@@ -65,7 +63,6 @@ public class ARPPing implements DiscoveryMethod {
                 // Step 2: Force refresh ARP cache after triggering
                 // Small delay to allow ARP to complete
                 Thread.sleep(50);
-                lastArpRefresh = 0; // Force refresh
                 refreshArpCache();
 
                 InetAddress addr = InetAddress.getByName(host);
@@ -143,14 +140,8 @@ public class ARPPing implements DiscoveryMethod {
     /**
      * Refresh the ARP cache from the system.
      */
-    private static synchronized void refreshArpCache() {
-        long now = System.currentTimeMillis();
-        if (now - lastArpRefresh < ARP_CACHE_TTL) {
-            return; // Cache is still fresh
-        }
-
+    private synchronized void refreshArpCache() {
         arpCache.clear();
-        lastArpRefresh = now;
 
         try {
             ProcessBuilder pb;
@@ -212,16 +203,9 @@ public class ARPPing implements DiscoveryMethod {
     /**
      * Get all known hosts from ARP cache (IP -> MAC address).
      */
-    public static Map<String, String> getArpCacheHosts() {
+    public Map<String, String> getArpCacheHosts() {
         refreshArpCache();
         return new HashMap<>(arpCache);
-    }
-
-    /**
-     * Force refresh the ARP cache.
-     */
-    public static void clearArpCache() {
-        lastArpRefresh = 0;
     }
 
     /**
@@ -271,7 +255,6 @@ public class ARPPing implements DiscoveryMethod {
         }
 
         // Force refresh cache after batch trigger
-        lastArpRefresh = 0;
         refreshArpCache();
     }
 
