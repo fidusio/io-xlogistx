@@ -4,7 +4,6 @@ import io.xlogistx.nosneak.nmap.config.NMapConfig;
 import io.xlogistx.nosneak.nmap.scan.*;
 import io.xlogistx.nosneak.nmap.util.*;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.net.IPAddress;
 
@@ -88,14 +87,7 @@ public class TCPConnectScanEngine implements ScanEngine {
         }
 
         CompletableFuture<PortResult> future = new CompletableFuture<>();
-
-        // Use NIOSocket if available, otherwise fall back to blocking approach
-        if (nioSocket != null) {
-            scanPortWithNIOSocket(host, port, future);
-        } else {
-            scanPortBlocking(host, port, future);
-        }
-
+        scanPortWithNIOSocket(host, port, future);
         return future;
     }
 
@@ -143,127 +135,6 @@ public class TCPConnectScanEngine implements ScanEngine {
 
             future.complete(PortResult.error(port, "tcp", e.getMessage()));
         }
-    }
-
-    /**
-     * Fallback blocking scan for when NIOSocket is not available.
-     */
-    private void scanPortBlocking(String host, int port, CompletableFuture<PortResult> future) {
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                parallelismLimiter.acquire();
-                activeScans.incrementAndGet();
-                try {
-                    return performBlockingTcpConnect(host, port);
-                } finally {
-                    activeScans.decrementAndGet();
-                    parallelismLimiter.release();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return PortResult.error(port, "tcp", "interrupted");
-            }
-        }, executor).thenAccept(future::complete);
-    }
-
-    /**
-     * Blocking TCP connect for fallback mode.
-     */
-    private PortResult performBlockingTcpConnect(String host, int port) {
-        long startTime = System.currentTimeMillis();
-        int timeoutMs = config.getTimeoutSec() * 1000;
-        if (timeoutMs <= 0) {
-            timeoutMs = 5000;
-        }
-
-        java.nio.channels.SocketChannel channel = null;
-        java.nio.channels.Selector selector = null;
-
-        try {
-            channel = java.nio.channels.SocketChannel.open();
-            channel.configureBlocking(false);
-            selector = java.nio.channels.Selector.open();
-
-            java.net.InetSocketAddress address = new java.net.InetSocketAddress(host, port);
-
-            if (!channel.connect(address)) {
-                channel.register(selector, java.nio.channels.SelectionKey.OP_CONNECT);
-                int readyCount = selector.select(timeoutMs);
-
-                if (readyCount == 0) {
-                    long responseTime = System.currentTimeMillis() - startTime;
-                    return PortResult.builder(port, "tcp")
-                            .state(PortState.FILTERED)
-                            .reason("no-response")
-                            .responseTime(responseTime)
-                            .build();
-                }
-
-                for (java.nio.channels.SelectionKey key : selector.selectedKeys()) {
-                    if (key.isConnectable()) {
-                        try {
-                            if (channel.finishConnect()) {
-                                long responseTime = System.currentTimeMillis() - startTime;
-                                return PortResult.builder(port, "tcp")
-                                        .state(PortState.OPEN)
-                                        .reason("syn-ack")
-                                        .responseTime(responseTime)
-                                        .build();
-                            }
-                        } catch (java.io.IOException e) {
-                            long responseTime = System.currentTimeMillis() - startTime;
-                            return createClosedResult(port, responseTime, e);
-                        }
-                    }
-                }
-            } else {
-                long responseTime = System.currentTimeMillis() - startTime;
-                return PortResult.builder(port, "tcp")
-                        .state(PortState.OPEN)
-                        .reason("syn-ack")
-                        .responseTime(responseTime)
-                        .build();
-            }
-
-            long responseTime = System.currentTimeMillis() - startTime;
-            return PortResult.builder(port, "tcp")
-                    .state(PortState.UNKNOWN)
-                    .reason("unknown")
-                    .responseTime(responseTime)
-                    .build();
-
-        } catch (java.net.ConnectException e) {
-            long responseTime = System.currentTimeMillis() - startTime;
-            return createClosedResult(port, responseTime, e);
-        } catch (java.io.IOException e) {
-            long responseTime = System.currentTimeMillis() - startTime;
-            String reason = e.getMessage();
-            if (reason != null && (reason.toLowerCase().contains("refused") ||
-                    reason.toLowerCase().contains("reset"))) {
-                return createClosedResult(port, responseTime, e);
-            }
-            return PortResult.builder(port, "tcp")
-                    .state(PortState.FILTERED)
-                    .reason("error: " + reason)
-                    .responseTime(responseTime)
-                    .build();
-        } finally {
-            SharedIOUtil.close(selector, channel);
-        }
-    }
-
-    private PortResult createClosedResult(int port, long responseTime, Exception e) {
-        String reason = "conn-refused";
-        if (e != null && e.getMessage() != null) {
-            if (e.getMessage().toLowerCase().contains("reset")) {
-                reason = "reset";
-            }
-        }
-        return PortResult.builder(port, "tcp")
-                .state(PortState.CLOSED)
-                .reason(reason)
-                .responseTime(responseTime)
-                .build();
     }
 
     @Override

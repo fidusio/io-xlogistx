@@ -36,7 +36,7 @@ public class NMapScanner implements Closeable {
 
     private final NMapConfig config;
     private final Map<ScanType, ScanEngine> engines;
-    private final ExecutorService executor;
+    //private final ExecutorService executor;
     private final HostDiscovery hostDiscovery;
     private final ScanCache scanCache = new ScanCache();
     private NIOSocket nioSocket;
@@ -50,7 +50,7 @@ public class NMapScanner implements Closeable {
     private NMapScanner(ExecutorService executor, NMapConfig config, NIOSocket nioSocket) {
         this.config = config;
         this.engines = new EnumMap<>(ScanType.class);
-        this.executor = executor;
+        //this.executor = executor;
         this.nioSocket = nioSocket;
         this.hostDiscovery = new HostDiscovery(executor, scanCache);
     }

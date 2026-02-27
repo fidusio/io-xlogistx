@@ -6,15 +6,8 @@ import io.xlogistx.nosneak.nmap.util.*;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.io.SharedIOUtil;
-import org.zoxweb.shared.util.Const;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.PortUnreachableException;
-import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +26,7 @@ public class UDPScanEngine implements ScanEngine {
 
     private NMapConfig config;
     private ExecutorService executor;
-    private NIOSocket nioSocket;
+    //private NIOSocket nioSocket;
     private ScanCache scanCache;
     private UDPPortScanCallback scanCallback;
     private volatile boolean initialized = false;
@@ -71,7 +64,7 @@ public class UDPScanEngine implements ScanEngine {
 
     @Override
     public void setNIOSocket(NIOSocket nioSocket) {
-        this.nioSocket = nioSocket;
+        //this.nioSocket = nioSocket;
 
         // Create and register the UDP scan callback
         if (nioSocket != null && scanCallback == null) {
@@ -118,14 +111,7 @@ public class UDPScanEngine implements ScanEngine {
         }
 
         CompletableFuture<PortResult> future = new CompletableFuture<>();
-
-        // Use NIOSocket callback if available, otherwise fall back to blocking approach
-        if (nioSocket != null && scanCallback != null) {
-            scanPortWithNIOSocket(host, port, future);
-        } else {
-            scanPortBlocking(host, port, future);
-        }
-
+        scanPortWithNIOSocket(host, port, future);
         return future;
     }
 
@@ -165,167 +151,6 @@ public class UDPScanEngine implements ScanEngine {
             }
 
             future.complete(PortResult.error(port, "udp", e.getMessage()));
-        }
-    }
-
-    /**
-     * Fallback blocking scan for when NIOSocket is not available.
-     */
-    private void scanPortBlocking(String host, int port, CompletableFuture<PortResult> future) {
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                parallelismLimiter.acquire();
-                activeScans.incrementAndGet();
-                try {
-                    return performBlockingUdpScan(host, port);
-                } finally {
-                    activeScans.decrementAndGet();
-                    parallelismLimiter.release();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return PortResult.error(port, "udp", "interrupted");
-            }
-        }, executor).thenAccept(future::complete);
-    }
-
-    /**
-     * Blocking UDP scan for fallback mode.
-     */
-    private PortResult performBlockingUdpScan(String host, int port) {
-        long startTime = System.currentTimeMillis();
-
-        int timeoutMs = config.getTimeoutSec() * 1000;
-        if (timeoutMs <= 0) {
-            timeoutMs = 10000; // 10 second default for UDP
-        }
-
-        DatagramChannel channel = null;
-        Selector selector = null;
-
-        try {
-            channel = DatagramChannel.open();
-            channel.configureBlocking(false);
-
-            InetSocketAddress address = new InetSocketAddress(host, port);
-            channel.connect(address);
-
-            selector = Selector.open();
-
-            // Send probe packet
-            byte[] probe = getProbeForPort(port);
-            if (probe.length > 0) {
-                ByteBuffer sendBuffer = ByteBuffer.wrap(probe);
-                channel.write(sendBuffer);
-            } else {
-                // Send empty packet
-                ByteBuffer sendBuffer = ByteBuffer.allocate(1);
-                sendBuffer.put((byte) 0);
-                sendBuffer.flip();
-                channel.write(sendBuffer);
-            }
-
-            // Wait for response
-            channel.register(selector, SelectionKey.OP_READ);
-            int readyCount = selector.select(timeoutMs);
-
-            if (readyCount == 0) {
-                // No response - could be open or filtered
-                long responseTime = System.currentTimeMillis() - startTime;
-                return PortResult.builder(port, "udp")
-                        .state(PortState.OPEN_FILTERED)
-                        .reason("no-response")
-                        .responseTime(responseTime)
-                        .build();
-            }
-
-            Set<SelectionKey> keys = selector.selectedKeys();
-            Iterator<SelectionKey> iter = keys.iterator();
-
-            while (iter.hasNext()) {
-                SelectionKey key = iter.next();
-                iter.remove();
-
-                if (key.isReadable()) {
-                    ByteBuffer buffer = ByteBuffer.allocate(1024);
-                    try {
-                        int bytesRead = channel.read(buffer);
-                        if (bytesRead > 0) {
-                            // Got response - port is open
-                            long responseTime = System.currentTimeMillis() - startTime;
-                            buffer.flip();
-                            byte[] data = new byte[buffer.remaining()];
-                            buffer.get(data);
-
-                            return PortResult.builder(port, "udp")
-                                    .state(PortState.OPEN)
-                                    .reason("udp-response")
-                                    .responseTime(responseTime)
-                                    .banner(new String(data).trim())
-                                    .build();
-                        }
-                    } catch (PortUnreachableException e) {
-                        // ICMP port unreachable - port is closed
-                        long responseTime = System.currentTimeMillis() - startTime;
-                        return PortResult.builder(port, "udp")
-                                .state(PortState.CLOSED)
-                                .reason("port-unreach")
-                                .responseTime(responseTime)
-                                .build();
-                    }
-                }
-            }
-
-            // No response after selection
-            long responseTime = System.currentTimeMillis() - startTime;
-            return PortResult.builder(port, "udp")
-                    .state(PortState.OPEN_FILTERED)
-                    .reason("no-response")
-                    .responseTime(responseTime)
-                    .build();
-
-        } catch (PortUnreachableException e) {
-            // ICMP port unreachable - port is closed
-            long responseTime = System.currentTimeMillis() - startTime;
-            return PortResult.builder(port, "udp")
-                    .state(PortState.CLOSED)
-                    .reason("port-unreach")
-                    .responseTime(responseTime)
-                    .build();
-        } catch (IOException e) {
-            long responseTime = System.currentTimeMillis() - startTime;
-            String reason = e.getMessage();
-
-            if (reason != null && reason.toLowerCase().contains("unreachable")) {
-                return PortResult.builder(port, "udp")
-                        .state(PortState.CLOSED)
-                        .reason("port-unreach")
-                        .responseTime(responseTime)
-                        .build();
-            }
-
-            return PortResult.builder(port, "udp")
-                    .state(PortState.OPEN_FILTERED)
-                    .reason("error: " + reason)
-                    .responseTime(responseTime)
-                    .build();
-        } finally {
-            SharedIOUtil.close(selector, channel);
-        }
-    }
-
-    /**
-     * Get appropriate probe payload for the port.
-     */
-    private byte[] getProbeForPort(int port) {
-        switch (port) {
-            case 53:    // DNS
-                return PacketDataConst.DNS_PROBE;
-            case 161:   // SNMP
-            case 162:
-                return PacketDataConst.SNMP_PROBE;
-            default:
-                return Const.EMPTY_BYTE_ARRAY;
         }
     }
 
