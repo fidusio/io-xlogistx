@@ -127,7 +127,7 @@ public class HTTPFileServiceHandler
     }
 
     public HTTPFileServiceHandler setBaseFolder(String baseFolder) throws IllegalArgumentException {
-        baseFolder = SharedStringUtil.trimOrNull(baseFolder);
+        baseFolder = SUS.trimOrNull(baseFolder);
         SUS.checkIfNulls("Null baseDir ", baseFolder);
         File folder = new File(baseFolder);
         if (!folder.exists() || !folder.isDirectory() || !folder.canRead())

@@ -39,7 +39,7 @@ public class EndPointsManager {
     }
 
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodContainer mh) {
-        uri = SharedStringUtil.toTrimmedLowerCase(uri);
+        uri = SUS.toTrimmedLowerCase(uri);
         SUS.checkIfNulls("Mapping parameters can't be null", uri, hep);
         EndPointMeta epm = new EndPointMeta(hep, mh);
         SecUtil.applyAndCacheSecurityProfile(mh.methodAnnotations.method, null);
@@ -82,7 +82,7 @@ public class EndPointsManager {
     }
 
     public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep) {
-        baseURI = SharedStringUtil.trimOrNull(baseURI);
+        baseURI = SUS.trimOrNull(baseURI);
         if (baseURI != null) {
             String[] paths = hep.getPaths();
             for (int i = 0; i < paths.length; i++) {
@@ -94,7 +94,7 @@ public class EndPointsManager {
     }
 
     public static String updatePath(String baseURI, String path) {
-        baseURI = SharedStringUtil.trimOrNull(baseURI);
+        baseURI = SUS.trimOrNull(baseURI);
         if (baseURI != null) {
             path = SharedStringUtil.concat(baseURI, path, "/");
         }

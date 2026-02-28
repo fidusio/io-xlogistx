@@ -1,5 +1,6 @@
 package io.xlogistx.shared.util;
 
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 /**
@@ -98,7 +99,7 @@ public final class XXURI {
   }
 
   public void setPreURI(String uri) {
-    preURI = SharedStringUtil.trimOrEmpty(uri);
+    preURI = SUS.trimOrEmpty(uri);
   }
 
   public String getPreURI() {

@@ -128,7 +128,7 @@ public class EmailRecipient
         String[] parsed = email.split(":");
 
         for (int i = 0; i < parsed.length; i++) {
-            parsed[i] = SharedStringUtil.trimOrNull(parsed[i]);
+            parsed[i] = SUS.trimOrNull(parsed[i]);
         }
 
         if (parsed.length == 1)

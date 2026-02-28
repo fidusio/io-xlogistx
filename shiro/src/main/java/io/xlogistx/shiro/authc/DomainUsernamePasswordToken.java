@@ -17,6 +17,7 @@ package io.xlogistx.shiro.authc;
 
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.zoxweb.shared.util.AppID;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedStringUtil;
 import org.zoxweb.shared.util.SubjectID;
 
@@ -58,7 +59,7 @@ public class DomainUsernamePasswordToken
 
 	public void setDomainID(String domainID)
     {
-		this.domain_id = SharedStringUtil.trimOrEmpty(SharedStringUtil.toLowerCase(domainID));
+		this.domain_id = SUS.trimOrEmpty(SharedStringUtil.toLowerCase(domainID));
 	}
 	
 	public String getAppID()
@@ -68,7 +69,7 @@ public class DomainUsernamePasswordToken
 
 	public void setAppID(String applicationID)
     {
-		this.app_id = SharedStringUtil.trimOrEmpty(SharedStringUtil.toLowerCase(applicationID));
+		this.app_id = SUS.trimOrEmpty(SharedStringUtil.toLowerCase(applicationID));
 	}
 
 	public String getSubjectGUID()

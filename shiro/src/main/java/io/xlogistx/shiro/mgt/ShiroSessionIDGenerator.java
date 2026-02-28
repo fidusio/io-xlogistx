@@ -16,7 +16,7 @@ public class ShiroSessionIDGenerator
 
     @Override
     public Serializable generateId(Session session) {
-        return SUS.bytesToHex(SecUtil.generateRandomBytes(SECURE_RANDOM, NUM_BYTES));
+        return SUS.fastBytesToHex(SecUtil.generateRandomBytes(SECURE_RANDOM, NUM_BYTES));
     }
 
 }

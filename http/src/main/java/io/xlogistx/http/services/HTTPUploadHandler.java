@@ -242,7 +242,7 @@ public class HTTPUploadHandler
     protected void refreshProperties() {
 
         String baseFolderFilename = getProperties().getValue("base_folder");
-        baseFolderFilename = SharedStringUtil.trimOrNull(baseFolderFilename);
+        baseFolderFilename = SUS.trimOrNull(baseFolderFilename);
         if (baseFolderFilename != null) {
             File folder = new File(baseFolderFilename);
             if (folder.exists() && folder.isDirectory() && folder.canRead())
