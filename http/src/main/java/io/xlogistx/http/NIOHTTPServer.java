@@ -97,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.3");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.5");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -169,7 +169,7 @@ public class NIOHTTPServer
                 throws IOException {
             if (urlHostRedirect != null) {
                 String  uri = hph.getRequest().getURI();
-                System.out.println(uri);
+//                System.out.println(uri);
 
                 if (uri != null && redirectExclusionFilter != null && redirectExclusionFilter.match(uri)) {
                     return false;

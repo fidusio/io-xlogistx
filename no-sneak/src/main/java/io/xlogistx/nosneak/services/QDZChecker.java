@@ -89,7 +89,7 @@ public class QDZChecker
     protected void refreshProperties() {
         try {
             if (getProperties().getNV("start-count-at") != null) {
-                long startCountingAt = (long)getProperties().getValueAsLong("start-count-at");
+                long startCountingAt = (long) getProperties().getValueAsLong("start-count-at");
                 if (startCountingAt > 0)
                     scanCount.set(startCountingAt);
             }

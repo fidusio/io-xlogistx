@@ -18,12 +18,11 @@ import java.nio.channels.SocketChannel;
  * Unlike UDP, TCP DNS messages are prefixed with a 2-byte length field.
  */
 public class DNSTCPNIOProtocol extends ProtocolHandler {
-    public static final int DNS_BUFFER_SIZE = 65535; // TCP DNS can be larger than UDP
     public static final LogWrapper log = new LogWrapper(DNSTCPNIOProtocol.class).setEnabled(false);
 
     private final ByteBuffer lengthBuffer = ByteBuffer.allocate(2);
     private ByteBuffer messageBuffer = null;
-//    private SocketChannel clientChannel;
+
 
     public DNSTCPNIOProtocol() {
         super(true);
@@ -88,7 +87,6 @@ public class DNSTCPNIOProtocol extends ProtocolHandler {
             SharedIOUtil.close(this);
         }
     }
-
 
 
     private void processAndRespond(byte[] data, SocketChannel channel) throws IOException {
