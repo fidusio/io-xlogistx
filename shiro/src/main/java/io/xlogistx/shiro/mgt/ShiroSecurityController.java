@@ -310,7 +310,7 @@ public class ShiroSecurityController
             if (permissions != null && permissions.length > 0) {
                 boolean checkStatus = false;
                 for (CRUD permission : permissions) {
-                    String pattern = SharedUtil.toCanonicalID(':', "nventity", permission, nve.getGUID());
+                    String pattern = SUS.toCanonicalID(':', "nventity", permission, nve.getGUID());
                     checkStatus = ShiroUtil.isPermitted(pattern);
                     if ((checkStatus && Const.LogicalOperator.OR == lo) ||
                             (!checkStatus && Const.LogicalOperator.AND == lo)) {
@@ -343,7 +343,7 @@ public class ShiroSecurityController
                 if (permissions != null && permissions.length > 0) {
 
                     for (CRUD permission : permissions) {
-                        if (!ShiroUtil.isPermitted(SharedUtil.toCanonicalID(':', "nventity", permission, nveRefID))) {
+                        if (!ShiroUtil.isPermitted(SUS.toCanonicalID(':', "nventity", permission, nveRefID))) {
                             return false;
                         }
                     }

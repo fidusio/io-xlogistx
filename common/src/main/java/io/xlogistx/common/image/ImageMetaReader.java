@@ -11,8 +11,8 @@ import org.w3c.dom.Node;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.util.ParamUtil;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -75,7 +75,7 @@ public class ImageMetaReader {
                 for (Tag tag : directory.getTags())
                 {
                     //System.out.println(tag);
-                    System.out.println(SharedUtil.toCanonicalID(',', tag.getDirectoryName(), tag.getTagName(), tag.getDescription()));
+                    System.out.println(SUS.toCanonicalID(',', tag.getDirectoryName(), tag.getTagName(), tag.getDescription()));
                 }
 
                 // Print any errors encountered

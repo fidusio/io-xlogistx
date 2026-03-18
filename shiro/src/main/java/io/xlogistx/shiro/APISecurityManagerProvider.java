@@ -470,7 +470,7 @@ public class APISecurityManagerProvider
 				boolean checkStatus = false;
 				for(CRUD permission : permissions)
 				{
-					String pattern = SharedUtil.toCanonicalID(':', "nventity", permission, nve.getReferenceID());
+					String pattern = SUS.toCanonicalID(':', "nventity", permission, nve.getReferenceID());
 					checkStatus = ShiroUtil.isPermitted(pattern);
 					if ((checkStatus && LogicalOperator.OR == lo) ||
 						(!checkStatus && LogicalOperator.AND == lo))
@@ -509,7 +509,7 @@ public class APISecurityManagerProvider
 	
 					for(CRUD permission : permissions)
 					{
-						if (!ShiroUtil.isPermitted(SharedUtil.toCanonicalID(':', "nventity", permission, nveRefID)))
+						if (!ShiroUtil.isPermitted(SUS.toCanonicalID(':', "nventity", permission, nveRefID)))
 						{
 							return false;
 						}
@@ -562,7 +562,7 @@ public class APISecurityManagerProvider
 
 				for(CRUD permission : permissions)
 				{
-					ShiroUtil.checkPermissions(SharedUtil.toCanonicalID(':', "nventity", permission, nveRefID));
+					ShiroUtil.checkPermissions(SUS.toCanonicalID(':', "nventity", permission, nveRefID));
 				}
 				
 				return nveUserID;
@@ -596,7 +596,7 @@ public class APISecurityManagerProvider
 
 				for(CRUD permission : permissions)
 				{
-					ShiroUtil.checkPermissions(SharedUtil.toCanonicalID(':', "nventity", permission, nveRefID));
+					ShiroUtil.checkPermissions(SUS.toCanonicalID(':', "nventity", permission, nveRefID));
 				}
 				
 				return userID;

@@ -6,7 +6,6 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.RateCounter;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedUtil;
 
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
@@ -367,14 +366,14 @@ public class AudioUtil
     public static String toString(Clip c)
     {
 
-        return c == null ? "null" : SharedUtil.toCanonicalID(',', c.getFormat(),
+        return c == null ? "null" : SUS.toCanonicalID(',', c.getFormat(),
                 c.getFrameLength(), c.getLineInfo()) ;
     }
 
     public static String toString(Mixer.Info mi)
     {
 
-        return mi == null ? "null" : SharedUtil.toCanonicalID(',', mi.getName(),
+        return mi == null ? "null" : SUS.toCanonicalID(',', mi.getName(),
                 mi.getDescription(), mi.getVersion(), mi.getVendor()) ;
     }
 

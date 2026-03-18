@@ -121,7 +121,7 @@ public class PKIEncryption {
         selfV.doPhase(kp.getPublic(), true);
 
         SecretKey keySelf = selfV.generateSecret("TlsPremasterSecret");
-        System.out.println("key:" + SharedUtil.toCanonicalID(',', keySelf.getAlgorithm(), keySelf.getEncoded().length, keySelf.getFormat(), SharedStringUtil.bytesToHex(keySelf.getEncoded())));
+        System.out.println("key:" + SUS.toCanonicalID(',', keySelf.getAlgorithm(), keySelf.getEncoded().length, keySelf.getFormat(), SharedStringUtil.bytesToHex(keySelf.getEncoded())));
 
         EncapsulatedKey ecd = CryptoUtil.createEncryptedKey(keySelf.getEncoded());
         System.out.println(GSONUtil.toJSON(ecd, true));

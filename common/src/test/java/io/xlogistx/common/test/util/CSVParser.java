@@ -3,7 +3,6 @@ package io.xlogistx.common.test.util;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedUtil;
 
 import java.io.FileReader;
 import java.io.Reader;
@@ -26,7 +25,7 @@ public class CSVParser {
                 if(SUS.isEmpty(email))
                     empty++;
                 else
-                    System.out.println(SharedUtil.toCanonicalID(',', record.get("First Name"), record.get("Last Name"), email));
+                    System.out.println(SUS.toCanonicalID(',', record.get("First Name"), record.get("Last Name"), email));
                 total++;
             }
             System.out.println("Total: " + total + " Empty: " + empty);
