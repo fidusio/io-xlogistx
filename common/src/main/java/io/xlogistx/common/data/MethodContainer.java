@@ -6,7 +6,6 @@ import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.util.SUS;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 
@@ -15,7 +14,7 @@ public class MethodContainer {
     public final ReflectionUtil.MethodAnnotations methodAnnotations;
     public final ResourceSecurity resourceSec;
     private final SecureInvoker secureMethodInvoker;
-    private static final Map<Class<?>, Object> instanceCache = new LinkedHashMap<>();
+    //private static final Map<Class<?>, Object> instanceCache = new LinkedHashMap<>();
 
 
     public MethodContainer(Class<?> clazz, ReflectionUtil.MethodAnnotations methodAnnotations, ResourceSecurity resourceSec, SecureInvoker secureInvocation) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
@@ -33,11 +32,11 @@ public class MethodContainer {
         if (!ReflectionUtil.hasMethod(instance, methodAnnotations.method))
             throw new IllegalArgumentException("Method not supported by instance " + methodAnnotations.method);
         // cache it first
-        synchronized (instanceCache) {
-            instanceCache.putIfAbsent(instance.getClass(), instance);
-        }
+//        synchronized (instanceCache) {
+//            instanceCache.putIfAbsent(instance.getClass(), instance);
+//        }
         // always use the cached value
-        this.instance = instanceCache.get(instance.getClass());
+        this.instance = instance;//instanceCache.get(instance.getClass());
         this.methodAnnotations = methodAnnotations;
         this.resourceSec = resourceSec;
         this.secureMethodInvoker = secureInvocation;
@@ -56,12 +55,14 @@ public class MethodContainer {
 
     public static Object createInstance(Class<?> clazz) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         SUS.checkIfNulls("Null clazz", clazz);
-        synchronized (instanceCache) {
-            if (instanceCache.get(clazz) == null)
-                instanceCache.put(clazz, clazz.getDeclaredConstructor().newInstance());
+//        synchronized (instanceCache) {
+//            if (instanceCache.get(clazz) == null)
+//                instanceCache.put(clazz, clazz.getDeclaredConstructor().newInstance());
+//
+//            return instanceCache.get(clazz);
+//        }
 
-            return instanceCache.get(clazz);
-        }
+        return clazz.getDeclaredConstructor().newInstance();
     }
 
     public String toString() {

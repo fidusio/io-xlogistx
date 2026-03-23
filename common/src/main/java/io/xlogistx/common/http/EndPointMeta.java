@@ -11,4 +11,12 @@ public class EndPointMeta {
         this.httpEndPoint = hep;
         this.methodContainer = mh;
     }
+
+    @Override
+    public String toString() {
+        return "EndPointMeta{" +
+                "httpEndPoint=" + httpEndPoint +
+                ", methodContainer=" + methodContainer +
+                '}';
+    }
 }

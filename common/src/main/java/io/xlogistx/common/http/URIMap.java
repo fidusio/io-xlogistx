@@ -130,5 +130,9 @@ public class URIMap<V> {
         return str;
     }
 
+    public V[] allResults(V[] array) {
+        return uriMap.values().toArray(array);
+    }
+
 
 }

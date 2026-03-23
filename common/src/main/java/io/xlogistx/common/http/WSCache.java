@@ -165,8 +165,6 @@ public class WSCache {
     public WSCache(Map<String, Method> map) {
         this.map = map;
         mapData();
-
-
     }
 
 //    private static <K,V> List<V> match(K key, Set<Map.Entry<K, V>> set, Matcher<K> matcher)

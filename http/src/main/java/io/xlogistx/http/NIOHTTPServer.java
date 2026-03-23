@@ -97,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.6");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.1.8");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -475,10 +475,13 @@ public class NIOHTTPServer
                         logger.getLogger().info("" + hph.getRequest(true).getHeaders());
                     }
 
-                    URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(hph
-                            .getRequest(true)
-                            .getURI());
-                    if (logger.isEnabled()) logger.getLogger().info("" + epm.result.httpEndPoint);
+                    String uri = hph.getRequest(true).getURI();
+                    URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(uri);
+
+                    logger.getLogger().info("uri: " + uri);
+//                    if (logger.isEnabled())
+                        logger.getLogger().info("" + epm.result.methodContainer);
+
 
                     if (epm != null) {
                         if (logger.isEnabled())

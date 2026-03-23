@@ -57,7 +57,8 @@ public class Ping
                     .build("jdk-version", System.getProperty("java.version"))
                     .build("vm-name", System.getProperty("java.vm.name"))
                     .build("vm-vendor-version", System.getProperty("java.vendor.version"))
-                    .build("uptime", Const.TimeInMillis.toString(RuntimeUtil.vmMXBean().getUptime()));
+                    .build("uptime", Const.TimeInMillis.toString(RuntimeUtil.vmMXBean().getUptime()))
+                    .build(new NVLong("nvbase-count", SharedMetaUtil.SINGLETON.creationCount()));
             if (isLinux.get()) {
                 try {
                     response.build("os-uptime", Const.TimeInMillis.toString(RuntimeUtil.linuxUptime()));

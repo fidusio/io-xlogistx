@@ -29,7 +29,7 @@ public class EchoChat {
     public void onMessage(Session session, String message) throws IOException {
         //System.out.println("Received message: " + message);
         // Process or broadcast the message
-        session.getBasicRemote().sendText(index.incrementAndGet() + "echo reply: " + message);
+        session.getBasicRemote().sendText(index.incrementAndGet() +  " echo-chat reply: " + message);
     }
 
 

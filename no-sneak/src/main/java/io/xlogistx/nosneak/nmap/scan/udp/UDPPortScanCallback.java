@@ -108,7 +108,7 @@ public class UDPPortScanCallback extends UDPSessionCallback {
             }
 
             // Send the probe
-            send(buffer, target);
+            send(buffer, target, false);
 
             // Schedule timeout
             pending.timeoutFuture = timeoutScheduler.schedule(() -> {

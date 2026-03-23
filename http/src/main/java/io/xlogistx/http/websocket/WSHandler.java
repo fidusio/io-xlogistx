@@ -47,7 +47,8 @@ public class WSHandler
         this.securityProp = securityProp;
         this.bean = bean;
         this.methodCache = wsCache;
-        if (log.isEnabled()) log.getLogger().info("URI: " + uri + " secProp: " + securityProp + " bean: " + bean);
+//        if (log.isEnabled())
+            log.getLogger().info("!***!!***!  URI: " + uri + " secProp: " + securityProp + " bean: " + bean);
     }
 
     public String getPath() {
@@ -67,6 +68,9 @@ public class WSHandler
     @Override
     public boolean handle(@ParamProp(name = "WSProtocol", source = Const.ParamSource.RESOURCE) HTTPProtocolHandler hph)
             throws IOException {
+
+
+
         if (log.isEnabled()) log.getLogger().info("Protocol " + hph.getProtocol());
         if (hph.isHTTPProtocol()) {
             NVGenericMap headers = hph.getRequest().getHeaders();

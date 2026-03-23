@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @ServerEndpoint("/echo-chat-test")
 //@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat")
+//@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "chat:secure")
 public class EchoChatTest {
 
     public static final LogWrapper log = new LogWrapper(EchoChatTest.class).setEnabled(false);
@@ -29,7 +30,8 @@ public class EchoChatTest {
     public void onMessage(String message, Session session, boolean isLast) throws IOException {
         if (log.isEnabled()) log.getLogger().info("Received message: " + message);
         // Process or broadcast the message
-        session.getBasicRemote().sendText(index.incrementAndGet() + " reply " + message);
+        String reply = index.incrementAndGet() + " reply-echo-chat-test " + message;
+        session.getBasicRemote().sendText(reply);
     }
 
     @OnMessage

@@ -69,7 +69,7 @@ public class DNSUDPNIOCallback
                     responseMsg.getHeader().setRcode(Rcode.SERVFAIL);
                 }
             }
-            send(ByteBuffer.wrap(responseMsg.toWire(getBufferSize())), dp.getAddress());
+            send(ByteBuffer.wrap(responseMsg.toWire(getBufferSize())), dp.getAddress(), false);
         }
         finally {
             ByteBufferUtil.cache(data);

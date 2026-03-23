@@ -81,6 +81,11 @@ public class EndPointsManager {
         return uriEndPointMeta.lookupWithPath(uri);
     }
 
+
+    public String[] allURIs() {
+        return uriEndPointMeta.allURIs();
+    }
+
     public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep) {
         baseURI = SUS.trimOrNull(baseURI);
         if (baseURI != null) {
@@ -162,7 +167,6 @@ public class EndPointsManager {
 
             inner.getProperties().add(outer.getProperties().values(), true);
         }
-
         return inner;
     }
 
@@ -181,34 +185,40 @@ public class EndPointsManager {
             ServerEndpoint serverWS = classAnnotationMap.findClassAnnotationByType(ServerEndpoint.class);
             if (serverWS != null) {
                 SecurityProp sp = classAnnotationMap.findClassAnnotationByType(SecurityProp.class);
-                log.getLogger().info("WebSocket server end point " + classAnnotationMap);
-                log.getLogger().info("OnMessage: " + Arrays.toString(classAnnotationMap.findMethodAnnotationsByType(OnMessage.class)));
+                log.getLogger().info("!***! WebSocket server end point " + classAnnotationMap);
+                log.getLogger().info("!***! OnMessage: " + Arrays.toString(classAnnotationMap.findMethodAnnotationsByType(OnMessage.class)));
                 String uri = updatePath(baseURI, serverWS.value());
+                log.getLogger().info("!***! uri: " + uri);
+
                 WSCache wsCache = new WSCache(beanClass);
                 Object wsBean = epm.pic.newInstance(uri, sp, wsCache, beanInstance);
 
 
-                log.getLogger().info(beanClass.getName() + "\nBy Method-CanID: " + WSCache.WSMethodType.matchClassMethodsByCanID(beanClass).keySet());
+                log.getLogger().info("!***! " + beanClass.getName() + "\nBy Method-CanID: " + WSCache.WSMethodType.matchClassMethodsByCanID(beanClass).keySet());
                 // we have a server websocket class endpoint
 
                 HTTPEndPoint hep = new HTTPEndPoint();
                 hep.setBeanClassName(wsBean.getClass().getName());
                 SecUtil.applySecurityProp(hep, sp);
                 //classHEP = applyAnnotations(baseURI, classHEP, classAnnotationMap.getClassAnnotations(), false);
-                log.getLogger().info("Inner web socket " + wsBean.getClass());
+                log.getLogger().info("!***! Inner web socket " + wsBean.getClass());
                 ReflectionUtil.AnnotationMap wsAnnotationMap = ReflectionUtil.scanClassAnnotations(wsBean.getClass(), EndPointProp.class);
 
                 Map<Method, ReflectionUtil.MethodAnnotations> map = wsAnnotationMap.getMethodsAnnotations();
 
                 epm.map(uri, hep, new MethodContainer(wsBean, map.values().iterator().next(), hep, si));
+                log.getLogger().info("!***! uri: " + uri);
 
-                log.getLogger().info("Inner websocket " + map);
-                log.getLogger().info("CACHED Mapped Methods: " + wsCache.getCache());
-                log.getLogger().info("CACHED Types: " + wsCache.getCache().size() + " " + wsCache.getCache().keySet());
+                log.getLogger().info("!***! Inner websocket " + map);
+                log.getLogger().info("!***! CACHED Mapped Methods: " + wsCache.getCache());
+                log.getLogger().info("!***! CACHED Types: " + wsCache.getCache().size() + " " + wsCache.getCache().keySet());
 
+
+
+                log.getLogger().info("!***! all uris: " + Arrays.toString(epm.uriEndPointMeta.allURIs()));
+//                EndPointMeta[] allEndPoints = epm.uriEndPointMeta.allResults(new EndPointMeta[0]);
+//                log.getLogger().info("!***! all uris: " + Arrays.toString(allEndPoints));
                 log.getLogger().info("______________________________________________________________________");
-
-
                 return true;
             }
         }
@@ -345,6 +355,7 @@ public class EndPointsManager {
 
 
     private static void mapHEP(EndPointsManager endPointsManager, HTTPEndPoint hep, MethodContainer methodContainer) {
+
         for (String path : hep.getPaths()) {
             String pathToBeAdded = HTTPUtil.basePath(path, true);
             endPointsManager.map(pathToBeAdded, hep, methodContainer);
