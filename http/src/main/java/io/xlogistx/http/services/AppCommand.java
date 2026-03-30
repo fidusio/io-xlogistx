@@ -14,7 +14,6 @@ import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.NVBoolean;
 import org.zoxweb.shared.util.NVGenericMap;
 
 
@@ -44,7 +43,7 @@ public class AppCommand
             NVGenericMap ret = new NVGenericMap();
 
             ret.add("class", clazz.getName());
-            ret.add(new NVBoolean("logger_stat", lp.isEnabled()));
+            ret.add("logger_stat", lp.isEnabled() ? "enabled" : "disabled");
             return ret;
         }
         throw new IllegalArgumentException("LogWrapper not fount");

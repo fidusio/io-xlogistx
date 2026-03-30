@@ -14,6 +14,7 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.util.GetNameValue;
 import org.zoxweb.shared.util.NVGenericMap;
+import org.zoxweb.shared.util.NVStringList;
 import org.zoxweb.shared.util.ResourceManager;
 
 import java.io.IOException;
@@ -76,8 +77,8 @@ public class DNSCache
 
             boolean parallel = getProperties().getValue("parallel", false);
 
-            DNSUDPNIOCallback.log.setEnabled(getProperties().getValue("log-enabled", false));
-            DNSTCPNIOProtocol.log.setEnabled(getProperties().getValue("log-enabled", false));
+            DNSUDPNIOCallback.log.setEnabled(getProperties().getValue("log_enabled", false));
+            DNSTCPNIOProtocol.log.setEnabled(getProperties().getValue("log_enabled", false));
             DNSUDPNIOCallback udpCallback = new DNSUDPNIOCallback(port);
             if (parallel) {
                 udpCallback.setExecutor(nioSocket.getExecutor());
@@ -88,11 +89,20 @@ public class DNSCache
             if (dnsCache != null)
                 for (GetNameValue<?> gnv : dnsCache.values())
                     DNSRegistrar.SINGLETON.register(gnv.getName(), (String) gnv.getValue());
-            if(getProperties().getValue("add_tcp", false)) {
+            if (getProperties().getValue("add_tcp", false)) {
                 nioSocket.addServerSocket(port, 250, DNSTCPNIOFactory.SINGLETON);
                 log.getLogger().info("TCP DNS service started on port " + port);
             }
 
+            NVStringList sinkHole = getProperties().getNV("sink_hole");
+            if (sinkHole != null) {
+                for (String dName : sinkHole.getValues()) {
+                    DNSRegistrar.SINGLETON.addDomainsToSinkHole(dName);
+                }
+
+            }
+            else
+                log.getLogger().info("NO sink hole found: " + sinkHole);
 
 
         } catch (Exception e) {

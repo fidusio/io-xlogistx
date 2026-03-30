@@ -68,7 +68,7 @@ public class DNSRegistrarTest {
     @Test
     void testResolveGoogle() throws IOException {
         // Resolve a well-known domain
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("google.com");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("google.com");
 
         assertNotNull(result, "google.com should resolve");
         System.out.println("google.com resolved to: " + result.getHostAddress());
@@ -76,7 +76,7 @@ public class DNSRegistrarTest {
 
     @Test
     void testResolveCloudflare() throws IOException {
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("cloudflare.com");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("cloudflare.com");
 
         assertNotNull(result, "cloudflare.com should resolve");
         System.out.println("cloudflare.com resolved to: " + result.getHostAddress());
@@ -102,7 +102,7 @@ public class DNSRegistrarTest {
         String testDomain = "github.com";
 
         // Resolve with caching enabled (default)
-        InetAddress result1 = DNSRegistrar.SINGLETON.resolve(testDomain, true);
+        InetAddress result1 = DNSRegistrar.SINGLETON.resolveRemotely(testDomain, true);
         assertNotNull(result1);
 
         // Second lookup should come from cache
@@ -122,7 +122,7 @@ public class DNSRegistrarTest {
 
         // Resolve without caching - this will fail since example.com doesn't have this subdomain
         // But we can test with a real domain
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("microsoft.com", false);
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("microsoft.com", false);
         assertNotNull(result);
 
         // Verify it wasn't cached (lookup returns what was there before)
@@ -135,7 +135,7 @@ public class DNSRegistrarTest {
     @Test
     void testResolveNonExistentDomain() throws IOException {
         // Try to resolve a domain that doesn't exist
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("this-domain-definitely-does-not-exist-12345.com");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("this-domain-definitely-does-not-exist-12345.com");
 
         assertNull(result, "Non-existent domain should return null");
     }
@@ -180,7 +180,7 @@ public class DNSRegistrarTest {
         DNSRegistrar.SINGLETON.register(domain, localIP);
 
         // Resolve should return local override, not query upstream
-        InetAddress result = DNSRegistrar.SINGLETON.resolve(domain);
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely(domain);
 
         assertNotNull(result);
         assertEquals(localIP, result.getHostAddress(),
@@ -192,7 +192,7 @@ public class DNSRegistrarTest {
         String[] domains = {"google.com", "cloudflare.com", "github.com"};
 
         for (String domain : domains) {
-            InetAddress result = DNSRegistrar.SINGLETON.resolve(domain);
+            InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely(domain);
             assertNotNull(result, domain + " should resolve");
             System.out.println(domain + " -> " + result.getHostAddress());
         }
@@ -203,11 +203,11 @@ public class DNSRegistrarTest {
     @Test
     void testResolvePrivateIP_10Range() throws IOException {
         // 10.x.x.x range
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("10.0.0.1");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("10.0.0.1");
         assertNotNull(result);
         assertEquals("10.0.0.1", result.getHostAddress());
 
-        result = DNSRegistrar.SINGLETON.resolve("10.255.255.255");
+        result = DNSRegistrar.SINGLETON.resolveRemotely("10.255.255.255");
         assertNotNull(result);
         assertEquals("10.255.255.255", result.getHostAddress());
 
@@ -217,15 +217,15 @@ public class DNSRegistrarTest {
     @Test
     void testResolvePrivateIP_192Range() throws IOException {
         // 192.168.x.x range
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("192.168.1.1");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("192.168.1.1");
         assertNotNull(result);
         assertEquals("192.168.1.1", result.getHostAddress());
 
-        result = DNSRegistrar.SINGLETON.resolve("192.168.0.100");
+        result = DNSRegistrar.SINGLETON.resolveRemotely("192.168.0.100");
         assertNotNull(result);
         assertEquals("192.168.0.100", result.getHostAddress());
 
-        result = DNSRegistrar.SINGLETON.resolve("192.168.255.255");
+        result = DNSRegistrar.SINGLETON.resolveRemotely("192.168.255.255");
         assertNotNull(result);
         assertEquals("192.168.255.255", result.getHostAddress());
 
@@ -235,15 +235,15 @@ public class DNSRegistrarTest {
     @Test
     void testResolvePrivateIP_172Range() throws IOException {
         // 172.16-31.x.x range
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("172.16.0.1");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("172.16.0.1");
         assertNotNull(result);
         assertEquals("172.16.0.1", result.getHostAddress());
 
-        result = DNSRegistrar.SINGLETON.resolve("172.31.255.255");
+        result = DNSRegistrar.SINGLETON.resolveRemotely("172.31.255.255");
         assertNotNull(result);
         assertEquals("172.31.255.255", result.getHostAddress());
 
-        result = DNSRegistrar.SINGLETON.resolve("172.20.10.5");
+        result = DNSRegistrar.SINGLETON.resolveRemotely("172.20.10.5");
         assertNotNull(result);
         assertEquals("172.20.10.5", result.getHostAddress());
 
@@ -257,7 +257,7 @@ public class DNSRegistrarTest {
         // We test by checking that they go through normal DNS resolution
 
         // 172.15.x.x - below private range, will fail DNS lookup
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("172.15.0.1");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("172.15.0.1");
         // This will be null because 172.15.0.1 is not a valid domain and not private
         assertNull(result, "172.15.x.x should not be treated as private IP");
 
@@ -268,7 +268,7 @@ public class DNSRegistrarTest {
     void testResolveNonPrivateIP() throws IOException {
         // Public IPs should go through DNS resolution (which will fail for raw IPs)
         // 8.8.8.8 is Google's DNS - it's a public IP, not private
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("8.8.8.8");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("8.8.8.8");
         // Should be null because we only handle private IPs directly
         assertNull(result, "Public IP should not be resolved directly");
 
@@ -278,7 +278,7 @@ public class DNSRegistrarTest {
     @Test
     void testResolvePrivateIPNotDomain() throws IOException {
         // Ensure domain names are not confused with IPs
-        InetAddress result = DNSRegistrar.SINGLETON.resolve("10domain.com");
+        InetAddress result = DNSRegistrar.SINGLETON.resolveRemotely("10domain.com");
         // This should go through DNS (may or may not resolve)
         // The key is it shouldn't be treated as IP 10.x.x.x
         System.out.println("10domain.com treated as domain, not IP: " +

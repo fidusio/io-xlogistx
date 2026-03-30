@@ -2,8 +2,10 @@ package io.xlogistx.common.dns;
 
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NetUtil;
 import org.zoxweb.shared.net.DNSResolverInt;
+import org.zoxweb.shared.net.DomainMatcher;
 import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.util.*;
 
@@ -16,31 +18,32 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 public class DNSRegistrar
-    extends RegistrarMap<String, InetAddress, DNSRegistrar>
-    implements DNSResolverInt
-{
+        extends RegistrarMap<String, InetAddress, DNSRegistrar>
+        implements DNSResolverInt {
+    public static final LogWrapper log = new LogWrapper(DNSRegistrar.class).setEnabled(true);
 
     public static final String DEFAULT_RESOLVER = "8.8.8.8";
-    public static final DataEncoder<String, String> ToDNSEntry = (s) ->{
+    public static final DataEncoder<String, String> ToDNSEntry = (s) -> {
         s = DataEncoder.StringLower.encode(s);
-        if(SUS.isNotEmpty(s))
+        if (SUS.isNotEmpty(s))
             return s.endsWith(".") ? s : s + ".";
 
         return null;
     };
 
-
-    public static final DataDecoder<String, String> ToDomain = (s) ->{
+    public static final DataDecoder<String, String> ToDomain = (s) -> {
         s = DataEncoder.StringLower.encode(s);
-        if(SUS.isNotEmpty(s))
-            return s.endsWith(".") ? s.substring(0, s.length()-1) : s;
+        if (SUS.isNotEmpty(s))
+            return s.endsWith(".") ? s.substring(0, s.length() - 1) : s;
 
         return null;
     };
 
+    //private final Set<String> sinkHoleDomains = ConcurrentHashMap.newKeySet();
+    private final DomainMatcher sinkHoleDomains = new DomainMatcher();
+
 
     public static final DNSRegistrar SINGLETON = new DNSRegistrar();
-
 
 
     private Resolver resolver = null;
@@ -60,8 +63,7 @@ public class DNSRegistrar
         return register(domainIP.getName(), domainIP.getValue());
     }
 
-    public DNSRegistrar register(String domain, InetAddress inet)
-    {
+    public DNSRegistrar register(String domain, InetAddress inet) {
         super.register(keyFilter.encode(domain), inet);
         return this;
     }
@@ -77,15 +79,17 @@ public class DNSRegistrar
 
     public DNSRegistrar setResolver(String resolverIP) throws UnknownHostException {
         IPAddress resolverAddress = new IPAddress(resolverIP);
-        if(resolverAddress.getPort() == -1)
+        if (resolverAddress.getPort() == -1)
             resolverAddress.setPort(53);
         this.resolver = new SimpleResolver(new InetSocketAddress(resolverAddress.getInetAddress(), resolverAddress.getPort()));
         return this;
     }
 
 
-    public Message resolve(Message query) throws IOException {
-        return resolver.send(query);
+    public Message resolveRemotely(Message query) throws IOException {
+        if (resolver != null)
+            return resolver.send(query);
+        throw new NullPointerException("Resolver is null");
     }
 
     /**
@@ -96,8 +100,8 @@ public class DNSRegistrar
      * @return the first IP address, or null if not found
      * @throws IOException if DNS query fails
      */
-    public InetAddress resolve(String domainName) throws IOException {
-        return resolve(domainName, false);
+    public InetAddress resolveRemotely(String domainName) throws IOException {
+        return resolveRemotely(domainName, false);
     }
 
 
@@ -111,8 +115,8 @@ public class DNSRegistrar
      */
     @Override
     public IPAddress resolveIPAddress(String domainName) throws IOException {
-        InetAddress ret = resolve(domainName, false);
-        if(ret == null)
+        InetAddress ret = resolveRemotely(domainName, false);
+        if (ret == null)
             throw new UnknownHostException(domainName);
 
         return new IPAddress(ret.getHostAddress());
@@ -126,7 +130,7 @@ public class DNSRegistrar
      * @return the first IP address, or null if not found
      * @throws IOException if DNS query fails
      */
-    public InetAddress resolve(String domainName, boolean cacheResult) throws IOException {
+    public InetAddress resolveRemotely(String domainName, boolean cacheResult) throws IOException {
         // Check if input is already a private IP address
         InetAddress privateIP = NetUtil.toPrivateIP(domainName);
         if (privateIP != null) {
@@ -206,6 +210,79 @@ public class DNSRegistrar
         }
 
         return addresses.toArray(new InetAddress[0]);
+    }
+
+    public DNSRegistrar addDomainsToSinkHole(String... domains) {
+        for (String domain : domains) {
+            domain = ToDNSEntry.encode(domain);
+            if (domain != null) {
+                sinkHoleDomains.addPattern(domain);
+                log.getLogger().info("ADDING " + domain + " in sink hole");
+            }
+        }
+        return this;
+    }
+
+    public DNSRegistrar removeDomainsFromSinkHole(String... domains) {
+        for (String domain : domains) {
+            domain = ToDNSEntry.encode(domain);
+            if (domain != null) {
+                sinkHoleDomains.removePattern(domain);
+            }
+        }
+        return this;
+    }
+
+    public boolean isDomainInSinkHole(String domain) {
+        boolean result = false;
+        if (SUS.isNotEmpty(domain)) {
+            domain = ToDNSEntry.encode(domain);
+            if (log.isEnabled()) log.getLogger().info("CHECKING if " + domain + " is in sink hole");
+            result = sinkHoleDomains.matches(domain);
+            if (result) {
+                if (log.isEnabled()) log.getLogger().info(domain + " in sink hole");
+            }
+        }
+        return result;
+    }
+
+    public Message sinkHoleResponse(Message query) throws IOException {
+        if (query != null && query.getQuestion() != null && query.getQuestion().getName() != null) {
+            if (isDomainInSinkHole(query.getQuestion().getName().toString())) {
+                return buildSinkholeResponse(query);
+            }
+        }
+        return null;
+    }
+
+
+    private Message buildSinkholeResponse(Message query) throws IOException {
+        // Parse the incoming DNS query
+        //if(query.getHeader() == null || query.getQuestion() == null || query.getQuestion().getName() == null)
+           if(query.getHeader() == null)
+            return null;
+
+        // Create response from the query (copies ID, question section, sets QR flag)
+        Message response = new Message(query.getHeader().getID());
+        Header header = response.getHeader();
+        header.setFlag(Flags.QR);  // This is a response
+        header.setFlag(Flags.RA);  // Recursion available
+        header.setRcode(Rcode.NOERROR);
+
+        // Copy the question section
+        Record question = query.getQuestion();
+        response.addRecord(question, Section.QUESTION);
+
+        // Add answer: 0.0.0.0 with a short TTL
+        Record sinkhole = new ARecord(
+                question.getName(),        // same domain they asked for
+                DClass.IN,
+                60,                       // TTL in seconds
+                NetUtil.inetAddressZero(question.getType() == Type.AAAA)
+        );
+        response.addRecord(sinkhole, Section.ANSWER);
+
+        return response;
     }
 
 }

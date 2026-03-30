@@ -41,13 +41,22 @@ public class DNSUDPNIOCallback
             if (log.isEnabled()) log.getLogger().info("query : " + queryMsg.getQuestion());
 
             Record question = queryMsg.getQuestion();
-            if (question == null)
+            if (question == null) {
+                // the query should go nowhere
                 return;
+            }
 
+            Message sinkResponse = DNSRegistrar.SINGLETON.sinkHoleResponse(queryMsg);
+            if (sinkResponse != null) {
+                // return 0.0.0.0 since the current domain is blacklisted
+                send(ByteBuffer.wrap(sinkResponse.toWire(getBufferSize())), dp.getAddress(), false);
+                return;
+            }
 
             Message responseMsg = new Message(queryMsg.getHeader().getID());
             responseMsg.getHeader().setFlag(Flags.QR); // set as response
             responseMsg.addRecord(question, Section.QUESTION);
+
 
             String qName = question.getName().toString();
 
@@ -55,13 +64,14 @@ public class DNSUDPNIOCallback
             if (log.isEnabled()) log.getLogger().info("qName: " + qName);
 
             InetAddress cachedHost = DNSRegistrar.SINGLETON.lookup(qName);
-            if (question.getType() == Type.A && cachedHost != null) { // Handle locally if in customDomains and Type A query
+            if (question.getType() == Type.A && cachedHost != null) {
+                // Handle locally if in customDomains and Type A query is cached
                 responseMsg.addRecord(new ARecord(question.getName(), DClass.IN, 60, cachedHost), Section.ANSWER);
             } else {
 
-                // Forward to upstream resolver if no executor is present
+                // Resolve the query with the remote resolver
                 try {
-                    responseMsg = DNSRegistrar.SINGLETON.resolve(queryMsg);
+                    responseMsg = DNSRegistrar.SINGLETON.resolveRemotely(queryMsg);
                     responseMsg.getHeader().setID(queryMsg.getHeader().getID());
                 } catch (Exception ex) {
                     // If upstream fails, just send empty response
@@ -70,8 +80,7 @@ public class DNSUDPNIOCallback
                 }
             }
             send(ByteBuffer.wrap(responseMsg.toWire(getBufferSize())), dp.getAddress(), false);
-        }
-        finally {
+        } finally {
             ByteBufferUtil.cache(data);
         }
     }

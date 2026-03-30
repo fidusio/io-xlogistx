@@ -111,7 +111,7 @@ public class DNSTCPNIOProtocol extends ProtocolHandler {
                 responseMsg.addRecord(new ARecord(question.getName(), DClass.IN, 60, cachedHost), Section.ANSWER);
             } else {
                 try {
-                    responseMsg = DNSRegistrar.SINGLETON.resolve(queryMsg);
+                    responseMsg = DNSRegistrar.SINGLETON.resolveRemotely(queryMsg);
                     responseMsg.getHeader().setID(queryMsg.getHeader().getID());
                 } catch (Exception ex) {
                     responseMsg.getHeader().setRcode(Rcode.SERVFAIL);
