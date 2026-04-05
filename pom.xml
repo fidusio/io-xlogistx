@@ -34,6 +34,7 @@
         <module>opsec</module>
         <module>gui-audio</module>
         <module>no-sneak</module>
+        <module>ffm</module>
     </modules>
 
     <dependencyManagement>
