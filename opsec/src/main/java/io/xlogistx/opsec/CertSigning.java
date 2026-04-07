@@ -5,7 +5,6 @@ import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.zoxweb.server.security.CryptoUtil;
@@ -15,7 +14,9 @@ import org.zoxweb.shared.util.GetNameValue;
 import org.zoxweb.shared.util.NVGenericMap;
 
 import java.math.BigInteger;
-import java.security.*;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
@@ -142,27 +143,23 @@ public class CertSigning
 
 
         try {
-            Security.addProvider(new BouncyCastleProvider());
-
-
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
-            keyGen.initialize(256);
+            OPSecUtil.singleton();
 
             // Generate the Root Key Pair
-            KeyPair rootKeyPair = CryptoUtil.generateKeyPair("EC", 521);
+            KeyPair rootKeyPair = CryptoUtil.generateKeyPair(CryptoConst.PKInfo.EC_521);//"EC", 521);
             X509Certificate rootCert = generateCertificate(new NVGenericMap().build("CN", "xlogistx.RootCA")
                     .build("O","xlogistx.io").build("OU", "OPSEC division"), rootKeyPair.getPublic(), "10years", CryptoConst.SignatureAlgo.SHA512_EC, null, rootKeyPair.getPrivate(), true);
             System.out.println("Root Certificate:");
             System.out.println(rootCert);
 
             // Generate Intermediate Key Pair and its Certificate
-            KeyPair intermediateKeyPair = CryptoUtil.generateKeyPair("EC", 384);
+            KeyPair intermediateKeyPair = CryptoUtil.generateKeyPair(CryptoConst.PKInfo.EC_384);//"EC", 384);
             X509Certificate intermediateCert = generateCertificate(new NVGenericMap().build("CN", "IntermediateCA"), intermediateKeyPair.getPublic(), "6years", CryptoConst.SignatureAlgo.SHA384_EC, rootCert, rootKeyPair.getPrivate(), true);
             System.out.println("\nIntermediate Certificate:");
             System.out.println(intermediateCert);
 
             // Generate End-Entity Key Pair and its Certificate
-            KeyPair endEntityKeyPair = CryptoUtil.generateKeyPair("RSA", 2048);
+            KeyPair endEntityKeyPair = CryptoUtil.generateKeyPair(CryptoConst.PKInfo.RSA_2048);//"RSA", 2048);
             X509Certificate endEntityCert = generateCertificate(new NVGenericMap().build("EMAILAddress", "user@xlogistx.io"), endEntityKeyPair.getPublic(), "180days", CryptoConst.SignatureAlgo.SHA256_EC, intermediateCert, intermediateKeyPair.getPrivate(), false);
             System.out.println("\nEnd-Entity Certificate:");
             System.out.println(endEntityCert);

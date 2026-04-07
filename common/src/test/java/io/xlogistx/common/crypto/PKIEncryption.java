@@ -59,7 +59,7 @@ public class PKIEncryption {
 
     @Test
     public void rsaEncryption() throws GeneralSecurityException, IOException {
-        KeyPair kp = CryptoUtil.generateKeyPair("RSA", 2048);
+        KeyPair kp = CryptoUtil.generateKeyPair(CryptoConst.PKInfo.RSA_2048);
         byte[] data = SharedStringUtil.getBytes("1234567890abcdefgklmnopqrstuvwxyz");
         byte[] encryptedData = CryptoUtil.encrypt(kp.getPublic(), data);
         NVGenericMap nvgm = new NVGenericMap();
@@ -113,9 +113,9 @@ public class PKIEncryption {
 //    }
 
     @Test
-    public void eccKeyEncryption() throws NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, SignatureException {
+    public void eccKeyEncryption() throws NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, IOException, SignatureException, NoSuchProviderException {
 
-        KeyPair kp = CryptoUtil.generateKeyPair("EC", 256);
+        KeyPair kp = CryptoUtil.generateKeyPair(CryptoConst.PKInfo.EC_256);
         KeyAgreement selfV = KeyAgreement.getInstance("ECDH");
         selfV.init(kp.getPrivate());
         selfV.doPhase(kp.getPublic(), true);

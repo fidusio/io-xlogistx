@@ -20,7 +20,7 @@ import java.util.List;
 public class DNSRegistrar
         extends RegistrarMap<String, InetAddress, DNSRegistrar>
         implements DNSResolverInt {
-    public static final LogWrapper log = new LogWrapper(DNSRegistrar.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(DNSRegistrar.class).setEnabled(false);
 
     public static final String DEFAULT_RESOLVER = "8.8.8.8";
     public static final DataEncoder<String, String> ToDNSEntry = (s) -> {
