@@ -1,8 +1,11 @@
 package io.xlogistx.common.http;
 
+import org.zoxweb.shared.http.HTTPHandler;
+
 import java.io.IOException;
 
-public interface HTTPRawHandler {
+public interface HTTPRawHandler
+extends HTTPHandler<HTTPProtocolHandler> {
 
     /**
      * This method must be used with diligence it requires the call to process the content of the response,
