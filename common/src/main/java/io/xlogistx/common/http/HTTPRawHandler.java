@@ -15,5 +15,5 @@ extends HTTPHandler<HTTPProtocolHandler> {
      * @return true the server with will write the response, false the caller process the response writing
      * @throws IOException in case of errors
      */
-    boolean handle(HTTPProtocolHandler protocolHandler) throws IOException;
+    //boolean handle(HTTPProtocolHandler protocolHandler) throws IOException;
 }

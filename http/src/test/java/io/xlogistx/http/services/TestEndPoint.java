@@ -93,7 +93,7 @@ public class TestEndPoint {
         System.out.println(dObject);
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "dateTester", uris = "/testdate")
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dateTester", uris = "/testdate", filter = "io.xlogistx.http.services.TestHTTPFilter")
     @SecurityProp(permissions = SecurityModel.PERM_RESOURCE_ANY)
     public Date testDataObject() {
         return new Date();

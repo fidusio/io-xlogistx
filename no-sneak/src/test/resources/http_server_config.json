@@ -107,9 +107,6 @@
       }
     },
     {
-      "bean": "io.xlogistx.http.services.TestEndPoint"
-    },
-    {
       "bean": "io.xlogistx.http.services.SysConfig"
     },
     {

@@ -240,7 +240,7 @@ public class DNSRegistrar
             if (log.isEnabled()) log.getLogger().info("CHECKING if " + domain + " is in sink hole");
             result = sinkHoleDomains.matches(domain);
             if (result) {
-                if (log.isEnabled()) log.getLogger().info(domain + " in sink hole");
+                log.getLogger().info(domain + " in sink hole");
             }
         }
         return result;
@@ -259,7 +259,7 @@ public class DNSRegistrar
     private Message buildSinkholeResponse(Message query) throws IOException {
         // Parse the incoming DNS query
         //if(query.getHeader() == null || query.getQuestion() == null || query.getQuestion().getName() == null)
-           if(query.getHeader() == null)
+        if (query.getHeader() == null)
             return null;
 
         // Create response from the query (copies ID, question section, sets QR flag)

@@ -97,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.2.5");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.2.7");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -168,7 +168,7 @@ public class NIOHTTPServer
         private boolean httpsRedirect()
                 throws IOException {
             if (urlHostRedirect != null) {
-                String  uri = hph.getRequest().getURI();
+                String uri = hph.getRequest().getURI();
 //                System.out.println(uri);
 
                 if (uri != null && redirectExclusionFilter != null && redirectExclusionFilter.match(uri)) {
@@ -176,19 +176,16 @@ public class NIOHTTPServer
                 }
 
                 String host = hph.getRequest().getHeaders().getValue("host");
-                if(host == null)
+                if (host == null)
                     throw new HTTPCallException("Host header not found", HTTPStatusCode.BAD_REQUEST);
 
 
-
-                if (SUS.isNotEmpty(redirectLocationURL))
-                {
+                if (SUS.isNotEmpty(redirectLocationURL)) {
                     HTTPMessageConfigInterface redirect308 = new HTTPMessageConfig();
                     redirect308.setHTTPStatusCode(HTTPStatusCode.PERMANENT_REDIRECT);
 
 
                     String url = redirectLocationURL + (sslPort > 0 ? ":" + sslPort : "") + uri;
-
 
 
                     redirect308.getHeaders().add(HTTPHeader.LOCATION, url);
@@ -309,7 +306,7 @@ public class NIOHTTPServer
     }
 
     private void processException(HTTPProtocolHandler hph, OutputStream os, Throwable e) {
-        if(logger.isEnabled()) logger.getLogger().info("hph isClosed " + hph.isClosed());
+        if (logger.isEnabled()) logger.getLogger().info("hph isClosed " + hph.isClosed());
         if (!hph.isClosed() && hph.isHTTPProtocol()) {
             try {
                 if (e instanceof InvocationTargetException) {
@@ -342,7 +339,8 @@ public class NIOHTTPServer
                     //logger.getLogger().info(hph.getResponseStream().toString());
 //                    hph.getResponseStream(true).writeTo(os);
                     responseStream.writeTo(os);
-                    if(logger.isEnabled()) logger.getLogger().info("After error response write " + ((CommonChannelOutputStream)os).isClosed());
+                    if (logger.isEnabled())
+                        logger.getLogger().info("After error response write " + ((CommonChannelOutputStream) os).isClosed());
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -357,6 +355,13 @@ public class NIOHTTPServer
 
     private static void securityCheck(URIMap.URIMapResult<EndPointMeta> epm, HTTPProtocolHandler hph) throws IOException {
 
+        // check prefilter
+        if (epm.result.httpEndPoint.getPrefilter() != null) {
+            if (!epm.result.httpEndPoint.getPrefilter().handle(hph)) {
+                // we should throw exception 422
+                throw new HTTPCallException("Pre-filter check failed.", HTTPStatusCode.UNPROCESSABLE_ENTITY);
+            }
+        }
 
         CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
         if (logger.isEnabled())
@@ -478,9 +483,11 @@ public class NIOHTTPServer
                     String uri = hph.getRequest(true).getURI();
                     URIMap.URIMapResult<EndPointMeta> epm = endPointsManager.lookupWithPath(uri);
 
-                    logger.getLogger().info("uri: " + uri);
-//                    if (logger.isEnabled())
+                    if (logger.isEnabled()) {
+                        logger.getLogger().info("uri: " + uri);
+
                         logger.getLogger().info("" + epm.result.methodContainer);
+                    }
 
 
                     if (epm != null) {
@@ -516,11 +523,19 @@ public class NIOHTTPServer
                              * calling the implementation method that is processing the request
                              */
                             Object result = epm.result.methodContainer.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
+                            HTTPStatusCode responseCode = HTTPStatusCode.OK;
+                            if (result instanceof HTTPStatusCode) {
+                                responseCode = (HTTPStatusCode) result;
+                                result = "{status-reason: \"" + responseCode.REASON + "\"}";
+                            }
+
 
                             /**
-                             * Converting the result into a http response
+                             * Converting the result into an http response
                              */
-                            HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(), result, HTTPStatusCode.OK,
+                            HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(),
+                                    result,
+                                    responseCode,
                                     HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
                                     HTTPConst.CommonHeader.NO_CACHE_CONTROL,
                                     HTTPConst.CommonHeader.EXPIRES_ZERO);
@@ -796,7 +811,7 @@ public class NIOHTTPServer
                                         ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null);
 
                                 // add ssl group setter here
-                                if(groups != null && groups.getValues().length > 0) {
+                                if (groups != null && groups.getValues().length > 0) {
                                     sslContextInfo.setSSLGroupSetter(new BCSSLGroupSetter(groups.getValues()));
                                 }
 

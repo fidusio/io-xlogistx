@@ -9,10 +9,7 @@ import org.zoxweb.server.security.SecureInvoker;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.*;
-import org.zoxweb.shared.http.HTTPEndPoint;
-import org.zoxweb.shared.http.HTTPMediaType;
-import org.zoxweb.shared.http.HTTPMessageConfigInterface;
-import org.zoxweb.shared.http.HTTPServerConfig;
+import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.*;
 
 import javax.websocket.OnClose;
@@ -117,6 +114,16 @@ public class EndPointsManager {
                 hep.setInputContentType(epp.requestContentType());
                 hep.setOutputContentType(epp.responseContentType());
 
+                if (SUS.isNotEmpty(epp.filter())) {
+                    try {
+                        HTTPHandler<HTTPProtocolHandler> filterHandler = ReflectionUtil.createBean(epp.filter());
+                        if (filterHandler != null)
+                            hep.setPrefilter(filterHandler);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
                 String[] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
                 if (methodCheck) {
                     if (uris.length != 1)
@@ -212,7 +219,6 @@ public class EndPointsManager {
                 log.getLogger().info("!***! Inner websocket " + map);
                 log.getLogger().info("!***! CACHED Mapped Methods: " + wsCache.getCache());
                 log.getLogger().info("!***! CACHED Types: " + wsCache.getCache().size() + " " + wsCache.getCache().keySet());
-
 
 
                 log.getLogger().info("!***! all uris: " + Arrays.toString(epm.uriEndPointMeta.allURIs()));

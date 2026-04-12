@@ -104,6 +104,9 @@
       "bean": "io.xlogistx.http.services.TestEndPoint"
     },
     {
+      "bean": "io.xlogistx.http.services.HTTPWebHooks"
+    },
+    {
       "bean": "io.xlogistx.http.services.SysConfig"
     },
     {

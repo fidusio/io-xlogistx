@@ -29,7 +29,7 @@ public class HTTPUploadHandler
         implements HTTPRawHandler {
 
 
-    public final static LogWrapper log = new LogWrapper(HTTPProtocolHandler.class).setEnabled(false);
+    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(false);
     private File baseFolder;
 
     /**
