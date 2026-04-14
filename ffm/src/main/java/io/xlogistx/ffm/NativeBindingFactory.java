@@ -208,7 +208,7 @@ public class NativeBindingFactory {
         private String libraryPath;
         private final List<String> includePaths = new ArrayList<>();
         private final Map<String, String> defines = new LinkedHashMap<>();
-        private CPreprocessor.Platform platform = CPreprocessor.Platform.LINUX_X86_64;
+        private FFMUtil.Platform platform = FFMUtil.Platform.detect();
         private boolean useGcc = false;
 
         HeaderBuilder(String headerPath) {
@@ -236,7 +236,7 @@ public class NativeBindingFactory {
         public HeaderBuilder define(String name) { return define(name, "1"); }
 
         /** Sets the target platform for type sizes and predefined macros. */
-        public HeaderBuilder platform(CPreprocessor.Platform p) { this.platform = p; return this; }
+        public HeaderBuilder platform(FFMUtil.Platform p) { this.platform = p; return this; }
 
         /** Forces gcc -E preprocessing instead of pure Java. */
         public HeaderBuilder useGcc() { this.useGcc = true; return this; }

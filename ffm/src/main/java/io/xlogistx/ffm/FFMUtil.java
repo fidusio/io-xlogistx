@@ -80,6 +80,21 @@ public final class FFMUtil {
         return new Loader(libraryPath);
     }
 
+    /** Platform configuration */
+    public enum Platform {
+        LINUX_X86_64, LINUX_AARCH64, MACOS_X86_64, MACOS_AARCH64;
+
+        /** Detects the current platform from JVM system properties. */
+        public static Platform detect() {
+            String os = System.getProperty("os.name", "").toLowerCase();
+            String arch = System.getProperty("os.arch", "").toLowerCase();
+            boolean mac = os.contains("mac") || os.contains("darwin");
+            boolean aarch64 = arch.contains("aarch64") || arch.contains("arm64");
+            if (mac) return aarch64 ? MACOS_AARCH64 : MACOS_X86_64;
+            return aarch64 ? LINUX_AARCH64 : LINUX_X86_64;
+        }
+    }
+
     /**
      * Fluent loader. Pick exactly one discovery strategy:
      * <ul>
@@ -94,7 +109,7 @@ public final class FFMUtil {
         private String headerPath;
         private final List<String> includePaths = new ArrayList<>();
         private final Map<String, String> defines = new LinkedHashMap<>();
-        private CPreprocessor.Platform platform = CPreprocessor.Platform.LINUX_X86_64;
+        private Platform platform = Platform.detect();
         private boolean useGcc = false;
         private boolean useDwarf = false;
 
@@ -123,7 +138,7 @@ public final class FFMUtil {
         public Loader define(String name) { return define(name, "1"); }
 
         /** Sets the target platform for type sizes and predefined macros. */
-        public Loader platform(CPreprocessor.Platform p) { this.platform = p; return this; }
+        public Loader platform(Platform p) { this.platform = p; return this; }
 
         /** Switches the header strategy to {@code gcc -E} preprocessing. */
         public Loader useGcc() { this.useGcc = true; return this; }
@@ -763,12 +778,12 @@ public final class FFMUtil {
         }
     }
 
-    private static CPreprocessor.Platform parsePlatform(String s) {
+    private static Platform parsePlatform(String s) {
         return switch (s.toLowerCase(Locale.ROOT)) {
-            case "linux-x86_64", "linux_x86_64", "linux-x64" -> CPreprocessor.Platform.LINUX_X86_64;
-            case "linux-aarch64", "linux_aarch64", "linux-arm64" -> CPreprocessor.Platform.LINUX_AARCH64;
-            case "macos-x86_64", "macos_x86_64", "macos-x64" -> CPreprocessor.Platform.MACOS_X86_64;
-            case "macos-aarch64", "macos_aarch64", "macos-arm64" -> CPreprocessor.Platform.MACOS_AARCH64;
+            case "linux-x86_64", "linux_x86_64", "linux-x64" -> Platform.LINUX_X86_64;
+            case "linux-aarch64", "linux_aarch64", "linux-arm64" -> Platform.LINUX_AARCH64;
+            case "macos-x86_64", "macos_x86_64", "macos-x64" -> Platform.MACOS_X86_64;
+            case "macos-aarch64", "macos_aarch64", "macos-arm64" -> Platform.MACOS_AARCH64;
             default -> throw new IllegalArgumentException("Unknown platform: " + s);
         };
     }

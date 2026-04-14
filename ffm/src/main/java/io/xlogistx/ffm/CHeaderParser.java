@@ -383,8 +383,18 @@ public class CHeaderParser {
         }
 
         private void parseTopLevel() {
+            // Handle extern "C" { ... } blocks transparently
+            if (check(TokenType.RBRACE)) { advance(); return; }
+
             // Skip storage class specifiers and qualifiers that don't affect the type
             skipStorageClass();
+
+            // After skipping 'extern', check for "C" string (extern "C" block)
+            if (check(TokenType.STRING)) {
+                advance(); // skip "C" or "C++"
+                if (check(TokenType.LBRACE)) advance(); // skip opening {
+                return;
+            }
 
             if (checkId("typedef")) {
                 parseTypedef();
@@ -493,8 +503,7 @@ public class CHeaderParser {
 
             if (checkId("struct")) {
                 advance();
-                String name = advance().value;
-                // Check if followed by a definition body
+                String name = check(TokenType.IDENTIFIER) ? advance().value : "<anon>";
                 if (check(TokenType.LBRACE)) {
                     base = parseStructBody(name);
                 } else {
@@ -503,7 +512,7 @@ public class CHeaderParser {
                 }
             } else if (checkId("union")) {
                 advance();
-                String name = advance().value;
+                String name = check(TokenType.IDENTIFIER) ? advance().value : "<anon>";
                 if (check(TokenType.LBRACE)) {
                     base = parseUnionBody(name);
                 } else {
@@ -964,6 +973,18 @@ public class CHeaderParser {
                     if (check(TokenType.NUMBER)) count = parseNumber(advance().value);
                     if (check(TokenType.RBRACKET)) advance();
                     if (count > 0) baseType = new CType.Array(baseType, count);
+                }
+
+                // For typedef struct { ... } name; — rename the anonymous struct
+                // so it appears as the typedef name instead of <anon>
+                if (baseType instanceof CType.Struct s && s.name().equals("<anon>")) {
+                    baseType = new CType.Struct(name, s.byteSize(), s.fields());
+                    structs.remove("<anon>");
+                    structs.put(name, (CType.Struct) baseType);
+                } else if (baseType instanceof CType.Union u && u.name().equals("<anon>")) {
+                    baseType = new CType.Union(name, u.byteSize(), u.fields());
+                    unions.remove("<anon>");
+                    unions.put(name, (CType.Union) baseType);
                 }
 
                 typedefs.put(name, baseType);

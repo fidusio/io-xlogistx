@@ -64,9 +64,6 @@ public class CPreprocessor {
     /** Conditional compilation stack */
     private final Deque<CondState> condStack = new ArrayDeque<>();
 
-    /** Platform configuration */
-    public enum Platform { LINUX_X86_64, LINUX_AARCH64, MACOS_X86_64, MACOS_AARCH64 }
-
 
     // =========================================================================
     // MACRO REPRESENTATION
@@ -104,10 +101,10 @@ public class CPreprocessor {
     // =========================================================================
 
     public CPreprocessor() {
-        this(Platform.LINUX_X86_64);
+        this(FFMUtil.Platform.detect());
     }
 
-    public CPreprocessor(Platform platform) {
+    public CPreprocessor(FFMUtil.Platform platform) {
         registerPlatformMacros(platform);
         registerStandardPaths(platform);
     }
@@ -157,7 +154,7 @@ public class CPreprocessor {
     // PLATFORM MACROS — Predefined macros for target platform
     // =========================================================================
 
-    private void registerPlatformMacros(Platform platform) {
+    private void registerPlatformMacros(FFMUtil.Platform platform) {
         // Standard C predefined
         predef("__STDC__", "1");
         predef("__STDC_VERSION__", "201710L");   // C17
@@ -312,20 +309,18 @@ public class CPreprocessor {
         }
     }
 
-    private void registerStandardPaths(Platform platform) {
+    private void registerStandardPaths(FFMUtil.Platform platform) {
         switch (platform) {
             case LINUX_X86_64 -> {
                 addSystemIncludePath("/usr/include");
                 addSystemIncludePath("/usr/include/x86_64-linux-gnu");
-                addSystemIncludePath("/usr/lib/gcc/x86_64-linux-gnu/13/include");
-                addSystemIncludePath("/usr/lib/gcc/x86_64-linux-gnu/12/include");
-                addSystemIncludePath("/usr/lib/gcc/x86_64-linux-gnu/11/include");
+                addLinuxGccIncludes("x86_64-linux-gnu");
                 addSystemIncludePath("/usr/local/include");
             }
             case LINUX_AARCH64 -> {
                 addSystemIncludePath("/usr/include");
                 addSystemIncludePath("/usr/include/aarch64-linux-gnu");
-                addSystemIncludePath("/usr/lib/gcc/aarch64-linux-gnu/13/include");
+                addLinuxGccIncludes("aarch64-linux-gnu");
                 addSystemIncludePath("/usr/local/include");
             }
             case MACOS_X86_64, MACOS_AARCH64 -> {
@@ -333,6 +328,21 @@ public class CPreprocessor {
                 addSystemIncludePath("/usr/local/include");
                 addSystemIncludePath("/opt/homebrew/include");
             }
+        }
+    }
+
+    /** Scans for installed GCC include directories (stdint.h, stddef.h live here). */
+    private void addLinuxGccIncludes(String triple) {
+        Path gccBase = Path.of("/usr/lib/gcc/" + triple);
+        if (Files.isDirectory(gccBase)) {
+            try (var dirs = Files.list(gccBase)) {
+                dirs.filter(Files::isDirectory)
+                    .sorted(Comparator.reverseOrder()) // prefer newest version
+                    .forEach(ver -> {
+                        Path inc = ver.resolve("include");
+                        if (Files.isDirectory(inc)) addSystemIncludePath(inc.toString());
+                    });
+            } catch (IOException ignored) {}
         }
     }
 
@@ -557,8 +567,11 @@ public class CPreprocessor {
     // =========================================================================
 
     private void processDirective(String directive, Path currentFile) throws IOException {
-        // Strip leading/trailing whitespace
-        directive = directive.trim();
+        // Strip leading/trailing whitespace and normalize tabs to spaces.
+        // System headers (e.g. glibc cdefs.h) use tabs between directive keywords
+        // and arguments (#ifdef\t__cplusplus).  The startsWith() checks below
+        // match a space, so tabs must be normalized first.
+        directive = directive.trim().replace('\t', ' ');
 
         if (directive.startsWith("include")) {
             if (isActive()) processInclude(directive, currentFile);
@@ -1189,17 +1202,61 @@ public class CPreprocessor {
     }
 
     /**
+     * Scans a macro body to find parameters that appear immediately before or
+     * after the ## token-paste operator. These must use raw (unexpanded) arguments.
+     */
+    private Set<String> identifyPasteParams(String body, Set<String> paramNames) {
+        Set<String> result = new HashSet<>();
+        // Find all ## positions and check adjacent identifiers
+        int idx = 0;
+        while ((idx = body.indexOf("##", idx)) >= 0) {
+            // Check identifier before ##
+            int before = idx - 1;
+            while (before >= 0 && body.charAt(before) == ' ') before--;
+            if (before >= 0) {
+                int end = before + 1;
+                while (before >= 0 && (Character.isLetterOrDigit(body.charAt(before))
+                        || body.charAt(before) == '_')) before--;
+                String token = body.substring(before + 1, end);
+                if (paramNames.contains(token)) result.add(token);
+            }
+            // Check identifier after ##
+            int after = idx + 2;
+            while (after < body.length() && body.charAt(after) == ' ') after++;
+            if (after < body.length()) {
+                int start = after;
+                while (after < body.length() && (Character.isLetterOrDigit(body.charAt(after))
+                        || body.charAt(after) == '_')) after++;
+                String token = body.substring(start, after);
+                if (paramNames.contains(token)) result.add(token);
+            }
+            idx += 2;
+        }
+        return result;
+    }
+
+    /**
      * Expands a function-like macro with the given arguments.
      * Handles # (stringification), ## (token pasting), and __VA_ARGS__.
+     *
+     * Per the C standard, macro arguments are fully expanded before substitution
+     * EXCEPT when the parameter appears with # (stringification) or ## (token pasting).
      */
     private String expandFunctionMacro(Macro macro, List<String> args, Set<String> expanding) {
         String body = macro.body();
         if (body.isEmpty()) return "";
 
-        // Build parameter → argument mapping
-        Map<String, String> paramMap = new LinkedHashMap<>();
+        // Build parameter → raw argument mapping
+        Map<String, String> rawParamMap = new LinkedHashMap<>();
         for (int i = 0; i < macro.params().size() && i < args.size(); i++) {
-            paramMap.put(macro.params().get(i), args.get(i));
+            rawParamMap.put(macro.params().get(i), args.get(i));
+        }
+
+        // Build parameter → expanded argument mapping (C standard: args are
+        // pre-expanded before substitution, unless used with # or ##)
+        Map<String, String> expandedParamMap = new LinkedHashMap<>();
+        for (var entry : rawParamMap.entrySet()) {
+            expandedParamMap.put(entry.getKey(), expandMacrosImpl(entry.getValue().trim(), expanding));
         }
 
         // Handle __VA_ARGS__
@@ -1209,16 +1266,23 @@ public class CPreprocessor {
             for (int i = fixedCount; i < args.size(); i++) {
                 vaArgs.add(args.get(i));
             }
-            paramMap.put("__VA_ARGS__", vaArgs.toString());
+            String raw = vaArgs.toString();
+            rawParamMap.put("__VA_ARGS__", raw);
+            expandedParamMap.put("__VA_ARGS__", expandMacrosImpl(raw.trim(), expanding));
         }
+
+        // Identify parameters that appear adjacent to ## (these must use raw args).
+        // Scan the body for patterns: "param ##" or "## param"
+        Set<String> pasteParams = identifyPasteParams(body, rawParamMap.keySet());
 
         // Process body: substitute parameters, handle # and ##
         StringBuilder result = new StringBuilder();
         int i = 0;
         char[] bodyChars = body.toCharArray();
+        boolean afterPaste = false; // true if we just processed ##
 
         while (i < bodyChars.length) {
-            // Stringification: #param
+            // Stringification: #param — uses RAW argument
             if (bodyChars[i] == '#' && i + 1 < bodyChars.length && bodyChars[i + 1] != '#') {
                 i++;
                 while (i < bodyChars.length && bodyChars[i] == ' ') i++;
@@ -1226,9 +1290,10 @@ public class CPreprocessor {
                 while (i < bodyChars.length && (Character.isLetterOrDigit(bodyChars[i])
                         || bodyChars[i] == '_')) i++;
                 String paramName = new String(bodyChars, start, i - start);
-                String argValue = paramMap.getOrDefault(paramName, "");
+                String argValue = rawParamMap.getOrDefault(paramName, "");
                 result.append('"').append(argValue.replace("\\", "\\\\")
                         .replace("\"", "\\\"")).append('"');
+                afterPaste = false;
                 continue;
             }
 
@@ -1239,7 +1304,8 @@ public class CPreprocessor {
                     result.deleteCharAt(result.length() - 1);
                 i += 2;
                 while (i < bodyChars.length && bodyChars[i] == ' ') i++;
-                // Next token gets pasted directly
+                afterPaste = true;
+                // Next token gets pasted directly (using raw arg)
                 continue;
             }
 
@@ -1249,16 +1315,22 @@ public class CPreprocessor {
                 while (i < bodyChars.length && (Character.isLetterOrDigit(bodyChars[i])
                         || bodyChars[i] == '_')) i++;
                 String token = new String(bodyChars, start, i - start);
-                String replacement = paramMap.get(token);
+
+                // Use raw for # / ## contexts, expanded otherwise
+                boolean usePaste = afterPaste || pasteParams.contains(token);
+                Map<String, String> map = usePaste ? rawParamMap : expandedParamMap;
+                String replacement = map.get(token);
                 if (replacement != null) {
                     result.append(replacement);
                 } else {
                     result.append(token);
                 }
+                afterPaste = false;
                 continue;
             }
 
             result.append(bodyChars[i]);
+            afterPaste = false;
             i++;
         }
 
@@ -1336,7 +1408,7 @@ public class CPreprocessor {
             return;
         }
 
-        Platform platform = Platform.LINUX_X86_64;
+        FFMUtil.Platform platform = FFMUtil.Platform.LINUX_X86_64;
         List<String> includeDirs = new ArrayList<>();
         Map<String, String> defines = new LinkedHashMap<>();
         boolean showStats = false;
@@ -1346,7 +1418,7 @@ public class CPreprocessor {
             switch (args[i]) {
                 case "-I" -> { if (i + 1 < args.length) includeDirs.add(args[++i]); }
                 case "--platform" -> {
-                    if (i + 1 < args.length) platform = Platform.valueOf(args[++i]);
+                    if (i + 1 < args.length) platform = FFMUtil.Platform.valueOf(args[++i]);
                 }
                 case "--stats" -> showStats = true;
                 default -> {
