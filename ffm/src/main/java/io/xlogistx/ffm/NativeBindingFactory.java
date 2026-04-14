@@ -1,9 +1,11 @@
 package io.xlogistx.ffm;
+
+import org.zoxweb.shared.util.ParamUtil;
+
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 import java.util.*;
-import java.io.IOException;
 
 /**
  * NativeBindingFactory — Unified entry point for creating FFM MethodHandles
@@ -603,8 +605,11 @@ public class NativeBindingFactory {
     // =========================================================================
 
     public static void main(String[] args) throws Throwable {
+        ParamUtil.ParamMap params = ParamUtil.parse("=", args);
+        String header = params.stringValue("include", false);
+        String libPath = params.stringValue("lib", false);
         System.out.println("╔══════════════════════════════════════════════════════════════════╗");
-        System.out.println("║     NativeBindingFactory — Unified Native Binding Pipeline      ║");
+        System.out.println("║     NativeBindingFactory — Unified Native Binding Pipeline       ║");
         System.out.println("╚══════════════════════════════════════════════════════════════════╝");
         System.out.println();
 
@@ -613,8 +618,10 @@ public class NativeBindingFactory {
         System.out.println("─".repeat(70));
 
         try (NativeBindings mathBindings = NativeBindingFactory
-                .fromHeader("/usr/include/math.h")
-                .library("/usr/lib/x86_64-linux-gnu/libm.so.6")
+//                .fromHeader("/usr/include/math.h")
+//                .library("/usr/lib/x86_64-linux-gnu/libm.so.6")
+                .fromHeader(header)
+                .library(libPath)
                 .bind()) {
 
             System.out.println("  " + mathBindings.summary());
@@ -638,8 +645,10 @@ public class NativeBindingFactory {
         System.out.println("─".repeat(70));
 
         try (NativeBindings mathBindings2 = NativeBindingFactory
-                .fromHeader("/usr/include/math.h")
-                .library("/usr/lib/x86_64-linux-gnu/libm.so.6")
+//                .fromHeader("/usr/include/math.h")
+//                .library("/usr/lib/x86_64-linux-gnu/libm.so.6")
+                .fromHeader(header)
+                .library(libPath)
                 .useGcc()
                 .bind()) {
 
@@ -659,7 +668,8 @@ public class NativeBindingFactory {
         System.out.println("─".repeat(70));
 
         try (NativeBindings dwarfBindings = NativeBindingFactory
-                .fromDwarf("/usr/lib/x86_64-linux-gnu/libm.so.6")
+//                .fromDwarf("/usr/lib/x86_64-linux-gnu/libm.so.6")
+                .fromDwarf(libPath)
                 .bind()) {
 
             System.out.println("  " + dwarfBindings.summary());
@@ -679,7 +689,8 @@ public class NativeBindingFactory {
 
         try {
             ParseResult result = NativeBindingFactory
-                    .fromHeader("/usr/include/math.h")
+//                    .fromHeader("/usr/include/math.h")
+                    .fromHeader(header)
                     .parseOnly();
 
             System.out.printf("  Parsed %d functions, %d structs, %d typedefs%n",

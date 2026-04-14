@@ -31,6 +31,19 @@
         </plugins>
     </build>
 
+
+    <dependencies>
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-common</artifactId>
+        </dependency>
+    </dependencies>
+
 <!--    <build>-->
 <!--        <plugins>-->
 <!--            <plugin>-->

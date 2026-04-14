@@ -404,6 +404,11 @@ public class CPreprocessor {
         // Join line continuations
         source = joinLineContinuations(source);
 
+        // Strip C/C++ comments BEFORE line-by-line directive scanning, so that
+        // directive-like text inside a comment (e.g. "#define X" embedded in
+        // glibc's cdefs.h explanatory comment) isn't treated as a real directive.
+        source = stripComments(source);
+
         // Split into lines
         String[] lines = source.split("\n", -1);
 
@@ -462,6 +467,71 @@ public class CPreprocessor {
         }
 
         includeDepth--;
+    }
+
+    /**
+     * Strips C-style {@code /* ... *}{@code /} block comments and {@code //} line
+     * comments, preserving line numbering by keeping the newlines inside them.
+     * Must run BEFORE line-by-line directive processing, otherwise a directive-like
+     * token inside a comment (e.g. {@code #define} inside glibc's explanatory
+     * comment in {@code cdefs.h}) would be misinterpreted as a real directive.
+     * String and character literals are respected so that {@code "//"} inside a
+     * string is not treated as a line-comment start.
+     */
+    private String stripComments(String source) {
+        StringBuilder sb = new StringBuilder(source.length());
+        int i = 0, n = source.length();
+        while (i < n) {
+            char c = source.charAt(i);
+
+            // Block comment
+            if (c == '/' && i + 1 < n && source.charAt(i + 1) == '*') {
+                i += 2;
+                while (i + 1 < n && !(source.charAt(i) == '*' && source.charAt(i + 1) == '/')) {
+                    if (source.charAt(i) == '\n') sb.append('\n');
+                    i++;
+                }
+                i = Math.min(i + 2, n);
+                sb.append(' ');
+                continue;
+            }
+
+            // Line comment
+            if (c == '/' && i + 1 < n && source.charAt(i + 1) == '/') {
+                while (i < n && source.charAt(i) != '\n') i++;
+                continue;
+            }
+
+            // String literal — pass through untouched
+            if (c == '"') {
+                sb.append(c); i++;
+                while (i < n) {
+                    char cc = source.charAt(i);
+                    sb.append(cc);
+                    if (cc == '\\' && i + 1 < n) { sb.append(source.charAt(i + 1)); i += 2; continue; }
+                    i++;
+                    if (cc == '"') break;
+                }
+                continue;
+            }
+
+            // Character literal — pass through untouched
+            if (c == '\'') {
+                sb.append(c); i++;
+                while (i < n) {
+                    char cc = source.charAt(i);
+                    sb.append(cc);
+                    if (cc == '\\' && i + 1 < n) { sb.append(source.charAt(i + 1)); i += 2; continue; }
+                    i++;
+                    if (cc == '\'') break;
+                }
+                continue;
+            }
+
+            sb.append(c);
+            i++;
+        }
+        return sb.toString();
     }
 
     /**
