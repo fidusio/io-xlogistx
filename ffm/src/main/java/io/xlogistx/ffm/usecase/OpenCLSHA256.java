@@ -1,6 +1,7 @@
 package io.xlogistx.ffm.usecase;
 
 import io.xlogistx.ffm.FFMUtil;
+import io.xlogistx.ffm.usecase.OpenCLUtil.DevicePreference;
 import org.zoxweb.shared.util.ParamUtil;
 
 import java.lang.foreign.Arena;
@@ -43,14 +44,6 @@ public class OpenCLSHA256 implements AutoCloseable {
 
     // SHA-256 digest size
     private static final int DIGEST_SIZE = 32; // 256 bits = 32 bytes
-
-    // OpenCL constants
-    private static final long CL_DEVICE_TYPE_GPU = 4L;
-    private static final long CL_DEVICE_TYPE_ALL = 0xFFFFFFFFL;
-    private static final long CL_MEM_READ_ONLY  = 1L << 2;
-    private static final long CL_MEM_WRITE_ONLY = 1L << 1;
-    private static final long CL_MEM_COPY_HOST_PTR = 1L << 5;
-    private static final int CL_SUCCESS = 0;
 
     // OpenCL kernel — full SHA-256 implementation
     private static final String SHA256_KERNEL = """
@@ -154,16 +147,6 @@ public class OpenCLSHA256 implements AutoCloseable {
         }
         """;
 
-    // OpenCL device query constants
-    private static final int CL_DEVICE_TYPE   = 0x1000;
-    private static final int CL_DEVICE_NAME   = 0x102B;
-    private static final int CL_DEVICE_VENDOR = 0x102C;
-    private static final int CL_DEVICE_SVM_CAPABILITIES = 0x1053;
-    private static final long CL_DEVICE_TYPE_CPU_BIT = 2L;
-    private static final long CL_DEVICE_TYPE_GPU_BIT = 4L;
-    private static final long CL_DEVICE_SVM_COARSE_GRAIN_BUFFER = 1L;
-    private static final long CL_DEVICE_SVM_FINE_GRAIN_BUFFER   = 1L << 1;
-
     private final FFMUtil.Library cl;
     private final Arena arena;
     private final MemorySegment context;
@@ -177,15 +160,12 @@ public class OpenCLSHA256 implements AutoCloseable {
     private final boolean svmSupported;
     private final boolean svmFineGrain;
 
-    /** Device preference for OpenCL device selection. */
-    public enum DevicePreference { GPU, CPU, ANY }
-
     /**
      * Initializes OpenCL: discovers GPU, creates context, compiles SHA-256 kernel.
      * Falls back to any available device if no GPU is found.
      */
     public OpenCLSHA256() throws Throwable {
-        this(findLibrary(), "/usr/include/CL/cl.h", DevicePreference.GPU);
+        this(OpenCLUtil.findLibrary(), "/usr/include/CL/cl.h", DevicePreference.GPU);
     }
 
     /**
@@ -194,7 +174,7 @@ public class OpenCLSHA256 implements AutoCloseable {
      * @param preference GPU, CPU, or ANY
      */
     public OpenCLSHA256(DevicePreference preference) throws Throwable {
-        this(findLibrary(), "/usr/include/CL/cl.h", preference);
+        this(OpenCLUtil.findLibrary(), "/usr/include/CL/cl.h", preference);
     }
 
     /**
@@ -208,21 +188,17 @@ public class OpenCLSHA256 implements AutoCloseable {
         arena = cl.arena();
 
         // --- Discover all platforms and find a device matching the preference ---
-        long preferredType = switch (preference) {
-            case GPU -> CL_DEVICE_TYPE_GPU;
-            case CPU -> CL_DEVICE_TYPE_CPU_BIT;
-            case ANY -> CL_DEVICE_TYPE_ALL;
-        };
+        long preferredType = preference.clType();
 
         var numPlatBuf = arena.allocate(ValueLayout.JAVA_INT);
-        check("clGetPlatformIDs(count)",
+        OpenCLUtil.check("clGetPlatformIDs(count)",
                 (int) cl.invoke("clGetPlatformIDs", 0, MemorySegment.NULL, numPlatBuf));
         int numPlatforms = numPlatBuf.get(ValueLayout.JAVA_INT, 0);
         if (numPlatforms == 0)
             throw new RuntimeException("No OpenCL platforms found.");
 
         var platArray = arena.allocate(ValueLayout.ADDRESS, numPlatforms);
-        check("clGetPlatformIDs",
+        OpenCLUtil.check("clGetPlatformIDs",
                 (int) cl.invoke("clGetPlatformIDs", numPlatforms, platArray, MemorySegment.NULL));
 
         // Search all platforms for a device matching the requested type
@@ -232,7 +208,7 @@ public class OpenCLSHA256 implements AutoCloseable {
             MemorySegment plat = platArray.getAtIndex(ValueLayout.ADDRESS, p);
             int err = (int) cl.invoke("clGetDeviceIDs",
                     plat, preferredType, 1, devBuf, MemorySegment.NULL);
-            if (err == CL_SUCCESS) {
+            if (err == OpenCLUtil.CL_SUCCESS) {
                 found = true;
                 break;
             }
@@ -248,32 +224,26 @@ public class OpenCLSHA256 implements AutoCloseable {
         device = devBuf.get(ValueLayout.ADDRESS, 0);
 
         // --- Query device info ---
-        deviceName = queryDeviceString(CL_DEVICE_NAME);
-        deviceVendor = queryDeviceString(CL_DEVICE_VENDOR);
-        var typeBuf = arena.allocate(ValueLayout.JAVA_LONG);
-        cl.invoke("clGetDeviceInfo", device, CL_DEVICE_TYPE,
-                (long) Long.BYTES, typeBuf, MemorySegment.NULL);
-        long deviceType = typeBuf.get(ValueLayout.JAVA_LONG, 0);
-        isGpu = (deviceType & CL_DEVICE_TYPE_GPU_BIT) != 0;
+        deviceName = OpenCLUtil.queryDeviceString(cl, arena, device, OpenCLUtil.CL_DEVICE_NAME);
+        deviceVendor = OpenCLUtil.queryDeviceString(cl, arena, device, OpenCLUtil.CL_DEVICE_VENDOR);
+        long deviceType = OpenCLUtil.queryDeviceLong(cl, arena, device, OpenCLUtil.CL_DEVICE_TYPE);
+        isGpu = (deviceType & OpenCLUtil.CL_DEVICE_TYPE_GPU_BIT) != 0;
 
         // --- SVM capability detection ---
-        var svmBuf = arena.allocate(ValueLayout.JAVA_LONG);
-        cl.invoke("clGetDeviceInfo", device, CL_DEVICE_SVM_CAPABILITIES,
-                (long) Long.BYTES, svmBuf, MemorySegment.NULL);
-        long svmCaps = svmBuf.get(ValueLayout.JAVA_LONG, 0);
-        svmSupported = (svmCaps & CL_DEVICE_SVM_COARSE_GRAIN_BUFFER) != 0;
-        svmFineGrain = (svmCaps & CL_DEVICE_SVM_FINE_GRAIN_BUFFER) != 0;
+        long svmCaps = OpenCLUtil.queryDeviceLong(cl, arena, device, OpenCLUtil.CL_DEVICE_SVM_CAPABILITIES);
+        svmSupported = (svmCaps & OpenCLUtil.CL_DEVICE_SVM_COARSE_GRAIN_BUFFER) != 0;
+        svmFineGrain = (svmCaps & OpenCLUtil.CL_DEVICE_SVM_FINE_GRAIN_BUFFER) != 0;
 
         // --- Context ---
         var errBuf = arena.allocate(ValueLayout.JAVA_INT);
         context = (MemorySegment) cl.invoke("clCreateContext",
                 MemorySegment.NULL, 1, devBuf, MemorySegment.NULL, MemorySegment.NULL, errBuf);
-        check("clCreateContext", errBuf.get(ValueLayout.JAVA_INT, 0));
+        OpenCLUtil.check("clCreateContext", errBuf.get(ValueLayout.JAVA_INT, 0));
 
         // --- Command queue ---
         queue = (MemorySegment) cl.invoke("clCreateCommandQueueWithProperties",
                 context, device, MemorySegment.NULL, errBuf);
-        check("clCreateCommandQueue", errBuf.get(ValueLayout.JAVA_INT, 0));
+        OpenCLUtil.check("clCreateCommandQueue", errBuf.get(ValueLayout.JAVA_INT, 0));
 
         // --- Compile kernel ---
         var srcSeg = arena.allocateFrom(SHA256_KERNEL);
@@ -282,18 +252,18 @@ public class OpenCLSHA256 implements AutoCloseable {
 
         program = (MemorySegment) cl.invoke("clCreateProgramWithSource",
                 context, 1, srcPtr, MemorySegment.NULL, errBuf);
-        check("clCreateProgramWithSource", errBuf.get(ValueLayout.JAVA_INT, 0));
+        OpenCLUtil.check("clCreateProgramWithSource", errBuf.get(ValueLayout.JAVA_INT, 0));
 
         int buildErr = (int) cl.invoke("clBuildProgram",
                 program, 1, devBuf, MemorySegment.NULL, MemorySegment.NULL, MemorySegment.NULL);
-        if (buildErr != CL_SUCCESS) {
+        if (buildErr != OpenCLUtil.CL_SUCCESS) {
             throw new RuntimeException("clBuildProgram failed (error " + buildErr + "): "
-                    + getBuildLog(devBuf));
+                    + OpenCLUtil.getBuildLog(cl, arena, program, devBuf));
         }
 
         kernel = (MemorySegment) cl.invoke("clCreateKernel",
                 program, arena.allocateFrom("sha256_hash"), errBuf);
-        check("clCreateKernel", errBuf.get(ValueLayout.JAVA_INT, 0));
+        OpenCLUtil.check("clCreateKernel", errBuf.get(ValueLayout.JAVA_INT, 0));
     }
 
 
@@ -375,12 +345,12 @@ public class OpenCLSHA256 implements AutoCloseable {
     private byte[][] hashBatchSVM(byte[] flatInput, int paddedLen,
                                    int count, int outputSize) throws Throwable {
         var svmInput = (MemorySegment) cl.invoke("clSVMAlloc",
-                context, CL_MEM_READ_ONLY, (long) flatInput.length, 0);
+                context, OpenCLUtil.CL_MEM_READ_ONLY, (long) flatInput.length, 0);
         if (svmInput.address() == 0)
             throw new RuntimeException("clSVMAlloc(input) returned NULL");
 
         var svmOutput = (MemorySegment) cl.invoke("clSVMAlloc",
-                context, CL_MEM_WRITE_ONLY, (long) outputSize, 0);
+                context, OpenCLUtil.CL_MEM_WRITE_ONLY, (long) outputSize, 0);
         if (svmOutput.address() == 0) {
             cl.invoke("clSVMFree", context, svmInput);
             throw new RuntimeException("clSVMAlloc(output) returned NULL");
@@ -395,21 +365,21 @@ public class OpenCLSHA256 implements AutoCloseable {
             inputSeg.copyFrom(MemorySegment.ofArray(flatInput));
 
             // Set kernel args via SVM pointers
-            setKernelArgSVM(0, svmInput);
-            setKernelArgSVM(1, svmOutput);
-            setKernelArgInt(2, paddedLen);
+            OpenCLUtil.setKernelArgSVM(cl, kernel, 0, svmInput);
+            OpenCLUtil.setKernelArgSVM(cl, kernel, 1, svmOutput);
+            OpenCLUtil.setKernelArgInt(cl, arena, kernel, 2, paddedLen);
 
             // Dispatch
             var globalSize = arena.allocate(ValueLayout.JAVA_LONG);
             globalSize.set(ValueLayout.JAVA_LONG, 0, count);
-            check("clEnqueueNDRangeKernel",
+            OpenCLUtil.check("clEnqueueNDRangeKernel",
                     (int) cl.invoke("clEnqueueNDRangeKernel",
                             queue, kernel, 1,
                             MemorySegment.NULL, globalSize, MemorySegment.NULL,
                             0, MemorySegment.NULL, MemorySegment.NULL));
 
             // Wait for kernel, then read directly from shared memory
-            check("clFinish", (int) cl.invoke("clFinish", queue));
+            OpenCLUtil.check("clFinish", (int) cl.invoke("clFinish", queue));
 
             // Extract digests — no copy, just slice the shared segment
             byte[][] digests = new byte[count][];
@@ -436,27 +406,27 @@ public class OpenCLSHA256 implements AutoCloseable {
         var inputSeg = arena.allocate(flatInput.length);
         inputSeg.copyFrom(MemorySegment.ofArray(flatInput));
         var clInput = (MemorySegment) cl.invoke("clCreateBuffer",
-                context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                context, OpenCLUtil.CL_MEM_READ_ONLY | OpenCLUtil.CL_MEM_COPY_HOST_PTR,
                 (long) flatInput.length, inputSeg, errBuf);
-        check("clCreateBuffer(input)", errBuf.get(ValueLayout.JAVA_INT, 0));
+        OpenCLUtil.check("clCreateBuffer(input)", errBuf.get(ValueLayout.JAVA_INT, 0));
 
         // --- Output buffer ---
         var clOutput = (MemorySegment) cl.invoke("clCreateBuffer",
-                context, CL_MEM_WRITE_ONLY,
+                context, OpenCLUtil.CL_MEM_WRITE_ONLY,
                 (long) outputSize, MemorySegment.NULL, errBuf);
-        check("clCreateBuffer(output)", errBuf.get(ValueLayout.JAVA_INT, 0));
+        OpenCLUtil.check("clCreateBuffer(output)", errBuf.get(ValueLayout.JAVA_INT, 0));
 
         try {
             // --- Set kernel args ---
-            setKernelArgAddr(0, clInput);
-            setKernelArgAddr(1, clOutput);
-            setKernelArgInt(2, paddedLen);
+            OpenCLUtil.setKernelArgAddr(cl, arena, kernel, 0, clInput);
+            OpenCLUtil.setKernelArgAddr(cl, arena, kernel, 1, clOutput);
+            OpenCLUtil.setKernelArgInt(cl, arena, kernel, 2, paddedLen);
 
             // --- Enqueue ---
             var globalSize = arena.allocate(ValueLayout.JAVA_LONG);
             globalSize.set(ValueLayout.JAVA_LONG, 0, count);
 
-            check("clEnqueueNDRangeKernel",
+            OpenCLUtil.check("clEnqueueNDRangeKernel",
                     (int) cl.invoke("clEnqueueNDRangeKernel",
                             queue, kernel, 1,
                             MemorySegment.NULL, globalSize, MemorySegment.NULL,
@@ -464,13 +434,13 @@ public class OpenCLSHA256 implements AutoCloseable {
 
             // --- Read back (explicit copy from GPU) ---
             var resultSeg = arena.allocate(outputSize);
-            check("clEnqueueReadBuffer",
+            OpenCLUtil.check("clEnqueueReadBuffer",
                     (int) cl.invoke("clEnqueueReadBuffer",
                             queue, clOutput, 1 /* blocking */,
                             0L, (long) outputSize, resultSeg,
                             0, MemorySegment.NULL, MemorySegment.NULL));
 
-            check("clFinish", (int) cl.invoke("clFinish", queue));
+            OpenCLUtil.check("clFinish", (int) cl.invoke("clFinish", queue));
 
             // --- Extract digests ---
             byte[][] digests = new byte[count][];
@@ -535,80 +505,6 @@ public class OpenCLSHA256 implements AutoCloseable {
 
 
     // =========================================================================
-    // OPENCL HELPERS
-    // =========================================================================
-
-    private String queryDeviceString(int param) throws Throwable {
-        var sizeBuf = arena.allocate(ValueLayout.JAVA_LONG);
-        cl.invoke("clGetDeviceInfo", device, param,
-                0L, MemorySegment.NULL, sizeBuf);
-        long size = sizeBuf.get(ValueLayout.JAVA_LONG, 0);
-        if (size <= 1) return "<unknown>";
-        var buf = arena.allocate(size);
-        cl.invoke("clGetDeviceInfo", device, param, size, buf, MemorySegment.NULL);
-        return buf.getString(0).trim();
-    }
-
-    private void setKernelArgSVM(int index, MemorySegment svmPtr) throws Throwable {
-        check("clSetKernelArgSVMPointer[" + index + "]",
-                (int) cl.invoke("clSetKernelArgSVMPointer", kernel, index, svmPtr));
-    }
-
-    private void setKernelArgAddr(int index, MemorySegment value) throws Throwable {
-        var argBuf = arena.allocate(ValueLayout.ADDRESS);
-        argBuf.set(ValueLayout.ADDRESS, 0, value);
-        check("clSetKernelArg[" + index + "]",
-                (int) cl.invoke("clSetKernelArg", kernel, index,
-                        ValueLayout.ADDRESS.byteSize(), argBuf));
-    }
-
-    private void setKernelArgInt(int index, int value) throws Throwable {
-        var argBuf = arena.allocate(ValueLayout.JAVA_INT);
-        argBuf.set(ValueLayout.JAVA_INT, 0, value);
-        check("clSetKernelArg[" + index + "]",
-                (int) cl.invoke("clSetKernelArg", kernel, index,
-                        (long) Integer.BYTES, argBuf));
-    }
-
-    private String getBuildLog(MemorySegment devBuf) {
-        try {
-            var sizeBuf = arena.allocate(ValueLayout.JAVA_LONG);
-            cl.invoke("clGetProgramBuildInfo", program,
-                    devBuf.get(ValueLayout.ADDRESS, 0),
-                    2 /* CL_PROGRAM_BUILD_LOG */,
-                    0L, MemorySegment.NULL, sizeBuf);
-            long logSize = sizeBuf.get(ValueLayout.JAVA_LONG, 0);
-            if (logSize <= 1) return "<empty>";
-            var logBuf = arena.allocate(logSize);
-            cl.invoke("clGetProgramBuildInfo", program,
-                    devBuf.get(ValueLayout.ADDRESS, 0),
-                    2, logSize, logBuf, MemorySegment.NULL);
-            return logBuf.getString(0);
-        } catch (Throwable t) {
-            return "<failed to retrieve: " + t.getMessage() + ">";
-        }
-    }
-
-    private static void check(String call, int err) {
-        if (err != CL_SUCCESS)
-            throw new RuntimeException(call + " failed with error code " + err);
-    }
-
-    private static String findLibrary() {
-        for (String path : new String[]{
-                "/usr/lib/x86_64-linux-gnu/libOpenCL.so.1",
-                "/usr/lib/aarch64-linux-gnu/libOpenCL.so.1",
-                "/usr/lib/libOpenCL.so.1",
-                "/usr/local/lib/libOpenCL.so.1",
-                "/opt/homebrew/lib/libOpenCL.dylib"
-        }) {
-            if (Files.exists(Path.of(path))) return path;
-        }
-        throw new RuntimeException("libOpenCL not found — install an OpenCL ICD (e.g. apt install ocl-icd-libopencl1)");
-    }
-
-
-    // =========================================================================
     // CLI
     // =========================================================================
 
@@ -646,7 +542,7 @@ public class OpenCLSHA256 implements AutoCloseable {
         String header = params.stringValue("header", true);
         String deviceStr = params.stringValue("device", true);
 
-        String libPath = lib != null ? lib : findLibrary();
+        String libPath = lib != null ? lib : OpenCLUtil.findLibrary();
         String headerPath = header != null ? header : "/usr/include/CL/cl.h";
         DevicePreference pref = DevicePreference.GPU;
         if (deviceStr != null) {

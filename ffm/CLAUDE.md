@@ -18,10 +18,57 @@ ffm/
     ├── CPreprocessor.java          Pure-Java C preprocessor (replaces gcc -E)
     ├── CHeaderParser.java          Tokenizer + recursive-descent declaration parser
     ├── DwarfFFMLoader.java         libdw bindings + DWARF DIE walker
-    └── FFMUtil.java                High-level facade + CLI (`main`)
+    ├── FFMUtil.java                High-level facade + CLI (`main`)
+    └── usecase/
+        ├── OpenCLUtil.java          OpenCL constants, helpers, DeviceInfo + CLI (`main`)
+        └── OpenCLSHA256.java        GPU-accelerated SHA-256 (uses OpenCLUtil)
 ```
 
 No tests yet.
+
+## Use-cases (`io.xlogistx.ffm.usecase`)
+
+Demonstrations/applications of the FFM facade. Each use-case class follows the
+same pattern: load a native library via `FFMUtil.library(...)`, then invoke
+discovered functions through the shared `FFMUtil.Library` handle.
+
+### OpenCLUtil (shared OpenCL helpers)
+
+Central home for **all reusable OpenCL plumbing** — do not duplicate constants,
+device queries, kernel-arg setters, or error checks in other use-case classes.
+Add new helpers here so every OpenCL-based use-case can share them.
+
+Contents:
+- **Constants** — `CL_SUCCESS`, `CL_MEM_*`, `CL_DEVICE_TYPE_*`, `CL_DEVICE_*`
+  query params, SVM capability bits, `CL_PROGRAM_BUILD_LOG`.
+- **`DevicePreference` enum** — `GPU`/`CPU`/`ANY` with a `clType()` accessor
+  for the `cl_device_type` bitmask.
+- **Error handling** — `check(call, err)`.
+- **Library discovery** — `findLibrary()` walks common libOpenCL paths.
+- **Device queries** — `queryDeviceString/Long/Int(cl, arena, device, param)`.
+- **Kernel args** — `setKernelArgSVM/Addr/Int(cl, [arena,] kernel, index, value)`.
+- **Build log** — `getBuildLog(cl, arena, program, devBuf)` (never throws).
+- **`DeviceInfo` record + `queryDeviceInfo(cl, arena, device)`** — captures
+  name, vendor, version/driver/profile/OpenCL-C version, compute units, max
+  work-group, clock MHz, address bits, global/local/constant/cache memory,
+  `unifiedMemory` (shared vs dedicated VRAM), SVM tier, extensions. Exposes
+  `summary()` and `prettyReport()`. Each underlying query is wrapped in
+  `safeString/Long/Int` so a missing param returns `<unknown>`/0/false instead
+  of throwing.
+- **`main(args)`** — enumerates all platforms/devices via `clGetPlatformIDs`
+  + `clGetDeviceIDs`, prints `prettyReport()` (or one-line `summary()`) for
+  each. Flags: `lib=`, `header=`, `type=gpu|cpu|any`, `format=pretty|summary`.
+
+### OpenCLSHA256 (GPU-accelerated SHA-256)
+
+Parallel batch SHA-256 via an OpenCL kernel compiled at runtime. Supports SVM
+fine-grain (zero-copy) when the device advertises it, falls back to
+`clCreateBuffer` + `clEnqueueReadBuffer` otherwise. All OpenCL plumbing is
+delegated to `OpenCLUtil`; only SHA-256-specific logic (kernel source,
+`paddedSize`, `padMessage`, `DIGEST_SIZE`, `hex()`) lives in this class.
+
+CLI: `OpenCLSHA256 text=<s> | file=<p> | batch=<csv> | bench=<n>
+      [lib=<p>] [header=<p>] [device=gpu|cpu|any]`.
 
 ## Three discovery strategies
 
@@ -89,6 +136,12 @@ surefire/compiler `<argLine>` for this is currently commented out in
    (glibc's `cdefs.h` contains `#define __has_attribute(foo) 0` *inside* an
    explanatory comment; without pre-stripping, line-by-line directive matching
    misinterprets it as a real directive and corrupts the macro table).
+
+5. **All OpenCL helpers live in `usecase/OpenCLUtil.java`.** Constants
+   (`CL_*`), device queries, kernel-arg setters, error checks, build-log
+   retrieval, and `DeviceInfo` population are centralized there. Other
+   use-case classes must call into `OpenCLUtil` rather than redefining
+   constants or helpers locally.
 
 ## Known limitations / gotchas
 
