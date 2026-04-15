@@ -414,7 +414,7 @@ public final class OpenCLUtil {
               format=<fmt>      pretty (multi-line) or summary (one-line). Default: pretty.
             """;
 
-    static void main(String[] args) throws Throwable {
+    public static void main(String[] args) throws Throwable {
         for (String a : args) {
             if (a.equals("-h") || a.equals("--help") || a.equals("help")) {
                 System.out.println(USAGE);
