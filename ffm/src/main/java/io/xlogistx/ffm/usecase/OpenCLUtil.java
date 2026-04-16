@@ -182,7 +182,7 @@ public final class OpenCLUtil {
      * @param localMemBytes      Per-workgroup local (shared) memory in bytes.
      * @param constantMemBytes   Max constant buffer size in bytes.
      * @param globalCacheBytes   Size of the global memory cache in bytes (0 if none).
-     * @param cachelineBytes     Cache line size in bytes (0 if none).
+     * @param cacheLineBytes     Cache line size in bytes (0 if none).
      * @param unifiedMemory      True if the device shares the host's physical RAM
      *                           (integrated GPU / APU). False means dedicated VRAM.
      * @param svmSupported       True if coarse-grain SVM is available.
@@ -208,7 +208,7 @@ public final class OpenCLUtil {
             long localMemBytes,
             long constantMemBytes,
             long globalCacheBytes,
-            long cachelineBytes,
+            long cacheLineBytes,
             boolean unifiedMemory,
             boolean svmSupported,
             boolean svmFineGrain,
@@ -256,7 +256,7 @@ public final class OpenCLUtil {
             sb.append("Local memory:    ").append(humanBytes(localMemBytes)).append('\n');
             sb.append("Constant buffer: ").append(humanBytes(constantMemBytes)).append('\n');
             sb.append("Global cache:    ").append(humanBytes(globalCacheBytes))
-                    .append(" (line ").append(cachelineBytes).append(" B)\n");
+                    .append(" (line ").append(cacheLineBytes).append(" B)\n");
             sb.append("SVM:             ")
                     .append(svmFineGrain ? "fine-grain (zero-copy)"
                             : svmSupported ? "coarse-grain"

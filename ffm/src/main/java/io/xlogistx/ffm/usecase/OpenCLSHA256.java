@@ -272,7 +272,7 @@ public class OpenCLSHA256 implements AutoCloseable {
     // =========================================================================
 
     /** Returns true if the device is a GPU, false for CPU/other. */
-    public boolean isGpu() { return isGpu; }
+    public boolean isGPU() { return isGpu; }
 
     /** Returns the OpenCL device name (e.g. "Intel HD Graphics 630"). */
     public String deviceName() { return deviceName; }
