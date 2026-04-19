@@ -98,6 +98,7 @@ public class NIORevocationChecker {
             HTTPURLCallback huc = new HTTPURLCallback(hmci, new ConsumerCallback<HTTPResponse>() {
                 @Override
                 public void accept(HTTPResponse response) {
+                    if (log.isEnabled()) log.getLogger().info("" + response);
                     callback.accept(parseOCSPResponse(response));
                 }
 
@@ -107,7 +108,7 @@ public class NIORevocationChecker {
                         log.getLogger().info("OCSP request failed: " + e.getMessage());
                     callback.accept(RevocationResult.error("OCSP", "Request failed: " + e.getMessage()));
                 }
-            });
+            }, false);
 
             httpNioSocket.send(huc);
         } catch (Exception e) {
