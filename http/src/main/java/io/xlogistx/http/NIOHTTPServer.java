@@ -97,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.2.9");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.3.0");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -526,7 +526,7 @@ public class NIOHTTPServer
                             HTTPStatusCode responseCode = HTTPStatusCode.OK;
                             if (result instanceof HTTPStatusCode) {
                                 responseCode = (HTTPStatusCode) result;
-                                result = "{status-reason: \"" + responseCode.REASON + "\"}";
+                                result = new NVGenericMap().build("status-reason", responseCode.REASON);
                             }
 
 

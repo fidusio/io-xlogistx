@@ -281,6 +281,11 @@ public class UDPPortScanCallback extends UDPSessionCallback {
         super.close();
     }
 
+    @Override
+    public void sslHandshakeSuccessful() throws IOException {
+
+    }
+
     /**
      * Tracks a pending UDP scan.
      */

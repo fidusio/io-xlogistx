@@ -131,6 +131,9 @@
       "bean": "io.xlogistx.http.services.EchoChatTest"
     },
     {
+      "bean": "io.xlogistx.http.services.HashContent"
+    },
+    {
       "bean": "io.xlogistx.http.services.SysCommand",
       "properties": {
         "reboot-command": "reboot-command",

@@ -89,6 +89,11 @@ public class DNSUDPNIOCallback
     public void exception(Throwable e) {
 
     }
+
+    @Override
+    public void sslHandshakeSuccessful() throws IOException {
+
+    }
 }
 
 
