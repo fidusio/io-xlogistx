@@ -119,7 +119,7 @@ public class HTTPFileServiceHandler
         response.getHeaders().build(HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
         if (mime != null)
             response.setContentType(mime.getValue());
-        response.setContentAsIS(Files.newInputStream(filePath));
+        response.setContentAsIS(Files.newInputStream(filePath), true);
 
         return response;
 

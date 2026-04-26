@@ -70,7 +70,10 @@ public class HTTPProtocolHandler
             case HTTPS:
                 HTTPMessageConfigInterface hmci = rawRequest.parse();
                 boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
-                if (!ret && rawRequest.areHeadersParsed() && hmci.isTransferChunked()) {
+//                if (!ret && rawRequest.areHeadersParsed() && hmci.isTransferChunked()) {
+//                    ret = true;
+//                }
+                if (!ret && rawRequest.canProceedAsPartial()) {
                     ret = true;
                 }
                 if (log.isEnabled())
@@ -95,12 +98,16 @@ public class HTTPProtocolHandler
         return rawRequest.isMessageComplete();
     }
 
+    public boolean canProceedAsPartial() {
+        return rawRequest.canProceedAsPartial();
+    }
+
     public HTTPMessageConfigInterface getRequest(boolean withIncompleteContent) {
         return withIncompleteContent ? (rawRequest.areHeadersParsed() ? rawRequest.getHTTPMessageConfig() : null) : getRequest();
     }
 
     public HTTPMessageConfigInterface getRequest() {
-        return isRequestComplete() ? rawRequest.getHTTPMessageConfig() : null;
+        return isRequestComplete() || canProceedAsPartial()? rawRequest.getHTTPMessageConfig() : null;
     }
 
     public UByteArrayOutputStream getResponseStream() {

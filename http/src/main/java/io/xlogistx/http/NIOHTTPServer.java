@@ -97,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.3.0");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.3.1");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -153,6 +153,7 @@ public class NIOHTTPServer
                     if (logger.isEnabled()) logger.getLogger().info("Message Not Complete");
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 if (logger.isEnabled()) e.printStackTrace();
                 processException(hph, get(), e);
                 SharedIOUtil.close(this);
@@ -504,6 +505,8 @@ public class NIOHTTPServer
 
                         // +++ Security check +++++++++++++++++++++
                         securityCheck(epm, hph);
+                        if(logger.isEnabled())logger.getLogger().info("After security check " + hph.isRequestComplete() + " " + hph.canProceedAsPartial() + " " +
+                                hph.getRequest(true).getHeaders());
 
                         //_________________________________________
 
@@ -512,8 +515,9 @@ public class NIOHTTPServer
                             if (((HTTPRawHandler) epm.result.methodContainer.instance).handle(hph))
                                 HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hph.getResponse(), hph.getOutputStream());
 
-                        } else if (hph.isRequestComplete()) {
-                            if (logger.isEnabled()) {
+                        } else if (hph.isRequestComplete() || hph.canProceedAsPartial()) {
+                            if (logger.isEnabled())
+                            {
                                 logger.getLogger().info("" + epm.result.methodContainer.instance);
                                 logger.getLogger().info("" + hph.getRequest());
                                 logger.getLogger().info(epm.path);
@@ -523,24 +527,26 @@ public class NIOHTTPServer
                              * calling the implementation method that is processing the request
                              */
                             Object result = epm.result.methodContainer.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
-                            HTTPStatusCode responseCode = HTTPStatusCode.OK;
-                            if (result instanceof HTTPStatusCode) {
-                                responseCode = (HTTPStatusCode) result;
-                                result = new NVGenericMap().build("status-reason", responseCode.REASON);
+                            if(hph.isRequestComplete()) {
+                                HTTPStatusCode responseCode = HTTPStatusCode.OK;
+                                if (result instanceof HTTPStatusCode) {
+                                    responseCode = (HTTPStatusCode) result;
+                                    result = new NVGenericMap().build("status-reason", responseCode.REASON);
+                                }
+
+
+                                /**
+                                 * Converting the result into an http response
+                                 */
+                                HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(),
+                                        result,
+                                        responseCode,
+                                        HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
+                                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+
+                                HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hmci, hph.getOutputStream());
                             }
-
-
-                            /**
-                             * Converting the result into an http response
-                             */
-                            HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(),
-                                    result,
-                                    responseCode,
-                                    HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
-                                    HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                                    HTTPConst.CommonHeader.EXPIRES_ZERO);
-
-                            HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hmci, hph.getOutputStream());
                         }
                     } else {
                         // error status uri map not found

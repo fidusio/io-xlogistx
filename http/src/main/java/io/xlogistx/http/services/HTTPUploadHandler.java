@@ -54,7 +54,7 @@ public class HTTPUploadHandler
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
 
-        NVGenericMap parameters = requestConfig.getParameters();
+        NVGenericMap parameters = requestConfig.attachment();
 
         NamedValue<InputStream> fileData = parameters.getNV("file");
         String fileLocation = parameters.getValue("file-location");
@@ -130,9 +130,10 @@ public class HTTPUploadHandler
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
 
-        NVGenericMap parameters = requestConfig.getParameters();
+        NVGenericMap parameters = requestConfig.attachment();
 
         NamedValue<InputStream> fileData = parameters.getNV("file");
+
         OutputStream fos = null;
         if (log.isEnabled()) log.getLogger().info("fileData: " + (fileData != null ? fileData.getName() : "NULL"));
 
