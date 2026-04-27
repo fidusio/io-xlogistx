@@ -29,7 +29,7 @@ public class HTTPUploadHandler
         implements HTTPRawHandler {
 
 
-    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(false);
+    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(true);
     private File baseFolder;
 
     /**
@@ -121,7 +121,7 @@ public class HTTPUploadHandler
     private boolean chunkedHandle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
             throws IOException {
 
-        if (log.isEnabled()) log.getLogger().info("Chunked data");
+        if (log.isEnabled()) log.getLogger().info("Chunked data: " +hph.getRequest().getHeaders());
         if (getBaseFolder() == null)
             throw new HTTPCallException("Storage location not available!", HTTPStatusCode.NOT_FOUND);
 
