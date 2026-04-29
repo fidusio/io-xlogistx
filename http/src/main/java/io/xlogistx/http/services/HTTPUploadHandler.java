@@ -2,19 +2,18 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.common.http.HTTPRawHandler;
-import org.zoxweb.server.http.HTTPUtil;
+import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.DateUtil;
-import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
+import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.HashResult;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.protocol.ProtoMarker;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.*;
@@ -25,21 +24,122 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 public class HTTPUploadHandler
-        extends PropertyContainer<NVGenericMap>
-        implements HTTPRawHandler {
+        extends PropertyContainer<NVGenericMap> {
 
 
-    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(true);
     private File baseFolder;
 
+    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(false);
+
     /**
-     * @param hph
-     * @throws IOException
+     * @param filename of the binary file
+     * @throws IOException in case of errors
      */
-    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload")
+    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload/{filename}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:upload:files")
-    @Override
-    public boolean handle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
+    public NVGenericMap fileUpload(@ParamProp(name = "filename", optional = true) String filename)
+            throws IOException {
+        try {
+            if (log.isEnabled()) log.getLogger().info("filename: " + filename);
+            HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+            HTTPMessageConfigInterface request = hph.getRequest();
+            if (log.isEnabled())log.getLogger().info(""+request.getHeaders());
+
+            if (request != null) {
+                if (log.isEnabled()) log.getLogger().info("headers: " + request.getHeaders());
+
+                if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true))
+                    return handleMultiPartForm(hph);
+
+                if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.APPLICATION_OCTET_STREAM, true)) {
+                    if(SUS.isEmpty(filename)){
+                        throw new APIException("Missing file name", HTTPStatusCode.BAD_REQUEST.CODE);
+                    }
+                    NVGenericMap attachment = hph.getRequest(true).attachment();
+                    if (log.isEnabled()) log.getLogger().info("attachment: " + attachment);
+
+
+                    NamedValue<InputStream> contentAsIS = attachment.getNV(HTTPConst.Token.CONTENT);
+                    if (log.isEnabled()) log.getLogger().info("NamedValue: " + contentAsIS);
+                    if (contentAsIS != null) {
+
+
+                        OutputStream fos = attachment.getValue("fos");
+                        if (fos == null) {
+                            fos = new FileOutputStream(new File(getBaseFolder(), filename));
+//                            ProtoSession<?, ?> ps = hph.getConnectionSession();
+//                            ps.getAutoCloseables().add(fos);
+                            attachment.build(new NamedValue<>("fos", fos));
+
+                            //attachment.build(new NamedValue<>("file", file));
+                            attachment.build(new NVLong("start-ts", System.currentTimeMillis()));
+
+
+                        }
+                        if (log.isEnabled()) log.getLogger().info("fos: " + fos);
+
+
+                        MessageDigest md = attachment.getValue("md");
+                        CryptoConst.HashType hashType = CryptoConst.HashType.SHA_256;
+                        if (md == null) {
+                            try {
+                                md = MessageDigest.getInstance(hashType.getName());
+                                attachment.build(new NamedValue<>("md", md));
+                            } catch (NoSuchAlgorithmException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+
+                        if (log.isEnabled()) log.getLogger().info("md: " + fos);
+
+                        long totalCopied = attachment.getValue("total-copied", (long) 0);
+                        totalCopied += IOUtil.relayStreams(md, contentAsIS.getValue(), fos, true, false);
+                        attachment.build(new NVLong("total-copied", totalCopied));
+                        if (log.isEnabled()) log.getLogger().info("total-copied: " + totalCopied);
+
+
+                        if (contentAsIS.getProperties().getValue(HTTPConst.Token.IS_COMPLETED)) {
+                            long delta = System.currentTimeMillis() - (long) attachment.getValue("start-ts");
+                            SharedIOUtil.close(fos);
+                            byte[] digest = md.digest();
+                            String hash = SUS.fastBytesToHex(digest);
+
+
+                            if (log.isEnabled())
+                                log.getLogger().info(hashType + " digest: " + SUS.fastBytesToHex(digest) + " total: " + hph.getRequest().getContentLength());
+                            NVGenericMap response = new NVGenericMap();
+                            GetNameValue<String> id = hph.getRawRequest().getHTTPMessageConfig().getHeaders().getNV(HTTPHeader.X_REQUEST_ID);
+                            if (id != null)
+                                response.add(id);
+
+                            response.build("filename", filename)
+                                    .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
+                                    .build("duration", Const.TimeInMillis.toString(delta))
+                                    .build(new NVLong("data-length", totalCopied))
+                                    .build(hashType.getName().toLowerCase(), hash);
+                            // ex
+                            hph.expire();
+                            return response;
+                        }
+
+                    }
+                } else {
+                    throw new APIException("Invalid request content-type " + request.getContentType(), HTTPStatusCode.BAD_REQUEST.CODE);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
+        return null;
+    }
+
+
+
+
+
+    private NVGenericMap handleMultiPartForm(HTTPProtocolHandler hph)
             throws IOException {
 
 
@@ -49,7 +149,7 @@ public class HTTPUploadHandler
 
         HTTPMessageConfigInterface requestConfig = hph.getRequest(true);
         if (requestConfig.isTransferChunked()) {
-            return chunkedHandle(hph);
+            return chunkedMultipartForm(hph);
         }
         //System.out.println(hph.getRawRequest());
         //System.out.println(hmciRequest.getParameters());
@@ -95,30 +195,24 @@ public class HTTPUploadHandler
         HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
 
 
-        HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
-                HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
-        hmciResponse.setContentType(HTTPMediaType.APPLICATION_JSON);
+
         NVGenericMap responseData = new NVGenericMap();
         responseData.build("filename", file.getName())
                 .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
                 .build(new NVLong("data-length", hashResult.dataLength))
                 .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
 
-        hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));
-
-        HTTPUtil.formatResponse(hmciResponse, hph.getResponseStream())
-                .writeTo(hph.getOutputStream());
 
         if (log.isEnabled()) log.getLogger().info("Done receiving File: " + file);
 
         // ex
         hph.expire();
 
-        return true;
+        return responseData;
     }
 
 
-    private boolean chunkedHandle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
+    private NVGenericMap chunkedMultipartForm(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph)
             throws IOException {
 
         if (log.isEnabled()) log.getLogger().info("Chunked data: " +hph.getRequest().getHeaders());
@@ -209,9 +303,7 @@ public class HTTPUploadHandler
                 HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
 
 
-                HTTPMessageConfigInterface hmciResponse = hph.buildResponse(HTTPStatusCode.OK,
-                        HTTPHeader.SERVER.toHTTPHeader(((GetNamedVersion) ResourceManager.SINGLETON.lookup(ResourceManager.Resource.HTTP_SERVER)).getName()));
-                hmciResponse.setContentType(HTTPMediaType.APPLICATION_JSON);
+
                 NVGenericMap responseData = new NVGenericMap();
                 File file = fileData.getProperties().getValue("file");
                 responseData.build("filename", file.getName())
@@ -220,7 +312,7 @@ public class HTTPUploadHandler
                         .build(new NVLong("data-length", hashResult.dataLength))
                         .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
 
-                hmciResponse.setContent(GSONUtil.toJSONDefault(responseData, true));
+
 
 //                HTTPUtil.formatResponse(hmciResponse, hph.getResponseStream())
 //                        .writeTo(hph.getOutputStream());
@@ -229,16 +321,15 @@ public class HTTPUploadHandler
 
                 // ex
                 hph.expire();
-                return true;
+                return responseData;
             }
         }
-        return false;
+        return null;
 
     }
 
-    /**
-     *
-     */
+
+
     @Override
     protected void refreshProperties() {
 

@@ -115,12 +115,6 @@
         "base_folder": "/webs/test/apps"
       }
     },
-    {
-      "bean": "io.xlogistx.http.services.BinFileUpload",
-      "properties": {
-        "base_folder": "/webs/test/apps"
-      }
-    },
     //    {
     //      "bean": "io.xlogistx.http.services.DNSCache",
     //      "properties": {
