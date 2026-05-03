@@ -7,8 +7,8 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.crypto.HashResult;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.*;
 
@@ -25,7 +25,7 @@ public class HashContent {
      * @param hashType
      * @throws IOException
      */
-    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.GET}, name = "hash-content", uris = "/hash-content/{hash-type}/{format}")
+    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.GET}, name = "hash-content", uris = "/hash-content/{hash-type}/{format}", partialRequest = true)
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:hash:content")
     public NVGenericMap hashContent(@ParamProp(name = "hash-type") CryptoConst.HashType hashType,
                                     @ParamProp(name = "format", optional = true) String format)
@@ -33,6 +33,7 @@ public class HashContent {
         if (log.isEnabled()) log.getLogger().info("hash type: " + hashType);
         HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
         HTTPMessageConfigInterface request = hph.getRequest();
+
 
         if (request != null) {
             if (log.isEnabled()) log.getLogger().info("headers: " + request.getHeaders());
@@ -50,30 +51,19 @@ public class HashContent {
                         attachment.build(new NamedValue<>(hashType, md));
                     }
                     if (log.isEnabled()) log.getLogger().info("MessageDigest: " + md);
-
-                    IOUtil.hashInputStream(md, contentAsIS.getValue(), true);
+                    long totalCount = attachment.getValueAsLong("total-hashed", 0);
+                    long countProcessed = IOUtil.hashInputStream(md, contentAsIS.getValue(), true);
+                    totalCount += countProcessed;
+                    attachment.build(new NVLong("total-hashed", totalCount));
+                    if(log.isEnabled()) log.getLogger().info("countProcessed: " + countProcessed);
 
                     if (contentAsIS.getProperties().getValue(HTTPConst.Token.IS_COMPLETED)) {
                         digest = md.digest();
 
                         if (SUS.isEmpty(format))
                             format = "hex";
-                        String hash;
-                        switch (format.toLowerCase()) {
-                            case "base64":
-                                hash = SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, digest);
-                                break;
-                            case "base64url":
-                                hash = SharedBase64.encodeAsString(SharedBase64.Base64Type.URL, digest);
-                                break;
-                            case "hex":
-                                hash = SUS.fastBytesToHex(digest);
-                                break;
 
-                            default:
-                                throw new APIException("Invalid format: " + format + " expected base64 or base64url or hex/default");
-
-                        }
+                        HashResult hashResult = new HashResult(hashType, digest, totalCount, format);
 
                         if (log.isEnabled())
                             log.getLogger().info(hashType + " digest: " + SUS.fastBytesToHex(digest) + " total: " + hph.getRequest().getContentLength());
@@ -82,17 +72,16 @@ public class HashContent {
                         if (id != null)
                             response.add(id);
 
-                        response.build(new NVInt("length", hph.getRequest().getContentLength()))
-                                .build("hash-type", hashType.getName())
-                                .build("format", format)
-                                .build("hash", hash);
+                        response.build(hashResult.getProperties());
                         return response;
                     }
-                } else if(SharedStringUtil.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true)) {
+                } else if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true)) {
                     if (log.isEnabled()) log.getLogger().info("length: " + request.getContent().length);
                 }
             }
+
         }
+
 
         return null;
     }

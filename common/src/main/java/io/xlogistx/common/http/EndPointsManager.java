@@ -113,6 +113,7 @@ public class EndPointsManager {
                 hep.setHTTPMethods(epp.methods());
                 hep.setInputContentType(epp.requestContentType());
                 hep.setOutputContentType(epp.responseContentType());
+                hep.setPartialRequestEnabled(epp.partialRequest());
 
                 if (SUS.isNotEmpty(epp.filter())) {
                     try {
@@ -407,12 +408,17 @@ public class EndPointsManager {
                             case APPLICATION_WWW_URL_ENC:
                                 if (p.getType().isAssignableFrom(NVGenericMap.class))
                                     parameters.put(pp.name(), hmci.getParameters());
+
+                                log.getLogger().info("APPLICATION_WWW_URL_ENC " + hmci.getParameters() + " " + pp.name() + " " + parameters);
                                 break;
                             case APPLICATION_JSON:
                                 if (log.isEnabled()) {
                                     log.getLogger().info("" + hmci);
                                     log.getLogger().info("" + pClassType);
                                 }
+                                log.getLogger().info("content: " + Arrays.toString(hmci.getContent()));
+                                log.getLogger().info("pClasType: " + pClassType);
+
                                 Object v = GSONUtil.fromJSONDefault(hmci.getContent(), pClassType);
                                 parameters.put(pp.name(), v);
                                 break;

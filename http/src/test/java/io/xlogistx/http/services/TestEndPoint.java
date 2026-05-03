@@ -13,7 +13,7 @@ import org.zoxweb.shared.util.*;
 import java.util.Arrays;
 import java.util.Date;
 
-@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL})
+//@SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL})
 public class TestEndPoint {
 
     public static class DataObject {
@@ -132,9 +132,17 @@ public class TestEndPoint {
     }
 
 
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "test-form", uris = "/form-content")
+    public NVGenericMap formTest(@ParamProp(name = "nvgm", source = Const.ParamSource.PAYLOAD, optional = true) NVGenericMap payload) {
+        System.out.println("test-form " + payload) ;
+
+       return payload;
+    }
+
+
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.NONE})
     public void empty() {
     }
 
-    ;
+
 }

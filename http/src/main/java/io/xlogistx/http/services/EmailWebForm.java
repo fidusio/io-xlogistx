@@ -19,7 +19,7 @@ import java.io.IOException;
 
 public class EmailWebForm
         extends PropertyContainer<NVGenericMap> {
-    public static final LogWrapper log = new LogWrapper(EmailWebForm.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(EmailWebForm.class).setEnabled(false);
     private MailerConfig mailerConfig;
 
 
@@ -39,7 +39,6 @@ public class EmailWebForm
             log.getLogger().info("data: " + SUS.toCanonicalID(',', domain, source, captchaID, captchaValue, redirectURL));
 
         if (!ChallengeManager.SINGLETON.validate(captchaID, captchaValue)) {
-//            throw new HTTPCallException("Invalid captcha " + captchaValue);
 
             ret.setHTTPStatusCode(HTTPStatusCode.UNAUTHORIZED);
             ret.setContentType("text/html");
@@ -53,7 +52,6 @@ public class EmailWebForm
         try {
             SMTPConfig sc = mailerConfig.getSMTPConfig();
             DocumentTemplate docTemplate = mailerConfig.getDocumentTemplate();
-//            String content = docTemplate.getContent();
             payload.remove("captcha-id");
             payload.remove("captcha");
             payload.remove("redirect_url");

@@ -29,13 +29,13 @@ public class HTTPUploadHandler
 
     private File baseFolder;
 
-    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(false);
+    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(true);
 
     /**
      * @param filename of the binary file
      * @throws IOException in case of errors
      */
-    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload/{filename}")
+    @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload/{filename}", partialRequest = true)
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:upload:files")
     public NVGenericMap fileUpload(@ParamProp(name = "filename", optional = true) String filename)
             throws IOException {
@@ -101,22 +101,16 @@ public class HTTPUploadHandler
                         if (contentAsIS.getProperties().getValue(HTTPConst.Token.IS_COMPLETED)) {
                             long delta = System.currentTimeMillis() - (long) attachment.getValue("start-ts");
                             SharedIOUtil.close(fos);
-                            byte[] digest = md.digest();
-                            String hash = SUS.fastBytesToHex(digest);
+
+                            HashResult hashResult = new HashResult(hashType, md.digest(), totalCopied, "hex");
 
 
-                            if (log.isEnabled())
-                                log.getLogger().info(hashType + " digest: " + SUS.fastBytesToHex(digest) + " total: " + hph.getRequest().getContentLength());
-                            NVGenericMap response = new NVGenericMap();
+
+
+                            NVGenericMap response =  buildResponseData(filename, delta, hashResult);
                             GetNameValue<String> id = hph.getRawRequest().getHTTPMessageConfig().getHeaders().getNV(HTTPHeader.X_REQUEST_ID);
                             if (id != null)
                                 response.add(id);
-
-                            response.build("filename", filename)
-                                    .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
-                                    .build("duration", Const.TimeInMillis.toString(delta))
-                                    .build(new NVLong("data-length", totalCopied))
-                                    .build(hashType.getName().toLowerCase(), hash);
                             // ex
                             hph.expire();
                             return response;
@@ -300,35 +294,31 @@ public class HTTPUploadHandler
                 SharedIOUtil.close(fos);
 
 
-                HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied);
+                HashResult hashResult = new HashResult(CryptoConst.HashType.SHA_256, md.digest(), totalCopied, "hex");
 
 
 
-                NVGenericMap responseData = new NVGenericMap();
+
                 File file = fileData.getProperties().getValue("file");
-                responseData.build("filename", file.getName())
-                        .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
-                        .build("duration", Const.TimeInMillis.toString(delta))
-                        .build(new NVLong("data-length", hashResult.dataLength))
-                        .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
-
-
-
-//                HTTPUtil.formatResponse(hmciResponse, hph.getResponseStream())
-//                        .writeTo(hph.getOutputStream());
-
                 if (log.isEnabled()) log.getLogger().info("Done receiving File: " + file);
 
                 // ex
                 hph.expire();
-                return responseData;
+                return buildResponseData(file.getName(), delta, hashResult);
             }
         }
         return null;
 
     }
 
+    private NVGenericMap buildResponseData(String filename, long duration, HashResult hashResult) {
+        return new NVGenericMap()
+                .build("filename", filename)
+                .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
+                .build("upload-duration", Const.TimeInMillis.toString(duration))
+                .build(hashResult.getProperties());
 
+    }
 
     @Override
     protected void refreshProperties() {

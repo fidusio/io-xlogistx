@@ -2,6 +2,7 @@ package io.xlogistx.common.data;
 
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.io.SharedIOUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,64 +16,53 @@ public class ChallengeManager {
 
     private final Map<String, Challenge> challengeMap = new ConcurrentHashMap<>();
 
-    private ChallengeManager()
-    {
+    private ChallengeManager() {
 
     }
 
 
-    public synchronized void addChallenge(Challenge challenge, long timeout)
-    {
-        if(challenge != null)
-        {
+    public synchronized void addChallenge(Challenge challenge, long timeout) {
+        if (challenge != null) {
             challengeMap.put(challenge.getId(), challenge);
-            if(timeout > 0)
-            {
+            if (timeout > 0) {
                 String challengeID = challenge.getId();
-                challenge.setAppointment(TaskUtil.defaultTaskScheduler().queue(timeout, ()->{
-                   log.info("Challenge removed: " + removeChallenge(challengeID));
+                challenge.setAppointment(TaskUtil.defaultTaskScheduler().queue(timeout, () -> {
+                    log.info("Challenge removed: " + removeChallenge(challengeID));
                 }));
             }
         }
     }
 
 
-    public Challenge[] getAll()
-    {
+    public Challenge[] getAll() {
         return challengeMap.values().toArray(new Challenge[0]);
     }
 
-    public Challenge lookupChallenge(String id)
-    {
-        return challengeMap.get(id);
+    public Challenge lookupChallenge(String id) {
+        return SUS.isNotEmpty(id) ? challengeMap.get(id) : null;
     }
 
 
-    public synchronized Challenge removeChallenge(String id)
-    {
+    public synchronized Challenge removeChallenge(String id) {
         return challengeMap.remove(id);
 
     }
 
-    public int size()
-    {
+    public int size() {
         return challengeMap.size();
     }
 
 
-    public Challenge removeChallenge(Challenge challenge)
-    {
-        if(challenge != null)
+    public Challenge removeChallenge(Challenge challenge) {
+        if (challenge != null)
             return removeChallenge(challenge.getId());
         return null;
     }
 
-    public synchronized boolean validate(String id, long result)
-    {
+    public synchronized boolean validate(String id, long result) {
         boolean validation = false;
         Challenge challenge = lookupChallenge(id);
-        if (challenge != null)
-        {
+        if (challenge != null) {
             removeChallenge(id);
             // cancel the appointment
             SharedIOUtil.close(challenge.getAppointment());
@@ -84,12 +74,10 @@ public class ChallengeManager {
     }
 
 
-    public synchronized boolean validate(String id, String result)
-    {
+    public synchronized boolean validate(String id, String result) {
         boolean validation = false;
         Challenge challenge = lookupChallenge(id);
-        if (challenge != null)
-        {
+        if (challenge != null) {
             removeChallenge(id);
             // cancel the appointment
             SharedIOUtil.close(challenge.getAppointment());
@@ -100,9 +88,8 @@ public class ChallengeManager {
         return validation;
     }
 
-    public synchronized boolean validate(Challenge ch, long result)
-    {
-        if(ch != null)
+    public synchronized boolean validate(Challenge ch, long result) {
+        if (ch != null)
             return validate(ch.getId(), result);
 
         return false;

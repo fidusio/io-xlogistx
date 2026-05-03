@@ -68,8 +68,12 @@ public class HTTPProtocolHandler
         switch (protocolMode) {
             case HTTP:
             case HTTPS:
+                if (log.isEnabled()) log.getLogger().info("before parse: " + rawRequest.getDataStream().toString());
                 HTTPMessageConfigInterface hmci = rawRequest.parse();
-                boolean ret = rawRequest.isMessageComplete();// ? rawRequest.getHTTPMessageConfig() : null;
+                if (log.isEnabled()) log.getLogger().info("after parse: " + rawRequest.getDataStream().toString());
+                boolean ret = rawRequest.isMessageComplete();
+                if (log.isEnabled()) log.getLogger().info("after parse iscomplete: " + ret + " hmci: " + hmci);
+                // ? rawRequest.getHTTPMessageConfig() : null;
 //                if (!ret && rawRequest.areHeadersParsed() && hmci.isTransferChunked()) {
 //                    ret = true;
 //                }
