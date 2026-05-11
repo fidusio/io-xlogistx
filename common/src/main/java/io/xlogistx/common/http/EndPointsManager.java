@@ -82,6 +82,9 @@ public class EndPointsManager {
     public String[] allURIs() {
         return uriEndPointMeta.allURIs();
     }
+    public EndPointMeta[] allEndPointMetas() {
+        return uriEndPointMeta.allResults(new EndPointMeta[0]);
+    }
 
     public static HTTPEndPoint updatePaths(String baseURI, HTTPEndPoint hep) {
         baseURI = SUS.trimOrNull(baseURI);

@@ -12,10 +12,7 @@ import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
-import org.zoxweb.shared.util.GetNameValue;
-import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.NVStringList;
-import org.zoxweb.shared.util.ResourceManager;
+import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -40,19 +37,41 @@ public class DNSCache
         return new NVGenericMap().build("status", "Successful registration").build(domain, ipv4);
     }
 
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-sinkhole-add", uris = "/system/dns/sinkhole/{domain}")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:add")
+    public NVGenericMap addDomainToSinkhole(@ParamProp(name = "domain") String domain) throws IOException {
+        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        InetSocketAddress callerAddress = hph.getClientAddress();
+        log.getLogger().info("Remote host: " + (callerAddress != null ? callerAddress.getHostName() : "NULL"));
+        DNSRegistrar.SINGLETON.addDomainsToSinkhole(domain);
+        if (log.isEnabled()) log.getLogger().info("Added to sinkhole" + domain);
+        return new NVGenericMap().build("status", "Successful add").build(new NVStringList("sinkhole-domains", DNSRegistrar.SINGLETON.getSinkholeDomains()));
+    }
 
-    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.DELETE}, name = "dns-cache-remove", uris = "/system/dns/remove/{domain}")
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.DELETE}, name = "dns-sinkhole-delete", uris = "/system/dns/singhole/remove/{domain}")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
+    public NVGenericMap deleteDomainFromSinkhole(@ParamProp(name = "domain") String domain) throws IOException {
+        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        InetSocketAddress callerAddress = hph.getClientAddress();
+        log.getLogger().info("Remote host: " + (callerAddress != null ? callerAddress.getHostName() : "NULL"));
+        DNSRegistrar.SINGLETON.removeDomainsFromSinkhole(domain);
+        if (log.isEnabled()) log.getLogger().info("Added to sinkhole" + domain);
+        return new NVGenericMap().build("status", "Successful remove").build(new NVStringList("sinkhole-domains", DNSRegistrar.SINGLETON.getSinkholeDomains()));
+    }
+
+
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.DELETE}, name = "dns-cache-remove", uris = "/system/dns/cache/remove/{domain}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
     public NVGenericMap deleteDomainFromCache(@ParamProp(name = "domain") String domain) {
         if (log.isEnabled()) log.getLogger().info("remove from cache " + domain);
         DNSRegistrar.SINGLETON.unregister(domain);
-        return new NVGenericMap().build("message", "Domain " + domain + " removed");
+        return new NVGenericMap().build("status", "Domain " + domain + " removed");
     }
 
 
-    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-cache-list", uris = "/system/dns")
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-registrar-domains", uris = "/system/dns")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:read")
-    public NVGenericMap listDomainsCache() {
+    public NVGenericMap listDNSRegistrarDomains() {
         NVGenericMap nvgm = new NVGenericMap();
 
 
@@ -60,6 +79,7 @@ public class DNSCache
         nvgm.build(values);
         for (Map.Entry<String, InetAddress> entry : DNSRegistrar.SINGLETON.entrySet())
             values.build(DNSRegistrar.ToDomain.decode(entry.getKey()), entry.getValue().getHostAddress());
+        nvgm.build(new NVStringList("sinkhole-domains", DNSRegistrar.SINGLETON.getSinkholeDomains()));
 
         return nvgm;
     }
@@ -97,12 +117,17 @@ public class DNSCache
             NVStringList sinkHole = getProperties().getNV("sink_hole");
             if (sinkHole != null) {
                 for (String dName : sinkHole.getValues()) {
-                    DNSRegistrar.SINGLETON.addDomainsToSinkHole(dName);
+                    DNSRegistrar.SINGLETON.addDomainsToSinkhole(dName);
                 }
 
             }
             else
                 log.getLogger().info("NO sink hole found: " + sinkHole);
+
+            NVBoolean sinkHoleLog = getProperties().getNV("log_sinkhole_misses");
+            if(sinkHoleLog != null) {
+                DNSRegistrar.SINGLETON.setSinkholeLogEnabled(sinkHoleLog.getValue());
+            }
 
 
         } catch (Exception e) {

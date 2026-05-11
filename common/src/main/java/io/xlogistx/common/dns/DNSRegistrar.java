@@ -39,6 +39,8 @@ public class DNSRegistrar
         return null;
     };
 
+    private volatile boolean sinkholeLogStat = false;
+
     //private final Set<String> sinkHoleDomains = ConcurrentHashMap.newKeySet();
     private final DomainMatcher sinkHoleDomains = new DomainMatcher();
 
@@ -212,7 +214,7 @@ public class DNSRegistrar
         return addresses.toArray(new InetAddress[0]);
     }
 
-    public DNSRegistrar addDomainsToSinkHole(String... domains) {
+    public DNSRegistrar addDomainsToSinkhole(String... domains) {
         for (String domain : domains) {
             domain = ToDNSEntry.encode(domain);
             if (domain != null) {
@@ -222,8 +224,11 @@ public class DNSRegistrar
         }
         return this;
     }
+    public String[] getSinkholeDomains() {
+        return sinkHoleDomains.getAll();
+    }
 
-    public DNSRegistrar removeDomainsFromSinkHole(String... domains) {
+    public DNSRegistrar removeDomainsFromSinkhole(String... domains) {
         for (String domain : domains) {
             domain = ToDNSEntry.encode(domain);
             if (domain != null) {
@@ -233,13 +238,13 @@ public class DNSRegistrar
         return this;
     }
 
-    public boolean isDomainInSinkHole(String domain) {
+    public boolean isDomainInSinkhole(String domain) {
         boolean result = false;
         if (SUS.isNotEmpty(domain)) {
             domain = ToDNSEntry.encode(domain);
             if (log.isEnabled()) log.getLogger().info("CHECKING if " + domain + " is in sink hole");
             result = sinkHoleDomains.matches(domain);
-            if (result) {
+            if (result && sinkholeLogStat) {
                 log.getLogger().info(domain + " in sink hole");
             }
         }
@@ -248,11 +253,19 @@ public class DNSRegistrar
 
     public Message sinkHoleResponse(Message query) throws IOException {
         if (query != null && query.getQuestion() != null && query.getQuestion().getName() != null) {
-            if (isDomainInSinkHole(query.getQuestion().getName().toString())) {
+            if (isDomainInSinkhole(query.getQuestion().getName().toString())) {
                 return buildSinkholeResponse(query);
             }
         }
         return null;
+    }
+
+    public boolean isSinkholeLogEnabled() {
+        return sinkholeLogStat;
+    }
+
+    public void setSinkholeLogEnabled(boolean enabled) {
+        sinkholeLogStat = enabled;
     }
 
 
