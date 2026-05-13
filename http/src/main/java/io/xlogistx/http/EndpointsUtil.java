@@ -1,6 +1,8 @@
 package io.xlogistx.http;
 
 import io.xlogistx.common.data.MethodContainer;
+import io.xlogistx.common.http.HTTPProtocolHandler;
+import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.shared.util.ResourceManager;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -10,7 +12,9 @@ public class EndpointsUtil {
     private final AtomicBoolean onStartupCallStatus = new AtomicBoolean(false);
     private final AtomicBoolean postStartupCallStatus = new AtomicBoolean(false);
     private final AtomicBoolean onShutdownCallStatus = new AtomicBoolean(false);
-    private EndpointsUtil(){}
+
+    private EndpointsUtil() {
+    }
 
 
     /**
@@ -19,10 +23,8 @@ public class EndpointsUtil {
      * @param <V> return type
      * @exception SecurityException in case of error
      */
-    public <V> V startup()
-    {
-        if(!onStartupCallStatus.getAndSet(true))
-        {
+    public <V> V startup() {
+        if (!onStartupCallStatus.getAndSet(true)) {
             MethodContainer onStartup = ResourceManager.SINGLETON.lookup("on-startup");
             if (onStartup != null) {
                 try {
@@ -43,10 +45,8 @@ public class EndpointsUtil {
      * @param <V> return type
      * @exception SecurityException in case of error
      */
-    public <V> V postStartup()
-    {
-        if(!postStartupCallStatus.getAndSet(true))
-        {
+    public <V> V postStartup() {
+        if (!postStartupCallStatus.getAndSet(true)) {
             MethodContainer postStartup = ResourceManager.SINGLETON.lookup("post-startup");
             if (postStartup != null) {
                 try {
@@ -61,10 +61,8 @@ public class EndpointsUtil {
         return null;
     }
 
-    public <V> V shutdown()
-    {
-        if(!onShutdownCallStatus.getAndSet(true))
-        {
+    public <V> V shutdown() {
+        if (!onShutdownCallStatus.getAndSet(true)) {
             MethodContainer shutdown = ResourceManager.SINGLETON.lookup("on-shutdown");
             if (shutdown != null) {
                 try {
@@ -76,5 +74,9 @@ public class EndpointsUtil {
         }
 
         return null;
+    }
+
+    public HTTPProtocolHandler getProtocolHandler() {
+        return ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
     }
 }

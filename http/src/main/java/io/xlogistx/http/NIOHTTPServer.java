@@ -17,7 +17,6 @@ import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
 import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.BaseChannelOutputStream;
@@ -29,7 +28,6 @@ import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionConfig;
 import org.zoxweb.server.security.SecUtil;
-import org.zoxweb.server.task.TaskSchedulerProcessor;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -38,6 +36,7 @@ import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.filters.MatchPatternFilter;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.protocol.ProtoSession;
@@ -97,13 +96,13 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.3.5");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.3.6");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
     private final HTTPServerConfig config;
-    private NIOSocket nioSocket;
-    private EndPointsManager endPointsManager = null;
+    private volatile NIOSocket nioSocket;
+    private volatile EndPointsManager endPointsManager;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private volatile KAConfig kaConfig = null;
     private final InstanceFactory.Creator<BaseSessionCallback<BaseChannelOutputStream>> httpIC = HTTPSession::new;
@@ -127,7 +126,7 @@ public class NIOHTTPServer
      */
     public class HTTPSession
             extends BaseSessionCallback<BaseChannelOutputStream> {
-        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP, kaConfig);
+        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTP, kaConfig, endPointsManager);
 
         @Override
         public void accept(ByteBuffer inBuffer) {
@@ -240,7 +239,7 @@ public class NIOHTTPServer
      */
     public class HTTPsSession
             extends BaseSessionCallback<SSLSessionConfig> {
-        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS, kaConfig);
+        protected final HTTPProtocolHandler hph = new HTTPProtocolHandler(URIScheme.HTTPS, kaConfig, endPointsManager);
 
         @Override
         public void accept(ByteBuffer inBuffer) {
@@ -338,7 +337,7 @@ public class NIOHTTPServer
                 }
                 try {
 
-                    if(e instanceof ClassCastException || e instanceof ClassNotFoundException || e instanceof NullPointerException) {
+                    if (e instanceof ClassCastException || e instanceof ClassNotFoundException || e instanceof NullPointerException) {
                         e.printStackTrace();
                     }
                     responseStream.writeTo(os);
@@ -414,9 +413,9 @@ public class NIOHTTPServer
                         }
                     }
 
-                    /**
-                     * session cookie check
-                     */
+
+                    // session cookie check
+
 
                     try {
                         GetNameValue<String> cookieHeader = hph.
@@ -507,8 +506,9 @@ public class NIOHTTPServer
 
                         // +++ Security check +++++++++++++++++++++
                         securityCheck(epm, hph);
-                        if(logger.isEnabled())logger.getLogger().info("After security check " + hph.isRequestComplete() + " " + hph.canProceedAsPartial() + " " +
-                                hph.getRequest(true).getHeaders());
+                        if (logger.isEnabled())
+                            logger.getLogger().info("After security check " + hph.isRequestComplete() + " " + hph.canProceedAsPartial() + " " +
+                                    hph.getRequest(true).getHeaders());
 
                         //_________________________________________
 
@@ -518,18 +518,17 @@ public class NIOHTTPServer
                                 HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hph.getResponse(), hph.getOutputStream());
 
                         } else if (hph.isRequestComplete() || hph.canProceedAsPartial()) {
-                            if (logger.isEnabled())
-                            {
+                            if (logger.isEnabled()) {
                                 logger.getLogger().info("" + epm.result.methodContainer.instance);
                                 logger.getLogger().info("" + hph.getRequest());
                                 logger.getLogger().info(epm.path);
                             }
 
-                            /**
-                             * calling the implementation method that is processing the request
-                             */
+
+                            // calling the implementation method that is processing the request
+
                             Object result = epm.result.methodContainer.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
-                            if(hph.isRequestComplete()) {
+                            if (hph.isRequestComplete()) {
                                 HTTPStatusCode responseCode = HTTPStatusCode.OK;
                                 if (result instanceof HTTPStatusCode) {
                                     responseCode = (HTTPStatusCode) result;
@@ -537,9 +536,8 @@ public class NIOHTTPServer
                                 }
 
 
-                                /**
-                                 * Converting the result into an http response
-                                 */
+                                // Converting the result into an http response
+
                                 HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(),
                                         result,
                                         responseCode,
@@ -928,7 +926,7 @@ public class NIOHTTPServer
 
         long startTS = System.currentTimeMillis();
         Const.ExecPool execPool = Const.ExecPool.DEFAULT;
-        TaskSchedulerProcessor tsp = null;
+        //TaskSchedulerProcessor tsp = null;
         try {
 
 

@@ -2,6 +2,7 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
+import io.xlogistx.http.EndpointsUtil;
 import io.xlogistx.http.NIOHTTPServer;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.io.ByteBufferUtil;
@@ -45,7 +46,7 @@ public class Ping
 
         if (detailed) {
             try {
-                HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+                HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
                 InetSocketAddress callAddress = hph.getClientAddress();
                 if (callAddress != null) {
                     response.build("caller-address", callAddress.getHostName());
@@ -81,7 +82,7 @@ public class Ping
 
 
 
-            response.add(niohttpServer.getNIOSocket().getStats());
+            response.add(niohttpServer.getNIOSocket().toProperties(true));
             if (apiRegistrar != null)
                 response.add(apiRegistrar);
         }

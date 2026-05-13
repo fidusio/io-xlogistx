@@ -37,9 +37,13 @@ public class HTTPProtocolHandler
     private volatile Object endPointBean = null;
     private volatile OutputStream outputStream;
 
-    public HTTPProtocolHandler(URIScheme protocol, KAConfig kaConfig) {
+
+    private final EndPointsManager endPointsManager;
+
+    public HTTPProtocolHandler(URIScheme protocol, KAConfig kaConfig, EndPointsManager endPointsManager) {
         switchProtocol(protocol);
         this.kaTracker = new KATracker(kaConfig, this);
+        this.endPointsManager = endPointsManager;
     }
 
 
@@ -62,6 +66,9 @@ public class HTTPProtocolHandler
     }
 
 
+    public EndPointsManager getEndPointsManager() {
+        return endPointsManager;
+    }
     public boolean parseRequest(ByteBuffer inBuffer) throws IOException {
 
         ByteBufferUtil.write(inBuffer, rawRequest.getDataStream(), true);

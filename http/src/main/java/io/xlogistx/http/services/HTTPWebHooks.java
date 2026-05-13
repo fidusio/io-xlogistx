@@ -2,7 +2,7 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.shiro.ShiroUtil;
+import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.EndPointProp;
@@ -26,13 +26,13 @@ public class HTTPWebHooks
     private String baseURL = null;
     private String headerSigName= null;
 
-    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-hooks", uris = "/web-hooks/{service-provider}/{cust-id}")
+    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-hooks", uris = "/web-hooks/{service-provider}/{customer-id}")
     public HTTPStatusCode webHook(@ParamProp(name = "service-provider") String provider,
-                                  @ParamProp(name = "cust-id") String custId,
+                                  @ParamProp(name = "customer-id") String customerID,
                                   @ParamProp(name = "", source = Const.ParamSource.PAYLOAD, optional = false) NVGenericMap payload)
             throws IOException {
 
-        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         boolean stat = false;
         if (hph != null) {
             if (log.isEnabled()) {
@@ -41,7 +41,7 @@ public class HTTPWebHooks
                 log.getLogger().info("raw-content:\n" + hph.getRawRequest().getDataStream().toString());
             }
         }
-        if(log.isEnabled()) log.getLogger().info("provider:" + provider + " cust-id:" + custId);
+        if(log.isEnabled()) log.getLogger().info("provider:" + provider + " customer-id:" + customerID);
         if(log.isEnabled()) log.getLogger().info("payload: " + payload);
 
         boolean signValidation = isValid(hph.getRawRequest().getHTTPMessageConfig().getURI(),

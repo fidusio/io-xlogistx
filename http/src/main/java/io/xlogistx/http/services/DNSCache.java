@@ -1,10 +1,13 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
-import io.xlogistx.common.dns.*;
+import io.xlogistx.common.dns.DNSRegistrar;
+import io.xlogistx.common.dns.DNSTCPNIOFactory;
+import io.xlogistx.common.dns.DNSTCPNIOProtocol;
+import io.xlogistx.common.dns.DNSUDPNIOCallback;
 import io.xlogistx.common.http.HTTPProtocolHandler;
+import io.xlogistx.http.EndpointsUtil;
 import io.xlogistx.http.NIOHTTPServer;
-import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
@@ -29,7 +32,7 @@ public class DNSCache
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:add")
     public NVGenericMap addDomainToCache(@ParamProp(name = "domain") String domain, @ParamProp(name = "ipv4") String ipv4) throws IOException {
 
-        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         InetSocketAddress callerAddress = hph.getClientAddress();
         log.getLogger().info("Remote host: " + (callerAddress != null ? callerAddress.getHostName() : "NULL"));
         DNSRegistrar.SINGLETON.register(domain, ipv4);
@@ -40,7 +43,7 @@ public class DNSCache
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-sinkhole-add", uris = "/system/dns/sinkhole/{domain}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:add")
     public NVGenericMap addDomainToSinkhole(@ParamProp(name = "domain") String domain) throws IOException {
-        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         InetSocketAddress callerAddress = hph.getClientAddress();
         log.getLogger().info("Remote host: " + (callerAddress != null ? callerAddress.getHostName() : "NULL"));
         DNSRegistrar.SINGLETON.addDomainsToSinkhole(domain);
@@ -51,7 +54,7 @@ public class DNSCache
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.DELETE}, name = "dns-sinkhole-delete", uris = "/system/dns/singhole/remove/{domain}")
     @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
     public NVGenericMap deleteDomainFromSinkhole(@ParamProp(name = "domain") String domain) throws IOException {
-        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         InetSocketAddress callerAddress = hph.getClientAddress();
         log.getLogger().info("Remote host: " + (callerAddress != null ? callerAddress.getHostName() : "NULL"));
         DNSRegistrar.SINGLETON.removeDomainsFromSinkhole(domain);

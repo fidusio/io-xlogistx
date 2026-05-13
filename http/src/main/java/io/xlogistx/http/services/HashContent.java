@@ -1,7 +1,7 @@
 package io.xlogistx.http.services;
 
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.shiro.ShiroUtil;
+import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.annotation.EndPointProp;
@@ -31,7 +31,7 @@ public class HashContent {
                                     @ParamProp(name = "format", optional = true) String format)
             throws IOException, NoSuchAlgorithmException {
         if (log.isEnabled()) log.getLogger().info("hash type: " + hashType);
-        HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+        HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         HTTPMessageConfigInterface request = hph.getRequest();
 
 

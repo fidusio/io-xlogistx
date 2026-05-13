@@ -1,6 +1,8 @@
 package io.xlogistx.http.services;
 
 
+import io.xlogistx.common.http.EndPointMeta;
+import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
@@ -48,6 +50,18 @@ public class AppCommand
         }
         throw new IllegalArgumentException("LogWrapper not fount");
 
-
     }
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "expose-app-api", uris = "/app/api/")
+    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:apis:read")
+    public NVGenericMap exposeAppAPI() throws IllegalAccessException {
+        HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
+        EndPointMeta[] allUris = hph.getEndPointsManager().allEndPointMetas();
+        NVGenericMap endPointsMeta = new NVGenericMap("api-endpoints");
+        for(EndPointMeta meta : allUris) {
+            endPointsMeta.add(meta.httpEndPoint.toProperties(true));
+        }
+        return endPointsMeta;
+    }
+
+
 }

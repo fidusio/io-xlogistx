@@ -23,7 +23,7 @@ public class EmailWebForm
     private MailerConfig mailerConfig;
 
 
-    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail-generic", uris = "/form/generic-mailer/{domain}/{source}")
+    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail-generic", uris = "/form/generic-mailer/{domain}/{source}", requestContentType = HTTPConst.APPLICATION_WWW_URL_ENC, responseContentType =  HTTPConst.TEXT_HTML)
     public HTTPMessageConfigInterface webMailerGeneric(@ParamProp(name = "domain") String domain,
                                                        @ParamProp(name = "source") String source,
                                                        @ParamProp(name = "nvgm", source = Const.ParamSource.PAYLOAD, optional = true) NVGenericMap payload)
@@ -100,7 +100,7 @@ public class EmailWebForm
     }
 
 
-    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail", uris = "/form/mailer/{domain}/{source}")
+    @EndPointProp(methods = {HTTPMethod.POST}, name = "web-form-to-mail", uris = "/form/mailer/{domain}/{source}", requestContentType = HTTPConst.APPLICATION_WWW_URL_ENC, responseContentType =  HTTPConst.TEXT_HTML)
     public HTTPMessageConfigInterface webMailer(@ParamProp(name = "domain") String domain,
                                                 @ParamProp(name = "source") String source,
                                                 @ParamProp(name = "contact-name", source = Const.ParamSource.QUERY, optional = true) String contactName,

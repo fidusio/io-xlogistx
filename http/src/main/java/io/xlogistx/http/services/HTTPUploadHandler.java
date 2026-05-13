@@ -2,7 +2,7 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
-import io.xlogistx.shiro.ShiroUtil;
+import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.util.DateUtil;
@@ -29,7 +29,7 @@ public class HTTPUploadHandler
 
     private File baseFolder;
 
-    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(true);
+    public final static LogWrapper log = new LogWrapper(HTTPUploadHandler.class).setEnabled(false);
 
     /**
      * @param filename of the binary file
@@ -41,7 +41,7 @@ public class HTTPUploadHandler
             throws IOException {
         try {
             if (log.isEnabled()) log.getLogger().info("filename: " + filename);
-            HTTPProtocolHandler hph = ShiroUtil.getFromThreadContext(HTTPProtocolHandler.SESSION_CONTEXT);
+            HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
             HTTPMessageConfigInterface request = hph.getRequest();
             if (log.isEnabled())log.getLogger().info(""+request.getHeaders());
 

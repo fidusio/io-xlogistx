@@ -94,6 +94,7 @@ public class EndPointsManager {
                 paths[i] = updatePath(baseURI, paths[i]);
             }
             hep.setPaths(paths);
+            hep.setRawPath(updatePath(baseURI, hep.getRawPath()));
         }
         return hep;
     }
@@ -134,6 +135,7 @@ public class EndPointsManager {
                         throw new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
                 }
                 hep.setPaths(uris);
+                hep.setRawPath(epp.uris());
 
             } else if (a instanceof SecurityProp) {
                 SecUtil.applySecurityProp(hep, (SecurityProp) a);
