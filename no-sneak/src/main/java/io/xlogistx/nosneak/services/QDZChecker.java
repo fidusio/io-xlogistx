@@ -51,7 +51,7 @@ public class QDZChecker
 
         PQCScanOptions options = detailed ? PQCScanOptions.builder()
                 .checkRevocation(true)
-                .revocationTimeoutMs(10000)
+                .revocationTimeoutMs(5000)
                 .enumerateCiphers(true)
                 .testProtocolVersions(true)
                 .testTLS10(true)

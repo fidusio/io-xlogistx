@@ -237,6 +237,98 @@ public class PQCCallbackTest {
                 Const.TimeInMillis.toString(System.currentTimeMillis() - overAllTS));
     }
 
+    /**
+     * Detailed (comprehensive) scan against google.com, xlogistx.io and upbound.io.
+     * <p>
+     * This mirrors the {@code detailed=true} branch of QDZChecker (revocation +
+     * cipher enumeration + protocol-version testing) and serves as a regression
+     * guard for the post-connect probe-timeout hang: google.com previously
+     * passed while xlogistx.io / upbound.io hung forever because their probes
+     * never reported a result. The bounded {@code latch.await(...)} turns a
+     * hang into a test failure instead of stalling the whole suite.
+     */
+    @Test
+    void testDetailedScanMultipleHosts() throws Exception {
+        IPAddress[] hosts = IPAddress.parseList(
+                "google.com:443",
+                "https://xlogistx.io",
+                "https://upbound.io");
+
+        for (IPAddress host : hosts) {
+            PQCScanOptions options = PQCScanOptions.builder()
+                    .checkRevocation(true)
+                    .revocationTimeoutMs(5000)
+                    .enumerateCiphers(true)
+                    .testProtocolVersions(true)
+                    .testTLS10(true)
+                    .testTLS11(true)
+                    .testSSLv3(false)
+                    .build();
+
+            CountDownLatch latch = new CountDownLatch(1);
+            AtomicReference<PQCScanResult> resultRef = new AtomicReference<>();
+
+            long ts = System.currentTimeMillis();
+            PQCScanCallback mother = new PQCScanCallback(host, result -> {
+                resultRef.set(result);
+                latch.countDown();
+            }, options, httpNIOSocket);
+            mother.dnsResolver(DNSRegistrar.SINGLETON);
+            mother.timeoutInSec(15);
+            mother.overallTimeoutInSec(60);   // master watchdog
+            mother.start();
+
+            // With the watchdog the callback is guaranteed to fire; allow a
+            // little slack over overallTimeoutInSec for scheduler/delivery.
+            boolean completed = latch.await(75, TimeUnit.SECONDS);
+            assertTrue(completed, "Detailed scan for " + host +
+                    " did not fire callback within 75s even with watchdog " +
+                    "(scheduler not running?)");
+
+            PQCScanResult result = resultRef.get();
+            assertNotNull(result, "Result should not be null for " + host);
+
+            log.getLogger().info("========== Detailed Scan: " + host + " ==========  took " +
+                    Const.TimeInMillis.toString(System.currentTimeMillis() - ts));
+            log.getLogger().info("Success: " + result.isSuccess() +
+                    " Status: " + result.getOverallStatus());
+
+            // The watchdog stamps an error message describing exactly which
+            // stage was still pending. If it fired, fail fast WITH that
+            // diagnosis instead of letting weak assertions hide the stall.
+            assertNull(result.getErrorMessage(),
+                    "Detailed scan for " + host + " did not complete cleanly: "
+                            + result.getErrorMessage());
+
+            assertTrue(result.isSuccess(), "Scan should succeed for " + host);
+            assertNotNull(result.getTlsVersion(), "TLS version should be captured for " + host);
+            assertNotNull(result.getCipherSuite(), "Cipher suite should be captured for " + host);
+
+            // Detailed payload must actually be populated, not silently empty.
+            assertNotNull(result.getSupportedProtocolVersions(),
+                    "Detailed scan should report protocol versions for " + host);
+            assertFalse(result.getSupportedProtocolVersions().isEmpty(),
+                    "Protocol version list should be non-empty for " + host);
+            assertNotNull(result.getSupportedCipherSuites(),
+                    "Detailed scan should report cipher suites for " + host);
+            assertFalse(result.getSupportedCipherSuites().isEmpty(),
+                    "Cipher suite list should be non-empty for " + host);
+
+            // The detailed serialization path used by the REST endpoint.
+            org.zoxweb.shared.util.NVGenericMap nvgm = result.toNVGenericMap(true);
+            assertNotNull(nvgm, "Detailed NVGenericMap should not be null for " + host);
+            assertEquals(true, nvgm.getValue("success"));
+            assertNotNull(nvgm.getValue("supported-protocol-versions"),
+                    "Detailed map should include supported-protocol-versions for " + host);
+
+            log.getLogger().info("TLS: " + result.getTlsVersion() +
+                    " Versions: " + result.getSupportedProtocolVersions() +
+                    " Ciphers: " + result.getSupportedCipherSuites().size() +
+                    " RevocationMethod: " + result.getRevocationMethod());
+            log.getLogger().info("====================================================");
+        }
+    }
+
     @AfterAll
     static void tearDownAll() {
         SharedIOUtil.close(httpNIOSocket.getNIOSocket());

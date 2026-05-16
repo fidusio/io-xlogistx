@@ -10,16 +10,21 @@ import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.http.HTTPURLCallback;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.task.ConsumerCallback;
 
-import java.io.ByteArrayInputStream;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509CRL;
-import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * NIO-based certificate revocation checker using HTTPURLCallback + HTTPNIOSocket
@@ -29,12 +34,29 @@ public class NIORevocationChecker {
 
     public static final LogWrapper log = new LogWrapper(NIORevocationChecker.class).setEnabled(false);
 
+    /** Fallback soft-fail timeout for the active OCSP call when none/<=0 is supplied. */
+    public static final long DEFAULT_TIMEOUT_MS = 5000L;
+
     private final HTTPNIOSocket httpNioSocket;
     private final OPSecUtil opsecUtil;
+    private final long timeoutMs;
 
     public NIORevocationChecker(HTTPNIOSocket httpNioSocket) {
+        this(httpNioSocket, DEFAULT_TIMEOUT_MS);
+    }
+
+    /**
+     * @param httpNioSocket shared NIO HTTP socket
+     * @param timeoutMs     hard bound for the whole revocation check (OCSP plus
+     *                      CRL fallback). {@code <= 0} uses {@link #DEFAULT_TIMEOUT_MS}.
+     *                      Without this, an unreachable OCSP/CRL endpoint would
+     *                      never invoke the callback and the parent scan would
+     *                      hang on its pending revocation task forever.
+     */
+    public NIORevocationChecker(HTTPNIOSocket httpNioSocket, long timeoutMs) {
         this.httpNioSocket = httpNioSocket;
         this.opsecUtil = OPSecUtil.singleton();
+        this.timeoutMs = timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS;
     }
 
     /**
@@ -43,38 +65,131 @@ public class NIORevocationChecker {
      *
      * @param cert     the certificate to check
      * @param issuer   the issuer certificate (may be null)
-     * @param callback receives the revocation result
+     * @param userCallback receives the revocation result
      */
     public void checkRevocation(X509Certificate cert, X509Certificate issuer,
-                                Consumer<RevocationResult> callback) {
+                                Consumer<RevocationResult> userCallback) {
+        checkRevocation(cert, issuer, null, userCallback);
+    }
+
+    /**
+     * Revocation check with an optional handshake-stapled OCSP response.
+     * <p>
+     * Resolution order, fastest first:
+     * <ol>
+     *   <li><b>Stapled OCSP</b> (RFC 6066) - parsed in-memory, zero network,
+     *       instant. This is the modern correct path (e.g. Let's Encrypt
+     *       recommends stapling).</li>
+     *   <li><b>Active OCSP</b> - only if not stapled AND the cert carries an
+     *       OCSP URL AND we have the issuer. Short, soft-fail.</li>
+     *   <li><b>NOT_CHECKED</b> - anything else (no stapling, no OCSP URL, or no
+     *       issuer) resolves <i>immediately</i> as UNKNOWN/NOT_CHECKED. We do
+     *       NOT fetch CRLs: for CAs like Let's Encrypt the CRL is a huge / often
+     *       unreachable file and blocking on it is exactly the hang we are
+     *       eliminating. This mirrors how browsers soft-fail.</li>
+     * </ol>
+     * The result is never {@code REVOKED} unless a responder explicitly says so;
+     * inability to determine status is {@code UNKNOWN}, never a scan blocker.
+     *
+     * @param stapledOCSP DER-encoded OCSP response from the TLS handshake, or null
+     */
+    public void checkRevocation(X509Certificate cert, X509Certificate issuer,
+                                byte[] stapledOCSP, Consumer<RevocationResult> userCallback) {
         if (cert == null) {
-            callback.accept(RevocationResult.error("NONE", "Certificate is null"));
+            userCallback.accept(RevocationResult.error("NONE", "Certificate is null"));
             return;
         }
 
-        // Try OCSP first if issuer cert is available
+        // 1) Stapled OCSP: instant, in-memory, no network, no timeout needed.
+        if (stapledOCSP != null && stapledOCSP.length > 0) {
+            RevocationResult stapledResult = parseOCSPBytes("OCSP_STAPLED", stapledOCSP);
+            // A malformed/empty staple shouldn't kill the check - fall through
+            // to the active path only if it was unusable.
+            if (stapledResult.getStatus() != RevocationStatus.ERROR) {
+                userCallback.accept(stapledResult);
+                return;
+            }
+            if (log.isEnabled()) {
+                log.getLogger().info("Stapled OCSP unusable (" + stapledResult.getErrorMessage()
+                        + "), falling back to active check");
+            }
+        }
+
+        // 2) Decide if an active OCSP call is even possible. If not, resolve
+        //    immediately as NOT_CHECKED - never walk into a CRL black hole.
         List<String> ocspUrls = opsecUtil.extractOCSPResponderURLs(cert);
-        if (issuer != null && !ocspUrls.isEmpty()) {
-            checkOCSP(cert, issuer, ocspUrls.get(0), ocspResult -> {
-                if (ocspResult.getStatus() != RevocationStatus.ERROR) {
-                    callback.accept(ocspResult);
-                } else {
-                    // OCSP failed, try CRL
-                    checkCRL(cert, callback);
-                }
-            });
+        if (issuer == null || ocspUrls.isEmpty()) {
+            userCallback.accept(RevocationResult.unknown("NOT_CHECKED",
+                    issuer == null
+                            ? "No issuer certificate available for OCSP"
+                            : "Certificate carries no OCSP responder URL (CRL not fetched by design)"));
             return;
         }
 
-        // No OCSP, try CRL
-        checkCRL(cert, callback);
+        // 3) Active OCSP, bounded and soft-fail.
+        // Guard the user callback so it fires EXACTLY once, no matter which
+        // path wins (OCSP response, HTTP exception, or the timeout). This is
+        // what prevents the parent scan from hanging on a dead responder.
+        final AtomicBoolean fired = new AtomicBoolean(false);
+        final AtomicReference<ScheduledFuture<?>> timeoutHolderRef = new AtomicReference<>();
+        // Track the in-flight HTTP requests so the orphaned OCSP/CRL socket is
+        // reclaimed when this resolves (especially on timeout - that endpoint
+        // never answered, so it would otherwise leak an fd indefinitely).
+        final List<HTTPURLCallback> inFlight = Collections.synchronizedList(new ArrayList<>());
+        final Consumer<RevocationResult> callback = result -> {
+            if (!fired.compareAndSet(false, true)) {
+                return;
+            }
+            ScheduledFuture<?> a = timeoutHolderRef.get();
+            if (a != null) {
+                try {
+                    a.cancel(false);
+                } catch (Exception ignored) {
+                }
+            }
+            synchronized (inFlight) {
+                for (HTTPURLCallback h : inFlight) {
+                    SharedIOUtil.close(h);
+                }
+                inFlight.clear();
+            }
+            userCallback.accept(result);
+        };
+
+        // Register-or-close: under the SAME lock the guarded callback uses to
+        // close+clear, decide whether a new request may launch. `fired` is set
+        // (CAS) before that callback enters the lock, so once revocation has
+        // resolved this returns false and the late request is closed
+        // immediately instead of leaking (closes the timeout-vs-OCSP->CRL
+        // fallback race that would otherwise re-orphan a socket).
+        final Predicate<HTTPURLCallback> register = huc -> {
+            synchronized (inFlight) {
+                if (fired.get()) {
+                    SharedIOUtil.close(huc);
+                    return false;
+                }
+                inFlight.add(huc);
+                return true;
+            }
+        };
+
+        // Soft-fail upper bound on the active OCSP request.
+        timeoutHolderRef.set(TaskUtil.defaultTaskScheduler().schedule(() ->
+                callback.accept(RevocationResult.unknown("TIMEOUT",
+                        "OCSP responder did not answer within " + timeoutMs + "ms")),
+                timeoutMs, TimeUnit.MILLISECONDS));
+
+        // Active OCSP. Any failure (HTTP error/exception/bad response) is a
+        // SOFT fail -> UNKNOWN, never REVOKED, and never a CRL fallback.
+        checkOCSP(cert, issuer, ocspUrls.get(0), register, callback);
     }
 
     /**
      * Check certificate via OCSP.
      */
     private void checkOCSP(X509Certificate cert, X509Certificate issuerCert,
-                           String ocspUrl, Consumer<RevocationResult> callback) {
+                           String ocspUrl, Predicate<HTTPURLCallback> register,
+                           Consumer<RevocationResult> callback) {
         try {
             // Build OCSP request
             DigestCalculatorProvider digCalcProv = new JcaDigestCalculatorProviderBuilder()
@@ -110,6 +225,9 @@ public class NIORevocationChecker {
                 }
             }, false);
 
+            if (!register.test(huc)) {
+                return;
+            }
             httpNioSocket.send(huc);
         } catch (Exception e) {
             if (log.isEnabled())
@@ -118,60 +236,37 @@ public class NIORevocationChecker {
         }
     }
 
-    /**
-     * Check certificate via CRL.
-     */
-    private void checkCRL(X509Certificate cert, Consumer<RevocationResult> callback) {
-        List<String> crlUrls = opsecUtil.extractCRLDistributionPoints(cert);
-        if (crlUrls.isEmpty()) {
-            callback.accept(RevocationResult.unknown("NONE", "No CRL distribution points in certificate"));
-            return;
-        }
-
-        try {
-            HTTPURLCallback huc = new HTTPURLCallback(crlUrls.get(0), new ConsumerCallback<HTTPResponse>() {
-                @Override
-                public void accept(HTTPResponse response) {
-                    callback.accept(parseCRLResponse(cert, response));
-                }
-
-                @Override
-                public void exception(Throwable e) {
-                    if (log.isEnabled())
-                        log.getLogger().info("CRL request failed: " + e.getMessage());
-                    callback.accept(RevocationResult.error("CRL", "Request failed: " + e.getMessage()));
-                }
-            });
-
-            httpNioSocket.send(huc);
-        } catch (Exception e) {
-            if (log.isEnabled())
-                log.getLogger().info("CRL request failed: " + e.getMessage());
-            callback.accept(RevocationResult.error("CRL", "Failed to send CRL request: " + e.getMessage()));
-        }
-    }
-
     private RevocationResult parseOCSPResponse(HTTPResponse response) {
         if (!response.isSuccess()) {
             return RevocationResult.error("OCSP", "HTTP error: " + response.getStatus());
         }
+        return parseOCSPBytes("OCSP", ((HTTPResponseData) response).getData());
+    }
 
+    /**
+     * Parse a DER OCSP response (from a stapled handshake response or an HTTP
+     * fetch) into a {@link RevocationResult}. {@code method} labels the source
+     * ("OCSP" or "OCSP_STAPLED").
+     */
+    private RevocationResult parseOCSPBytes(String method, byte[] body) {
+        if (body == null || body.length == 0) {
+            return RevocationResult.error(method, "Empty OCSP response");
+        }
         try {
-            byte[] body = ((HTTPResponseData) response).getData();
             OCSPResp ocspResp = new OCSPResp(body);
             if (ocspResp.getStatus() != OCSPResp.SUCCESSFUL) {
-                return RevocationResult.error("OCSP", "OCSP response status: " + ocspResp.getStatus());
+                return RevocationResult.error(method, "OCSP response status: " + ocspResp.getStatus());
             }
 
             BasicOCSPResp basicResp = (BasicOCSPResp) ocspResp.getResponseObject();
             if (basicResp == null) {
-                return RevocationResult.error("OCSP", "No basic OCSP response");
+                return RevocationResult.error(method, "No basic OCSP response");
             }
 
             for (SingleResp singleResp : basicResp.getResponses()) {
                 CertificateStatus certStatus = singleResp.getCertStatus();
                 if (certStatus == CertificateStatus.GOOD) {
-                    return RevocationResult.good("OCSP");
+                    return RevocationResult.good(method);
                 } else if (certStatus instanceof RevokedStatus) {
                     RevokedStatus revokedStatus = (RevokedStatus) certStatus;
                     Long revDate = revokedStatus.getRevocationTime() != null ?
@@ -180,43 +275,17 @@ public class NIORevocationChecker {
                     if (revokedStatus.hasRevocationReason()) {
                         reason = getRevocationReasonString(revokedStatus.getRevocationReason());
                     }
-                    return RevocationResult.revoked("OCSP", revDate, reason);
+                    return RevocationResult.revoked(method, revDate, reason);
                 } else if (certStatus instanceof UnknownStatus) {
-                    return RevocationResult.unknown("OCSP", "Certificate status unknown to OCSP responder");
+                    return RevocationResult.unknown(method, "Certificate status unknown to OCSP responder");
                 }
             }
 
-            return RevocationResult.unknown("OCSP", "No matching response found");
+            return RevocationResult.unknown(method, "No matching response found");
         } catch (Exception e) {
             if (log.isEnabled())
                 log.getLogger().info("OCSP response parse failed: " + e.getMessage());
-            return RevocationResult.error("OCSP", "Failed to parse OCSP response: " + e.getMessage());
-        }
-    }
-
-    private RevocationResult parseCRLResponse(X509Certificate cert, HTTPResponse response) {
-        if (!response.isSuccess()) {
-            return RevocationResult.error("CRL", "HTTP error: " + response.getStatus());
-        }
-
-        try {
-            byte[] body = ((HTTPResponseData) response).getData();
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            X509CRL crl = (X509CRL) cf.generateCRL(new ByteArrayInputStream(body));
-
-            X509CRLEntry entry = crl.getRevokedCertificate(cert.getSerialNumber());
-            if (entry != null) {
-                Long revDate = entry.getRevocationDate() != null ? entry.getRevocationDate().getTime() : null;
-                String reason = entry.getRevocationReason() != null ?
-                        entry.getRevocationReason().name() : "UNSPECIFIED";
-                return RevocationResult.revoked("CRL", revDate, reason);
-            }
-
-            return RevocationResult.good("CRL");
-        } catch (Exception e) {
-            if (log.isEnabled())
-                log.getLogger().info("CRL parse failed: " + e.getMessage());
-            return RevocationResult.error("CRL", "Failed to parse CRL: " + e.getMessage());
+            return RevocationResult.error(method, "Failed to parse OCSP response: " + e.getMessage());
         }
     }
 

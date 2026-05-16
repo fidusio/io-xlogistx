@@ -5,12 +5,15 @@ import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.ProtocolVersion;
 import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.net.DNSResolverInt;
 import org.zoxweb.shared.net.IPAddress;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -43,6 +46,14 @@ public class PQCScanCallback implements ScanCallback {
     // DNS and timeout config (forwarded to PQCNIOScanner)
     private DNSResolverInt dnsResolver;
     private int timeoutSec = 10;
+
+    // Hard upper bound on the WHOLE scan. This is a safety net: even if a
+    // child probe never reports, the selector thread wedges, or the
+    // pendingCount accounting is off by one, the user callback is still
+    // guaranteed to fire (with a partial / error result) instead of hanging
+    // forever. 0 (or negative) disables the watchdog.
+    private int overallTimeoutSec = 90;
+    private volatile ScheduledFuture<?> scanDeadline;
 
     // Phase 2 coordination
     private final AtomicInteger pendingCount = new AtomicInteger(0);
@@ -86,6 +97,16 @@ public class PQCScanCallback implements ScanCallback {
     }
 
     /**
+     * Hard upper bound (seconds) on the entire scan, after which the user
+     * callback is delivered with whatever has been collected (or an error).
+     * Set to {@code <= 0} to disable. Defaults to 90s.
+     */
+    public PQCScanCallback overallTimeoutInSec(int seconds) {
+        this.overallTimeoutSec = seconds;
+        return this;
+    }
+
+    /**
      * Start the scan by creating a PQCNIOScanner and registering it with NIOSocket.
      */
     public void start() throws IOException {
@@ -94,7 +115,61 @@ public class PQCScanCallback implements ScanCallback {
             scanner.dnsResolver(dnsResolver);
         }
         scanner.timeoutInSec(timeoutSec);
+
+        // Arm the master watchdog BEFORE registering the scanner so a failure
+        // anywhere (Phase 1 or Phase 2) is still bounded.
+        if (overallTimeoutSec > 0) {
+            scanDeadline = TaskUtil.defaultTaskScheduler()
+                    .schedule(this::onScanTimeout, overallTimeoutSec, TimeUnit.SECONDS);
+        }
+
         httpNIOSocket.getNIOSocket().addClientSocket(scanner);
+    }
+
+    /**
+     * Master watchdog. Fired by the scheduler if the scan has not delivered a
+     * result within {@link #overallTimeoutSec}. Delivers a partial result
+     * (whatever Phase 1 / Phase 2 collected) or an error, and records exactly
+     * which stage was still pending so the stall is diagnosable.
+     */
+    private void onScanTimeout() {
+        if (delivered) {
+            return;
+        }
+
+        String stage = "pending=" + pendingCount.get()
+                + " tls13Ciphers=" + tls13CiphersDone
+                + " tls12Ciphers=" + tls12CiphersDone
+                + " collectedCiphers=" + collectedCiphers.size()
+                + " versions=" + supportedVersions
+                + " resultBuilder=" + (resultBuilder != null);
+
+        if (log.isEnabled()) {
+            log.getLogger().info("Scan watchdog fired for " + address + " [" + stage + "]");
+        }
+
+        if (resultBuilder != null) {
+            // Phase 1 succeeded; deliver whatever Phase 2 managed to collect.
+            resultBuilder.errorMessage("Scan timed out after " + overallTimeoutSec
+                    + "s; partial result [" + stage + "]");
+            deliverResult();
+        } else {
+            // Never even completed the handshake.
+            onError("Scan timed out after " + overallTimeoutSec + "s before handshake [" + stage + "]");
+        }
+    }
+
+    private void cancelScanDeadline() {
+        ScheduledFuture<?> a = scanDeadline;
+        if (a != null) {
+            scanDeadline = null;
+            try {
+                // cancel(false): the watchdog may be firing on the scheduler
+                // thread right now - never interrupt that worker.
+                a.cancel(false);
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     // ==================== ScanCallback Implementation ====================
@@ -179,8 +254,13 @@ public class PQCScanCallback implements ScanCallback {
             if (doRevocation) {
                 X509Certificate cert = chain[0];
                 X509Certificate issuer = chain.length > 1 ? chain[1] : null;
-                NIORevocationChecker checker = new NIORevocationChecker(httpNIOSocket);
-                checker.checkRevocation(cert, issuer, this::onRevocationComplete);
+                // Free, instant revocation status if the server stapled it
+                // during the handshake (RFC 6066). Otherwise the checker
+                // short-circuits (no OCSP/issuer -> NOT_CHECKED) or does one
+                // short, soft-fail active OCSP call - never a CRL black hole.
+                byte[] stapledOCSP = tlsClient.getStapledOCSPResponse();
+                NIORevocationChecker checker = new NIORevocationChecker(httpNIOSocket, options.getRevocationTimeoutMs());
+                checker.checkRevocation(cert, issuer, stapledOCSP, this::onRevocationComplete);
             }
 
             // Launch cipher enumeration
@@ -204,9 +284,10 @@ public class PQCScanCallback implements ScanCallback {
     }
 
     @Override
-    public void onError(String errorMessage) {
+    public synchronized void onError(String errorMessage) {
         if (delivered) return;
         delivered = true;
+        cancelScanDeadline();
 
         long scanTime = System.currentTimeMillis() - startTime;
         PQCScanResult result = PQCScanResult.builder(
@@ -451,12 +532,16 @@ public class PQCScanCallback implements ScanCallback {
 
     private synchronized void deliverResult() {
         if (delivered) return;
-        delivered = true;
 
         if (resultBuilder == null) {
+            // Delegate WITHOUT marking delivered first, otherwise onError()
+            // would no-op and the user callback would never fire (hang).
             onError("No result builder available");
             return;
         }
+
+        delivered = true;
+        cancelScanDeadline();
 
         // Apply version testing results
         if (!supportedVersions.isEmpty()) {

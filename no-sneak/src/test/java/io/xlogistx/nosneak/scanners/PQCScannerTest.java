@@ -74,7 +74,7 @@ public class PQCScannerTest {
     @Test
     void testScanOther() throws Exception {
         doScan("xlogistx.io", 443);
-        doScan("zoxweb.com", 443);
+        doScan("amazon.com", 443);
         doScan("dbs.xlogistx.io", 443);
     }
 

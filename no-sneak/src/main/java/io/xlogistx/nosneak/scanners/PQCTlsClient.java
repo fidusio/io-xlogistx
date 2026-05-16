@@ -27,6 +27,10 @@ public class PQCTlsClient extends DefaultTlsClient {
     private volatile int negotiatedKeyExchange;
     private volatile Certificate serverCertificate;
     private volatile boolean handshakeComplete;
+    // DER-encoded OCSP response stapled by the server during the handshake
+    // (RFC 6066 status_request). When present, revocation status is known for
+    // free - no separate OCSP/CRL network call needed.
+    private volatile byte[] stapledOCSPResponse;
     private final InetSocketAddress ipAddress;
 
     /**
@@ -171,6 +175,28 @@ public class PQCTlsClient extends DefaultTlsClient {
             @Override
             public void notifyServerCertificate(TlsServerCertificate tlsServerCertificate) throws IOException {
                 serverCertificate = tlsServerCertificate.getCertificate();
+
+                // Capture a stapled OCSP response if the server provided one
+                // (we requested it via the status_request extension below).
+                try {
+                    CertificateStatus cs = tlsServerCertificate.getCertificateStatus();
+                    if (cs != null && cs.getStatusType() == CertificateStatusType.ocsp) {
+                        org.bouncycastle.asn1.ocsp.OCSPResponse ocsp =
+                                (org.bouncycastle.asn1.ocsp.OCSPResponse) cs.getResponse();
+                        if (ocsp != null) {
+                            stapledOCSPResponse = ocsp.getEncoded(org.bouncycastle.asn1.ASN1Encoding.DER);
+                            if (log.isEnabled()) {
+                                log.getLogger().info("Captured stapled OCSP response (" +
+                                        stapledOCSPResponse.length + " bytes)");
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    if (log.isEnabled()) {
+                        log.getLogger().info("Could not read stapled OCSP response: " + e.getMessage());
+                    }
+                }
+
                 if (log.isEnabled()) {
                     log.getLogger().info("Received server certificate chain with " +
                             (serverCertificate != null ? serverCertificate.getLength() : 0) + " certificates");
@@ -191,7 +217,17 @@ public class PQCTlsClient extends DefaultTlsClient {
         if (clientExtensions == null) {
             clientExtensions = new Hashtable<>();
         }
-        // Additional extensions could be added here if needed
+        // Request OCSP stapling (RFC 6066 status_request). If the server
+        // honors it, revocation status arrives in the handshake for free.
+        try {
+            TlsExtensionsUtils.addStatusRequestExtension(clientExtensions,
+                    new CertificateStatusRequest(CertificateStatusType.ocsp,
+                            new OCSPStatusRequest(null, null)));
+        } catch (Exception e) {
+            if (log.isEnabled()) {
+                log.getLogger().info("Could not add status_request extension: " + e.getMessage());
+            }
+        }
         return clientExtensions;
     }
 
@@ -261,6 +297,14 @@ public class PQCTlsClient extends DefaultTlsClient {
 
     public Certificate getServerCertificate() {
         return serverCertificate;
+    }
+
+    /**
+     * @return the DER-encoded OCSP response the server stapled during the
+     *         handshake, or {@code null} if the server did not staple one.
+     */
+    public byte[] getStapledOCSPResponse() {
+        return stapledOCSPResponse;
     }
 
     public boolean isHandshakeComplete() {
