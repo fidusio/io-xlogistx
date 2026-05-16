@@ -1,7 +1,49 @@
 # NoSneak SSL/TLS & PQC Scanner - Action Plan
 
-> Last Updated: 2026-02-04
+> Last Updated: 2026-05-15
 > Status: **Phase 3 Complete** - Pure NIO Callback Architecture (No CompletableFuture/ForkJoinPool)
+
+---
+
+## Recent Completed Work (2026-05-15)
+
+### Fix: Revocation no longer hangs/slows the scan — stapled OCSP + fast soft-fail
+
+**Problem:** Detailed scans of Let's Encrypt-style hosts (`xlogistx.io`, `upbound.io`)
+hung, then (after a first round of timeout fixes) took a hard 10s. Root cause:
+`NIORevocationChecker` had no timeout and, for certs with no usable OCSP, fell
+through to a **CRL download** (Let's Encrypt CRLs are huge / often unreachable) —
+a never-answering request that never invoked its callback, so the scan's
+`pendingCount` never decremented. A plain TLS handshake (JSSE `SSLEngine`) does
+**not** check revocation at all by default; our checker was the only thing
+blocking on a third-party endpoint.
+
+**Resolution order now (fastest first):**
+1. **Stapled OCSP (zero network, instant)** — `PQCTlsClient` sends the RFC 6066
+   `status_request` extension and captures any handshake-stapled OCSP response;
+   `PQCScanCallback` passes the DER bytes to `NIORevocationChecker`, parsed
+   in-memory. Method reported as `OCSP_STAPLED`.
+2. **Short-circuit (instant)** — no staple + (no issuer **or** no OCSP URL) →
+   immediate `UNKNOWN / NOT_CHECKED`. **CRL fetching removed entirely** (it was
+   the black hole). Browser-equivalent soft-fail.
+3. **Active OCSP (bounded soft-fail)** — only when stapling absent *and* an OCSP
+   URL + issuer exist: one OCSP POST, **5s** soft-fail (was 10s), any failure →
+   `UNKNOWN`, never `REVOKED`, never CRL. Runs in parallel with cipher/version
+   enumeration so it adds ~0 wall time.
+
+**Supporting robustness (same effort):**
+- `TLSProbeCallback` — post-connect handshake timeout (scheduler-based) +
+  exactly-once completion guard (selector vs scheduler race).
+- `PQCScanCallback` — master scan watchdog (`overallTimeoutInSec`, default 90s)
+  delivers a partial/error result naming the stalled stage; fixed a latent
+  `deliverResult()`→`onError()` no-op hang (delivered flag set too early).
+- `NIORevocationChecker` — one-shot guarded callback, in-flight `HTTPURLCallback`
+  closed on resolve/timeout (fd-leak fix), register-or-close guard closing the
+  timeout-vs-fallback race.
+
+**Files:** `PQCTlsClient`, `NIORevocationChecker`, `PQCScanCallback`,
+`TLSProbeCallback`, `QDZChecker`, `PQCCallbackTest`
+(new `testDetailedScanMultipleHosts`).
 
 ---
 
@@ -236,7 +278,7 @@ io.xlogistx.nosneak/
 │   ├── TLSProbeCallback.java      # Base class for NIO TLS probes
 │   ├── CipherProbeCallback.java   # NIO cipher enumeration probe
 │   ├── VersionProbeCallback.java  # NIO protocol version probe
-│   ├── NIORevocationChecker.java  # Async CRL/OCSP via HTTPURLCallback (callback-based)
+│   ├── NIORevocationChecker.java  # Stapled OCSP (instant) -> short-circuit -> 5s soft-fail active OCSP (no CRL)
 │   ├── CipherSuiteEnumerator.java # Cipher info classes (CipherInfo, etc.)
 │   ├── ProtocolVersionTester.java # Version name utilities
 │   ├── PQCSessionConfig.java      # TLS session state
@@ -262,8 +304,8 @@ io.xlogistx.nosneak/
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/TLSProbeCallback.java` - Base probe class
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/CipherProbeCallback.java` - Cipher probe
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/VersionProbeCallback.java` - Version probe
-- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/NIORevocationChecker.java` - Revocation (callback-based)
-- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/PQCTlsClient.java`
+- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/NIORevocationChecker.java` - Revocation: stapled OCSP → short-circuit NOT_CHECKED → 5s soft-fail active OCSP (no CRL)
+- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/PQCTlsClient.java` - BC TLS client; PQC groups + RFC 6066 OCSP stapling capture
 - `no-sneak/src/main/java/io/xlogistx/nosneak/services/QDZChecker.java`
 
 ### OPSec Utilities
@@ -418,11 +460,18 @@ scanner.start();
 
 ### Callback-based Revocation Checking
 ```java
-NIORevocationChecker checker = new NIORevocationChecker(httpNIOSocket);
-checker.checkRevocation(cert, issuerCert, result -> {
-    System.out.println("Status: " + result.getStatus());
-    System.out.println("Method: " + result.getMethod());
+// timeoutMs = soft-fail bound for the ACTIVE OCSP call only (default 5000)
+NIORevocationChecker checker = new NIORevocationChecker(httpNIOSocket, 5000);
+
+// stapledOCSP: DER bytes from PQCTlsClient.getStapledOCSPResponse() (may be null).
+// If present  -> parsed in-memory, instant, method "OCSP_STAPLED".
+// Else no OCSP URL / no issuer -> instant UNKNOWN/"NOT_CHECKED" (no CRL fetch).
+// Else                          -> one 5s soft-fail active OCSP POST.
+checker.checkRevocation(cert, issuerCert, stapledOCSP, result -> {
+    System.out.println("Status: " + result.getStatus());   // GOOD/REVOKED/UNKNOWN
+    System.out.println("Method: " + result.getMethod());    // OCSP_STAPLED / OCSP / NOT_CHECKED / TIMEOUT
 });
+// 3-arg checkRevocation(cert, issuer, cb) still works (stapledOCSP = null).
 ```
 
 ### Blocking Revocation Checking (OPSecUtil)

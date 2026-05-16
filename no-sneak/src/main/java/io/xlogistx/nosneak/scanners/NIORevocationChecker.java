@@ -228,7 +228,7 @@ public class NIORevocationChecker {
             if (!register.test(huc)) {
                 return;
             }
-            httpNioSocket.send(huc);
+            httpNioSocket.asyncSend(huc);
         } catch (Exception e) {
             if (log.isEnabled())
                 log.getLogger().info("OCSP request build failed: " + e.getMessage());

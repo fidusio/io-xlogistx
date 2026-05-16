@@ -85,6 +85,11 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
    - Phase 2 (revocation, ciphers, versions) uses child probes (`CipherProbeCallback`, `VersionProbeCallback`)
    - Completion tracked via `AtomicInteger pendingCount` — when all tasks decrement to 0, result is delivered
    - Zero blocking, zero waiting — entirely event-driven on NIO selector thread
+   - Every probe/child task MUST resolve exactly once (success/fail/timeout) or `pendingCount` never reaches 0 and the scan hangs. `PQCScanCallback` arms a master watchdog as the last-resort safety net.
+
+6. **Revocation policy (do NOT regress)**
+   - Order: handshake-**stapled OCSP** (instant, zero network) → short-circuit `NOT_CHECKED` when no OCSP URL/issuer → one short **soft-fail** active OCSP.
+   - **Never fetch CRLs** and **never block the scan** on revocation; inability to determine = `UNKNOWN`/`NOT_CHECKED`, never false `REVOKED`. A plain TLS handshake checks no revocation anyway — treat it as best-effort metadata, browser-style soft-fail.
 
 ## Important Files
 
@@ -96,8 +101,8 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/TLSProbeCallback.java` - Base class for NIO TLS probes
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/CipherProbeCallback.java` - NIO cipher enumeration probe
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/VersionProbeCallback.java` - NIO protocol version probe
-- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/NIORevocationChecker.java` - Async CRL/OCSP via HTTPURLCallback (callback-based, no CompletableFuture)
-- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/PQCTlsClient.java` - BC TLS client with PQC
+- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/NIORevocationChecker.java` - Revocation: stapled OCSP (instant) → short-circuit `NOT_CHECKED` → 5s soft-fail active OCSP. **No CRL** (intentionally removed: huge/unreachable for Let's Encrypt; was the hang source). Never blocks the scan, never returns false `REVOKED`.
+- `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/PQCTlsClient.java` - BC TLS client with PQC + RFC 6066 OCSP stapling capture (`getStapledOCSPResponse()`)
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/PQCTlsClientProtocol.java` - Key exchange interception
 - `no-sneak/src/main/java/io/xlogistx/nosneak/scanners/PQCSSLStateMachine.java` - Handshake state machine
 - `no-sneak/src/main/java/io/xlogistx/nosneak/services/QDZChecker.java` - REST endpoint (uses PQCCallback)
