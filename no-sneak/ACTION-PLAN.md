@@ -1,7 +1,73 @@
 # NoSneak SSL/TLS & PQC Scanner - Action Plan
 
-> Last Updated: 2026-05-15
+> Last Updated: 2026-05-16
 > Status: **Phase 3 Complete** - Pure NIO Callback Architecture (No CompletableFuture/ForkJoinPool)
+
+---
+
+## Recent Completed Work (2026-05-16)
+
+### Feature: Certificate trust hardening — PKIX-to-Root, expiry detail, UNTRUSTED status
+
+The scanner previously did **not** validate the chain to a trusted Root CA
+(`verifyCertificateChain` only checked intra-chain signature linkage), did not
+verify hostname, collapsed expiry into one opaque boolean, and `overall-status`
+ignored certificate validity entirely (an expired/untrusted cert could still
+report `READY`). Fixed:
+
+- **W1 — PKIX chain validation (`OPSecUtil.validateChain`)**: JCA
+  `CertPathValidator("PKIX")` against the JDK `cacerts` trust store
+  (overridable via `javax.net.ssl.trustStore`), revocation disabled (handled
+  separately, soft-fail). Returns `ChainTrustResult` /
+  `ChainTrust` ∈ `TRUSTED | UNTRUSTED_ROOT | INCOMPLETE_CHAIN | SELF_SIGNED |
+  EXPIRED_IN_CHAIN | INVALID_SIGNATURE | UNKNOWN`. Trust store unavailable →
+  `UNKNOWN` (soft-fail, never throws/blocks).
+- **W2 — Hostname check (`OPSecUtil.matchesHostname`)**: RFC 6125 SAN
+  dNSName (single leftmost-label wildcard) / iPAddress, CN fallback.
+  **Report-only.**
+- **W3 — Expiry detail**: `cert-validity-state` ∈ `VALID | EXPIRED |
+  NOT_YET_VALID`; `cert-chain-time-valid` covers intermediates/root.
+- **W4 — `PQCStatus.UNTRUSTED`** (new; outranks READY/PARTIAL/NOT_READY,
+  distinct from ERROR). `build()` forces UNTRUSTED on: leaf EXPIRED /
+  NOT_YET_VALID, chain not trust-anchored, expired-in-chain, or
+  `certRevoked==true` — **independent of PQC readiness**. Hostname mismatch is
+  report-only (recommendation, no status change), per decision.
+- **W5** — wired into `PQCScanCallback.onHandshakeComplete`; new
+  `cert-*` keys in `toNVGenericMap` (additive, kebab-case) + `toString`;
+  `PQCNIOScanner.verifyCertificateChain` is now a `@Deprecated` shim
+  delegating to `OPSecUtil.validateChain`.
+- **W4b** — new `RevocationStatus.NOT_SUPPORTED` (method `"NOT_SUPPORTED"`):
+  cert has no OCSP URL and none stapled (CA design — Let's Encrypt). Distinct
+  from `UNKNOWN` (issuer-missing/timeout, method `"NOT_CHECKED"`/`"TIMEOUT"`)
+  so Sprint-5 grading won't penalize the normal LE case. `NIORevocationChecker`
+  short-circuit split accordingly; `PQCScanResult` switch maps it explicitly.
+- **W4c** — concise `trust-verdict` (`TrustVerdict` enum) + `trust-reason`
+  computed in `Builder.build()` (reusing the UNTRUSTED conditions) and
+  serialized, so the website/UI consumes one authoritative verdict instead of
+  re-deriving trust from several keys.
+- **W5c** — `cert-chain[]` now includes the **Root CA**: servers don't send
+  it, so on a `TRUSTED` result the PKIX-matched trust anchor
+  (`OPSecUtil.ChainTrustResult.getTrustAnchor()`, from the cacerts store) is
+  appended by `PQCScanCallback` as the final `role:"root"` entry (skipped if
+  the server already terminated with a self-signed root). Chain-time-validity
+  now also covers the root. Verified live (cloudflare.com → 4 entries ending
+  in self-signed GlobalSign Root CA).
+- **W5b** — `cert-chain[]` per-certificate breakdown in `toNVGenericMap`
+  (`index`, `subject`, `issuer`, `not-before`, `not-after`, `time-valid`,
+  `validity-state`, `self-signed`, `is-ca`, `role`) so a detailed scan shows
+  *which* link failed, not just the aggregate verdict.
+- **W6** — `PQCCallbackTest.testCertificateTrust` (badssl.com:
+  expired / self-signed / untrusted-root / wrong-host + valid control;
+  network-unreachable cases are skipped, not failed).
+
+**Decisions:** trust anchors = JDK cacerts; trust failure → new `UNTRUSTED`
+state; hostname mismatch = report-only.
+
+**Files:** `opsec/OPSecUtil.java`, `PQCScanResult.java`, `PQCScanCallback.java`,
+`PQCNIOScanner.java`, `PQCCallbackTest.java`, docs.
+
+**Out of scope (future):** intermediate revocation, CT/SCT/CAA, SSL-Labs grading
+(this is its prerequisite).
 
 ---
 
@@ -196,13 +262,62 @@ the framework-native `HTTPURLCallback` + `HTTPNIOSocket` for truly event-driven,
 ## Pending Issues / Next Steps
 
 ### Medium Priority
-1. **Vulnerability Scanning Framework**
-   - POODLE (SSLv3 padding oracle)
-   - BEAST (TLS 1.0 CBC)
-   - Heartbleed (OpenSSL)
-   - ROBOT (RSA padding oracle)
-   - SWEET32 (64-bit block ciphers)
-   - DROWN (SSLv2)
+1. **Vulnerability Scanning Framework — SSL Labs parity checklist**
+
+   Goal: parity with the SSL Labs / `testssl.sh` posture report. All probes
+   must honor the no-sneak rules (pure NIO callbacks, BC TLS API, exactly-once
+   completion, soft-fail/bounded, never hang the scan).
+
+   **a. Padding-oracle & CBC family**
+   - [ ] POODLE (SSLv3 padding oracle)
+   - [ ] POODLE-TLS (TLS CBC padding oracle — distinct from SSLv3)
+   - [ ] Zombie POODLE
+   - [ ] GOLDENDOODLE
+   - [ ] Sleeping POODLE
+   - [ ] OpenSSL 0-Length padding-oracle
+   - [ ] BEAST (TLS 1.0 CBC)
+   - [ ] OpenSSL Padding Oracle (CVE-2016-2107)
+
+   **b. Named-CVE / implementation probes**
+   - [ ] Heartbleed (CVE-2014-0160) + Heartbeat extension presence
+   - [ ] Ticketbleed (CVE-2016-9244)
+   - [ ] OpenSSL CCS injection (CVE-2014-0224)
+   - [ ] ROBOT (RSA PKCS#1 v1.5 oracle)
+   - [ ] DROWN (SSLv2) + SSL 2 handshake compatibility
+   - [ ] SWEET32 (64-bit block ciphers)
+
+   **c. Renegotiation**
+   - [ ] Secure renegotiation (RFC 5746) supported
+   - [ ] Secure client-initiated renegotiation
+   - [ ] Insecure client-initiated renegotiation
+
+   **d. Protocol posture / downgrade**
+   - [ ] Downgrade prevention (TLS_FALLBACK_SCSV)
+   - [ ] SSL/TLS compression (CRIME)
+   - [ ] RC4 as an explicit posture item
+   - [ ] Forward Secrecy robustness rating
+   - [ ] ALPN / NPN advertised
+   - [ ] Session resumption (caching) / (tickets)
+   - [ ] OCSP stapling as a posture item (yes/no; we already *consume*
+         stapled OCSP for revocation — surface it here too)
+   - [ ] TLS 1.3 0-RTT / early-data enabled
+
+   **e. Key-exchange parameter hygiene**
+   - [ ] Uses common DH primes
+   - [ ] DH public server param (Ys) reuse
+   - [ ] ECDH public server param reuse
+   - [ ] Supported Named Groups *enumeration* (report the server's accepted
+         set + preference; today we only advertise our groups)
+
+   **f. Intolerance / robustness probes**
+   - [ ] Long handshake intolerance
+   - [ ] TLS extension intolerance
+   - [ ] TLS version intolerance
+   - [ ] Incorrect SNI alerts
+
+   **g. Pinning & transport (overlaps HTTP headers item 2)**
+   - [ ] HSTS + preload status
+   - [ ] HPKP, HPKP report-only, static pinning (legacy/deprecated — detect & report)
 
 2. **HTTP Security Headers Analysis**
    - HSTS, CSP, X-Frame-Options, X-Content-Type-Options
@@ -344,11 +459,22 @@ io.xlogistx.nosneak/
   "cert-not-before": "2026-01-12 08:36:50.000 GMT",
   "cert-not-after": "2026-04-06 08:36:49.000 GMT",
   "cert-time-valid": true,
+  "cert-validity-state": "VALID",
+  "cert-chain-time-valid": true,
   "cert-chain-valid": true,
+  "cert-chain-trust": "TRUSTED",
+  "cert-hostname-valid": true,
   "cert-revoked": false,
   "cert-subject": "CN=*.google.com",
   "cert-issuer": "CN=WE2,O=Google Trust Services,C=US",
-  "revocation-method": "OCSP",
+  "cert-chain": [
+    {"index": 0, "subject": "CN=*.google.com", "issuer": "CN=WE2,O=Google Trust Services,C=US",
+     "not-before": "...", "not-after": "...", "time-valid": true, "self-signed": false,
+     "is-ca": false, "role": "leaf"},
+    {"index": 1, "subject": "CN=WE2,O=Google Trust Services,C=US", "issuer": "CN=GTS Root R4,...",
+     "time-valid": true, "self-signed": false, "is-ca": true, "role": "intermediate"}
+  ],
+  "revocation-method": "OCSP_STAPLED",
   "supported-cipher-suites": [
     {"name": "TLS_AES_256_GCM_SHA384", "strength": "STRONG", "forward-secrecy": true},
     {"name": "TLS_CHACHA20_POLY1305_SHA256", "strength": "STRONG", "forward-secrecy": true}
@@ -398,8 +524,10 @@ io.xlogistx.nosneak/
   - [x] QDZChecker updated to use PQCCallback
   - [x] Zero blocking/waiting - pure event-driven
 
-- [ ] **Sprint 4: Vulnerability Scanning**
-  - [ ] POODLE, BEAST, Heartbleed, ROBOT
+- [ ] **Sprint 4: Vulnerability Scanning** — see the full **SSL Labs parity
+      checklist** under "Pending Issues / Next Steps → item 1" (groups a–g:
+      padding-oracle family, named-CVE probes, renegotiation, protocol
+      posture/downgrade, DH/ECDH param hygiene, intolerance probes, pinning)
   - [ ] Weak cipher detection
   - [ ] Certificate vulnerabilities
 

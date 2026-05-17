@@ -88,8 +88,17 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
    - Every probe/child task MUST resolve exactly once (success/fail/timeout) or `pendingCount` never reaches 0 and the scan hangs. `PQCScanCallback` arms a master watchdog as the last-resort safety net.
 
 6. **Revocation policy (do NOT regress)**
-   - Order: handshake-**stapled OCSP** (instant, zero network) → short-circuit `NOT_CHECKED` when no OCSP URL/issuer → one short **soft-fail** active OCSP.
-   - **Never fetch CRLs** and **never block the scan** on revocation; inability to determine = `UNKNOWN`/`NOT_CHECKED`, never false `REVOKED`. A plain TLS handshake checks no revocation anyway — treat it as best-effort metadata, browser-style soft-fail.
+   - Order: handshake-**stapled OCSP** (instant, zero network) → classify when no active OCSP possible → one short **soft-fail** active OCSP. **Never fetch CRLs**, **never block the scan**, never false `REVOKED`.
+   - Status semantics (`OPSecUtil.RevocationStatus`) — keep these distinct, grading depends on it:
+     - `NOT_SUPPORTED` (method `"NOT_SUPPORTED"`): cert has **no OCSP URL** and none stapled — CA design (e.g. Let's Encrypt short-lived/CRL model). **Normal/expected, NOT a failure** — must not be penalized.
+     - `UNKNOWN` (method `"NOT_CHECKED"`/`"TIMEOUT"`): *should* be checkable but wasn't (issuer missing, timeout, responder said unknown).
+     - `ERROR`: responder/HTTP/parse failure. `GOOD`/`REVOKED`: definitive.
+   - Unknown/Not-supported revocation never forces `UNTRUSTED`; only a confirmed `REVOKED` does. Browser-style soft-fail.
+
+7. **Certificate trust (do NOT regress)**
+   - Chain validity = **PKIX path validation to a trusted Root CA** via `OPSecUtil.validateChain()` (JDK cacerts anchors), NOT signature-linkage. Trust store unavailable → `UNKNOWN` soft-fail, never throw/block.
+   - A trust failure (leaf EXPIRED/NOT_YET_VALID, chain not trust-anchored, expired-in-chain, or confirmed revoked) MUST force `overall-status = UNTRUSTED` **regardless of PQC readiness** — trust outranks quantum-readiness.
+   - Hostname mismatch (`OPSecUtil.matchesHostname`, RFC 6125) is **report-only** — recorded + recommended, never forces `UNTRUSTED` (supports IP/vhost scans).
 
 ## Important Files
 
@@ -108,7 +117,7 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
 - `no-sneak/src/main/java/io/xlogistx/nosneak/services/QDZChecker.java` - REST endpoint (uses PQCCallback)
 
 ### Crypto & Certificates
-- `opsec/src/main/java/io/xlogistx/opsec/OPSecUtil.java` - X509, PKI, PQC utilities
+- `opsec/src/main/java/io/xlogistx/opsec/OPSecUtil.java` - X509, PKI, PQC utilities; `validateChain()` (PKIX→cacerts trust anchoring) and `matchesHostname()` (RFC 6125) live here
 - `opsec/src/main/java/io/xlogistx/opsec/CRLReader.java` - CRL checking
 
 ### Networking & DNS
@@ -139,8 +148,13 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
 - `cert-signature-type`, `cert-signature-algorithm`
 - `cert-public-key-type`, `cert-public-key-size`, `cert-pqc-ready`
 - `cert-not-before`, `cert-not-after`, `cert-time-valid`
-- `cert-chain-valid`, `cert-subject`, `cert-issuer`
-- `overall-status` (READY, PARTIAL, NOT_READY, ERROR)
+- `cert-validity-state` (VALID | EXPIRED | NOT_YET_VALID), `cert-chain-time-valid`
+- `cert-chain-valid` (PKIX-anchored to trusted Root CA), `cert-chain-trust` (TRUSTED/UNTRUSTED_ROOT/SELF_SIGNED/INCOMPLETE_CHAIN/EXPIRED_IN_CHAIN/INVALID_SIGNATURE/UNKNOWN), `cert-chain-trust-message`
+- `cert-hostname-valid` (RFC 6125; **report-only**), `cert-hostname-message`
+- `cert-subject`, `cert-issuer`
+- `cert-chain[]` — per-cert breakdown: `index`, `subject`, `issuer`, `not-before`, `not-after`, `time-valid`, `validity-state`, `self-signed`, `is-ca`, `role` (leaf/intermediate/root). Servers don't send the Root CA; when the chain is `TRUSTED`, the PKIX-matched trusted root (from the cacerts trust store, via `OPSecUtil.ChainTrustResult.getTrustAnchor()`) is appended as the final `role:"root"` entry so the chain is complete (skipped if the server already sent a self-signed root)
+- `trust-verdict` (TRUSTED | EXPIRED | NOT_YET_VALID | UNTRUSTED_CHAIN | CHAIN_TIME_INVALID | REVOKED | UNKNOWN) + `trust-reason` — concise backend-computed trust summary (set in `Builder.build()`, mirrors the `UNTRUSTED` conditions); the UI should consume this rather than re-deriving
+- `overall-status` (READY, PARTIAL, NOT_READY, **UNTRUSTED**, ERROR) — a cert trust failure (expired/not-yet-valid leaf, chain not trust-anchored, expired-in-chain, or revoked) forces `UNTRUSTED` regardless of PQC readiness; hostname mismatch does **not**
 - `recommendations`
 
 ### REST Endpoint

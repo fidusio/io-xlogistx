@@ -31,9 +31,43 @@ public class PQCScanResult implements Identifier<String> {
          */
         NOT_READY,
         /**
+         * Certificate trust failure (expired/not-yet-valid leaf, chain not
+         * anchored to a trusted Root CA, or revoked). Outranks READY/PARTIAL/
+         * NOT_READY: a connection that cannot be trusted is reported as such
+         * regardless of its PQC readiness. Distinct from {@link #ERROR}
+         * (which is a scan/connection failure, not a cert verdict).
+         */
+        UNTRUSTED,
+        /**
          * Scan failed or could not connect
          */
         ERROR
+    }
+
+    /**
+     * Leaf certificate time-validity state.
+     */
+    public enum CertValidityState {
+        VALID,
+        EXPIRED,
+        NOT_YET_VALID
+    }
+
+    /**
+     * Concise, backend-computed certificate trust verdict. A single
+     * authoritative value the UI can render directly instead of re-deriving
+     * trust from several keys. {@code TRUSTED} = chain PKIX-anchored and no
+     * trust failure; the rest mirror the conditions that force
+     * {@link PQCStatus#UNTRUSTED}; {@code UNKNOWN} = couldn't determine.
+     */
+    public enum TrustVerdict {
+        TRUSTED,
+        EXPIRED,
+        NOT_YET_VALID,
+        UNTRUSTED_CHAIN,
+        CHAIN_TIME_INVALID,
+        REVOKED,
+        UNKNOWN
     }
 
     /**
@@ -122,11 +156,21 @@ public class PQCScanResult implements Identifier<String> {
     // Certificate validity
     private long certNotBefore;      // Timestamp when certificate becomes valid
     private long certNotAfter;       // Timestamp when certificate expires
-    private boolean certTimeValid;   // Whether current time is within validity period
-    private Boolean certChainValid;  // null=not checked, true=chain verified, false=invalid chain
+    private boolean certTimeValid;   // Whether current time is within validity period (leaf)
+    private CertValidityState certValidityState; // VALID / EXPIRED / NOT_YET_VALID (leaf)
+    private Boolean certChainTimeValid; // null=unknown; false=an intermediate/root is expired/not-yet-valid
+    private Boolean certChainValid;  // null=not checked, true=chain anchors to trusted Root CA, false=not
+    private String certChainTrust;   // OPSecUtil.ChainTrust name (TRUSTED/UNTRUSTED_ROOT/...)
+    private String certChainTrustMessage; // human-readable PKIX detail
+    private Boolean certHostnameValid; // null=not checked; RFC6125 match of leaf vs scanned host (report-only)
+    private String certHostnameMessage; // detail / presented names when mismatched
     private Boolean certRevoked;     // null=not checked, true=revoked, false=not revoked
     private String certSubject;      // Certificate subject DN
     private String certIssuer;       // Certificate issuer DN
+
+    // Concise backend-computed trust summary (set in Builder.build())
+    private TrustVerdict trustVerdict;
+    private String trustReason;
 
     // Revocation details
     private String revocationMethod;      // "OCSP", "CRL", or "NONE"
@@ -249,8 +293,40 @@ public class PQCScanResult implements Identifier<String> {
         return certTimeValid;
     }
 
+    public CertValidityState getCertValidityState() {
+        return certValidityState;
+    }
+
+    public Boolean isCertChainTimeValid() {
+        return certChainTimeValid;
+    }
+
     public Boolean isCertChainValid() {
         return certChainValid;
+    }
+
+    public String getCertChainTrust() {
+        return certChainTrust;
+    }
+
+    public String getCertChainTrustMessage() {
+        return certChainTrustMessage;
+    }
+
+    public Boolean isCertHostnameValid() {
+        return certHostnameValid;
+    }
+
+    public String getCertHostnameMessage() {
+        return certHostnameMessage;
+    }
+
+    public TrustVerdict getTrustVerdict() {
+        return trustVerdict;
+    }
+
+    public String getTrustReason() {
+        return trustReason;
     }
 
     public Boolean isCertRevoked() {
@@ -351,10 +427,20 @@ public class PQCScanResult implements Identifier<String> {
             if (certNotBefore > 0) {
                 sb.append("  certNotBefore=").append(new java.util.Date(certNotBefore)).append("\n");
                 sb.append("  certNotAfter=").append(new java.util.Date(certNotAfter)).append("\n");
-                sb.append("  certTimeValid=").append(certTimeValid).append("\n");
+                sb.append("  certTimeValid=").append(certTimeValid)
+                        .append(certValidityState != null ? " (" + certValidityState + ")" : "").append("\n");
+            }
+            if (certChainTimeValid != null) {
+                sb.append("  certChainTimeValid=").append(certChainTimeValid).append("\n");
             }
             if (certChainValid != null) {
-                sb.append("  certChainValid=").append(certChainValid).append("\n");
+                sb.append("  certChainValid=").append(certChainValid)
+                        .append(certChainTrust != null ? " [" + certChainTrust + "]" : "")
+                        .append(certChainTrustMessage != null ? " " + certChainTrustMessage : "").append("\n");
+            }
+            if (certHostnameValid != null) {
+                sb.append("  certHostnameValid=").append(certHostnameValid)
+                        .append(certHostnameMessage != null ? " (" + certHostnameMessage + ")" : "").append("\n");
             }
             if (certRevoked != null) {
                 sb.append("  certRevoked=").append(certRevoked).append("\n");
@@ -384,6 +470,10 @@ public class PQCScanResult implements Identifier<String> {
                 sb.append("  supportedProtocolVersions=").append(supportedProtocolVersions).append("\n");
                 sb.append("  sslv3Supported=").append(sslv3Supported).append("\n");
                 sb.append("  deprecatedProtocolsSupported=").append(deprecatedProtocolsSupported).append("\n");
+            }
+            if (trustVerdict != null) {
+                sb.append("  trustVerdict=").append(trustVerdict)
+                        .append(trustReason != null ? " (" + trustReason + ")" : "").append("\n");
             }
             sb.append("  overallStatus=").append(overallStatus).append("\n");
             if (!recommendations.isEmpty()) {
@@ -476,8 +566,26 @@ public class PQCScanResult implements Identifier<String> {
             nvgm.add(new NVPair("cert-not-after", DateUtil.DEFAULT_GMT_MILLIS.format(certNotAfter)));
         }
         nvgm.add(new NVBoolean("cert-time-valid", certTimeValid));
+        if (certValidityState != null) {
+            nvgm.add("cert-validity-state", certValidityState.name());
+        }
+        if (certChainTimeValid != null) {
+            nvgm.add(new NVBoolean("cert-chain-time-valid", certChainTimeValid));
+        }
         if (certChainValid != null) {
             nvgm.add(new NVBoolean("cert-chain-valid", certChainValid));
+        }
+        if (certChainTrust != null) {
+            nvgm.add("cert-chain-trust", certChainTrust);
+        }
+        if (certChainTrustMessage != null) {
+            nvgm.add("cert-chain-trust-message", certChainTrustMessage);
+        }
+        if (certHostnameValid != null) {
+            nvgm.add(new NVBoolean("cert-hostname-valid", certHostnameValid));
+        }
+        if (certHostnameMessage != null) {
+            nvgm.add("cert-hostname-message", certHostnameMessage);
         }
         if (certRevoked != null) {
             nvgm.add(new NVBoolean("cert-revoked", certRevoked));
@@ -487,6 +595,38 @@ public class PQCScanResult implements Identifier<String> {
         }
         if (certIssuer != null) {
             nvgm.add("cert-issuer", certIssuer);
+        }
+
+        // Per-certificate chain breakdown (leaf -> ... -> root as sent by the
+        // server). The aggregate verdict is cert-chain-valid/cert-chain-trust;
+        // this lists each link so a detailed scan shows WHICH cert is the
+        // problem (expired intermediate, self-signed root, etc.).
+        if (certificateChain != null && certificateChain.length > 0) {
+            long now = System.currentTimeMillis();
+            NVGenericMapList chainList = new NVGenericMapList("cert-chain");
+            for (int i = 0; i < certificateChain.length; i++) {
+                X509Certificate c = certificateChain[i];
+                NVGenericMap cm = new NVGenericMap();
+                cm.add(new NVInt("index", i));
+                cm.add("subject", c.getSubjectX500Principal().getName());
+                cm.add("issuer", c.getIssuerX500Principal().getName());
+                long nb = c.getNotBefore().getTime();
+                long na = c.getNotAfter().getTime();
+                cm.add(new NVPair("not-before", DateUtil.DEFAULT_GMT_MILLIS.format(nb)));
+                cm.add(new NVPair("not-after", DateUtil.DEFAULT_GMT_MILLIS.format(na)));
+                boolean timeValid = now >= nb && now <= na;
+                cm.add(new NVBoolean("time-valid", timeValid));
+                if (!timeValid) {
+                    cm.add("validity-state", now < nb ? "NOT_YET_VALID" : "EXPIRED");
+                }
+                cm.add(new NVBoolean("self-signed",
+                        c.getSubjectX500Principal().equals(c.getIssuerX500Principal())));
+                cm.add(new NVBoolean("is-ca", c.getBasicConstraints() != -1));
+                cm.add("role", i == 0 ? "leaf"
+                        : (c.getSubjectX500Principal().equals(c.getIssuerX500Principal()) ? "root" : "intermediate"));
+                chainList.add(cm);
+            }
+            nvgm.add(chainList);
         }
 
         // Revocation details
@@ -526,6 +666,17 @@ public class PQCScanResult implements Identifier<String> {
         }
         nvgm.add(new NVBoolean("sslv3-supported", sslv3Supported));
         nvgm.add(new NVBoolean("deprecated-protocols-supported", deprecatedProtocolsSupported));
+
+        // Concise trust summary (single authoritative verdict for the UI)
+        if (trustVerdict != null) {
+            if (eAsS)
+                nvgm.add("trust-verdict", trustVerdict.name());
+            else
+                nvgm.add(new NVEnum("trust-verdict", trustVerdict));
+        }
+        if (trustReason != null) {
+            nvgm.add("trust-reason", trustReason);
+        }
 
         // Overall status
         if (overallStatus != null) {
@@ -653,10 +804,55 @@ public class PQCScanResult implements Identifier<String> {
                 result.certSubject = cert.getSubjectX500Principal().getName();
                 result.certIssuer = cert.getIssuerX500Principal().getName();
 
-                // Check if certificate is currently valid (time-wise)
+                // Check if certificate is currently valid (time-wise) and
+                // distinguish EXPIRED vs NOT_YET_VALID.
                 long now = System.currentTimeMillis();
-                result.certTimeValid = now >= result.certNotBefore && now <= result.certNotAfter;
+                if (now < result.certNotBefore) {
+                    result.certValidityState = CertValidityState.NOT_YET_VALID;
+                    result.certTimeValid = false;
+                } else if (now > result.certNotAfter) {
+                    result.certValidityState = CertValidityState.EXPIRED;
+                    result.certTimeValid = false;
+                } else {
+                    result.certValidityState = CertValidityState.VALID;
+                    result.certTimeValid = true;
+                }
             }
+            return this;
+        }
+
+        /**
+         * Record the PKIX trust outcome of validating the chain to a trusted
+         * Root CA (see {@code OPSecUtil.validateChain}). Sets the legacy
+         * {@code certChainValid} boolean for compatibility.
+         *
+         * @param trust        ChainTrust enum name (e.g. "TRUSTED")
+         * @param trusted      true iff anchored to a trusted root
+         * @param message      human-readable PKIX detail (nullable)
+         */
+        public Builder certChainTrust(String trust, boolean trusted, String message) {
+            result.certChainTrust = trust;
+            result.certChainTrustMessage = message;
+            result.certChainValid = trusted;
+            return this;
+        }
+
+        /**
+         * Whether every cert in the chain is currently within its validity
+         * window (null = unknown).
+         */
+        public Builder certChainTimeValid(Boolean valid) {
+            result.certChainTimeValid = valid;
+            return this;
+        }
+
+        /**
+         * RFC 6125 hostname match of the leaf vs the scanned host. Report-only:
+         * does NOT by itself force an UNTRUSTED verdict.
+         */
+        public Builder certHostname(boolean matched, String message) {
+            result.certHostnameValid = matched;
+            result.certHostnameMessage = message;
             return this;
         }
 
@@ -746,6 +942,11 @@ public class PQCScanResult implements Identifier<String> {
                     case REVOKED:
                         result.certRevoked = true;
                         break;
+                    case NOT_SUPPORTED:
+                        // CA-design: revocation not applicable. Not revoked,
+                        // not a failure - distinct from UNKNOWN for grading.
+                        result.certRevoked = null;
+                        break;
                     default:
                         result.certRevoked = null; // UNKNOWN or ERROR
                         break;
@@ -829,6 +1030,68 @@ public class PQCScanResult implements Identifier<String> {
                 result.overallStatus = PQCStatus.NOT_READY;
                 result.recommendations.add("Upgrade to TLS 1.3 for PQC support");
                 result.recommendations.add("Enable PQC hybrid key exchange");
+            }
+
+            // Certificate TRUST outranks PQC readiness: a connection we cannot
+            // trust is reported UNTRUSTED regardless of how quantum-ready it is.
+            // Triggers: leaf expired / not-yet-valid, chain not anchored to a
+            // trusted Root CA, an expired cert anywhere in the chain, or a
+            // confirmed revocation. Hostname mismatch is report-only (does NOT
+            // trigger UNTRUSTED) per design.
+            if (result.success && result.overallStatus != PQCStatus.ERROR) {
+                if (result.certValidityState == CertValidityState.EXPIRED) {
+                    result.overallStatus = PQCStatus.UNTRUSTED;
+                    result.trustVerdict = TrustVerdict.EXPIRED;
+                    result.trustReason = "Certificate is EXPIRED (notAfter "
+                            + new java.util.Date(result.certNotAfter) + ") - renew immediately";
+                    result.recommendations.add(result.trustReason);
+                } else if (result.certValidityState == CertValidityState.NOT_YET_VALID) {
+                    result.overallStatus = PQCStatus.UNTRUSTED;
+                    result.trustVerdict = TrustVerdict.NOT_YET_VALID;
+                    result.trustReason = "Certificate is NOT YET VALID (notBefore "
+                            + new java.util.Date(result.certNotBefore) + ") - check server clock / issuance";
+                    result.recommendations.add(result.trustReason);
+                } else if (Boolean.FALSE.equals(result.certChainValid)) {
+                    result.overallStatus = PQCStatus.UNTRUSTED;
+                    result.trustVerdict = TrustVerdict.UNTRUSTED_CHAIN;
+                    result.trustReason = "Certificate chain does not anchor to a trusted Root CA"
+                            + (result.certChainTrust != null ? " [" + result.certChainTrust + "]" : "")
+                            + (result.certChainTrustMessage != null ? ": " + result.certChainTrustMessage : "");
+                    result.recommendations.add(result.trustReason);
+                } else if (Boolean.FALSE.equals(result.certChainTimeValid)) {
+                    result.overallStatus = PQCStatus.UNTRUSTED;
+                    result.trustVerdict = TrustVerdict.CHAIN_TIME_INVALID;
+                    result.trustReason = "An intermediate/root certificate in the chain is expired or not yet valid";
+                    result.recommendations.add(result.trustReason);
+                } else if (Boolean.TRUE.equals(result.certRevoked)) {
+                    result.overallStatus = PQCStatus.UNTRUSTED;
+                    result.trustVerdict = TrustVerdict.REVOKED;
+                    result.trustReason = "Certificate is REVOKED"
+                            + (result.revocationReason != null ? " (" + result.revocationReason + ")" : "");
+                    result.recommendations.add(result.trustReason);
+                } else {
+                    // No trust failure tripped. TRUSTED only if the chain was
+                    // positively PKIX-anchored; otherwise we couldn't determine.
+                    if (Boolean.TRUE.equals(result.certChainValid)) {
+                        result.trustVerdict = TrustVerdict.TRUSTED;
+                        result.trustReason = "Certificate chain anchors to a trusted Root CA"
+                                + (result.certChainTrust != null ? " [" + result.certChainTrust + "]" : "");
+                    } else {
+                        result.trustVerdict = TrustVerdict.UNKNOWN;
+                        result.trustReason = "Certificate trust could not be determined"
+                                + (result.certChainTrustMessage != null ? ": " + result.certChainTrustMessage : "");
+                    }
+                }
+            } else if (!result.success) {
+                result.trustVerdict = TrustVerdict.UNKNOWN;
+                result.trustReason = result.errorMessage != null
+                        ? result.errorMessage : "Scan did not complete";
+            }
+
+            // Hostname mismatch: report-only recommendation, no status change.
+            if (result.success && Boolean.FALSE.equals(result.certHostnameValid)) {
+                result.recommendations.add("Certificate does not match scanned host"
+                        + (result.certHostnameMessage != null ? ": " + result.certHostnameMessage : ""));
             }
 
             // Add certificate recommendations

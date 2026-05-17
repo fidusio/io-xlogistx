@@ -64,9 +64,14 @@ import java.security.cert.Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 
 public class OPSecUtil {
@@ -166,8 +171,14 @@ public class OPSecUtil {
         GOOD,
         /** Certificate is revoked */
         REVOKED,
-        /** Revocation status could not be determined */
+        /** Revocation status could not be determined (issuer missing, timeout,
+         *  responder said "unknown"): it <i>should</i> be checkable but wasn't. */
         UNKNOWN,
+        /** Revocation checking is not applicable by CA design - the certificate
+         *  provides no OCSP responder and is not stapled (e.g. Let's Encrypt's
+         *  short-lived-cert / CRL model). This is a normal, expected state, NOT
+         *  a failure, and must not be penalized like {@link #UNKNOWN}/{@link #ERROR}. */
+        NOT_SUPPORTED,
         /** Error occurred during revocation check */
         ERROR
     }
@@ -203,6 +214,11 @@ public class OPSecUtil {
             return new RevocationResult(RevocationStatus.UNKNOWN, method, message, null, null);
         }
 
+        /** Revocation not applicable by CA design (no OCSP, not stapled). */
+        public static RevocationResult notSupported(String method, String message) {
+            return new RevocationResult(RevocationStatus.NOT_SUPPORTED, method, message, null, null);
+        }
+
         public static RevocationResult error(String method, String message) {
             return new RevocationResult(RevocationStatus.ERROR, method, message, null, null);
         }
@@ -222,6 +238,322 @@ public class OPSecUtil {
             if (revocationReason != null) sb.append(", reason=").append(revocationReason);
             return sb.append("}").toString();
         }
+    }
+
+    // ==================== Certificate chain trust (PKIX) ====================
+
+    /**
+     * Outcome of validating a server-presented chain against the system trust
+     * anchors. Only {@link #TRUSTED} means the chain anchors to a trusted Root
+     * CA; everything else is a trust failure (except {@link #UNKNOWN}, which is
+     * a soft-fail when the trust store itself is unavailable).
+     */
+    public enum ChainTrust {
+        TRUSTED,
+        UNTRUSTED_ROOT,
+        INCOMPLETE_CHAIN,
+        SELF_SIGNED,
+        EXPIRED_IN_CHAIN,
+        INVALID_SIGNATURE,
+        UNKNOWN
+    }
+
+    public static class ChainTrustResult {
+        private final ChainTrust trust;
+        private final String message;
+        // The trusted Root CA the chain validated against (from the local
+        // trust store, NOT sent by the server). null unless TRUSTED.
+        private X509Certificate trustAnchor;
+
+        public ChainTrustResult(ChainTrust trust, String message) {
+            this.trust = trust;
+            this.message = message;
+        }
+
+        public ChainTrust getTrust() { return trust; }
+        public String getMessage() { return message; }
+        /** The matched trusted Root CA (resolved from the trust store), or null. */
+        public X509Certificate getTrustAnchor() { return trustAnchor; }
+        public ChainTrustResult trustAnchor(X509Certificate a) { this.trustAnchor = a; return this; }
+        public boolean isTrusted() { return trust == ChainTrust.TRUSTED; }
+        /** A definitive trust failure (not TRUSTED and not the soft UNKNOWN). */
+        public boolean isHardFailure() {
+            return trust != ChainTrust.TRUSTED && trust != ChainTrust.UNKNOWN;
+        }
+
+        @Override
+        public String toString() {
+            return "ChainTrustResult{" + trust + (message != null ? ": " + message : "") + "}";
+        }
+    }
+
+    // Lazily-loaded, cached system trust anchors (JDK cacerts, overridable via
+    // javax.net.ssl.trustStore). Loaded once; failure is non-fatal (UNKNOWN).
+    private static volatile Set<TrustAnchor> trustAnchors;
+    private static volatile String trustAnchorError;
+    private static final Object TRUST_LOCK = new Object();
+
+    private static Set<TrustAnchor> systemTrustAnchors() {
+        Set<TrustAnchor> ta = trustAnchors;
+        if (ta != null || trustAnchorError != null) {
+            return ta;
+        }
+        synchronized (TRUST_LOCK) {
+            if (trustAnchors != null || trustAnchorError != null) {
+                return trustAnchors;
+            }
+            try {
+                String path = System.getProperty("javax.net.ssl.trustStore");
+                String pwd = System.getProperty("javax.net.ssl.trustStorePassword", "changeit");
+                String type = System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType());
+                File f;
+                if (path != null && !path.isEmpty()) {
+                    f = new File(path);
+                } else {
+                    f = new File(System.getProperty("java.home"), "lib/security/cacerts");
+                }
+                KeyStore ks = loadKeyStore(f, type, pwd);
+                Set<TrustAnchor> set = new HashSet<>();
+                for (Enumeration<String> aliases = ks.aliases(); aliases.hasMoreElements(); ) {
+                    String alias = aliases.nextElement();
+                    Certificate c = ks.getCertificate(alias);
+                    if (c instanceof X509Certificate) {
+                        set.add(new TrustAnchor((X509Certificate) c, null));
+                    }
+                }
+                if (set.isEmpty()) {
+                    trustAnchorError = "trust store contained no certificates: " + f;
+                } else {
+                    trustAnchors = set;
+                }
+            } catch (Exception e) {
+                trustAnchorError = "trust store unavailable: " + e.getMessage();
+                if (log.isEnabled()) {
+                    log.getLogger().info(trustAnchorError);
+                }
+            }
+            return trustAnchors;
+        }
+    }
+
+    private static KeyStore loadKeyStore(File f, String type, String pwd) throws Exception {
+        Exception last = null;
+        for (String t : new String[]{type, "JKS", "PKCS12"}) {
+            if (t == null) continue;
+            try (InputStream in = new FileInputStream(f)) {
+                KeyStore ks = KeyStore.getInstance(t);
+                ks.load(in, pwd != null ? pwd.toCharArray() : null);
+                return ks;
+            } catch (Exception e) {
+                last = e;
+            }
+        }
+        throw last != null ? last : new IOException("cannot load trust store " + f);
+    }
+
+    private static boolean isSelfSigned(X509Certificate c) {
+        return c.getSubjectX500Principal().equals(c.getIssuerX500Principal());
+    }
+
+    /**
+     * Validate a server-presented certificate chain (leaf first) all the way to
+     * a trusted Root CA using JCA PKIX path validation against the system trust
+     * anchors. Revocation is intentionally disabled here (handled separately,
+     * soft-fail). Never throws; an unloadable trust store yields
+     * {@link ChainTrust#UNKNOWN}.
+     *
+     * @param chain server certificate chain, leaf at index 0
+     * @return structured trust outcome
+     */
+    public ChainTrustResult validateChain(X509Certificate[] chain) {
+        if (chain == null || chain.length == 0) {
+            return new ChainTrustResult(ChainTrust.INCOMPLETE_CHAIN, "empty certificate chain");
+        }
+
+        // A self-signed end-entity (no separate CA) is, by definition, not
+        // anchored to a trusted root unless explicitly pinned.
+        if (chain.length == 1 && isSelfSigned(chain[0])) {
+            return new ChainTrustResult(ChainTrust.SELF_SIGNED,
+                    "leaf certificate is self-signed (" + chain[0].getSubjectX500Principal().getName() + ")");
+        }
+
+        Set<TrustAnchor> anchors = systemTrustAnchors();
+        if (anchors == null || anchors.isEmpty()) {
+            return new ChainTrustResult(ChainTrust.UNKNOWN,
+                    trustAnchorError != null ? trustAnchorError : "trust store unavailable");
+        }
+
+        try {
+            // PKIX wants the path to stop at a cert issued by an anchor and not
+            // include the anchor itself; drop a server-sent self-signed root.
+            List<X509Certificate> path = new ArrayList<>(Arrays.asList(chain));
+            if (path.size() > 1 && isSelfSigned(path.get(path.size() - 1))) {
+                path.remove(path.size() - 1);
+            }
+
+            CertPath certPath = CertificateFactory.getInstance("X.509").generateCertPath(path);
+            PKIXParameters params = new PKIXParameters(anchors);
+            params.setRevocationEnabled(false); // revocation handled elsewhere (soft-fail)
+
+            PKIXCertPathValidatorResult pkixResult =
+                    (PKIXCertPathValidatorResult) CertPathValidator.getInstance("PKIX").validate(certPath, params);
+            X509Certificate anchorCert = pkixResult.getTrustAnchor() != null
+                    ? pkixResult.getTrustAnchor().getTrustedCert() : null;
+            return new ChainTrustResult(ChainTrust.TRUSTED, null).trustAnchor(anchorCert);
+        } catch (CertPathValidatorException e) {
+            return new ChainTrustResult(classifyPkixFailure(e), pkixMessage(e));
+        } catch (Exception e) {
+            // Malformed path / cannot build CertPath etc. - treat as a chain
+            // structure problem rather than a hard "untrusted" verdict.
+            return new ChainTrustResult(ChainTrust.INCOMPLETE_CHAIN,
+                    "chain could not be assembled: " + e.getMessage());
+        }
+    }
+
+    private static ChainTrust classifyPkixFailure(CertPathValidatorException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof CertificateExpiredException || cause instanceof CertificateNotYetValidException) {
+            return ChainTrust.EXPIRED_IN_CHAIN;
+        }
+        String m = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+        if (m.contains("unable to find valid certification path") || m.contains("trustanchor")
+                || m.contains("trust anchor")) {
+            return ChainTrust.UNTRUSTED_ROOT;
+        }
+        if (m.contains("signature")) {
+            return ChainTrust.INVALID_SIGNATURE;
+        }
+        if (m.contains("not chain") || m.contains("issuer") || m.contains("does not chain")) {
+            return ChainTrust.INCOMPLETE_CHAIN;
+        }
+        if (m.contains("expired") || m.contains("not yet valid")) {
+            return ChainTrust.EXPIRED_IN_CHAIN;
+        }
+        return ChainTrust.UNTRUSTED_ROOT;
+    }
+
+    private static String pkixMessage(CertPathValidatorException e) {
+        StringBuilder sb = new StringBuilder(e.getMessage() != null ? e.getMessage() : "PKIX validation failed");
+        if (e.getCause() != null && e.getCause().getMessage() != null) {
+            sb.append(" (").append(e.getCause().getMessage()).append(')');
+        }
+        if (e.getIndex() >= 0) {
+            sb.append(" [at chain index ").append(e.getIndex()).append(']');
+        }
+        return sb.toString();
+    }
+
+    // ==================== Hostname verification (RFC 6125) ====================
+
+    public static class HostnameResult {
+        private final boolean matched;
+        private final List<String> presentedNames;
+        private final String message;
+
+        public HostnameResult(boolean matched, List<String> presentedNames, String message) {
+            this.matched = matched;
+            this.presentedNames = presentedNames;
+            this.message = message;
+        }
+
+        public boolean isMatched() { return matched; }
+        public List<String> getPresentedNames() { return presentedNames; }
+        public String getMessage() { return message; }
+
+        @Override
+        public String toString() {
+            return "HostnameResult{matched=" + matched + ", names=" + presentedNames
+                    + (message != null ? ", " + message : "") + "}";
+        }
+    }
+
+    /**
+     * RFC 6125 hostname check of the leaf certificate against the scanned host.
+     * SAN dNSName (with single leftmost-label wildcard) / iPAddress, CN
+     * fallback only when no dNSName SAN is present. Report-only: callers decide
+     * severity. Never throws.
+     *
+     * @param leaf the leaf certificate
+     * @param host the host that was scanned (DNS name or IP literal)
+     */
+    public HostnameResult matchesHostname(X509Certificate leaf, String host) {
+        List<String> presented = new ArrayList<>();
+        if (leaf == null || host == null || host.isEmpty()) {
+            return new HostnameResult(false, presented, "no certificate or host");
+        }
+        String h = host.trim().toLowerCase(Locale.ROOT);
+        // strip a trailing dot and any :port
+        if (h.endsWith(".")) h = h.substring(0, h.length() - 1);
+        int colon = h.indexOf(':');
+        boolean looksIPv6 = h.indexOf(':') != h.lastIndexOf(':');
+        if (colon > 0 && !looksIPv6) h = h.substring(0, colon);
+
+        List<String> dnsNames = new ArrayList<>();
+        List<String> ipNames = new ArrayList<>();
+        try {
+            java.util.Collection<List<?>> sans = leaf.getSubjectAlternativeNames();
+            if (sans != null) {
+                for (List<?> san : sans) {
+                    if (san.size() < 2) continue;
+                    Integer type = (Integer) san.get(0);
+                    Object val = san.get(1);
+                    if (!(val instanceof String)) continue;
+                    String s = ((String) val).toLowerCase(Locale.ROOT);
+                    if (type == 2) { dnsNames.add(s); presented.add("DNS:" + s); }
+                    else if (type == 7) { ipNames.add(s); presented.add("IP:" + s); }
+                }
+            }
+        } catch (Exception e) {
+            if (log.isEnabled()) log.getLogger().info("SAN parse failed: " + e.getMessage());
+        }
+
+        boolean hostIsIp = looksIPv6 || h.matches("^\\d{1,3}(\\.\\d{1,3}){3}$");
+        if (hostIsIp) {
+            boolean m = ipNames.contains(h);
+            return new HostnameResult(m, presented,
+                    m ? null : "IP " + h + " not in certificate SAN iPAddress entries");
+        }
+
+        List<String> candidates = !dnsNames.isEmpty() ? dnsNames : cnNames(leaf, presented);
+        for (String pattern : candidates) {
+            if (hostMatchesPattern(h, pattern)) {
+                return new HostnameResult(true, presented, null);
+            }
+        }
+        return new HostnameResult(false, presented,
+                "host " + h + " does not match certificate names " + presented);
+    }
+
+    private static List<String> cnNames(X509Certificate leaf, List<String> presented) {
+        List<String> cns = new ArrayList<>();
+        try {
+            String dn = leaf.getSubjectX500Principal().getName();
+            for (org.bouncycastle.asn1.x500.RDN rdn :
+                    new X500Name(dn).getRDNs(BCStyle.CN)) {
+                String cn = org.bouncycastle.asn1.x500.style.IETFUtils
+                        .valueToString(rdn.getFirst().getValue()).toLowerCase(Locale.ROOT);
+                cns.add(cn);
+                presented.add("CN:" + cn);
+            }
+        } catch (Exception e) {
+            if (log.isEnabled()) log.getLogger().info("CN parse failed: " + e.getMessage());
+        }
+        return cns;
+    }
+
+    private static boolean hostMatchesPattern(String host, String pattern) {
+        if (pattern == null || pattern.isEmpty()) return false;
+        if (pattern.equals(host)) return true;
+        // Single wildcard, leftmost label only: "*.example.com" matches exactly
+        // one label ("a.example.com") - NOT "example.com" and NOT "a.b.example.com".
+        if (pattern.startsWith("*.")) {
+            String pSuffix = pattern.substring(1); // ".example.com"
+            int dot = host.indexOf('.');
+            if (dot <= 0) return false;            // need a non-empty leftmost label
+            String hSuffix = host.substring(dot);  // ".rest..."
+            return hSuffix.equals(pSuffix);        // exactly one label consumed by '*'
+        }
+        return false;
     }
 
     public enum KeyUsageType

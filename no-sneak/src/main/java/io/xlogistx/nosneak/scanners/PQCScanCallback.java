@@ -209,7 +209,6 @@ public class PQCScanCallback implements ScanCallback {
             Certificate serverCert = tlsClient.getServerCertificate();
             if (serverCert != null && serverCert.getLength() > 0) {
                 chain = PQCNIOScanner.convertCertificateChain(serverCert);
-                resultBuilder.certificateChain(chain);
 
                 if (chain != null && chain.length > 0) {
                     X509Certificate leafCert = chain[0];
@@ -220,8 +219,44 @@ public class PQCScanCallback implements ScanCallback {
                     resultBuilder.certPublicKey(certAnalysis[2], Integer.parseInt(certAnalysis[3]));
                     resultBuilder.certValidity(leafCert);
 
-                    boolean chainValid = PQCNIOScanner.verifyCertificateChain(chain);
-                    resultBuilder.certChainValid(chainValid);
+                    // Real PKIX validation: does the chain anchor to a trusted
+                    // Root CA? (replaces the old signature-linkage-only check)
+                    OPSecUtil.ChainTrustResult ctr = opsec.validateChain(chain);
+                    resultBuilder.certChainTrust(ctr.getTrust().name(),
+                            ctr.isTrusted(), ctr.getMessage());
+
+                    // Servers don't send the Root CA in the handshake (the
+                    // client is expected to have it). Append the trusted root
+                    // resolved from the local trust store so the reported chain
+                    // is complete (leaf -> intermediate(s) -> root). Skip if the
+                    // server already terminated the chain with a self-signed root.
+                    X509Certificate[] displayChain = chain;
+                    X509Certificate root = ctr.getTrustAnchor();
+                    X509Certificate last = chain[chain.length - 1];
+                    boolean serverSentRoot = last.getSubjectX500Principal()
+                            .equals(last.getIssuerX500Principal());
+                    if (root != null && !serverSentRoot) {
+                        displayChain = java.util.Arrays.copyOf(chain, chain.length + 1);
+                        displayChain[chain.length] = root;
+                    }
+                    resultBuilder.certificateChain(displayChain);
+
+                    // Time-validity of the WHOLE chain (intermediates/root too)
+                    boolean chainTimeValid = true;
+                    for (X509Certificate c : displayChain) {
+                        try {
+                            c.checkValidity();
+                        } catch (Exception expiredOrNotYet) {
+                            chainTimeValid = false;
+                            break;
+                        }
+                    }
+                    resultBuilder.certChainTimeValid(chainTimeValid);
+
+                    // RFC 6125 hostname match vs the scanned host (report-only)
+                    OPSecUtil.HostnameResult hn = opsec.matchesHostname(leafCert, hostname);
+                    resultBuilder.certHostname(hn.isMatched(),
+                            hn.isMatched() ? null : hn.getMessage());
                 }
             }
 

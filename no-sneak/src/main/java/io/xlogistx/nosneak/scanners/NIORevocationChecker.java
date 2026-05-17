@@ -118,11 +118,19 @@ public class NIORevocationChecker {
         // 2) Decide if an active OCSP call is even possible. If not, resolve
         //    immediately as NOT_CHECKED - never walk into a CRL black hole.
         List<String> ocspUrls = opsecUtil.extractOCSPResponderURLs(cert);
-        if (issuer == null || ocspUrls.isEmpty()) {
+        if (ocspUrls.isEmpty()) {
+            // CA design: cert has no OCSP responder and nothing was stapled
+            // (e.g. Let's Encrypt's short-lived-cert / CRL model). This is a
+            // normal, expected state - NOT a failure. We do not fetch CRLs.
+            userCallback.accept(RevocationResult.notSupported("NOT_SUPPORTED",
+                    "Certificate carries no OCSP responder URL; CA uses short-lived/CRL model (CRL not fetched by design)"));
+            return;
+        }
+        if (issuer == null) {
+            // We *could* have OCSP-checked but the chain didn't include the
+            // issuer - genuinely indeterminate, not a CA-design choice.
             userCallback.accept(RevocationResult.unknown("NOT_CHECKED",
-                    issuer == null
-                            ? "No issuer certificate available for OCSP"
-                            : "Certificate carries no OCSP responder URL (CRL not fetched by design)"));
+                    "No issuer certificate available for OCSP"));
             return;
         }
 

@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Test ScannerMotherCallback against real TLS servers.
@@ -326,6 +327,92 @@ public class PQCCallbackTest {
                     " Ciphers: " + result.getSupportedCipherSuites().size() +
                     " RevocationMethod: " + result.getRevocationMethod());
             log.getLogger().info("====================================================");
+        }
+    }
+
+    /**
+     * Certificate TRUST scenarios (badssl.com fixtures). Verifies that a
+     * trust failure forces overall-status = UNTRUSTED regardless of PQC
+     * readiness, that EXPIRED vs NOT_YET_VALID is distinguished, and that a
+     * hostname mismatch is report-only (does NOT force UNTRUSTED).
+     * <p>
+     * The TLS handshake itself succeeds for all of these (we don't validate in
+     * the handshake), so the post-hoc PKIX/expiry/hostname checks are what's
+     * under test. Network-unreachable cases are skipped, not failed.
+     */
+    @Test
+    void testCertificateTrust() throws Exception {
+        String[] hosts = {
+                "https://expired.badssl.com",
+                "https://self-signed.badssl.com",
+                "https://untrusted-root.badssl.com",
+                "https://wrong.host.badssl.com",
+                "https://badssl.com",
+                "https://xlogistx.io",
+        };
+
+        for (String host : hosts) {
+            IPAddress addr = IPAddress.parse(host);
+            CountDownLatch latch = new CountDownLatch(1);
+            AtomicReference<PQCScanResult> ref = new AtomicReference<>();
+
+            PQCScanCallback mother = new PQCScanCallback(addr, result -> {
+                ref.set(result);
+                latch.countDown();
+            }, null, httpNIOSocket);
+            mother.dnsResolver(DNSRegistrar.SINGLETON);
+            mother.timeoutInSec(15);
+            mother.overallTimeoutInSec(45);
+            mother.start();
+
+            assertTrue(latch.await(60, TimeUnit.SECONDS),
+                    "scan of " + host + " did not complete");
+            PQCScanResult r = ref.get();
+            assertNotNull(r);
+
+            // Don't fail the build on env/network inability to reach badssl.
+            assumeTrue(r.isSuccess(),
+                    "skipping " + host + " - not reachable: " + r.getErrorMessage());
+
+            log.getLogger().info("[trust] " + host
+                    + " state=" + r.getCertValidityState()
+                    + " chainValid=" + r.isCertChainValid()
+                    + " trust=" + r.getCertChainTrust()
+                    + " hostnameValid=" + r.isCertHostnameValid()
+                    + " overall=" + r.getOverallStatus());
+
+            if (host.contains("expired.")) {
+                assertEquals(PQCScanResult.CertValidityState.EXPIRED, r.getCertValidityState(),
+                        "expired.badssl.com leaf should be EXPIRED");
+                assertEquals(PQCScanResult.PQCStatus.UNTRUSTED, r.getOverallStatus(),
+                        "expired cert must force UNTRUSTED regardless of PQC");
+                assertEquals(PQCScanResult.TrustVerdict.EXPIRED, r.getTrustVerdict(),
+                        "trust-verdict should be EXPIRED");
+                assertNotNull(r.getTrustReason(), "trust-reason should be populated");
+            } else if (host.contains("self-signed.")) {
+                assertEquals(Boolean.FALSE, r.isCertChainValid(), "self-signed chain is not trusted");
+                assertEquals("SELF_SIGNED", r.getCertChainTrust());
+                assertEquals(PQCScanResult.PQCStatus.UNTRUSTED, r.getOverallStatus());
+            } else if (host.contains("untrusted-root.")) {
+                assertEquals(Boolean.FALSE, r.isCertChainValid(),
+                        "untrusted-root chain does not anchor to a trusted CA");
+                assertEquals(PQCScanResult.PQCStatus.UNTRUSTED, r.getOverallStatus());
+            } else if (host.contains("wrong.host.")) {
+                // Cert is valid & trusted but for the wrong name: report-only.
+                assertEquals(Boolean.FALSE, r.isCertHostnameValid(),
+                        "wrong.host.badssl.com should fail hostname match");
+                assertNotEquals(PQCScanResult.PQCStatus.UNTRUSTED, r.getOverallStatus(),
+                        "hostname mismatch is report-only, must NOT force UNTRUSTED");
+            } else { // badssl.com control
+                assertEquals(PQCScanResult.CertValidityState.VALID, r.getCertValidityState());
+                assertEquals(Boolean.TRUE, r.isCertChainValid(),
+                        "badssl.com should anchor to a trusted root");
+                assertEquals("TRUSTED", r.getCertChainTrust());
+                assertEquals(Boolean.TRUE, r.isCertHostnameValid());
+                assertNotEquals(PQCScanResult.PQCStatus.UNTRUSTED, r.getOverallStatus());
+                assertEquals(PQCScanResult.TrustVerdict.TRUSTED, r.getTrustVerdict(),
+                        "badssl.com trust-verdict should be TRUSTED");
+            }
         }
     }
 
