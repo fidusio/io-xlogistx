@@ -69,6 +69,7 @@ public class HTTPProtocolHandler
     public EndPointsManager getEndPointsManager() {
         return endPointsManager;
     }
+
     public boolean parseRequest(ByteBuffer inBuffer) throws IOException {
 
         ByteBufferUtil.write(inBuffer, rawRequest.getDataStream(), true);
@@ -118,7 +119,7 @@ public class HTTPProtocolHandler
     }
 
     public HTTPMessageConfigInterface getRequest() {
-        return isRequestComplete() || canProceedAsPartial()? rawRequest.getHTTPMessageConfig() : null;
+        return isRequestComplete() || canProceedAsPartial() ? rawRequest.getHTTPMessageConfig() : null;
     }
 
     public UByteArrayOutputStream getResponseStream() {
@@ -129,7 +130,9 @@ public class HTTPProtocolHandler
         return override || isRequestComplete() ? responseStream : null;
     }
 
-    public HTTPMessageConfigInterface getResponse() {return isRequestComplete() ? response : null;}
+    public HTTPMessageConfigInterface getResponse() {
+        return isRequestComplete() ? response : null;
+    }
 
     @Override
     public synchronized void close() throws IOException {
@@ -157,10 +160,13 @@ public class HTTPProtocolHandler
         return false;
     }
 
-    public NVGenericMap getResponseHeaders() {return getResponse() != null ? getResponse().getHeaders() : null;}
+    public NVGenericMap getResponseHeaders() {
+        return getResponse() != null ? getResponse().getHeaders() : null;
+    }
 
-    public NVGenericMap getResponseParameters() {return getResponse() != null ? getResponse().getParameters() : null;}
-
+    public NVGenericMap getResponseParameters() {
+        return getResponse() != null ? getResponse().getParameters() : null;
+    }
 
 
     public InetSocketAddress getClientAddress() {
@@ -278,31 +284,29 @@ public class HTTPProtocolHandler
 
 
     private void validateKeepAliveAndOtherStuff() {
-
-        if (log.isEnabled()) log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
-        if (isExpired() || response.getHTTPStatusCode().CODE >= HTTPStatusCode.BAD_REQUEST.CODE) {
+        kaTracker.updateUsage();
+        if (log.isEnabled())
+            log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
+        if (kaTracker.isExpired() || response.getHTTPStatusCode().CODE >= HTTPStatusCode.BAD_REQUEST.CODE) {
             //we close the connection
-            response.getHeaders().add(HTTPConst.CommonHeader.CONNECTION_CLOSE);
+            response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);//.remove(HTTPHeader.KEEP_ALIVE);
+        } else if (isHTTPProtocol() && getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPConst.CommonHeader.CONNECTION_CLOSE.getValue()) != null) {
+            if (log.isEnabled())
+                log.getLogger().info("Keep-alive expired " + getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()));
+            expire();
+            response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE);//.remove(HTTPHeader.KEEP_ALIVE);
         } else {
-            if (kaTracker.isExpired() ||
-                    (isHTTPProtocol() && getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()) == null)) {
-                if (log.isEnabled())
-                    log.getLogger().info("" + getRawRequest().getHTTPMessageConfig().lookupMatchingHeader(HTTPHeader.CONNECTION, HTTPHeader.KEEP_ALIVE.getName()));
-                expire();
-                response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_CLOSE).remove(HTTPHeader.KEEP_ALIVE);
-
-            } else {
-
-                // keep not expired
-                response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE)
-                        .build(new NVPair(HTTPHeader.KEEP_ALIVE, "timeout=" + TimeUnit.SECONDS.convert(kaTracker.kaConfig.time_out, TimeUnit.MILLISECONDS) +
-                                (kaTracker.kaConfig.max > 0 ? ", max=" + (kaTracker.kaConfig.max - kaTracker.updateUsage()) : "")));
-                if (log.isEnabled()) log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
-            }
+            // keep-alive  not expired
+            response.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE)
+                    .build(new NVPair(HTTPHeader.KEEP_ALIVE, "timeout=" + TimeUnit.SECONDS.convert(kaTracker.kaConfig.time_out, TimeUnit.MILLISECONDS) +
+                            (kaTracker.kaConfig.max > 0 ? ", max=" + (kaTracker.kaConfig.max - kaTracker.lastUsage()) : "")));
+            if (log.isEnabled())
+                log.getLogger().info(kaTracker.isExpired() + " usage " + kaTracker.lastUsage());
         }
 
+
         // check if it is https
-        if(getProtocol() == URIScheme.HTTPS)
+        if (getProtocol() == URIScheme.HTTPS)
             response.getHeaders().add(HTTPConst.CommonHeader.STRICT_TRANSPORT_SECURITY);
     }
 

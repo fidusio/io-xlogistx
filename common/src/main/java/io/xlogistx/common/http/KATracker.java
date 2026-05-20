@@ -32,11 +32,12 @@ public class KATracker
      */
     @Override
     public synchronized long updateUsage() {
-        if (isExpired())
-            throw new UnsupportedOperationException("max=" + (kaConfig != null ? kaConfig.max : " KAConfig null ") + " reached");
-
+        if (!isExpired()) {
+//            throw new UnsupportedOperationException("max=" + (kaConfig != null ? kaConfig.max : " KAConfig null ") + " reached");
+            counter++;
+        }
         lastUpdateTS = System.currentTimeMillis();
-        return counter++;
+        return counter;
     }
 
     @Override

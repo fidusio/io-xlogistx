@@ -25,12 +25,12 @@
     },
     "on-shutdown": {
       "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
-    },
+    }/*,
     "redirect_config": {
       "domains": "localhost",
       "location" : "https//xlogistx.io",
       "exclusion-filter": "-i -r *.well-known*"
-    }
+    }*/
   },
   "connections": [
     {

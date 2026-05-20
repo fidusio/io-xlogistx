@@ -17,11 +17,12 @@ public class HTTPKeepAliveTest {
     public void testKeepAlive() throws IOException {
         System.out.println("URI: " + TEST_URL);
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(TEST_URL, null, HTTPMethod.GET, false);
-        hmci.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE);
+        //hmci.getHeaders().build(HTTPConst.CommonHeader.CONNECTION_KEEP_ALIVE);
         int max = 0;
         int count = 0;
+        HTTPResponseData hrd;
         do {
-            HTTPResponseData hrd = OkHTTPCall.send(hmci);
+            hrd = OkHTTPCall.send(hmci);
             List<String> kaVals = hrd.headerValues(HTTPHeader.KEEP_ALIVE);
             if (kaVals != null) {
 
@@ -32,10 +33,12 @@ public class HTTPKeepAliveTest {
                     max = (int) nv.getProperties().getValueAsLong("max");
                 }
             }
-            System.out.println("max = " + max + ", " + hrd.headerValues("Connection"));
+            else
+                max = 0;
+            System.out.println("max = " + max + ", " + hrd);
             count++;
 
-        } while (max > 1);
+        } while (!"close".equalsIgnoreCase(hrd.headerValue("Connection")));
 
         System.out.println(OkHTTPCall.OK_HTTP_CALLS);
         System.out.println("count " + count);
@@ -49,12 +52,12 @@ public class HTTPKeepAliveTest {
         int max = 0;
         do {
             HTTPResponseData hrd = OkHTTPCall.send(hmci);
-            List<String> kaVals = hrd.headerValues("Connection");
-            if (kaVals != null) {
-                NamedValue<String> nvm = (NamedValue<String>) HTTPHeaderParser.parseHeader(HTTPHeader.KEEP_ALIVE, kaVals.get(0));
+            String connectionResult = hrd.headerValue("Connection");
+            if (connectionResult != null) {
+                NamedValue<String> nvm = (NamedValue<String>) HTTPHeaderParser.parseHeader(HTTPHeader.CONNECTION, connectionResult);
                 System.out.println("NamedValue: " + nvm);
             }
-            System.out.println("max = " + max + ", " + hrd.headerValues("Connection"));
+            System.out.println("max = " + max + ", " + hrd);
         } while (max > 0);
 
         System.out.println(OkHTTPCall.OK_HTTP_CALLS);
