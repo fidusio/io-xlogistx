@@ -4,6 +4,7 @@ import io.xlogistx.common.data.Challenge;
 import io.xlogistx.common.data.ChallengeManager;
 import io.xlogistx.common.image.ImageInfo;
 import io.xlogistx.common.image.TextToImage;
+import io.xlogistx.common.util.NVColor;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
@@ -21,8 +22,9 @@ public class CaptchaService {
 
     public static final LogWrapper log = new LogWrapper(CaptchaService.class).setEnabled(false);
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "captcha-create", uris = "/app-captcha/{captcha-type}")
-    public HTTPMessageConfigInterface create(@ParamProp(name = "captcha-type", optional = true)Challenge.Type ct) throws IOException {
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "captcha-create", uris = "/app-captcha/{captcha-type}/{color}")
+    public HTTPMessageConfigInterface create(@ParamProp(name = "captcha-type", optional = true)Challenge.Type ct,
+                                             @ParamProp(name = "color", optional = true) NVColor color) throws IOException {
         if (log.isEnabled()) log.getLogger().info("start ");
 
         HTTPMessageConfigInterface ret = new HTTPMessageConfig();
@@ -39,9 +41,12 @@ public class CaptchaService {
                 break;
         }
 
+        if(color == null)
+            color = NVColor.BLUE;
+
 
         Challenge challenge = Challenge.generate(ct, power, UUID.randomUUID().toString());
-        ImageInfo imageInfo = TextToImage.textToImage(challenge.format() + " ", "gif", new Font("Arial", Font.ITALIC, 18), Color.BLUE, challenge.getId());
+        ImageInfo imageInfo = TextToImage.textToImage(challenge.format() + " ", "gif", new Font("Arial", Font.ITALIC, 18), color.color(), challenge.getId());
         ret.setContentType("image/" + imageInfo.format);
         ret.getHeaders().build("Captcha-Id", imageInfo.id);
         ret.getHeaders().build("Access-Control-Allow-Origin", "*");

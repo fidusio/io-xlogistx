@@ -35,6 +35,7 @@
         <module>gui-audio</module>
         <module>no-sneak</module>
         <module>ffm</module>
+        <module>sec-model</module>
     </modules>
 
     <dependencyManagement>

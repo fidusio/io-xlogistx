@@ -12,7 +12,7 @@
     <artifactId>no-sneak</artifactId>
 
     <properties>
-        <jdk.version>11</jdk.version>
+        <jdk.version>25</jdk.version>
     </properties>
 
     <dependencies>

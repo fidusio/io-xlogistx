@@ -1,5 +1,7 @@
 package io.xlogistx.gui;
 
+import io.xlogistx.common.util.NVColor;
+
 import java.awt.*;
 
 /**
@@ -7,6 +9,20 @@ import java.awt.*;
  * which can be toggled between "on" and "off" states with customizable colors.
  */
 public class LedWidget extends StatusWidget<Color> {
+
+
+    /**
+     * Constructs a LedWidget with specified dimensions and colors.
+     *
+     * @param width    The preferred width of the widget.
+     * @param height   The preferred height of the widget.
+     * @param defaultColor The default color
+     */
+    public LedWidget(int width, int height, NVColor defaultColor) {
+        // Set preferred size
+       this(width, height, defaultColor.color());
+    }
+
 
 
     /**

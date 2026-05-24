@@ -1,5 +1,7 @@
 package io.xlogistx.gui;
 
+import io.xlogistx.common.util.NVColor;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
@@ -12,22 +14,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class GUIUtil {
-    public static final Color START_COLOR = new Color(255, 0, 0);    // Red
-    public static final Color MID_COLOR = new Color(0, 128, 255);  // Blueish
-    public static final Color END_COLOR = new Color(0, 255, 0);
-
-    public static final Color LIGHT_RED = new Color(255, 102, 102);
-    public static final Color BOOTSTRAP_RED = new Color(0Xdc3545);
-    public static final Color DARK_RED = new Color(139, 0, 0);
-
-    public static final Color LIGHT_GREEN = new Color(144, 238, 144);
-    public static final Color BOOTSTRAP_GREEN = new Color(0X28a745);
-    public static final Color DARK_GREEN = new Color(0, 100, 0);
 
 
-    public static final Color MATERIAL_BLUE = new Color(33, 150, 243);   // #2196F3
-    public static final Color BOOTSTRAP_BLUE = new Color(0X2196F3);  // #007BFF
-    public static final Color IOS_BLUE = new Color(10, 132, 255);       // #0A84FF
 
     public static final String ADD_SIGN = "+";// "\u2795";
     public static final String DELETE_SIGN = "-";//"\u2796";
@@ -45,7 +33,7 @@ public class GUIUtil {
         }
 
         public PlusIcon(int size, Color color) {
-            super(size, color, DARK_GREEN);
+            super(size, color, NVColor.DARK_GREEN.getValue());
         }
 
         @Override
@@ -70,9 +58,6 @@ public class GUIUtil {
     }
 
 
-
-
-
     public static class SaveIcon extends IconWidget {
 
 
@@ -81,7 +66,7 @@ public class GUIUtil {
         }
 
         public SaveIcon(int size, Color color) {
-            super(size, color, DARK_GREEN);
+            super(size, color, NVColor.DARK_GREEN.getValue());
         }
 
         @Override
@@ -119,7 +104,7 @@ public class GUIUtil {
         }
 
         public CancelIcon(int size, Color color) {
-            super(size, color, BOOTSTRAP_RED);
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue());
         }
 
         @Override
@@ -149,7 +134,7 @@ public class GUIUtil {
         }
 
         public MinusIcon(int size, Color color) {
-            super(size, color, BOOTSTRAP_RED);
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue());
         }
 
         @Override
@@ -178,7 +163,7 @@ public class GUIUtil {
         }
 
         public UpdateIcon(int size, Color color) {
-            super(size, color, BOOTSTRAP_BLUE);
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue());
         }
 
 
@@ -387,7 +372,7 @@ public class GUIUtil {
 
 
     public static Color colorToRation(float ratio) {
-        return colorToRation(START_COLOR, MID_COLOR, END_COLOR, ratio);
+        return colorToRation(NVColor.START_COLOR.color(), NVColor.MID_COLOR.color(), NVColor.END_COLOR.color(), ratio);
     }
 
     public static Color interpolateColors(Color start, Color end, float ratio) {
