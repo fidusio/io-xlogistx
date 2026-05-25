@@ -32,7 +32,6 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.app.AppVersionDAO;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.filters.MatchPatternFilter;
 import org.zoxweb.shared.http.*;
@@ -41,6 +40,7 @@ import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
 
@@ -96,7 +96,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.1");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.2");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -365,7 +365,7 @@ public class NIOHTTPServer
             }
         }
 
-        CryptoConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
+        SecConst.AuthenticationType[] resourceAuthTypes = epm.result.httpEndPoint.authenticationTypes();
         if (logger.isEnabled())
             logger.getLogger().info("Authentication supported: " + Arrays.toString(resourceAuthTypes));
 
@@ -389,8 +389,8 @@ public class NIOHTTPServer
                 hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
 
                 // if basic authentication is supported
-                if (SharedUtil.contains(CryptoConst.AuthenticationType.BASIC, resourceAuthTypes) ||
-                        SharedUtil.contains(CryptoConst.AuthenticationType.ALL, resourceAuthTypes))
+                if (SharedUtil.contains(SecConst.AuthenticationType.BASIC, resourceAuthTypes) ||
+                        SharedUtil.contains(SecConst.AuthenticationType.ALL, resourceAuthTypes))
                     hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
 
 
@@ -400,8 +400,8 @@ public class NIOHTTPServer
 
             } else {
                 if (httpAuthorization instanceof HTTPAuthorizationBasic &&
-                        (SharedUtil.lookupEnum(CryptoConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
-                                SharedUtil.lookupEnum(CryptoConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
+                        (SharedUtil.lookupEnum(SecConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
+                                SharedUtil.lookupEnum(SecConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
 
                     // need to check session HERE
                     ProtoSession<?, Subject> protoSession = hph.getConnectionSession();

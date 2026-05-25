@@ -16,6 +16,7 @@ import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.protocol.ProtoMarker;
 import org.zoxweb.shared.protocol.ProtoSession;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.*;
 
 import java.io.*;
@@ -36,7 +37,7 @@ public class HTTPUploadHandler
      * @throws IOException in case of errors
      */
     @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.PUT}, name = "upload-file", uris = "/system-upload/{filename}", partialRequest = true)
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:upload:files")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:upload:files")
     public NVGenericMap fileUpload(@ParamProp(name = "filename", optional = true) String filename)
             throws IOException {
         try {

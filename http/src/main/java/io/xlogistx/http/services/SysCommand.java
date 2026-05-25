@@ -7,10 +7,10 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.RuntimeUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.task.SupplierTask;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
@@ -23,7 +23,7 @@ public class SysCommand
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "system-reboot", uris = "/system/reboot")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:reboot")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:reboot")
     public SimpleMessage systemReboot() {
         EndpointsUtil.SINGLETON.shutdown();
 
@@ -58,7 +58,7 @@ public class SysCommand
     }
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "system-shutdown", uris = "/system/shutdown")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:shutdown")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:shutdown")
     public SimpleMessage systemShutdown() {
         EndpointsUtil.SINGLETON.shutdown();
         if (getProperties() != null) {

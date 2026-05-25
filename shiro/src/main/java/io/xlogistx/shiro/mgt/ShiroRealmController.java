@@ -138,7 +138,7 @@ implements RealmController<AuthorizationInfo, PrincipalCollection>
      * @return the subject credential
      */
     @Override
-    public <C> C lookupCredential(String subjectID, CredentialInfo.CredentialType credentialType)
+    public <C> C lookupCredential(String subjectID, CredentialInfo.Type credentialType)
     {
         SubjectIdentifier subjectIdentifier = lookupSubjectIdentifier(subjectID);
         // if subject is null

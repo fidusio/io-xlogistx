@@ -10,6 +10,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.HashResult;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class HashContent {
      * @throws IOException
      */
     @EndPointProp(methods = {HTTPMethod.POST, HTTPMethod.GET}, name = "hash-content", uris = "/hash-content/{hash-type}/{format}", partialRequest = true)
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:hash:content")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:hash:content")
     public NVGenericMap hashContent(@ParamProp(name = "hash-type") CryptoConst.HashType hashType,
                                     @ParamProp(name = "format", optional = true) String format)
             throws IOException, NoSuchAlgorithmException {

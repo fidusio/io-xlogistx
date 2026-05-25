@@ -10,9 +10,9 @@ import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
@@ -24,7 +24,7 @@ public class Login
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "login", uris = "/login/{appID}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL})
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL})
     @Override
     public boolean handle(@ParamProp(name = "raw-content", source = Const.ParamSource.RESOURCE, optional = true) HTTPProtocolHandler hph) throws IOException {
         Subject subject = ShiroUtil.subject();

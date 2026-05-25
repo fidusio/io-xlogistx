@@ -13,8 +13,8 @@ import org.zoxweb.server.net.NIOSocket;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.*;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ public class DNSCache
 
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-cache-add", uris = "/system/dns/cache/{domain}/{ipv4}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:add")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:dns:add")
     public NVGenericMap addDomainToCache(@ParamProp(name = "domain") String domain, @ParamProp(name = "ipv4") String ipv4) throws IOException {
 
         HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
@@ -41,7 +41,7 @@ public class DNSCache
     }
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-sinkhole-add", uris = "/system/dns/sinkhole/{domain}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:add")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:dns:add")
     public NVGenericMap addDomainToSinkhole(@ParamProp(name = "domain") String domain) throws IOException {
         HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         InetSocketAddress callerAddress = hph.getClientAddress();
@@ -52,7 +52,7 @@ public class DNSCache
     }
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.DELETE}, name = "dns-sinkhole-delete", uris = "/system/dns/singhole/remove/{domain}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
     public NVGenericMap deleteDomainFromSinkhole(@ParamProp(name = "domain") String domain) throws IOException {
         HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         InetSocketAddress callerAddress = hph.getClientAddress();
@@ -64,7 +64,7 @@ public class DNSCache
 
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.DELETE}, name = "dns-cache-remove", uris = "/system/dns/cache/remove/{domain}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:dns:delete")
     public NVGenericMap deleteDomainFromCache(@ParamProp(name = "domain") String domain) {
         if (log.isEnabled()) log.getLogger().info("remove from cache " + domain);
         DNSRegistrar.SINGLETON.unregister(domain);
@@ -73,7 +73,7 @@ public class DNSCache
 
 
     @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "dns-registrar-domains", uris = "/system/dns")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "system:dns:read")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:dns:read")
     public NVGenericMap listDNSRegistrarDomains() {
         NVGenericMap nvgm = new NVGenericMap();
 

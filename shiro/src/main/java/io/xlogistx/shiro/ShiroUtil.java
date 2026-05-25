@@ -36,11 +36,11 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPAuthorization;
 import org.zoxweb.shared.http.HTTPAuthorizationBasic;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.ResourceSecurity;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
 import org.zoxweb.shared.security.shiro.RealmController;
@@ -263,13 +263,13 @@ public class ShiroUtil {
         }
     }
 
-    public static boolean isAuthenticationRequired(CryptoConst.AuthenticationType... authTypes) {
-        if (SharedUtil.contains(CryptoConst.AuthenticationType.NONE, authTypes))
+    public static boolean isAuthenticationRequired(SecConst.AuthenticationType... authTypes) {
+        if (SharedUtil.contains(SecConst.AuthenticationType.NONE, authTypes))
             return false;
 
         if (authTypes != null && authTypes.length > 0) {
 
-            for (CryptoConst.AuthenticationType authType : authTypes) {
+            for (SecConst.AuthenticationType authType : authTypes) {
                 switch (authType) {
                     case ALL:
                     case API_KEY:
@@ -372,7 +372,7 @@ public class ShiroUtil {
 
         if (rs != null && rs.authenticationTypes() != null) {
 
-            if (SharedUtil.contains(CryptoConst.AuthenticationType.NONE, rs.authenticationTypes()))
+            if (SharedUtil.contains(SecConst.AuthenticationType.NONE, rs.authenticationTypes()))
                 return true;
 
             if (rs.permissions().length == 0 && rs.roles().length == 0) {

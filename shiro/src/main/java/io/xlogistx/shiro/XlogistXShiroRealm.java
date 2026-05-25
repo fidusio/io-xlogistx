@@ -149,7 +149,7 @@ public class XlogistXShiroRealm
             //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
             // Null username is invalid
 
-            CIPassword password = shiroStore.lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
+            CIPassword password = shiroStore.lookupCredential(dupToken.getUsername(), CredentialInfo.Type.PASSWORD);
             if (password == null) {
                 throw new UnknownAccountException("No account found for user [" + dupToken.getSubjectGUID() + "]");
             }

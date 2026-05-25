@@ -11,10 +11,10 @@ import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 
@@ -24,7 +24,7 @@ public class AppCommand
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "app-shutdown", uris = "/app/shutdown")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:shutdown")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "app:shutdown")
     public SimpleMessage appShutdown() {
 
         EndpointsUtil.SINGLETON.shutdown();
@@ -36,7 +36,7 @@ public class AppCommand
 
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "class-logger", uris = "/app/logger/{className}/{status}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:logger:read, app:logger:write")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "app:logger:read, app:logger:write")
     public NVGenericMap loggerAccess(@ParamProp(name = "className") String className, @ParamProp(name = "status") boolean status) throws ClassNotFoundException, IllegalAccessException {
         Class<?> clazz = Class.forName(className);
         LogWrapper lp = ReflectionUtil.getValueFromField(clazz, LogWrapper.class, JMod.FINAL, JMod.PUBLIC, JMod.STATIC);
@@ -52,7 +52,7 @@ public class AppCommand
 
     }
     @EndPointProp(methods = {HTTPMethod.GET}, name = "expose-app-api", uris = "/app/api/")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = "app:apis:read")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "app:apis:read")
     public NVGenericMap exposeAppAPI() throws IllegalAccessException {
         HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         EndPointMeta[] allUris = hph.getEndPointsManager().allEndPointMetas();

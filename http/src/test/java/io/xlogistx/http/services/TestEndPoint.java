@@ -4,9 +4,9 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPConst;
 import org.zoxweb.shared.http.HTTPMethod;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
 
@@ -140,7 +140,7 @@ public class TestEndPoint {
     }
 
 
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.NONE})
+    @SecurityProp(authentications = {SecConst.AuthenticationType.NONE})
     public void empty() {
     }
 

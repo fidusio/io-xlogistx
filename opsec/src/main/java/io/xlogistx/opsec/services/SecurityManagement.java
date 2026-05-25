@@ -5,8 +5,8 @@ import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.http.HTTPMethod;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.security.shiro.RealmController;
 import org.zoxweb.shared.util.Const;
@@ -17,7 +17,7 @@ extends PropertyContainer
 {
 
     @EndPointProp(methods = {HTTPMethod.POST}, name="create-subject", uris="/opsec/regsiter/subject")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_USER)
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_USER)
     public NVGenericMap createSubject(@ParamProp(name="",source = Const.ParamSource.PAYLOAD) NVGenericMap subjectInfoCredentials)
     {
         RealmController realmManager = ShiroUtil.getRealmController();
@@ -32,7 +32,7 @@ extends PropertyContainer
     }
 
     @EndPointProp(methods = {HTTPMethod.DELETE}, name="delete-subject", uris="/opsec/unregister/{$subject_id}")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_DELETE_SUBJECT)
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_DELETE_SUBJECT)
     public NVGenericMap createSubject(@ParamProp( name = "subject_id") String subjectID)
     {
         RealmController realmManager = ShiroUtil.getRealmController();
@@ -43,7 +43,7 @@ extends PropertyContainer
 
 
     @EndPointProp(methods = {HTTPMethod.POST}, name="add-permission", uris="/opsec/add/permission")
-    @SecurityProp(authentications = {CryptoConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_PERMISSION)
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = SecurityModel.PERM_ADD_PERMISSION)
     public NVGenericMap createPermission(@ParamProp(name="",source = Const.ParamSource.PAYLOAD) NVGenericMap permissionInfo)
     {
         RealmController realmManager = ShiroUtil.getRealmController();

@@ -846,7 +846,7 @@ public class APISecurityManagerProvider
 	 * @return the subject credential
 	 */
 	@Override
-	public <C> C lookupCredential(String subjectID, CredentialInfo.CredentialType credentialType) {
+	public <C> C lookupCredential(String subjectID, CredentialInfo.Type credentialType) {
 		return null;
 	}
 

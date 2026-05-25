@@ -121,7 +121,7 @@ public abstract class ShiroBaseRealm
             //if(log.isEnabled()) log.getLogger().info( dupToken.getUsername() +":"+dupToken.getUserID());
             // Null username is invalid
 
-            CIPassword password = lookupCredential(dupToken.getUsername(), CredentialInfo.CredentialType.PASSWORD);
+            CIPassword password = lookupCredential(dupToken.getUsername(), CredentialInfo.Type.PASSWORD);
             if (password == null) {
                 throw new UnknownAccountException("No account found for user [" + dupToken.getSubjectGUID() + "]");
             }

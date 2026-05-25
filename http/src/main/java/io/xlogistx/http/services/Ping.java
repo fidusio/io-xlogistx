@@ -14,7 +14,7 @@ import org.zoxweb.shared.annotation.MappedProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.api.APIRegistrar;
-import org.zoxweb.shared.crypto.CryptoConst.AuthenticationType;
+import org.zoxweb.shared.security.SecConst.AuthenticationType;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.util.*;
 
