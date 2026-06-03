@@ -106,17 +106,18 @@ public class TestEndPoint {
     }
 
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "noparam", uris = "/noparam")
+    @EndPointProp(methods = {HTTPMethod.POST}, name = "noparam", uris = "/noparam")
     public void noparam() {
         System.out.println("empty");
     }
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "invalid", uris = "/not-set,/invalid")
     public void invalid() {
-        System.out.println("empty");
+        System.out.println("empty: " + this);
+
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "array", uris = "/array/{string-array}/{int-array}/{long-array}")
+    @EndPointProp(methods = {HTTPMethod.POST}, name = "array", uris = "/array/{string-array}/{int-array}/{long-array}")
     public void array(@ParamProp(name = "string-array") String[] strArray, @ParamProp(name = "int-array", optional = true) Integer[] intArray, @ParamProp(name = "long-array", optional = true) long[] longArray) {
         System.out.println(Arrays.toString(strArray));
         System.out.println(Arrays.toString(intArray));
@@ -129,6 +130,12 @@ public class TestEndPoint {
         System.out.println(Arrays.toString(strArray));
         System.out.println(Arrays.toString(intArray));
         System.out.println(Arrays.toString(longArray));
+    }
+
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "two-uri", uris = "/uri1/{string-array},uri2/{string-array}")
+    public void twoURIs(@ParamProp(name = "string-array") String[] strArray) {
+        System.out.println(Arrays.toString(strArray));
     }
 
 

@@ -114,6 +114,7 @@ public class EndPointsManager {
                 EndPointProp epp = (EndPointProp) a;
                 hep.setName(epp.name());
                 hep.setDescription(epp.description());
+                //System.out.println(epp.name() + " " + Arrays.toString(epp.methods()));
                 hep.setHTTPMethods(epp.methods());
                 hep.setInputContentType(epp.requestContentType());
                 hep.setOutputContentType(epp.responseContentType());
@@ -131,7 +132,7 @@ public class EndPointsManager {
 
                 String[] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
                 if (methodCheck) {
-                    if (uris.length != 1)
+                    if (uris.length < 1)
                         throw new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
                 }
                 hep.setPaths(uris);
@@ -276,7 +277,7 @@ public class EndPointsManager {
             try {
                 String beanName = configHEP.getBeanClassName();
                 Class<?> beanClass = Class.forName(beanName);
-                Object beanInstance = beanClass.getDeclaredConstructor().newInstance();
+                Object beanInstance = ReflectionUtil.createBean(beanClass);//beanClass.getDeclaredConstructor().newInstance();
                 if (log.isEnabled())
                     log.getLogger().info("bean:" + beanName + " " + beanInstance + " " + allHEP.length);
 

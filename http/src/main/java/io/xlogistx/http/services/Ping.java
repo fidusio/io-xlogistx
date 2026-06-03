@@ -26,9 +26,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @MappedProp(name = "ping", id = "ping-class")
 public class Ping
         extends PropertyContainer<NVGenericMap> {
+
+    public static final Ping SINGLETON = new Ping();
+
+    private Ping(){}
     private Const.SizeInBytes sib = Const.SizeInBytes.M;
 
     private final AtomicBoolean isLinux = new AtomicBoolean(true);
+
+
+    private GetNVProperties extraData = null;
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "ping", uris = "/ping/{detailed}")
     @SecurityProp(authentications = {AuthenticationType.ALL}, permissions = "system:ping")
@@ -80,6 +87,8 @@ public class Ping
                     .build((NVGenericMap) ResourceManager.lookupResource(ResourceManager.Resource.SYSTEM_INFO))
                     .build((NVGenericMap) ResourceManager.lookupResource("keep-alive-config"));
 
+            if(extraData != null)
+                response.build(extraData.getProperties());
 
 
             response.add(niohttpServer.getNIOSocket().toProperties(true));
@@ -87,6 +96,11 @@ public class Ping
                 response.add(apiRegistrar);
         }
         return response;
+    }
+
+
+    public void setExtraData(GetNVProperties extraData) {
+        this.extraData = extraData;
     }
 
     @Override

@@ -3,6 +3,7 @@ package io.xlogistx.http.services;
 
 import io.xlogistx.common.data.PropertyContainer;
 import io.xlogistx.common.http.CachedPathMatcher;
+import io.xlogistx.http.EndpointsUtil;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.io.SharedIOUtil;
@@ -30,10 +31,11 @@ import java.util.zip.ZipInputStream;
  */
 public class HTTPFileServiceHandler
         extends PropertyContainer<NVGenericMap> {
-    public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(false);
+    public static final LogWrapper log = new LogWrapper(HTTPFileServiceHandler.class).setEnabled(true);
 
     private Path baseFolder;
     private final CachedPathMatcher cpm = new CachedPathMatcher();
+    private String redirectURL = null;
 
     @Override
     protected void refreshProperties() {
@@ -64,8 +66,10 @@ public class HTTPFileServiceHandler
                 SharedIOUtil.close(is, zis);
             }
 
-        } else
+        } else if (getProperties().getValue("base_folder") != null)
             setBaseFolder(getProperties().getValue("base_folder"));
+
+        redirectURL = getProperties().getValue("redirect_url");
 
         if (log.isEnabled()) log.getLogger().info("baseFolder: " + baseFolder);
 
@@ -75,6 +79,8 @@ public class HTTPFileServiceHandler
     public HTTPMessageConfigInterface loadFile(@ParamProp(name = "file-info", source = Const.ParamSource.RESOURCE, optional = true, uri = true) String filename)
             throws IOException {
         //String filename = protocolHandler.getRequest(true).getURI();
+
+        if(log.isEnabled()) log.getLogger().info("filename: " + filename);
 
         if (SUS.isEmpty(filename) || filename.equals("/")) {
             String override = getProperties().getValue("default_file");
@@ -95,22 +101,27 @@ public class HTTPFileServiceHandler
 
 
         Path filePath = cpm.findIn(getBaseFolder(), filename);
+
         if (filePath == null) {
-            //if (log.isEnabled())
-            log.getLogger().info("File Not Found:" + filename);
+            if (redirectURL != null) {
+                log.getLogger().info("Redirect url: " + redirectURL);
+                return EndpointsUtil.SINGLETON.redirect302(redirectURL);
+            } else {
+                //if (log.isEnabled())
+                log.getLogger().info("File Not Found:" + filename);
 
 
-            SimpleMessage sm = new SimpleMessage();
-            sm.setError(filename + " not found");
-            sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
-            HTTPMessageConfigInterface hmci = new HTTPMessageConfig();
-            hmci.setContent(GSONUtil.toJSONDefault(sm));
-            hmci = HTTPUtil.buildResponse(hmci, HTTPStatusCode.NOT_FOUND, HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8,
-                    HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                    HTTPConst.CommonHeader.EXPIRES_ZERO);
+                SimpleMessage sm = new SimpleMessage();
+                sm.setError(filename + " not found");
+                sm.setStatus(HTTPStatusCode.NOT_FOUND.CODE);
+                HTTPMessageConfigInterface hmci = new HTTPMessageConfig();
+                hmci.setContent(GSONUtil.toJSONDefault(sm));
+                hmci = HTTPUtil.buildResponse(hmci, HTTPStatusCode.NOT_FOUND, HTTPConst.CommonHeader.CONTENT_TYPE_JSON_UTF8,
+                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                        HTTPConst.CommonHeader.EXPIRES_ZERO);
 
-            return hmci;
-//            throw new HTTPCallException(filename + " not found", HTTPStatusCode.NOT_FOUND);
+                return hmci;
+            }
         }
 
 

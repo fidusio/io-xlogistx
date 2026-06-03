@@ -55,14 +55,11 @@ public class MethodContainer {
 
     public static Object createInstance(Class<?> clazz) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         SUS.checkIfNulls("Null clazz", clazz);
-//        synchronized (instanceCache) {
-//            if (instanceCache.get(clazz) == null)
-//                instanceCache.put(clazz, clazz.getDeclaredConstructor().newInstance());
-//
-//            return instanceCache.get(clazz);
-//        }
 
-        return clazz.getDeclaredConstructor().newInstance();
+        return ReflectionUtil.createBean(clazz);
+
+
+        //return clazz.getDeclaredConstructor().newInstance();
     }
 
     public String toString() {

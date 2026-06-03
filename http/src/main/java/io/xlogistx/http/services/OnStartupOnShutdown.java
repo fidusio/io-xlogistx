@@ -11,22 +11,26 @@ import org.zoxweb.shared.util.NVGenericMap;
 public class OnStartupOnShutdown
         extends PropertyContainer<NVGenericMap> {
     public static final LogWrapper log = new LogWrapper(OnStartupOnShutdown.class).setEnabled(true);
+    public static final OnStartupOnShutdown SINGLETON = new OnStartupOnShutdown();
+
+
+    private OnStartupOnShutdown() {
+    }
 
     @OnStartup
     public void onStartup() {
-        log.getLogger().info("OnStartup");
+        log.getLogger().info("OnStartup: " + this);
         OPSecUtil.singleton();
     }
 
     @PostStartup
-    public void afterStartup()
-    {
-        log.getLogger().info("PostStartup");
+    public void afterStartup() {
+        log.getLogger().info("PostStartup: " + this);
     }
 
     @OnShutdown
     public void onShutdown() {
-        log.getLogger().info("OnShutdown");
+        log.getLogger().info("OnShutdown: " + this);
     }
 
 

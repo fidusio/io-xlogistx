@@ -96,7 +96,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.2");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.3");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -529,23 +529,33 @@ public class NIOHTTPServer
 
                             Object result = epm.result.methodContainer.invoke(endPointsManager.buildParameters(epm, hph.getRequest()));
                             if (hph.isRequestComplete()) {
-                                HTTPStatusCode responseCode = HTTPStatusCode.OK;
-                                if (result instanceof HTTPStatusCode) {
-                                    responseCode = (HTTPStatusCode) result;
-                                    result = new NVGenericMap().build("status-reason", responseCode.REASON);
+                                // we have 2 special case response
+                                // 1 response is boolean if true the server will process the response
+                                boolean processResponse = true;
+                                if (result instanceof Boolean) {
+                                    processResponse = ((Boolean) result);
                                 }
 
+                                if (processResponse) {
+                                    // 2 response is HTTPStatusCode
+                                    HTTPStatusCode responseCode = HTTPStatusCode.OK;
+                                    if (result instanceof HTTPStatusCode) {
+                                        responseCode = (HTTPStatusCode) result;
+                                        result = new NVGenericMap().build("status-reason", responseCode.REASON);
+                                    }
 
-                                // Converting the result into an http response
 
-                                HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(),
-                                        result,
-                                        responseCode,
-                                        HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
-                                        HTTPConst.CommonHeader.NO_CACHE_CONTROL,
-                                        HTTPConst.CommonHeader.EXPIRES_ZERO);
+                                    // Converting the result into an http response
 
-                                HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hmci, hph.getOutputStream());
+                                    HTTPMessageConfigInterface hmci = hph.buildResponse(epm.result.httpEndPoint.getOutputContentType(),
+                                            result,
+                                            responseCode,
+                                            HTTPConst.CommonHeader.X_CONTENT_TYPE_OPTIONS_NO_SNIFF,
+                                            HTTPConst.CommonHeader.NO_CACHE_CONTROL,
+                                            HTTPConst.CommonHeader.EXPIRES_ZERO);
+
+                                    HTTPUtil.writeHTTPResponse(hph.getResponseStream(), hmci, hph.getOutputStream());
+                                }
                             }
                         }
                     } else {

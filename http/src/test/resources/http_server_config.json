@@ -210,9 +210,9 @@
       ],
       "properties": {
         "base_folder": "/webs/xlogistx.io",
-        #
         "html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
         "default_file": "index.html",
+        "redirect_url" : "https://localhost:6443",
         "caching": true
       }
     }
