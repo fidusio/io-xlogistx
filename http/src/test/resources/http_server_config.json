@@ -15,7 +15,7 @@
     },
     "keep-alive": {
       "time_out": "5s",
-      "maximum": 20
+      "maximum": 100
     },
     "on-startup": {
       "bean": "io.xlogistx.http.services.OnStartupOnShutdown"

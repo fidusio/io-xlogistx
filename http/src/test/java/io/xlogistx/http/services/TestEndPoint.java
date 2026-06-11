@@ -4,8 +4,7 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.http.HTTPConst;
-import org.zoxweb.shared.http.HTTPMethod;
+import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
@@ -23,6 +22,16 @@ public class TestEndPoint {
         public String toString() {
             return name + ", " + length;
         }
+    }
+
+    private final HTTPMessageConfigInterface testHMCI = new HTTPMessageConfig();
+
+
+    public TestEndPoint() {
+        testHMCI.setHTTPStatusCode(HTTPStatusCode.OK);
+        testHMCI.setHTTPVersion(HTTPVersion.HTTP_1_1);
+        testHMCI.setContent(Const.EMPTY_BYTE_ARRAY);
+        testHMCI.setContentType(HTTPMediaType.TEXT_PLAIN);
     }
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "html-test", uris = "/html/{testValue}", responseContentType = HTTPConst.TEXT_HTML)
@@ -87,6 +96,8 @@ public class TestEndPoint {
     }
 
 
+
+
     @EndPointProp(methods = {HTTPMethod.POST}, name = "testdata", uris = "/testdata")
     public void testDataObject(@ParamProp(name = "dataObject", source = Const.ParamSource.PAYLOAD) DataObject dObject) {
         assert (dObject != null);
@@ -97,6 +108,12 @@ public class TestEndPoint {
     @SecurityProp(permissions = SecurityModel.PERM_RESOURCE_ANY)
     public Date testDataObject() {
         return new Date();
+    }
+
+
+    @EndPointProp(methods = {HTTPMethod.GET, HTTPMethod.POST}, name = "okresponse", uris = "/ok-req")
+    public HTTPStatusCode testOK() {
+        return HTTPStatusCode.OK;
     }
 
 
