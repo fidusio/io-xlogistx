@@ -1,12 +1,12 @@
 package io.xlogistx.opsec;
 
 
-import okio.Path;
 import org.zoxweb.shared.security.SShURI;
 import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SUS;
 
 import java.net.URI;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.util.Arrays;
 
@@ -28,7 +28,7 @@ public class SSHRemote {
                     pemURI = new URI(pemKey);
 
                 } catch (Exception e) {
-                    pemURI = Path.get(pemKey).toFile().toURI();
+                    pemURI = Paths.get(pemKey).toFile().toURI();
                 }
                 keys = OPSecUtil.loadKeyPairFromPath(pemURI);
             }

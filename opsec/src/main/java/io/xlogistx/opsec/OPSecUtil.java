@@ -26,11 +26,14 @@ import org.bouncycastle.jcajce.spec.KEMExtractSpec;
 import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
+import org.bouncycastle.openssl.PEMDecryptorProvider;
+import org.bouncycastle.openssl.PEMEncryptedKeyPair;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8DecryptorProviderBuilder;
+import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.InputDecryptorProvider;
@@ -1503,6 +1506,158 @@ public class OPSecUtil {
         return ret;
     }
 
+    // ==================== MGW SSL Identity helpers ====================
+    // Certificate name extraction and PEM file readers backing the SNI-routed
+    // identity layer in io.xlogistx.opsec.ssl. BouncyCastle is used for the
+    // PKCS#1/SEC1/encrypted-key and PQC cases the stock JDK 8 readers cannot
+    // parse. Per the architectural rule, these utilities live in OPSecUtil.
+
+    /**
+     * All SAN dNSName entries of a certificate, lower-cased and trimmed, in
+     * certificate order. Never throws; a malformed SAN extension yields an empty
+     * list so callers can fall back to {@link #extractCN}.
+     *
+     * @param cert the certificate (typically the leaf); null yields an empty list
+     */
+    public List<String> extractDNSNames(X509Certificate cert) {
+        List<String> out = new ArrayList<>();
+        if (cert == null) {
+            return out;
+        }
+        try {
+            java.util.Collection<List<?>> sans = cert.getSubjectAlternativeNames();
+            if (sans != null) {
+                for (List<?> san : sans) {
+                    // GeneralName.dNSName == 2
+                    if (san.size() >= 2 && Integer.valueOf(2).equals(san.get(0))) {
+                        Object val = san.get(1);
+                        if (val instanceof String) {
+                            out.add(((String) val).toLowerCase(Locale.ROOT).trim());
+                        }
+                    }
+                }
+            }
+        } catch (CertificateParsingException e) {
+            if (log.isEnabled()) log.getLogger().info("SAN parse failed: " + e.getMessage());
+        }
+        return out;
+    }
+
+    /**
+     * Subject CN of a certificate, lower-cased and trimmed, or null if absent.
+     * Used as a hostname fallback only when no SAN dNSName is present.
+     *
+     * @param cert the certificate; null yields null
+     */
+    public String extractCN(X509Certificate cert) {
+        if (cert == null) {
+            return null;
+        }
+        try {
+            X500Name x500 = new X500Name(cert.getSubjectX500Principal().getName());
+            org.bouncycastle.asn1.x500.RDN[] rdns = x500.getRDNs(BCStyle.CN);
+            if (rdns != null && rdns.length > 0) {
+                return org.bouncycastle.asn1.x500.style.IETFUtils
+                        .valueToString(rdns[0].getFirst().getValue())
+                        .toLowerCase(Locale.ROOT).trim();
+            }
+        } catch (Exception e) {
+            if (log.isEnabled()) log.getLogger().info("CN parse failed: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Read all X.509 certificates from a PEM file (leaf first, followed by any
+     * chain certificates) in file order, via BouncyCastle. Handles multi-cert
+     * files so a single cert+chain bundle parses in one call.
+     *
+     * @param pem the PEM file
+     * @return the certificates in file order (possibly empty)
+     */
+    public List<X509Certificate> readCertificates(File pem) throws CertificateException, IOException {
+        List<X509Certificate> out = new ArrayList<>();
+        JcaX509CertificateConverter conv = new JcaX509CertificateConverter().setProvider(BC_PROVIDER);
+        try (PEMParser parser = new PEMParser(new FileReader(pem))) {
+            Object obj;
+            while ((obj = parser.readObject()) != null) {
+                if (obj instanceof X509CertificateHolder) {
+                    try {
+                        out.add(conv.getCertificate((X509CertificateHolder) obj));
+                    } catch (Exception e) {
+                        throw new CertificateException("failed to convert certificate in " + pem, e);
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Read a single private key from a PEM file via BouncyCastle, supporting
+     * PKCS#8 (BEGIN PRIVATE KEY), PKCS#1/SEC1 (BEGIN RSA/EC PRIVATE KEY),
+     * encrypted PKCS#8 (BEGIN ENCRYPTED PRIVATE KEY) and legacy "Proc-Type:
+     * ENCRYPTED" PEM. PQC keys (ML-DSA/SLH-DSA/Falcon) parse through the BC
+     * providers when present. These are exactly the formats the stock JDK 8
+     * readers cannot handle, which is why BC is used here.
+     *
+     * @param pem      the PEM file
+     * @param password key password; may be null for an unencrypted key
+     * @return the private key
+     * @throws GeneralSecurityException if no key is found or decryption fails
+     */
+    public PrivateKey readPrivateKey(File pem, char[] password) throws GeneralSecurityException, IOException {
+        JcaPEMKeyConverter conv = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        try (PEMParser parser = new PEMParser(new FileReader(pem))) {
+            Object obj;
+            while ((obj = parser.readObject()) != null) {
+                PrivateKey key = pemObjectToPrivateKey(obj, conv, password, pem);
+                if (key != null) {
+                    return key;
+                }
+            }
+        }
+        throw new GeneralSecurityException("no private key found in " + pem);
+    }
+
+    private PrivateKey pemObjectToPrivateKey(Object obj, JcaPEMKeyConverter conv, char[] password, File pem)
+            throws GeneralSecurityException, IOException {
+        // PKCS#8 unencrypted: BEGIN PRIVATE KEY
+        if (obj instanceof PrivateKeyInfo) {
+            return conv.getPrivateKey((PrivateKeyInfo) obj);
+        }
+        // PKCS#1 / SEC1 unencrypted: BEGIN RSA/EC PRIVATE KEY -> PEMKeyPair
+        if (obj instanceof PEMKeyPair) {
+            return conv.getKeyPair((PEMKeyPair) obj).getPrivate();
+        }
+        // Legacy encrypted PEM (Proc-Type: 4,ENCRYPTED) wrapping PKCS#1/SEC1
+        if (obj instanceof PEMEncryptedKeyPair) {
+            requireKeyPassword(password, pem);
+            PEMDecryptorProvider dec = new JcePEMDecryptorProviderBuilder()
+                    .setProvider(BC_PROVIDER).build(password);
+            return conv.getKeyPair(((PEMEncryptedKeyPair) obj).decryptKeyPair(dec)).getPrivate();
+        }
+        // Encrypted PKCS#8: BEGIN ENCRYPTED PRIVATE KEY
+        if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
+            requireKeyPassword(password, pem);
+            try {
+                InputDecryptorProvider dp = new JceOpenSSLPKCS8DecryptorProviderBuilder()
+                        .setProvider(BC_PROVIDER).build(password);
+                PrivateKeyInfo info = ((PKCS8EncryptedPrivateKeyInfo) obj).decryptPrivateKeyInfo(dp);
+                return conv.getPrivateKey(info);
+            } catch (Exception e) {
+                throw new GeneralSecurityException("failed to decrypt PKCS#8 key in " + pem, e);
+            }
+        }
+        return null; // certificate, params, or unrelated block -> keep scanning
+    }
+
+    private static void requireKeyPassword(char[] password, File pem) throws GeneralSecurityException {
+        if (password == null || password.length == 0) {
+            throw new GeneralSecurityException("encrypted key in " + pem + " requires a password");
+        }
+    }
+
     public KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword, String certAlias) throws CertificateException, IOException, PKCSException, OperatorCreationException, KeyStoreException, NoSuchAlgorithmException {
         // Load Certificate Chain
         CertificateFactory factory = CertificateFactory.getInstance("X.509");
@@ -1955,7 +2110,15 @@ public class OPSecUtil {
      * @param crlUrl the CRL distribution point URL
      * @param timeoutMs connection timeout in milliseconds
      * @return RevocationResult indicating the status
+     * @deprecated <b>Blocking, and not used by the live scan path.</b> This opens a
+     *             synchronous {@link java.net.URLConnection} to fetch a full CRL, which
+     *             violates the pure-NIO, non-blocking, no-CRL revocation policy (CRLs are
+     *             huge/unreachable for short-lived-cert CAs and were a hang source).
+     *             The scanner uses {@code NIORevocationChecker} (stapled OCSP, then a
+     *             single soft-fail active OCSP) instead. Retained only for the standalone
+     *             {@link CRLReader} CLI. Do not call from scan/NIO code.
      */
+    @Deprecated
     public RevocationResult checkCRL(X509Certificate cert, String crlUrl, int timeoutMs) {
         if (cert == null) {
             return RevocationResult.error("CRL", "Certificate is null");
@@ -2117,7 +2280,17 @@ public class OPSecUtil {
      * @param issuerCert the issuer certificate (may be null if only CRL is available)
      * @param timeoutMs connection timeout in milliseconds
      * @return RevocationResult indicating the status
+     * @deprecated <b>Blocking, and not used by the live scan path.</b> Performs synchronous
+     *             OCSP and CRL fetches on the calling thread and falls back to
+     *             {@link #checkCRL} — both violate the pure-NIO, non-blocking, no-CRL
+     *             revocation policy. It also cannot express the {@code NOT_SUPPORTED} vs
+     *             {@code UNKNOWN} distinction the grader relies on (it collapses
+     *             "no OCSP/CRL" to {@code UNKNOWN}), so it mis-penalizes short-lived-cert
+     *             CAs. Use {@code NIORevocationChecker.checkRevocation(cert, issuer, cb)}
+     *             (callback-based, stapled-OCSP-first, soft-fail) instead. Do not confuse
+     *             with that method despite the shared name.
      */
+    @Deprecated
     public RevocationResult checkRevocation(X509Certificate cert, X509Certificate issuerCert, int timeoutMs) {
         if (cert == null) {
             return RevocationResult.error("NONE", "Certificate is null");

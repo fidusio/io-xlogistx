@@ -6,6 +6,7 @@ import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
 import io.xlogistx.opsec.BCSSLGroupSetter;
 import io.xlogistx.opsec.OPSecUtil;
+import io.xlogistx.opsec.ssl.IdentityStore;
 import io.xlogistx.shiro.ShiroInvoker;
 import io.xlogistx.shiro.ShiroSession;
 import io.xlogistx.shiro.ShiroUtil;
@@ -27,7 +28,6 @@ import org.zoxweb.server.net.common.CommonChannelOutputStream;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionConfig;
-import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -96,7 +96,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.3");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.4");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -813,12 +813,22 @@ public class NIOHTTPServer
                                 String trustStorePassword = sslConfig.getValue("truststore_password");
                                 String trustStoreFilename = sslConfig.getValue("truststore_file");
                                 String protocol = sslConfig.getValue("protocol");
-                                SSLContext sslContext = SecUtil.initSSLContext(protocol, OPSecUtil.BC_BCJSSE, IOUtil.locateFile(sslConfig.getValue("keystore_file")),
-                                        sslConfig.getValue("keystore_type"),
-                                        ksPassword.toCharArray(),
-                                        aliasPassword != null ? aliasPassword.toCharArray() : null,
-                                        trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
-                                        trustStorePassword != null ? trustStorePassword.toCharArray() : null);
+                                File keystoreFile = IOUtil.locateFile(sslConfig.getValue("keystore_file"));
+//                                SSLContext sslContext = SecUtil.initSSLContext(protocol, OPSecUtil.BC_BCJSSE, keystoreFile,
+//                                        sslConfig.getValue("keystore_type"),
+//                                        ksPassword.toCharArray(),
+//                                        aliasPassword != null ? aliasPassword.toCharArray() : null,
+//                                        trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
+//                                        trustStorePassword != null ? trustStorePassword.toCharArray() : null);
+
+                                IdentityStore store = new IdentityStore()
+                                        .setValidateValidity(true)        // reject expired / not-yet-valid leaf on load (default true)
+                                        .setClockSkewMillis(60_000)       // optional: tolerate 60s host-clock skew
+                                        .setPreferPqc(true)               // serve PQC to capable clients when a PQC cert is present (default true)
+                                        // existing PKCS12 / JKS keystore (alias is irrelevant — routing is by cert name):
+                                        .addKeyStore(keystoreFile.toPath(), sslConfig.getValue("keystore_type"), ksPassword.toCharArray());
+                                store.reload();
+                                SSLContext sslContext = store.newSSLContext();
                                 NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));
                                 NVStringList ciphers = ((NVStringList) sslConfig.get(CIPHERS));
                                 NVStringList groups = ((NVStringList) sslConfig.get(GROUPS));
