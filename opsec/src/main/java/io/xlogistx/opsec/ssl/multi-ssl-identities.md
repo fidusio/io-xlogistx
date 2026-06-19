@@ -23,13 +23,13 @@ SNI travels in the ClientHello **before** the certificate is chosen, in both TLS
 
 | Class | Responsibility |
 |-------|----------------|
-| `Identity` | Immutable `{key, chain[], names, token}`. `token` = SHA-256 of the leaf DER. `matches(host)` does RFC-6125 single-label wildcard matching (`*.foo.com` ⇒ `a.foo.com` + apex, not `a.b.foo.com`). `keyClass()` → `PQC` / `CLASSICAL` / `UNKNOWN`. Names are derived via `OPSecUtil.extractDNSNames` + `extractCN`. |
+| `Identity` | Immutable `{key, chain[], names, token}`. `token` = SHA-256 of the leaf DER. `matches(host)` does RFC-6125 single-label wildcard matching (`*.foo.com` ⇒ `a.foo.com` + apex, not `a.b.foo.com`). `keyClass()` → `PQC` / `CLASSICAL` / `UNKNOWN`. Names cover **all** hostnames the cert carries — every SAN dNSName (`OPSecUtil.extractDNSNames`) plus every Subject CN (`OPSecUtil.extractCNs`). |
 | `IdentityStore` | Loads identities from keystore + PEM sources, validity-checks on `reload()`, swaps the identity list + token map atomically under a write lock. Builds the `SSLContext` and exposes expiry helpers. |
 | `IdentityKeyManager` | Alias-free `X509ExtendedKeyManager`. Routes each handshake to a cert by SNI; when multiple identities cover one host, selects by the client's advertised signature algorithms (PQC vs classical). |
 | `DomainIdentityMatcher` | Indexed host → identity resolver backing `IdentityStore.resolve`/`resolveAll`: O(1) exact-name `HashMap` + small wildcard pass, same single-label semantics as `Identity.matches()`, load-order-preserving and de-duplicated. Immutable; rebuilt and swapped in `reload()`. |
 | `CertificateValidityException` | Thrown by `reload()` for an expired / not-yet-valid leaf; the live identity set is left untouched. |
 
-Supporting helpers in `OPSecUtil`: `extractDNSNames(cert)`, `extractCN(cert)`, `readCertificates(File)`, `readPrivateKey(File, char[])`.
+Supporting helpers in `OPSecUtil`: `extractDNSNames(cert)`, `extractCNs(cert)` / `extractCN(cert)`, `readCertificates(File)`, `readPrivateKey(File, char[])`.
 
 ## Dependencies
 

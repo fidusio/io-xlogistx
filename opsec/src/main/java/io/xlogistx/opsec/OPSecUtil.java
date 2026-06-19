@@ -1544,27 +1544,48 @@ public class OPSecUtil {
     }
 
     /**
-     * Subject CN of a certificate, lower-cased and trimmed, or null if absent.
-     * Used as a hostname fallback only when no SAN dNSName is present.
+     * Every Subject CN of a certificate, lower-cased and trimmed, in subject order.
+     * A subject may legitimately carry more than one CN (and a CN may sit in a
+     * multi-valued RDN); all are returned so no certificate hostname is dropped.
+     * Used as a hostname source/fallback alongside SAN dNSName entries.
      *
-     * @param cert the certificate; null yields null
+     * @param cert the certificate; null yields an empty list
      */
-    public String extractCN(X509Certificate cert) {
+    public List<String> extractCNs(X509Certificate cert) {
+        List<String> out = new ArrayList<>();
         if (cert == null) {
-            return null;
+            return out;
         }
         try {
             X500Name x500 = new X500Name(cert.getSubjectX500Principal().getName());
             org.bouncycastle.asn1.x500.RDN[] rdns = x500.getRDNs(BCStyle.CN);
-            if (rdns != null && rdns.length > 0) {
-                return org.bouncycastle.asn1.x500.style.IETFUtils
-                        .valueToString(rdns[0].getFirst().getValue())
-                        .toLowerCase(Locale.ROOT).trim();
+            if (rdns != null) {
+                for (org.bouncycastle.asn1.x500.RDN rdn : rdns) {
+                    // an RDN may be multi-valued; pick out every CN attribute
+                    for (org.bouncycastle.asn1.x500.AttributeTypeAndValue atv : rdn.getTypesAndValues()) {
+                        if (BCStyle.CN.equals(atv.getType())) {
+                            out.add(org.bouncycastle.asn1.x500.style.IETFUtils
+                                    .valueToString(atv.getValue()).toLowerCase(Locale.ROOT).trim());
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             if (log.isEnabled()) log.getLogger().info("CN parse failed: " + e.getMessage());
         }
-        return null;
+        return out;
+    }
+
+    /**
+     * First Subject CN of a certificate, lower-cased and trimmed, or null if absent.
+     * Convenience over {@link #extractCNs(X509Certificate)} for the common
+     * single-CN case.
+     *
+     * @param cert the certificate; null yields null
+     */
+    public String extractCN(X509Certificate cert) {
+        List<String> cns = extractCNs(cert);
+        return cns.isEmpty() ? null : cns.get(0);
     }
 
     /**

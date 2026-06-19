@@ -32,6 +32,7 @@ import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.app.AppVersionDAO;
+import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.filters.MatchPatternFilter;
 import org.zoxweb.shared.http.*;
@@ -96,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.4");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.5");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -807,13 +808,21 @@ public class NIOHTTPServer
                                 serverAddress = cc.getSocketConfig();
                                 sslPort = serverAddress.getPort();
 
+
+
                                 NVGenericMap sslConfig = cc.getSSLConfig();
-                                String ksPassword = sslConfig.getValue("keystore_password");
-                                String aliasPassword = sslConfig.getValue("alias_password");
-                                String trustStorePassword = sslConfig.getValue("truststore_password");
-                                String trustStoreFilename = sslConfig.getValue("truststore_file");
-                                String protocol = sslConfig.getValue("protocol");
-                                File keystoreFile = IOUtil.locateFile(sslConfig.getValue("keystore_file"));
+                                NVGenericMap[] certConfigs = CryptoConst.CertSource.parseCertConfig(sslConfig);
+
+
+                                logger.getLogger().info(Arrays.toString(certConfigs));
+
+
+//                                String ksPassword = sslConfig.getValue("keystore_password");
+//                                String aliasPassword = sslConfig.getValue("alias_password");
+//                                String trustStorePassword = sslConfig.getValue("truststore_password");
+//                                String trustStoreFilename = sslConfig.getValue("truststore_file");
+//                                String protocol = sslConfig.getValue("protocol");
+//                                File keystoreFile = IOUtil.locateFile(sslConfig.getValue("keystore_file"));
 //                                SSLContext sslContext = SecUtil.initSSLContext(protocol, OPSecUtil.BC_BCJSSE, keystoreFile,
 //                                        sslConfig.getValue("keystore_type"),
 //                                        ksPassword.toCharArray(),
@@ -826,7 +835,8 @@ public class NIOHTTPServer
                                         .setClockSkewMillis(60_000)       // optional: tolerate 60s host-clock skew
                                         .setPreferPqc(true)               // serve PQC to capable clients when a PQC cert is present (default true)
                                         // existing PKCS12 / JKS keystore (alias is irrelevant — routing is by cert name):
-                                        .addKeyStore(keystoreFile.toPath(), sslConfig.getValue("keystore_type"), ksPassword.toCharArray());
+                                        .addCertConfigs(certConfigs);
+//                                        .addKeyStore(keystoreFile.toPath(), sslConfig.getValue("keystore_type"), ksPassword.toCharArray());
                                 store.reload();
                                 SSLContext sslContext = store.newSSLContext();
                                 NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));

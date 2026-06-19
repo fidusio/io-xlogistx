@@ -25,12 +25,13 @@
     },
     "on-shutdown": {
       "bean": "io.xlogistx.http.services.OnStartupOnShutdown"
-    }/*,
-    "redirect_config": {
-      "domains": "localhost",
-      "location" : "https//xlogistx.io",
-      "exclusion-filter": "-i -r *.well-known*"
-    }*/
+    }
+    /*,
+        "redirect_config": {
+          "domains": "localhost",
+          "location" : "https//xlogistx.io",
+          "exclusion-filter": "-i -r *.well-known*"
+        }*/
   },
   "connections": [
     {
@@ -53,15 +54,23 @@
         "backlog": 256
       },
       "ssl_config": {
-        "name": "SSLCONFIG",
-        "keystore_file": "web.ec.xlogistx.io.jks",
         "simple_state_machine": true,
-        "keystore_type": "pkcs12",
-        "keystore_password": "password",
-        //        "protocols": [
-        //          "TLSv1.2",
-        //          "TLSv1.3"
-        //        ],
+        "certs": [
+          {
+            "cert_type": "ks",
+            "name": "SSLCONFIG",
+            "keystore_file": "web.ec.xlogistx.io.jks",
+
+            "keystore_type": "pkcs12",
+            "keystore_password": "password"
+          },
+          {
+            "cert_type": "pem",
+            "key_file" : "the key file",
+            "cert_file" : "the certificate file",
+            "chain_file" : "the chain or bundle file"
+          }
+        ],
         "ciphers": [
         ],
         "groups:": [
@@ -212,7 +221,7 @@
         "base_folder": "/webs/xlogistx.io",
         "html_uri": "https://api.xlogistx.io/apps/xlogistx.html.jar",
         "default_file": "index.html",
-        "redirect_url" : "https://localhost:6443",
+        "redirect_url": "https://localhost:6443",
         "caching": true
       }
     }

@@ -133,10 +133,13 @@ public final class Identity {
             throw new IllegalArgumentException("empty chain");
         }
         X509Certificate leaf = chain.get(0);
+        // Register every hostname the cert carries: all SAN dNSName entries plus
+        // all Subject CNs (a subject may legitimately list more than one).
         List<String> names = new ArrayList<String>(OPSecUtil.SINGLETON.extractDNSNames(leaf));
-        String cn = OPSecUtil.SINGLETON.extractCN(leaf);
-        if (cn != null && !names.contains(cn)) {
-            names.add(cn);
+        for (String cn : OPSecUtil.SINGLETON.extractCNs(leaf)) {
+            if (!names.contains(cn)) {
+                names.add(cn);
+            }
         }
         X509Certificate[] arr = chain.toArray(new X509Certificate[chain.size()]);
         return new Identity(key, arr, names, fingerprint(leaf));

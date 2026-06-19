@@ -1,6 +1,9 @@
 package io.xlogistx.opsec.ssl;
 
 import io.xlogistx.opsec.OPSecUtil;
+import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.util.NVGenericMap;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -8,21 +11,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.PrivateKey;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -40,7 +32,8 @@ public final class IdentityStore {
     // ------------------------------------------------------------------ sources
 
     /** Marker for an identity source. */
-    public interface Source {}
+    public interface Source {
+    }
 
     /** An existing keystore file (its key entries are imported). */
     public static final class KeyStoreSource implements Source {
@@ -162,10 +155,47 @@ public final class IdentityStore {
         return this;
     }
 
+
+
+    public IdentityStore addCertConfigs(NVGenericMap[] configs) {
+       for (NVGenericMap config : configs) {
+           try {
+               addCertConfig(config);
+           } catch (Exception e) {
+               e.printStackTrace();
+           }
+       }
+
+       return this;
+    }
+
+
+
+    public IdentityStore addCertConfig(NVGenericMap config) {
+        CryptoConst.CertSource certType = config.getValue(CryptoConst.CERT_TYPE);
+        switch (certType) {
+            case KEYSTORE:
+
+                String ksType =  config.getValue("keystore_type");
+                String ksPassword = config.getValue("keystore_password");;
+                return addKeyStore(IOUtil.locatePath(config.getValue("keystore_file")),
+                        ksType,
+                        ksPassword.toCharArray());
+            case PEM:
+                String keyPassword = config.getValue("key_password");
+                return addPem(IOUtil.locatePath(config.getValue("cert_file")),
+                        IOUtil.locatePath(config.getValue("key_file")),
+                        IOUtil.locatePath(config.getValue("chain_file")),
+                        keyPassword != null ? keyPassword.toCharArray() : null);
+
+        }
+        throw new IllegalArgumentException("Unknown cert type: " + certType);
+    }
+
+
     public IdentityStore addKeyStore(Path path, char[] password) {
         return addSource(new KeyStoreSource(path, password));
     }
-
     public IdentityStore addKeyStore(Path path, String type, char[] password) {
         return addSource(new KeyStoreSource(path, type, password));
     }
@@ -378,7 +408,7 @@ public final class IdentityStore {
         } catch (GeneralSecurityException e) {
             ctx = SSLContext.getInstance("TLS"); // platform default
         }
-        ctx.init(new KeyManager[]{ keyManager() }, null, null);
+        ctx.init(new KeyManager[]{keyManager()}, null, null);
         return ctx;
     }
 
@@ -416,4 +446,6 @@ public final class IdentityStore {
     public boolean expiresWithin(long millisFromNow) {
         return earliestExpiryMillis() - System.currentTimeMillis() <= millisFromNow;
     }
+
+
 }
