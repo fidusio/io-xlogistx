@@ -440,11 +440,43 @@ public final class IdentityStore {
     }
 
     /**
-     * True if any currently-loaded leaf expires within the given number of millis
-     * from now. Convenience for an app-driven "should I renew yet?" check.
+     * The identity whose leaf certificate expires soonest, or null if no identities
+     * are loaded. The certificate is {@code id.leaf()} and its expiry
+     * {@code id.leaf().getNotAfter()}; the identity also carries the served names
+     * and token, so the app knows exactly which cert to renew. Pairs with
+     * {@link #earliestExpiryMillis()}.
      */
-    public boolean expiresWithin(long millisFromNow) {
-        return earliestExpiryMillis() - System.currentTimeMillis() <= millisFromNow;
+    public Identity earliestToExpire() {
+        List<Identity> list = identities;
+        Identity earliest = null;
+        long min = Long.MAX_VALUE;
+        for (int i = 0; i < list.size(); i++) {
+            long exp = list.get(i).leaf().getNotAfter().getTime();
+            if (exp < min) {
+                min = exp;
+                earliest = list.get(i);
+            }
+        }
+        return earliest;
+    }
+
+    /**
+     * All currently-loaded identities whose leaf certificate expires within
+     * {@code millisFromNow} from now, in load order (empty if none). Lets an
+     * app-driven scheduler renew exactly the certs that are due rather than only
+     * learning that <i>something</i> expires; an empty result means nothing is due.
+     * The certificate for each entry is {@code id.leaf()}.
+     */
+    public List<Identity> expiresWithin(long millisFromNow) {
+        long threshold = System.currentTimeMillis() + millisFromNow;
+        List<Identity> list = identities;
+        List<Identity> due = new ArrayList<Identity>();
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).leaf().getNotAfter().getTime() <= threshold) {
+                due.add(list.get(i));
+            }
+        }
+        return due;
     }
 
 

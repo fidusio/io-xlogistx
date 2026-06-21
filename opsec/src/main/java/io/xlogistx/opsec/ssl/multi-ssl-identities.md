@@ -82,15 +82,20 @@ With `setPreferPqc(true)` (default), a client advertising an ML-DSA signature sc
 ### Expiry / hot reload
 
 ```java
-if (store.expiresWithin(30L*24*60*60*1000)) {   // ~30 days
-    // ... app logic writes the renewed cert files ...
+List<Identity> due = store.expiresWithin(30L*24*60*60*1000);   // ~30 days
+if (!due.isEmpty()) {
+    for (Identity id : due) {
+        // id.leaf() is the expiring cert; id.names() / id.token() identify it.
+        // ... app logic fetches/writes the renewed cert files for these ...
+    }
     try { store.reload(); }                      // new handshakes use it immediately, no restart
     catch (Exception e) { /* old certs still serving — log/alert */ }
 }
 ```
 
-- `store.expiresWithin(millisFromNow)` — poll from your scheduler to decide when to renew.
-- `store.earliestExpiryMillis()` — soonest `notAfter` across loaded certs.
+- `store.expiresWithin(millisFromNow)` — returns the **identities due for renewal** within the window (each `id.leaf()` is the cert), in load order; empty if none.
+- `store.earliestToExpire()` — the **identity/cert that expires soonest** (`id.leaf().getNotAfter()`), or null if none loaded.
+- `store.earliestExpiryMillis()` — soonest `notAfter` across loaded certs, as epoch millis.
 
 > Validity is checked at **load** time, not continuously: a cert that expires while loaded keeps being served until the next `reload()`. Poll `expiresWithin()` and reload ahead of expiry.
 
