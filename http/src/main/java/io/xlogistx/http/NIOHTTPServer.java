@@ -97,7 +97,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.5");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.8");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -838,6 +838,7 @@ public class NIOHTTPServer
                                         .addCertConfigs(certConfigs);
 //                                        .addKeyStore(keystoreFile.toPath(), sslConfig.getValue("keystore_type"), ksPassword.toCharArray());
                                 store.reload();
+
                                 SSLContext sslContext = store.newSSLContext();
                                 NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));
                                 NVStringList ciphers = ((NVStringList) sslConfig.get(CIPHERS));
@@ -868,6 +869,7 @@ public class NIOHTTPServer
                                         serverAddress.getBacklog(),
                                         sslnioSocketHandlerFactory);
                                 msg += " HTTPS @" + serverAddress;
+                                ResourceManager.SINGLETON.register(IdentityStore.REC_NAME, store);
                                 break;
                             case HTTP:
                                 // we need to create an http server

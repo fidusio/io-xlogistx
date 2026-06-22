@@ -42,16 +42,15 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
-import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.tls.CipherSuite;
-import org.bouncycastle.util.io.pem.PemReader;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.security.SShURI;
 import org.zoxweb.shared.security.SecTag;
 import org.zoxweb.shared.util.*;
@@ -60,21 +59,14 @@ import javax.crypto.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.*;
 import java.security.cert.Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 
 public class OPSecUtil {
@@ -1614,6 +1606,33 @@ public class OPSecUtil {
         return out;
     }
 
+
+    /**
+     * Read all X.509 certificates from a PEM file (leaf first, followed by any
+     * chain certificates) in file order, via BouncyCastle. Handles multi-cert
+     * files so a single cert+chain bundle parses in one call.
+     *
+     * @param pem the PEM file
+     * @return the certificates in file order (possibly empty)
+     */
+    public List<X509Certificate> readCertificates(InputStream pem) throws CertificateException, IOException {
+        List<X509Certificate> out = new ArrayList<>();
+        JcaX509CertificateConverter conv = new JcaX509CertificateConverter().setProvider(BC_PROVIDER);
+        try (PEMParser parser = new PEMParser(new InputStreamReader(pem))) {
+            Object obj;
+            while ((obj = parser.readObject()) != null) {
+                if (obj instanceof X509CertificateHolder) {
+                    try {
+                        out.add(conv.getCertificate((X509CertificateHolder) obj));
+                    } catch (Exception e) {
+                        throw new CertificateException("failed to convert certificate in " + pem, e);
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     /**
      * Read a single private key from a PEM file via BouncyCastle, supporting
      * PKCS#8 (BEGIN PRIVATE KEY), PKCS#1/SEC1 (BEGIN RSA/EC PRIVATE KEY),
@@ -1632,7 +1651,7 @@ public class OPSecUtil {
         try (PEMParser parser = new PEMParser(new FileReader(pem))) {
             Object obj;
             while ((obj = parser.readObject()) != null) {
-                PrivateKey key = pemObjectToPrivateKey(obj, conv, password, pem);
+                PrivateKey key = pemObjectToPrivateKey(obj, conv, password);
                 if (key != null) {
                     return key;
                 }
@@ -1641,7 +1660,42 @@ public class OPSecUtil {
         throw new GeneralSecurityException("no private key found in " + pem);
     }
 
-    private PrivateKey pemObjectToPrivateKey(Object obj, JcaPEMKeyConverter conv, char[] password, File pem)
+
+    /**
+     * Read a single private key from a PEM file via BouncyCastle, supporting
+     * PKCS#8 (BEGIN PRIVATE KEY), PKCS#1/SEC1 (BEGIN RSA/EC PRIVATE KEY),
+     * encrypted PKCS#8 (BEGIN ENCRYPTED PRIVATE KEY) and legacy "Proc-Type:
+     * ENCRYPTED" PEM. PQC keys (ML-DSA/SLH-DSA/Falcon) parse through the BC
+     * providers when present. These are exactly the formats the stock JDK 8
+     * readers cannot handle, which is why BC is used here.
+     *
+     * @param pem      the PEM file
+     * @param password key password; may be null for an unencrypted key
+     * @return the private key
+     * @throws GeneralSecurityException if no key is found or decryption fails
+     */
+    public PrivateKey readPrivateKey(InputStream pem, char[] password) throws GeneralSecurityException, IOException {
+        JcaPEMKeyConverter conv = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        try (PEMParser parser = new PEMParser(new InputStreamReader(pem))) {
+            Object obj;
+            while ((obj = parser.readObject()) != null) {
+                PrivateKey key = pemObjectToPrivateKey(obj, conv, password);
+                if (key != null) {
+                    return key;
+                }
+            }
+        }
+        throw new GeneralSecurityException("no private key found in " + pem);
+    }
+
+    /**
+     * Convert a single object read from a PEM stream into a {@link PrivateKey},
+     * or return null if the object is a certificate / parameter / unrelated block
+     * so the caller can keep scanning. Shared by the File and InputStream
+     * {@link #readPrivateKey} overloads (the source is identified by the caller's
+     * "no private key found" message, so no source argument is needed here).
+     */
+    private PrivateKey pemObjectToPrivateKey(Object obj, JcaPEMKeyConverter conv, char[] password)
             throws GeneralSecurityException, IOException {
         // PKCS#8 unencrypted: BEGIN PRIVATE KEY
         if (obj instanceof PrivateKeyInfo) {
@@ -1653,95 +1707,168 @@ public class OPSecUtil {
         }
         // Legacy encrypted PEM (Proc-Type: 4,ENCRYPTED) wrapping PKCS#1/SEC1
         if (obj instanceof PEMEncryptedKeyPair) {
-            requireKeyPassword(password, pem);
+            requireKeyPassword(password);
             PEMDecryptorProvider dec = new JcePEMDecryptorProviderBuilder()
                     .setProvider(BC_PROVIDER).build(password);
             return conv.getKeyPair(((PEMEncryptedKeyPair) obj).decryptKeyPair(dec)).getPrivate();
         }
         // Encrypted PKCS#8: BEGIN ENCRYPTED PRIVATE KEY
         if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
-            requireKeyPassword(password, pem);
+            requireKeyPassword(password);
             try {
                 InputDecryptorProvider dp = new JceOpenSSLPKCS8DecryptorProviderBuilder()
                         .setProvider(BC_PROVIDER).build(password);
                 PrivateKeyInfo info = ((PKCS8EncryptedPrivateKeyInfo) obj).decryptPrivateKeyInfo(dp);
                 return conv.getPrivateKey(info);
             } catch (Exception e) {
-                throw new GeneralSecurityException("failed to decrypt PKCS#8 key in " + pem, e);
+                throw new GeneralSecurityException("failed to decrypt PKCS#8 key", e);
             }
         }
         return null; // certificate, params, or unrelated block -> keep scanning
     }
 
-    private static void requireKeyPassword(char[] password, File pem) throws GeneralSecurityException {
+    private static void requireKeyPassword(char[] password) throws GeneralSecurityException {
         if (password == null || password.length == 0) {
-            throw new GeneralSecurityException("encrypted key in " + pem + " requires a password");
+            throw new GeneralSecurityException("encrypted key requires a password");
         }
     }
 
-    public KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword, String certAlias) throws CertificateException, IOException, PKCSException, OperatorCreationException, KeyStoreException, NoSuchAlgorithmException {
-        // Load Certificate Chain
-        CertificateFactory factory = CertificateFactory.getInstance("X.509");
-        List<Certificate> chain = new ArrayList<>();
+    public KeyStore createKeyStore(String privateKeyFilePath, String certificateFilePath, String chainFilePath, String keyStoreType, String keyStorePassword, String certAlias) throws GeneralSecurityException, IOException {
+        // Delegates to createKeyStoreFromPEM, the single robust implementation
+        // (all key formats incl. legacy-encrypted and PQC, optional chain,
+        // leaf-first ordering, clean errors). The CLI/caller uses one password
+        // for both the (possibly encrypted) key and the keystore.
+        char[] pass = keyStorePassword != null ? keyStorePassword.toCharArray() : null;
+        return createKeyStoreFromPEM(
+                new File(certificateFilePath),
+                new File(privateKeyFilePath),
+                SUS.isEmpty(chainFilePath) ? null : new File(chainFilePath),
+                pass, pass, keyStoreType, certAlias);
+    }
 
-        // Load the primary certificate
-        try (FileReader reader = new FileReader(certificateFilePath);
-             PEMParser certParser = new PEMParser(reader)) {
-            Certificate cert = factory.generateCertificate(new ByteArrayInputStream(certParser.readPemObject().getContent()));
-            chain.add(cert);
-            if (cert instanceof X509Certificate) {
-                log.getLogger().info("" + ((X509Certificate) cert).getNotAfter());
-            }
+    /**
+     * Build an in-memory PKCS12 {@link KeyStore} from PEM files (leaf cert,
+     * private key, optional chain), reusing the same robust BouncyCastle readers
+     * ({@link #readCertificates} / {@link #readPrivateKey}) the SSL identity
+     * layer uses. Supports PKCS#1/SEC1/PKCS#8, encrypted keys, and PQC keys.
+     * Convenience overload with a {@code PKCS12} type and {@code "keyalias"}.
+     *
+     * @param certPem          leaf certificate PEM (required)
+     * @param keyPem           private key PEM (required)
+     * @param chainPem         intermediate chain PEM, or null
+     * @param keyPassword      password to decrypt the key, or null if unencrypted
+     * @param keyStorePassword password protecting the key entry / keystore (required)
+     * @return an initialized in-memory PKCS12 KeyStore holding one key entry
+     */
+    public KeyStore createKeyStoreFromPEM(File certPem, File keyPem, File chainPem,
+                                        char[] keyPassword, char[] keyStorePassword)
+            throws GeneralSecurityException, IOException {
+        return createKeyStoreFromPEM(certPem, keyPem, chainPem, keyPassword,
+                keyStorePassword, CryptoConst.PKCS12, null);
+    }
+
+    /**
+     * Build an in-memory {@link KeyStore} from PEM files (leaf cert, private key,
+     * optional chain), reusing {@link #readCertificates} / {@link #readPrivateKey}
+     * so every key format BouncyCastle supports (PKCS#1/SEC1/PKCS#8, encrypted,
+     * PQC) is handled. The leaf cert is placed first in the stored chain, as TLS
+     * requires.
+     *
+     * @param certPem          leaf certificate PEM (required)
+     * @param keyPem           private key PEM (required)
+     * @param chainPem         intermediate chain PEM, or null
+     * @param keyPassword      password to decrypt the key, or null if unencrypted
+     * @param keyStorePassword password protecting the key entry (required)
+     * @param keyStoreType     keystore type, e.g. {@code PKCS12} (null -> PKCS12)
+     * @param alias            key entry alias (null/empty -> "keyalias")
+     * @return an initialized in-memory KeyStore holding one key entry
+     */
+    public KeyStore createKeyStoreFromPEM(File certPem, File keyPem, File chainPem,
+                                          char[] keyPassword, char[] keyStorePassword,
+                                          String keyStoreType, String alias)
+            throws GeneralSecurityException, IOException {
+        if (certPem == null) {
+            throw new IllegalArgumentException("certPem is required");
+        }
+        if (keyPem == null) {
+            throw new IllegalArgumentException("keyPem is required");
         }
 
-        // Load additional certificates from the chain file
-        try (FileReader chainReader = new FileReader(chainFilePath);
-             PEMParser chainParser = new PEMParser(chainReader)) {
-            Object obj;
-            while ((obj = chainParser.readObject()) != null) {
-
-                if (obj instanceof Certificate) {
-                    chain.add((Certificate) obj);
-                } else if (obj instanceof X509CertificateHolder) {
-                    chain.add(convertBCCertificateToJcaCertificate((X509CertificateHolder) obj));
-                }
+        // Open the file streams and hand them to the InputStream overload, which
+        // closes them (autoClose=true) on both success and failure.
+        InputStream certIn = null, keyIn = null, chainIn = null;
+        boolean delegated = false;
+        try {
+            certIn = Files.newInputStream(certPem.toPath());// new FileInputStream(certPem);
+            keyIn = Files.newInputStream(keyPem.toPath());
+            chainIn = chainPem != null ? Files.newInputStream(chainPem.toPath()) : null;
+            delegated = true;
+            return createKeyStoreFromPEM(certIn, keyIn, chainIn,
+                    keyPassword, keyStorePassword, keyStoreType, alias, true);
+        } finally {
+            // Only close here if an open failed before delegation; otherwise the
+            // delegate's autoClose owns the streams.
+            if (!delegated) {
+                SharedIOUtil.close(certIn, keyIn, chainIn);
             }
         }
-
-        // Load Private Key
-        PrivateKey privateKey = null;
-        try (PEMParser pemParser = new PEMParser(new PemReader(new FileReader(privateKeyFilePath)))) {
-            List<Object> listObject = readPermObject(pemParser);
+    }
 
 
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-            //log.getLogger().info(listObject);
-            for (Object object : listObject) {
-                if (object instanceof PKCS8EncryptedPrivateKeyInfo) { // For encrypted private keys
-                    PKCS8EncryptedPrivateKeyInfo encryptedPrivateKeyInfo = (PKCS8EncryptedPrivateKeyInfo) object;
-                    InputDecryptorProvider decryptorProvider = new JceOpenSSLPKCS8DecryptorProviderBuilder().build(keyStorePassword.toCharArray());
-                    privateKey = converter.getPrivateKey(encryptedPrivateKeyInfo.decryptPrivateKeyInfo(decryptorProvider));
-                } else if (object instanceof PEMKeyPair) {
-                    // Handling a key pair
-                    PEMKeyPair keyPair = (PEMKeyPair) object;
-                    //log.getLogger().info("private key info: " + keyPair.getPrivateKeyInfo() + " " + keyPair.getPrivateKeyInfo().getPrivateKeyAlgorithm());
-                    privateKey = converter.getPrivateKey(keyPair.getPrivateKeyInfo());
-                } else if (object instanceof PrivateKeyInfo) { // Direct private key info
-                    privateKey = converter.getPrivateKey((PrivateKeyInfo) object);
-                }
+    /**
+     * Build an in-memory {@link KeyStore} from PEM files (leaf cert, private key,
+     * optional chain), reusing {@link #readCertificates} / {@link #readPrivateKey}
+     * so every key format BouncyCastle supports (PKCS#1/SEC1/PKCS#8, encrypted,
+     * PQC) is handled. The leaf cert is placed first in the stored chain, as TLS
+     * requires.
+     *
+     * @param certPem          leaf certificate PEM (required)
+     * @param keyPem           private key PEM (required)
+     * @param chainPem         intermediate chain PEM, or null
+     * @param keyPassword      password to decrypt the key, or null if unencrypted
+     * @param keyStorePassword password protecting the key entry (required)
+     * @param keyStoreType     keystore type, e.g. {@code PKCS12} (null -> PKCS12)
+     * @param alias            key entry alias (null/empty -> "keyalias")
+     * @return an initialized in-memory KeyStore holding one key entry
+     */
+    public KeyStore createKeyStoreFromPEM(InputStream certPem, InputStream keyPem, InputStream chainPem,
+                                          char[] keyPassword, char[] keyStorePassword,
+                                          String keyStoreType, String alias, boolean autoClose)
+            throws GeneralSecurityException, IOException {
+        try {
+            if (certPem == null) {
+                throw new IllegalArgumentException("certPem is required");
+            }
+            if (keyPem == null) {
+                throw new IllegalArgumentException("keyPem is required");
+            }
+            if (keyStorePassword == null) {
+                throw new IllegalArgumentException("keyStorePassword is required");
+            }
+
+            // Leaf first, then any intermediates, as the TLS chain order requires.
+            List<X509Certificate> chain = new ArrayList<>(readCertificates(certPem));
+            if (chain.isEmpty()) {
+                throw new CertificateException("no certificates in " + certPem);
+            }
+            if (chainPem != null) {
+                chain.addAll(readCertificates(chainPem));
+            }
+
+            PrivateKey privateKey = readPrivateKey(keyPem, keyPassword);
+
+            KeyStore keyStore = KeyStore.getInstance(SUS.isEmpty(keyStoreType) ? CryptoConst.PKCS12 : keyStoreType);
+            keyStore.load(null, null);
+            keyStore.setKeyEntry(SUS.isEmpty(alias) ? "keyalias" : alias,
+                    privateKey, keyStorePassword,
+                    chain.toArray(new Certificate[0]));
+            return keyStore;
+        }
+        finally {
+            if(autoClose) {
+                SharedIOUtil.close(certPem, keyPem, chainPem);
             }
         }
-
-
-        log.getLogger().info("Key Format:" + privateKey.getFormat() + " " + privateKey.getAlgorithm());
-
-        // Create KeyStore
-        KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-        keyStore.load(null, null);
-        Certificate[] certificates = chain.toArray(new Certificate[0]);
-        keyStore.setKeyEntry(SUS.isEmpty(certAlias) ? "keyalias" : certAlias, privateKey, keyStorePassword.toCharArray(), certificates);
-
-        return keyStore;
     }
 
 

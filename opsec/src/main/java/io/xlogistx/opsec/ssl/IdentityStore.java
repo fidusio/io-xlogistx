@@ -29,6 +29,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class IdentityStore {
 
+    public static final String REC_NAME = "IDENTITY_STORE";
+
     // ------------------------------------------------------------------ sources
 
     /** Marker for an identity source. */

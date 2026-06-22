@@ -2,7 +2,9 @@ package io.xlogistx.opsec;
 
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.ParamUtil;
+import org.zoxweb.shared.util.SUS;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.util.Scanner;
@@ -112,7 +114,15 @@ public class OpensslToJKS {
             }
 
 
-            KeyStore keyStore = OPSecUtil.SINGLETON.createKeyStore(key, cert, chain, keyStoreType, password, certAlias);
+            KeyStore keyStore = OPSecUtil.SINGLETON.createKeyStoreFromPEM(
+                    new File(cert),
+                    new File(key),
+                    SUS.isEmpty(chain) ? null : new File(chain),
+                    null, password.toCharArray(), keyStoreType, certAlias);
+
+
+
+            //KeyStore keyStore = OPSecUtil.SINGLETON.createKeyStore(key, cert, chain, keyStoreType, password, certAlias);
             // Store the keystore to filesystem
             String ksFilename = OPSecUtil.SINGLETON.outputFilename(outDir, domain + ".jks");
             System.out.println(ksFilename);

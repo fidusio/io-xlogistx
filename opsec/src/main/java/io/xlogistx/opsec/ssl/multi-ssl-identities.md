@@ -65,6 +65,26 @@ engine.setEnabledProtocols(new String[]{ "TLSv1.3", "TLSv1.2" });
 
 If you build the `SSLContext` yourself instead of calling `newSSLContext()`, wire `store.keyManager()` in as the `KeyManager` to keep the SNI routing.
 
+### Loading from config (`NVGenericMap`)
+
+Identities can be declared as config objects instead of programmatic `addKeyStore`/`addPem` calls, and registered in one shot:
+
+```java
+store.addCertConfigs(configs);   // NVGenericMap[]   (or addCertConfig(one) for a single source)
+store.reload();
+```
+
+Each `NVGenericMap` describes one source, selected by `cert_type` (`CryptoConst.CERT_TYPE`); file paths are resolved with `IOUtil.locatePath` (filesystem path or classpath resource):
+
+| `cert_type` | Keys |
+|-------------|------|
+| `KEYSTORE` (or `ks`) | `keystore_file`, `keystore_type` (e.g. `PKCS12` / `JKS`), `keystore_password` |
+| `PEM` (or `pem`) | `cert_file` (leaf), `key_file` (PKCS#1/SEC1/PKCS#8, optionally encrypted), `chain_file` (optional), `key_password` (only for an encrypted key) |
+
+Notes:
+- `addCertConfigs` is best-effort — a failing entry is logged and skipped rather than aborting the rest; if *every* source fails, `reload()` then throws `"no identities loaded from any source"`.
+- Neither method calls `reload()` — call it once after registering, like the other `add*` methods.
+
 ### Single certificate
 
 If the store holds exactly one identity, the KeyManager serves it for every connection and skips SNI matching — a single-cert deployment "just works" with no default-host configuration.
