@@ -23,11 +23,11 @@ public abstract class IconWidget implements Icon {
     }
 
     protected IconWidget(int size, NVColor color, NVColor backGroundColor) {
-        this(new Dimension(size, size), color != null ? color.getValue() : null, backGroundColor != null ? backGroundColor.getValue() : null);
+        this(new Dimension(size, size), color != null ? color.getValue() : null, backGroundColor != null ? backGroundColor.color() : null);
     }
 
     protected IconWidget(Dimension dimension, NVColor color, NVColor backGroundColor) {
-        this(dimension, color != null ? color.getValue() : null, backGroundColor != null ? backGroundColor.getValue() : null);
+        this(dimension, color != null ? color.getValue() : null, backGroundColor != null ? backGroundColor.color() : null);
     }
 
     /**

@@ -31,7 +31,6 @@ public class DynamicComboBox extends JPanel {
         comboBox.setEditable(true); // Use a non-editable combo box so user picks from the dropdown
 
 
-
         comboBox.getEditor().addActionListener((e) -> handleEditorUpdate());
 
 
@@ -40,7 +39,7 @@ public class DynamicComboBox extends JPanel {
         // Create buttons
         JButton addButton = GUIUtil.iconButton(new GUIUtil.PlusIcon(size));
 
-        JButton deleteButton =GUIUtil.iconButton(new GUIUtil.MinusIcon(size));
+        JButton deleteButton = GUIUtil.iconButton(new GUIUtil.MinusIcon(size));
 
         JButton updateButton = null;
         if (addUpdate) {
@@ -55,7 +54,6 @@ public class DynamicComboBox extends JPanel {
         buttonsPanel.add(deleteButton);
         if (updateButton != null)
             buttonsPanel.add(updateButton);
-
 
 
 //        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -101,8 +99,7 @@ public class DynamicComboBox extends JPanel {
     }
 
 
-    public DynamicComboBox addItem(String content)
-    {
+    public DynamicComboBox addItem(String content) {
 
         addNewEntry(content);
 
@@ -111,13 +108,11 @@ public class DynamicComboBox extends JPanel {
     }
 
 
-
-
     private void addNewEntry(String toAdd) {
 //        if (SUS.isNotEmpty(toAdd))
         {
             int index = comboBoxModel.getIndexOf(toAdd);
-            if(index == -1)
+            if (index == -1)
                 index = comboBox.getItemCount();
 
             comboBoxModel.insertElementAt(toAdd, index);

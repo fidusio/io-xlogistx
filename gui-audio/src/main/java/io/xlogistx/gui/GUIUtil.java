@@ -104,7 +104,7 @@ public class GUIUtil {
         }
 
         public CancelIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_RED.getValue());
+            super(size, color, NVColor.BOOTSTRAP_RED.color());
         }
 
         @Override

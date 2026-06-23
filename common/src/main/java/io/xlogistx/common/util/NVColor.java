@@ -1,5 +1,6 @@
 package io.xlogistx.common.util;
 
+import org.zoxweb.server.util.ServerUtil;
 import org.zoxweb.shared.util.DataEncoder;
 import org.zoxweb.shared.util.GetNameValue;
 import org.zoxweb.shared.util.SUS;
@@ -30,31 +31,41 @@ public enum NVColor implements GetNameValue<Color> {
     MATERIAL_BLUE("mistral-blue", new Color(33, 150, 243)),
     BOOTSTRAP_BLUE("bootstrap-blue", new Color(0X2196F3)),
     IOS_BLUE("iso-blue", new Color(10, 132, 255)),
-
-
     ;
 
-    private static Map<String, Color> map = new HashMap<String, Color>();
+    private static Map<String, Color> colorMap;
 
     private final String name;
 
     NVColor(String name, Color color) {
         this.name = name.toLowerCase();
-
-
+        add(name, color);
     }
 
+    private static Map<String, Color> map() {
+        if (colorMap == null) {
+            ServerUtil.LOCK.lock();
+            try {
+                if (colorMap == null)
+                    colorMap = new HashMap<>();
+            } finally {
+                ServerUtil.LOCK.unlock();
+            }
+        }
+        return colorMap;
+    }
     public static void add(String name, Color color) {
+
         SUS.checkIfNulls("name or color null", name, color);
-        map.put(DataEncoder.StringLower.encode(name), color);
+        map().put(DataEncoder.StringLower.encode(name), color);
     }
 
     public static void remove(String name) {
-        map.remove(DataEncoder.StringLower.encode(name));
+        map().remove(DataEncoder.StringLower.encode(name));
     }
 
     public static Color color(String name) {
-        return map.get(DataEncoder.StringLower.encode(name));
+        return map().get(DataEncoder.StringLower.encode(name));
     }
 
     /**
