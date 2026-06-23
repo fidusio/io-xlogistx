@@ -2,6 +2,7 @@ package io.xlogistx.gui;
 
 
 import io.xlogistx.common.util.NVColor;
+import org.zoxweb.server.util.ServerUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,8 +19,16 @@ public abstract class IconWidget implements Icon {
 
     protected IconWidget(Dimension dimension, Color color, Color backGroundColor) {
         this.dimension = dimension;
-        this.color = color != null ? color : Color.BLACK;
-        this.backGroundColor = backGroundColor != null ? backGroundColor : Color.WHITE;
+
+        // If the System is a Mac, paint the + or - and not the background (doing it the other way does not work)
+        // If the System isn't a Mac paint the background and leave interior white
+        if (ServerUtil.isMacOS()) {
+            this.color = color != null ? backGroundColor : Color.BLACK;
+            this.backGroundColor = color != null ? color : Color.WHITE;
+        } else {
+            this.color = color != null ? color : Color.BLACK;
+            this.backGroundColor = backGroundColor != null ? backGroundColor : Color.WHITE;
+        }
     }
 
     protected IconWidget(int size, NVColor color, NVColor backGroundColor) {
