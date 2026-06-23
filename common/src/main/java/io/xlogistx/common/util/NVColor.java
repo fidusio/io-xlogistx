@@ -38,7 +38,7 @@ public enum NVColor implements GetNameValue<Color> {
     private final String name;
 
     NVColor(String name, Color color) {
-        this.name = name.toLowerCase();
+        this.name = DataEncoder.StringLower.encode(name);
         add(name, color);
     }
 
