@@ -44,6 +44,15 @@
             <groupId>io.xlogistx</groupId>
             <artifactId>xlogistx-opsec</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-gui-audio</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5.4</version>
+        </dependency>
 
     </dependencies>
 
