@@ -2,7 +2,8 @@ package io.xlogistx.nosneak.app.mock;
 
 import io.xlogistx.gui.IconStatusWidget;
 import io.xlogistx.nosneak.app.mock.utility.AppContext;
-import io.xlogistx.nosneak.app.mock.utility.PaneBuilder;
+import io.xlogistx.nosneak.app.mock.utility.CardStack;
+import io.xlogistx.nosneak.app.mock.utility.PanelBuilder;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,8 +16,7 @@ public class LoginPanel extends JPanel {
     private final JPasswordField confirmPassword = new JPasswordField(20);
     private final JLabel confirmPasswordLabel = new JLabel("Confirm Password");
     private final JPasswordField apiKey = new JPasswordField(30);
-    private final CardLayout cards = new CardLayout();
-    private final JPanel content = new JPanel(cards);
+    private final CardStack cardStack = new CardStack();
 
     // Authentication-method selectors; API key is login-only.
     private final JToggleButton passwordSelector = new JToggleButton("Subject / Password");
@@ -28,7 +28,7 @@ public class LoginPanel extends JPanel {
     private final JButton apiKeyAction = new JButton();
     private final JButton passkeyAction = new JButton();
     private final JButton modeToggle = new JButton();
-    private final PaneBuilder paneBuilder = new PaneBuilder();
+    private final PanelBuilder panelBuilder = new PanelBuilder();
 
     private boolean login = true;
 
@@ -39,10 +39,10 @@ public class LoginPanel extends JPanel {
 
         // One card per authentication method. Login vs. Register is a mode that
         // re-labels the action button, not a separate set of cards.
-        content.add(buildPasswordScreen(), "Password");
-        content.add(buildAPIKeyScreen(), "APIKey");
-        content.add(buildPasskeyScreen(), "Passkey");
-        showCard("Password");
+        cardStack.add(buildPasswordScreen(), "Password");
+        cardStack.add(buildAPIKeyScreen(), "APIKey");
+        cardStack.add(buildPasskeyScreen(), "Passkey");
+        cardStack.show("Password");
 
         // Action buttons branch on the current mode at click time.
         passwordAction.addActionListener(e -> {
@@ -102,7 +102,7 @@ public class LoginPanel extends JPanel {
 
         // Build each login pane
         c.gridy = 5;
-        add(content, c);
+        add(cardStack.view(), c);
 
         // Login <-> Register mode toggle
         c.gridy = 6;
@@ -113,9 +113,9 @@ public class LoginPanel extends JPanel {
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER));
         ButtonGroup selector = new ButtonGroup();
 
-        passwordSelector.addActionListener(e -> showCard("Password"));
-        apiKeySelector.addActionListener(e -> showCard("APIKey"));
-        passkeySelector.addActionListener(e -> showCard("Passkey"));
+        passwordSelector.addActionListener(e -> cardStack.show("Password"));
+        apiKeySelector.addActionListener(e -> cardStack.show("APIKey"));
+        passkeySelector.addActionListener(e -> cardStack.show("Passkey"));
 
         passwordSelector.setSelected(true);
 
@@ -132,15 +132,15 @@ public class LoginPanel extends JPanel {
     }
 
     private JPanel buildPasswordScreen() {
-        return paneBuilder.buildJPanelWithFields(new JLabel("Username"), username, new JLabel("Password"), password, confirmPasswordLabel, confirmPassword, new JLabel("DomainAppID — optional"), domain, passwordAction);
+        return panelBuilder.buildJPanelWithFields(new JLabel("Username"), username, new JLabel("Password"), password, confirmPasswordLabel, confirmPassword, new JLabel("DomainAppID — optional"), domain, passwordAction);
     }
 
     private JPanel buildAPIKeyScreen() {
-        return paneBuilder.buildJPanelWithFields(new JLabel("API Key"), apiKey, apiKeyAction);
+        return panelBuilder.buildJPanelWithFields(new JLabel("API Key"), apiKey, apiKeyAction);
     }
 
     private JPanel buildPasskeyScreen() {
-        return paneBuilder.buildJPanelWithFields(new JLabel("NOT IMPLEMENTED"), passkeyAction);
+        return panelBuilder.buildJPanelWithFields(new JLabel("NOT IMPLEMENTED"), passkeyAction);
     }
 
     private void toggleMode() {
@@ -166,11 +166,7 @@ public class LoginPanel extends JPanel {
         apiKeySelector.setVisible(login);
         if (!login && apiKeySelector.isSelected()) {
             passwordSelector.setSelected(true);
-            showCard("Password");
+            cardStack.show("Password");
         }
-    }
-
-    private void showCard(String name) {
-        cards.show(content, name);
     }
 }

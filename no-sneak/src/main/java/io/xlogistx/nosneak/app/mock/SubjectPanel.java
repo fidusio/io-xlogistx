@@ -1,99 +1,70 @@
 package io.xlogistx.nosneak.app.mock;
 
-import io.xlogistx.nosneak.app.mock.utility.PaneBuilder;
+import io.xlogistx.nosneak.app.mock.utility.AppContext;
+import io.xlogistx.nosneak.app.mock.utility.CardStack;
+import io.xlogistx.nosneak.app.mock.utility.PanelBuilder;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class SubjectPanel extends JPanel {
-    private final CardLayout cards = new CardLayout();
-    private final JPanel content = new JPanel(cards);
-    private PaneBuilder paneBuilder = new PaneBuilder();
+    private final CardStack cardStack = new CardStack();
+    private final PanelBuilder panelBuilder = new PanelBuilder();
 
-    public SubjectPanel() {
+    // Profile text boxes
+    JTextField firstName = new JTextField(20);
+    JTextField lastName = new JTextField(20);
+    JTextField username = new JTextField(20);
+    JTextField email = new JTextField(20);
+    JTextField dob = new JTextField(20);
+    JTextField street = new JTextField(20);
+    JTextField city = new JTextField(20);
+    JTextField region = new JTextField(20);
+    JTextField postCode = new JTextField(20);
+    JTextField country = new JTextField(20);
+
+    public SubjectPanel(AppContext ctx) {
         setLayout(new BorderLayout());
 
-        content.add(buildProfile(), "Profile");
-        content.add(buildPrincipalIDs(), "Principals");
-        content.add(buildCredentials(), "Credentials");
-        showCard("Profile");
-
-        // left side that shows menus
-        JPanel options = new JPanel();
-        options.setLayout(new GridLayout(0, 1, 0, 8));
-
-        ButtonGroup group = new ButtonGroup();
+        cardStack.add(new JScrollPane(buildProfile()), "Profile");
+        cardStack.add(new JScrollPane(buildCredentials()), "Credentials");
+        cardStack.show("Profile");
 
         JToggleButton profileButton = new JToggleButton("Profile");
-        profileButton.addActionListener(e -> showCard("Profile"));
-        JToggleButton principalIDButton = new JToggleButton("Principal IDs");
-        principalIDButton.addActionListener(e -> showCard("Principals"));
+        profileButton.addActionListener(e -> cardStack.show("Profile"));
         JToggleButton credentialButton = new JToggleButton("Login credential");
-        credentialButton.addActionListener(e -> showCard("Credentials"));
+        credentialButton.addActionListener(e -> cardStack.show("Credentials"));
 
-        group.add(profileButton);
-        group.add(principalIDButton);
-        group.add(credentialButton);
-        profileButton.setSelected(true);
-
-        options.add(profileButton);
-        options.add(principalIDButton);
-        options.add(credentialButton);
-
-        JPanel optionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        optionsRow.add(options);
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.add(optionsRow, BorderLayout.NORTH);
-
-
-        // right side that shows selections
-        JPanel view = new JPanel(new BorderLayout());
-        view.add(content, BorderLayout.CENTER);
-
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(sidebar), new JScrollPane(view));
-        split.setDividerLocation(140);
-        split.setResizeWeight(0);
-        add(split, BorderLayout.CENTER);
-    }
-
-    private void showCard(String name) {
-        cards.show(content, name);
+        add(panelBuilder.buildDefaultSplitPanel(cardStack.view(), profileButton, credentialButton));
     }
 
     private JPanel buildProfile() {
-        return paneBuilder.buildJPanelWithFields(
+        return panelBuilder.buildJPanelWithFields(
                 new JLabel("Profile"),
                 new JLabel("Details about your account. Some fields are managed by the system and can't be changed."),
                 new JLabel("First name"),
-                new JTextField(20),
+                firstName,
                 new JLabel("Last name"),
-                new JTextField(20),
+                lastName,
+                new JLabel("Username"),
+                username,
                 new JLabel("Email"),
-                new JTextField(20),
+                email,
                 new JLabel("Date of birth — optional"),
-                new JTextField(20),
-                new JLabel("Description — optional"),
-                new JTextField(20),
-                new JLabel("Canonical ID"),
-                new JTextField(20),
+                dob,
+                new JLabel("Mailing address"),
+                new JLabel("Optional postal address for billing or shipping."),
+                new JLabel("Street — optional"),
+                street,
+                new JLabel("City"),
+                city,
+                new JLabel("State / region"),
+                region,
+                new JLabel("Postal code"),
+                postCode,
+                new JLabel("Country"),
+                country,
                 new JButton("Save Changes")
-        );
-    }
-
-    private JPanel buildPrincipalIDs() {
-        // get user principal ids then display them
-        JButton placeholder1 = new JButton("placeholder");
-        JButton placeholder2 = new JButton("placeholder");
-        JButton placeholder3 = new JButton("placeholder");
-        JButton addPrincipal = new JButton("+ Add principal ID");
-
-        return paneBuilder.buildJPanelWithFields(
-                new JLabel("Principal IDs"),
-                new JLabel("Email addresses and handles that resolve to this subject."),
-                placeholder1,
-                placeholder2,
-                placeholder3,
-                addPrincipal
         );
     }
 
@@ -103,7 +74,7 @@ public class SubjectPanel extends JPanel {
         JButton placeholder3 = new JButton("placeholder");
         JButton addLogin = new JButton("+ Add login method");
 
-        return paneBuilder.buildJPanelWithFields(
+        return panelBuilder.buildJPanelWithFields(
                 new JLabel("Login credentials"),
                 new JLabel("Ways you sign in. You can register more than one."),
                 placeholder1,

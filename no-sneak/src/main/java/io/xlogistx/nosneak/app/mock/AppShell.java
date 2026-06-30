@@ -10,22 +10,28 @@ import java.awt.*;
 public class AppShell extends JPanel {
     private final CardLayout cards = new CardLayout();
     private final JPanel content = new JPanel(cards);
+    private final AppContext ctx;
 
     public AppShell(AppContext ctx) {
         setLayout(new BorderLayout());
-
+        this.ctx = ctx;
 
         content.add(new LoginPanel(ctx), Navigator.Screen.LOGIN.name());
-        content.add(new PQCRegistryPanel(), Navigator.Screen.MAIN.name());
-        content.add(new SubjectPanel(), Navigator.Screen.SUBJECT.name());
-        content.add(new ScanPanel(), Navigator.Screen.SCAN.name());
+        content.add(new PQCRegistryPanel(ctx), Navigator.Screen.MAIN.name());
+        content.add(new SubjectPanel(ctx), Navigator.Screen.SUBJECT.name());
+        content.add(new ScanPanel(ctx), Navigator.Screen.SCAN.name());
+        content.add(new SubjectSecManagerPanel(ctx), Navigator.Screen.MANAGER.name());
 
         add(buildContent(), BorderLayout.CENTER);
         add(buildFooter(), BorderLayout.SOUTH);
 
         ctx.setNavigator(new Navigator(cards, content));
         ctx.session().onAuthChange(e -> {
-            if ((boolean) e.getNewValue()) ctx.nav().show(Navigator.Screen.SUBJECT);
+            if ((boolean) e.getNewValue()) {
+                ctx.nav().show(Navigator.Screen.SUBJECT);
+            } else {
+                ctx.nav().show(Navigator.Screen.LOGIN);
+            }
         });
 
         ctx.nav().show(Navigator.Screen.LOGIN);
@@ -43,6 +49,14 @@ public class AppShell extends JPanel {
 
         JLabel session = new JLabel("session: none | subject: --");
         JLabel status = new JLabel("Ready");
+
+        ctx.session().onAuthChange(e -> {
+            if ((boolean) e.getNewValue()) {
+                session.setText("session: mock-build | subject: " + ctx.session().getSubject());
+            } else {
+                session.setText("session: none | subject: --");
+            }
+        });
 
         footer.add(session, BorderLayout.WEST);
         footer.add(status, BorderLayout.EAST);

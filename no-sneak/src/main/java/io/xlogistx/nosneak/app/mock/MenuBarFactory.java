@@ -24,6 +24,9 @@ public class MenuBarFactory {
         JMenuItem menuItem = new JMenuItem("Test");
         menuItem.addActionListener(e -> System.out.println("test"));
 
+        JMenuItem logout = new JMenuItem("Logout");
+        logout.addActionListener(e -> ctx.session().logout());
+
         JCheckBoxMenuItem modeToggle = new JCheckBoxMenuItem("Technical Mode");
 
         JMenuItem scanner = new JMenuItem("Network scanner");
@@ -32,12 +35,16 @@ public class MenuBarFactory {
         pqc.addActionListener(e -> ctx.nav().show(Navigator.Screen.MAIN));
         JMenuItem subject = new JMenuItem("Subject Profile");
         subject.addActionListener(e -> ctx.nav().show(Navigator.Screen.SUBJECT));
+        JMenuItem manager = new JMenuItem("Subject Security Manager");
+        manager.addActionListener(e -> ctx.nav().show(Navigator.Screen.MANAGER));
 
         view.add(scanner);
         view.add(pqc);
         view.add(subject);
+        view.add(manager);
 
         file.add(menuItem);
+        file.add(logout);
         mode.add(modeToggle);
 
         // add menu bar items to menu bar
