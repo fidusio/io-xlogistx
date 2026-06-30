@@ -1,13 +1,19 @@
 package io.xlogistx.nosneak.app.mock.utility;
 
+import org.zoxweb.shared.security.DomainSecurityManager;
+
 /**
  * Per-application service locator. Holds the single shared {@link Session} and
  * {@link Navigator} so screens and the menu bar can reach them without wiring
  * dependencies through every constructor.
  */
 public class AppContext {
-    private final Session session = new Session();
+    private final Session session;
     private Navigator navigator;
+
+    public AppContext(DomainSecurityManager domainSecurityManager) {
+        session = new Session(domainSecurityManager);
+    }
 
     /**
      * @return the shared authentication/session state.

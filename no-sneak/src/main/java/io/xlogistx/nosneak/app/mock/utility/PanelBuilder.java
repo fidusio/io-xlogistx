@@ -1,7 +1,11 @@
 package io.xlogistx.nosneak.app.mock.utility;
 
+import com.formdev.flatlaf.FlatClientProperties;
+import net.miginfocom.swing.MigLayout;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.function.Consumer;
 
 /**
  * Shared Swing layout helpers used by the mock screens to build split panels,
@@ -83,6 +87,44 @@ public class PanelBuilder {
             panel.add(fields[i], c);
         }
 
+        return panel;
+    }
+
+    public static JPanel row(String label, JButton... buttons) {
+        JPanel row = new JPanel(new BorderLayout(6, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        row.add(new JLabel(label), BorderLayout.CENTER);
+
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        for (JButton btn : buttons) right.add(btn);
+        row.add(right, BorderLayout.EAST);
+        return row;
+    }
+
+    public static JPanel group(String title, String addLabel, Runnable onAdd) {
+        JPanel group = new JPanel();
+        group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
+        group.setBorder(BorderFactory.createTitledBorder(title));
+
+        JButton add = new JButton(addLabel);
+        add.addActionListener(e -> onAdd.run());
+        group.add(add);
+        return group;
+    }
+
+    public static JPanel detail(String title, Runnable onBack, Consumer<JPanel> content) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JButton back = new JButton("← Back");
+        back.addActionListener(e -> onBack.run());
+        panel.add(back);
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(new JLabel(title));
+        panel.add(Box.createVerticalStrut(10));
+
+        content.accept(panel);
         return panel;
     }
 }

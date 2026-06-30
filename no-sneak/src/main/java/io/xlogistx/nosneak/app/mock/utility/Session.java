@@ -1,7 +1,9 @@
 package io.xlogistx.nosneak.app.mock.utility;
 
-import io.xlogistx.nosneak.app.mock.MockSecManager;
+import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.shared.filters.FilterType;
+import org.zoxweb.shared.security.DomainSecurityManager;
+import org.zoxweb.shared.security.SubjectIdentifier;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -14,9 +16,13 @@ import java.util.Arrays;
  */
 public class Session {
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
-    private final MockSecManager secManager = new MockSecManager();
+    private final DomainSecurityManager domainSecurityManager;
     private boolean authenticated;
     private String subject;
+
+    public Session(DomainSecurityManager domainSecurityManager) {
+        this.domainSecurityManager = domainSecurityManager;
+    }
 
     /**
      * @return {@code true} if a subject is currently signed in.
@@ -40,6 +46,14 @@ public class Session {
      */
     //@TODO
     public void loginUsernamePassword(String subject, char[] password) {
+
+        SubjectIdentifier subjectIdentifier;
+
+        try {
+            subjectIdentifier = domainSecurityManager.login(subject, Arrays.toString(password));
+        } catch (SecurityException e) {
+            return;
+        }
         this.subject = subject;
         boolean old = this.authenticated;
         this.authenticated = true;
@@ -80,7 +94,7 @@ public class Session {
     //@TODO
     public void registerUsernamePassword(String subject, char[] password) {
         if (FilterType.PASSWORD.isValid(Arrays.toString(password))) {
-            loginUsernamePassword(subject, password);
+            domainSecurityManager.createSubjectID(subject, HashUtil.toBCryptPassword(Arrays.toString(password)));
         }
     }
 

@@ -2,21 +2,23 @@ package io.xlogistx.nosneak.app;
 
 import javax.swing.*;
 
+import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.fonts.roboto.FlatRobotoFont;
 import io.xlogistx.nosneak.app.mock.AppShell;
 import io.xlogistx.nosneak.app.mock.MenuBarFactory;
 import io.xlogistx.nosneak.app.mock.utility.AppContext;
+import org.zoxweb.server.security.MockDomainSecurityManager;
+import org.zoxweb.shared.security.DomainSecurityManager;
+
+import java.awt.*;
 
 public class Main {
     static void main(String... args) {
+        FlatRobotoFont.install();
         FlatLightLaf.setup();
-
-        // Sets default MacOS menu location (if Mac)
-        /*
-        if(ServerUtil.isMacOS()) {
-            System.setProperty("apple.laf.useScreenMenuBar", "true");
-        }
-         */
+        FlatLaf.registerCustomDefaultsSource("themes");
+        UIManager.put("defaultFont", new Font(FlatRobotoFont.FAMILY, Font.PLAIN, 13));
 
         SwingUtilities.invokeLater(() -> new AppFrame().setVisible(true));
     }
@@ -28,7 +30,9 @@ public class Main {
             setSize(800, 600);
             setLocationRelativeTo(null);
 
-            AppContext ctx = new AppContext();
+            DomainSecurityManager domainSecurityManager = new MockDomainSecurityManager();
+
+            AppContext ctx = new AppContext(domainSecurityManager);
 
             JMenuBar menuBar = new MenuBarFactory().buildMenu(ctx);
             menuBar.setVisible(false);

@@ -3,6 +3,7 @@ package io.xlogistx.nosneak.app.mock;
 import io.xlogistx.nosneak.app.mock.utility.AppContext;
 import io.xlogistx.nosneak.app.mock.utility.CardStack;
 import io.xlogistx.nosneak.app.mock.utility.PanelBuilder;
+import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,6 +11,7 @@ import java.awt.*;
 public class SubjectPanel extends JPanel {
     private final CardStack cardStack = new CardStack();
     private final PanelBuilder panelBuilder = new PanelBuilder();
+    private final AppContext ctx;
 
     // Profile text boxes
     JTextField firstName = new JTextField(20);
@@ -25,6 +27,7 @@ public class SubjectPanel extends JPanel {
 
     public SubjectPanel(AppContext ctx) {
         setLayout(new BorderLayout());
+        this.ctx = ctx;
 
         cardStack.add(new JScrollPane(buildProfile()), "Profile");
         cardStack.add(new JScrollPane(buildCredentials()), "Credentials");
@@ -69,19 +72,14 @@ public class SubjectPanel extends JPanel {
     }
 
     private JPanel buildCredentials() {
-        JButton placeholder1 = new JButton("placeholder");
-        JButton placeholder2 = new JButton("placeholder");
-        JButton placeholder3 = new JButton("placeholder");
-        JButton addLogin = new JButton("+ Add login method");
+        JPanel p = new JPanel();
+        JPanel row = PanelBuilder.row("Asdf", new JButton("asdf"));
 
-        return panelBuilder.buildJPanelWithFields(
-                new JLabel("Login credentials"),
-                new JLabel("Ways you sign in. You can register more than one."),
-                placeholder1,
-                placeholder2,
-                placeholder3,
-                addLogin
-        );
+        JPanel group = PanelBuilder.group("Test", "+ add", () -> System.out.println(""));
+        group.add(row);
+
+        p.add(group);
+        return p;
     }
 
 }
