@@ -16,7 +16,7 @@ public class KeyStoreTest {
                 new X500Name("CN=XLOGISTX Test CA, O=XLOGISTX.IO, L=Los Angeles, C=US"),
                 new X500Name("CN=testr.xlogistx.io, O=XLOGISTX.IO, L=Los Angeles, C=US"), "5year");
 
-        KeyStore ks = OPSecUtil.SINGLETON.createKeyStore("toto", "password", keyPair.getPrivate(), cert);
+        KeyStore ks = OPSecUtil.SINGLETON.createKeyStore("xlog-tester", "password", keyPair.getPrivate(), cert);
         System.out.println(ks.aliases().nextElement());
 
 

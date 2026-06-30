@@ -17,6 +17,7 @@ import org.zoxweb.server.http.HTTPHeaderParser;
 import org.zoxweb.server.http.HTTPNIOSocket;
 import org.zoxweb.server.http.HTTPUtil;
 import org.zoxweb.server.http.proxy.NIOProxyProtocol;
+import org.zoxweb.server.io.FileWatcher;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
@@ -55,6 +56,7 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
@@ -97,7 +99,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.4.8");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.5.1");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -830,7 +832,8 @@ public class NIOHTTPServer
 //                                        trustStoreFilename != null ? IOUtil.locateFile(trustStoreFilename) : null,
 //                                        trustStorePassword != null ? trustStorePassword.toCharArray() : null);
 
-                                IdentityStore store = new IdentityStore()
+                                FileWatcher.log.setEnabled(true);
+                                IdentityStore store = new IdentityStore(new FileWatcher(true))
                                         .setValidateValidity(true)        // reject expired / not-yet-valid leaf on load (default true)
                                         .setClockSkewMillis(60_000)       // optional: tolerate 60s host-clock skew
                                         .setPreferPqc(true)               // serve PQC to capable clients when a PQC cert is present (default true)
@@ -838,6 +841,21 @@ public class NIOHTTPServer
                                         .addCertConfigs(certConfigs);
 //                                        .addKeyStore(keystoreFile.toPath(), sslConfig.getValue("keystore_type"), ksPassword.toCharArray());
                                 store.reload();
+
+                                long autoCheck = -1;
+
+                                try
+                                {
+                                    autoCheck = Const.TimeInMillis.toMillis(sslConfig.getValue("auto_check"));
+                                    logger.getLogger().info("autoCheck enabled : " + Const.TimeInMillis.toString(autoCheck));
+                                }
+                                catch (Exception e)
+                                {
+                                    e.printStackTrace();
+                                }
+
+                                if(autoCheck > 0)
+                                    nioSocket.getScheduler().scheduleAtFixedRate(store.getFileWatcher(), autoCheck, autoCheck, TimeUnit.MILLISECONDS);
 
                                 SSLContext sslContext = store.newSSLContext();
                                 NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));
@@ -900,6 +918,7 @@ public class NIOHTTPServer
                 }
                 logger.getLogger().info("https redirect @ " + urlHostRedirect + " exclusion " + redirectExclusionFilter);
                 redirectLocationURL = redirectConfig.getValue("location");
+                HTTPProtocolHandler.STRICT_HTTPS.set(true);
             }
 
 

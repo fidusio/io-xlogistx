@@ -1,12 +1,16 @@
 package io.xlogistx.opsec.ssl;
 
 import io.xlogistx.opsec.OPSecUtil;
+import org.zoxweb.server.io.FileWatcher;
 import org.zoxweb.server.io.IOUtil;
+import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.util.IsValid;
 import org.zoxweb.shared.util.NVGenericMap;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -30,11 +34,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class IdentityStore {
 
     public static final String REC_NAME = "IDENTITY_STORE";
+    public static final LogWrapper log = new LogWrapper(IdentityStore.class);
 
     // ------------------------------------------------------------------ sources
 
     /** Marker for an identity source. */
-    public interface Source {
+    public interface Source
+            extends IsValid {
+        File[] getFiles();
     }
 
     /** An existing keystore file (its key entries are imported). */
@@ -42,6 +49,7 @@ public final class IdentityStore {
         final Path path;
         final String type;
         final char[] password;
+        final File[] files;
 
         public KeyStoreSource(Path path, char[] password) {
             this(path, "PKCS12", password);
@@ -50,7 +58,26 @@ public final class IdentityStore {
         public KeyStoreSource(Path path, String type, char[] password) {
             this.path = path;
             this.type = type;
+            this.files = new File[1];
+
             this.password = password != null ? password.clone() : new char[0];
+            if (path != null) {
+                if (isValid())
+                    this.files[0] = path.toFile();
+
+            }
+        }
+
+        public File[] getFiles() {
+            return files;
+        }
+
+        public boolean isValid() {
+            if (path != null) {
+                return Files.exists(path);
+            }
+
+            return false;
         }
     }
 
@@ -59,7 +86,8 @@ public final class IdentityStore {
         final Path certPem;
         final Path keyPem;
         final Path chainPem;   // may be null
-        final char[] keyPassword; // may be null for unencrypted keys
+        final char[] keyPassword;// may be null for unencrypted keys
+        final File[] files;
 
         public PemSource(Path certPem, Path keyPem) {
             this(certPem, keyPem, null, null);
@@ -73,7 +101,37 @@ public final class IdentityStore {
             this.certPem = certPem;
             this.keyPem = keyPem;
             this.chainPem = chainPem;
+            files = chainPem != null ?  new File[3] : new File[2];
             this.keyPassword = keyPassword != null ? keyPassword.clone() : null;
+
+            int index = 0;
+            if (certPem != null) {
+                files[index++] = certPem.toFile();
+            }
+            if (keyPem != null) {
+                files[index++] = keyPem.toFile();
+            }
+            if (chainPem != null) {
+                files[index] = chainPem.toFile();
+            }
+
+        }
+
+        public File[] getFiles() {
+            return files;
+        }
+
+        public boolean isValid() {
+//            if (certPem != null && keyPem != null && chainPem != null) {
+//                return Files.exists(certPem) && Files.exists(keyPem) && Files.exists(chainPem);
+//            }
+
+            for(File file : files) {
+                if(file == null || !file.exists())
+                    return false;
+            }
+
+            return true;
         }
     }
 
@@ -103,14 +161,32 @@ public final class IdentityStore {
     // serves a PQC identity to clients that advertise a PQC signature scheme,
     // falling back to a classical identity otherwise. Default true.
     private volatile boolean preferPqc = true;
+    private final FileWatcher fileWatcher;
 
-    public IdentityStore() {
-        this(null);
+    public IdentityStore(FileWatcher fileWatcher) {
+        this(fileWatcher, null);
+
     }
 
+
     /** @param defaultHost hostname whose identity answers when SNI is absent/unmatched */
-    public IdentityStore(String defaultHost) {
+    public IdentityStore(FileWatcher fileWatcher, String defaultHost) {
         this.defaultHost = defaultHost == null ? null : defaultHost.toLowerCase(Locale.ROOT);
+        this.fileWatcher = fileWatcher;
+        if(fileWatcher != null) {
+            fileWatcher.setConsumer((c) -> {
+                try {
+                    log.getLogger().info("we need to reload certificates");
+                    reload();
+                } catch (GeneralSecurityException | IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
+
+    public FileWatcher getFileWatcher() {
+        return fileWatcher;
     }
 
     /**
@@ -148,38 +224,44 @@ public final class IdentityStore {
         if (src == null) {
             throw new NullPointerException("src");
         }
-        lock.writeLock().lock();
-        try {
-            sources.add(src);
-        } finally {
-            lock.writeLock().unlock();
+
+        if (src.isValid()) {
+            lock.writeLock().lock();
+            try {
+                sources.add(src);
+                if (fileWatcher != null) {
+                    for (File f : src.getFiles()) {
+                        if (f != null && f.isFile())
+                            fileWatcher.addFile(f);
+                    }
+                }
+            } finally {
+                lock.writeLock().unlock();
+            }
         }
         return this;
     }
 
 
-
     public IdentityStore addCertConfigs(NVGenericMap[] configs) {
-       for (NVGenericMap config : configs) {
-           try {
-               addCertConfig(config);
-           } catch (Exception e) {
-               e.printStackTrace();
-           }
-       }
+        for (NVGenericMap config : configs) {
+            try {
+                addCertConfig(config);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
-       return this;
+        return this;
     }
-
 
 
     public IdentityStore addCertConfig(NVGenericMap config) {
         CryptoConst.CertSource certType = config.getValue(CryptoConst.CERT_TYPE);
         switch (certType) {
             case KEYSTORE:
-
-                String ksType =  config.getValue("keystore_type");
-                String ksPassword = config.getValue("keystore_password");;
+                String ksType = config.getValue("keystore_type");
+                String ksPassword = config.getValue("keystore_password");
                 return addKeyStore(IOUtil.locatePath(config.getValue("keystore_file")),
                         ksType,
                         ksPassword.toCharArray());
@@ -198,6 +280,7 @@ public final class IdentityStore {
     public IdentityStore addKeyStore(Path path, char[] password) {
         return addSource(new KeyStoreSource(path, password));
     }
+
     public IdentityStore addKeyStore(Path path, String type, char[] password) {
         return addSource(new KeyStoreSource(path, type, password));
     }

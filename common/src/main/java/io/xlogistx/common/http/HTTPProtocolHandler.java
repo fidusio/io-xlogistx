@@ -36,7 +36,7 @@ public class HTTPProtocolHandler
     private final KATracker kaTracker;
     private volatile Object endPointBean = null;
     private volatile OutputStream outputStream;
-
+    public static final AtomicBoolean STRICT_HTTPS = new AtomicBoolean(false);
 
     private final EndPointsManager endPointsManager;
 
@@ -306,7 +306,7 @@ public class HTTPProtocolHandler
 
 
         // check if it is https
-        if (getProtocol() == URIScheme.HTTPS)
+        if (STRICT_HTTPS.get() && getProtocol() == URIScheme.HTTPS)
             response.getHeaders().add(HTTPConst.CommonHeader.STRICT_TRANSPORT_SECURITY);
     }
 

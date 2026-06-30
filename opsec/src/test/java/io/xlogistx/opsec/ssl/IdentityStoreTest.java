@@ -14,15 +14,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
+import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIServerName;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.math.BigInteger;
@@ -32,7 +25,6 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
-import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -42,11 +34,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests the SNI-routed, alias-free TLS identity layer end-to-end: self-generated
@@ -73,7 +61,7 @@ public class IdentityStoreTest {
     @Test
     void singleCert_isServedRegardlessOfSni() throws Exception {
         Gen ec = ecCert("alpha.test", validNow());
-        IdentityStore store = new IdentityStore() // no default host configured
+        IdentityStore store = new IdentityStore(null) // no default host configured
                 .addKeyStore(p12("ec", ec.ecKey, ec.cert), "PKCS12", KS_PASS_CHARS);
         store.reload();
 
@@ -92,7 +80,7 @@ public class IdentityStoreTest {
     void sniRouting_selectsCertByHostname() throws Exception {
         Gen ec = ecCert("alpha.test", validNow());
         Gen rsa = rsaCert("beta.test", validNow());
-        IdentityStore store = new IdentityStore("alpha.test")
+        IdentityStore store = new IdentityStore(null, "alpha.test")
                 .addKeyStore(p12("ec", ec.ecKey, ec.cert), "PKCS12", KS_PASS_CHARS)
                 .addKeyStore(p12("rsa", rsa.rsaKey, rsa.cert), "PKCS12", KS_PASS_CHARS);
         store.reload();
@@ -113,7 +101,7 @@ public class IdentityStoreTest {
     void sameHost_classicalCoexistence_bothLoadedAndOneServed() throws Exception {
         Gen ec = ecCert("example.test", validNow());
         Gen rsa = rsaCert("example.test", validNow());
-        IdentityStore store = new IdentityStore("example.test")
+        IdentityStore store = new IdentityStore(null, "example.test")
                 .addKeyStore(p12("ec", ec.ecKey, ec.cert), "PKCS12", KS_PASS_CHARS)
                 .addKeyStore(p12("rsa", rsa.rsaKey, rsa.cert), "PKCS12", KS_PASS_CHARS);
         store.reload();
@@ -130,7 +118,7 @@ public class IdentityStoreTest {
     void reload_rejectsExpiredLeaf_andKeepsPreviousIdentities() throws Exception {
         // First load a valid identity.
         Gen good = ecCert("alpha.test", validNow());
-        IdentityStore store = new IdentityStore("alpha.test")
+        IdentityStore store = new IdentityStore(null, "alpha.test")
                 .addKeyStore(p12("good", good.ecKey, good.cert), "PKCS12", KS_PASS_CHARS);
         store.reload();
         assertEquals(1, store.identities().size());
@@ -159,8 +147,8 @@ public class IdentityStoreTest {
         assertEquals(Identity.KeyClass.PQC, pqcId.keyClass(), "ML-DSA leaf classifies as PQC");
         assertEquals(Identity.KeyClass.CLASSICAL, rsaId.keyClass());
 
-        IdentityKeyManager prefer = new IdentityStore().keyManager();              // preferPqc=true (default)
-        IdentityKeyManager noPrefer = new IdentityStore().setPreferPqc(false).keyManager();
+        IdentityKeyManager prefer = new IdentityStore(null).keyManager();              // preferPqc=true (default)
+        IdentityKeyManager noPrefer = new IdentityStore(null).setPreferPqc(false).keyManager();
 
         // PQC-capable client (advertises an ML-DSA signature scheme) -> PQC cert.
         assertSame(pqcId, prefer.select(matches, Arrays.asList("ML-DSA-65", "rsa_pkcs1_sha256")),
@@ -179,7 +167,7 @@ public class IdentityStoreTest {
         Path certPem = pem("cert.pem", ec.cert);
         Path keyPem = pem("key.pem", ec.ecKey.getPrivate());
 
-        IdentityStore store = new IdentityStore("pem.test").addPem(certPem, keyPem);
+        IdentityStore store = new IdentityStore(null, "pem.test").addPem(certPem, keyPem);
         store.reload();
 
         assertEquals(1, store.identities().size());
