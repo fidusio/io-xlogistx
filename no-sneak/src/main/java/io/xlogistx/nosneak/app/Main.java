@@ -1,7 +1,5 @@
 package io.xlogistx.nosneak.app;
 
-import javax.swing.*;
-
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.fonts.roboto.FlatRobotoFont;
@@ -11,6 +9,7 @@ import io.xlogistx.nosneak.app.mock.utility.AppContext;
 import org.zoxweb.server.security.MockDomainSecurityManager;
 import org.zoxweb.shared.security.DomainSecurityManager;
 
+import javax.swing.*;
 import java.awt.*;
 
 public class Main {
