@@ -39,7 +39,7 @@ public class AppShell extends JPanel {
 
     private JPanel buildContent() {
 
-        cards.show(content, "login");
+        cards.show(content, Navigator.Screen.LOGIN.name());
         return content;
     }
 

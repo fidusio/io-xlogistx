@@ -117,7 +117,7 @@ public class PanelBuilder {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JButton back = new JButton("← Back");
+        JButton back = new JButton("<- Back");
         back.addActionListener(e -> onBack.run());
         panel.add(back);
         panel.add(Box.createVerticalStrut(10));
@@ -126,5 +126,13 @@ public class PanelBuilder {
 
         content.accept(panel);
         return panel;
+    }
+
+    public static JPanel listPage(String title, String addLabel, Runnable onAdd, String ...items) {
+        JPanel group = group(title, addLabel, onAdd);
+        for(String item : items) {
+            group.add(row(item, new JButton("edit")));
+        }
+        return group;
     }
 }

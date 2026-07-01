@@ -18,14 +18,15 @@ public class MenuBarFactory {
         JMenu view = new JMenu("View");
         JMenu tools = new JMenu("Tools");
         JMenu help = new JMenu("Help");
+        JMenu logout = new JMenu("Logout");
         JMenu mode = new JMenu("Mode");
 
         // create menu bar item
         JMenuItem menuItem = new JMenuItem("Test");
         menuItem.addActionListener(e -> System.out.println("test"));
 
-        JMenuItem logout = new JMenuItem("Logout");
-        logout.addActionListener(e -> ctx.session().logout());
+        JMenuItem confirmLogout = new JMenuItem("Confirm Logout");
+        confirmLogout.addActionListener(e -> ctx.session().logout());
 
         JCheckBoxMenuItem modeToggle = new JCheckBoxMenuItem("Technical Mode");
 
@@ -44,8 +45,9 @@ public class MenuBarFactory {
         view.add(manager);
 
         file.add(menuItem);
-        file.add(logout);
         mode.add(modeToggle);
+
+        logout.add(confirmLogout);
 
         // add menu bar items to menu bar
         menuBar.add(file);
@@ -53,6 +55,7 @@ public class MenuBarFactory {
         menuBar.add(tools);
         menuBar.add(help);
         menuBar.add(Box.createHorizontalGlue());
+        menuBar.add(logout);
         menuBar.add(mode);
 
         return menuBar;

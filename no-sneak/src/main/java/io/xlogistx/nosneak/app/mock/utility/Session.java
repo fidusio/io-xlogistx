@@ -1,13 +1,19 @@
 package io.xlogistx.nosneak.app.mock.utility;
 
 import org.zoxweb.server.security.HashUtil;
+import org.zoxweb.shared.crypto.CIPassword;
+import org.zoxweb.shared.data.PropertyDAO;
 import org.zoxweb.shared.filters.FilterType;
+import org.zoxweb.shared.security.CredentialInfo;
 import org.zoxweb.shared.security.DomainSecurityManager;
+import org.zoxweb.shared.security.PrincipalIdentifier;
 import org.zoxweb.shared.security.SubjectIdentifier;
+import org.zoxweb.shared.util.NVGenericMap;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Mock authentication/session state. Tracks whether a subject is signed in and
@@ -15,10 +21,17 @@ import java.util.Arrays;
  * the UI can react. All login/register methods are stubs for now.
  */
 public class Session {
+    private static final String PASSWORD_RULES_MESSAGE = "Your password must meet all of the following requirements:\n\n" +
+            "• Be at least 8 characters long.\n" +
+            "• Include at least one uppercase letter (A–Z).\n" +
+            "• Include at least one number (0–9).\n" +
+            "• Include at least one special character (such as !, @, #, $, %, &, *).\n" +
+            "• Cannot be empty or contain only spaces.";
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     private final DomainSecurityManager domainSecurityManager;
     private boolean authenticated;
     private String subject;
+    private SubjectIdentifier subjectIdentifier;
 
     public Session(DomainSecurityManager domainSecurityManager) {
         this.domainSecurityManager = domainSecurityManager;
@@ -45,19 +58,22 @@ public class Session {
      * @param password the password (unused by the mock)
      */
     //@TODO
-    public void loginUsernamePassword(String subject, char[] password) {
-
-        SubjectIdentifier subjectIdentifier;
+    public boolean loginUsernamePassword(String subject, char[] password) {
 
         try {
-            subjectIdentifier = domainSecurityManager.login(subject, Arrays.toString(password));
+            subjectIdentifier = domainSecurityManager.login(subject, new String(password));
         } catch (SecurityException e) {
-            return;
+            return false;
         }
+
+        // Keep the principalID (the username the user typed) — SubjectIdentifier.getSubjectID()
+        // returns the numeric GUID, and the backend's credential lookups are keyed by principalID.
         this.subject = subject;
         boolean old = this.authenticated;
         this.authenticated = true;
         pcs.firePropertyChange("authenticated", old, true);
+
+        return true;
     }
 
     /**
@@ -66,22 +82,30 @@ public class Session {
      * @param apiKey the API key (unused by the mock)
      */
     //@TODO
-    public void loginAPIKey(char[] apiKey) {
+    public boolean loginAPIKey(char[] apiKey) {
+        /*
         this.subject = "";
         boolean old = this.authenticated;
         this.authenticated = true;
         pcs.firePropertyChange("authenticated", old, true);
+        */
+
+
+        return false;
     }
 
     /**
      * Mock passkey login; marks the session authenticated and fires the change event.
      */
     //@TODO
-    public void loginPasskey() {
+    public boolean loginPasskey() {
+        /*
         this.subject = "";
         boolean old = this.authenticated;
         this.authenticated = true;
         pcs.firePropertyChange("authenticated", old, true);
+        */
+        return false;
     }
 
     /**
@@ -91,11 +115,16 @@ public class Session {
      * @param subject  the subject id
      * @param password the candidate password
      */
-    //@TODO
-    public void registerUsernamePassword(String subject, char[] password) {
-        if (FilterType.PASSWORD.isValid(Arrays.toString(password))) {
-            domainSecurityManager.createSubjectID(subject, HashUtil.toBCryptPassword(Arrays.toString(password)));
+    //@TODO maybe need swing worker
+    public String registerUsernamePassword(String subject, char[] password) {
+        if (!FilterType.PASSWORD.isValid(new String(password))) return PASSWORD_RULES_MESSAGE;
+        try {
+            domainSecurityManager.createSubjectID(subject, HashUtil.toBCryptPassword(new String(password)));
+            return null;
+        } catch (SecurityException e) {
+            return "That username is already taken";
         }
+
     }
 
     /**
@@ -104,26 +133,148 @@ public class Session {
      * @param apiKey the API key
      */
     //@TODO
-    public void registerAPIKey(char[] apiKey) {
-        loginAPIKey(apiKey);
+    public boolean registerAPIKey(char[] apiKey) {
+        //loginAPIKey(apiKey);
+
+        return false;
     }
 
     /**
      * Mock passkey registration; currently just delegates to {@link #loginPasskey}.
      */
     //@TODO
-    public void registerPasskey() {
-        loginPasskey();
+    public boolean registerPasskey() {
+        //loginPasskey();
+
+        return false;
     }
 
     /**
      * Signs the subject out and fires the {@code "authenticated"} change event.
      */
-    public void logout() {
+    public boolean logout() {
         boolean old = this.authenticated;
         this.authenticated = false;
         this.subject = null;
+        this.subjectIdentifier = null;
         pcs.firePropertyChange("authenticated", old, false);
+
+        return true;
+    }
+
+    public PrincipalIdentifier[] getAllPrincipalIDForLoggedInUser() {
+        if (subjectIdentifier == null) return new PrincipalIdentifier[0];
+        return domainSecurityManager.lookupAllPrincipalIdentifiers(subjectIdentifier.getGUID());
+    }
+
+    public CredentialInfo[] getAllCredentialForLoggedInUser() {
+        if (subject == null) return new CredentialInfo[0];
+        return domainSecurityManager.lookupAllPrincipalCredentials(subject);
+    }
+
+    /**
+     * Registers an additional identifier (email/username/handle) for the signed-in subject.
+     * Rejects blank identifiers and any that already exist (for this or another subject),
+     * since the backend does not enforce uniqueness.
+     *
+     * @param principalID the new identifier
+     * @return {@code null} on success, otherwise the failure reason
+     */
+    public String addIdentifier(String principalID) {
+        if (subjectIdentifier == null) return "Not signed in";
+        if (principalID == null || principalID.isBlank()) return "Identifier cannot be empty";
+        if (domainSecurityManager.lookupPrincipalID(principalID) != null) {
+            return "That identifier is already in use";
+        }
+        domainSecurityManager.addPrincipalID(subjectIdentifier, principalID);
+        return null;
+    }
+
+    /**
+     * Removes an identifier from the signed-in subject.
+     *
+     * @param principal the identifier to remove
+     * @return {@code true} if removed
+     */
+    public String removeIdentifier(PrincipalIdentifier principal) {
+
+        if (!((getAllPrincipalIDForLoggedInUser().length - 1) > 0)) return "Cannot remove the last identifier";
+        if (principal == null) return "Identifier cannot be empty";
+
+        if (!domainSecurityManager.deletePrincipalID(principal)) {
+            return "Could not remove identifier";
+        }
+
+        if (principal.getPrincipalID().equals(subject)) {
+            PrincipalIdentifier[] remaining = getAllPrincipalIDForLoggedInUser();
+            if (remaining.length > 0) {
+                subject = remaining[0].getPrincipalID();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Replaces the signed-in subject's password. Returns {@code null} on success, or a
+     * human-readable reason on failure (wrong current password, or weak new password).
+     *
+     * @param current the current password (verified before any change)
+     * @param next    the new password (validated against {@code FilterType.PASSWORD})
+     * @return {@code null} on success, otherwise the failure reason
+     */
+    public String changePassword(char[] current, char[] next) {
+        if (subject == null) return "Not signed in";
+
+        // 1. verify the current password
+        try {
+            domainSecurityManager.login(subject, new String(current));
+        } catch (SecurityException e) {
+            return "Current password is incorrect";
+        }
+
+        // 2. validate the new password against the policy
+        if (!FilterType.PASSWORD.isValid(new String(next))) {
+            return "New password does not meet requirements";
+        }
+
+        // 3. replace the PASSWORD credential. Hash first, then update the existing entity
+        // in place (single update, keyed by GUID) so the subject is never left password-less.
+        CIPassword fresh = HashUtil.toBCryptPassword(new String(next));
+        CredentialInfo existing = domainSecurityManager.lookupCredential(subject, CredentialInfo.Type.PASSWORD);
+        if (existing instanceof CIPassword existingPw) {
+            existingPw.setAlgorithm(fresh.getAlgorithm());
+            existingPw.setRounds(fresh.getRounds());
+            existingPw.setSalt(fresh.getSalt());
+            existingPw.setHash(fresh.getHash());
+            domainSecurityManager.updateCredential(existingPw);
+        } else {
+            // No existing password credential (shouldn't happen for a normal account) — create one.
+            domainSecurityManager.createCredential(subject, fresh);
+        }
+        return null;
+    }
+
+    public void saveProfile(Map<String, String> fields) {
+        if (subjectIdentifier == null) return;
+        NVGenericMap props = subjectIdentifier.getProperties();
+        if (props == null) {
+            props = new NVGenericMap();
+            subjectIdentifier.setValue(PropertyDAO.Param.PROPERTIES, props);
+        }
+        NVGenericMap finalProps = props;
+        fields.forEach((k, v) -> finalProps.build(k, v == null ? "" : v));
+        domainSecurityManager.updateSubjectID(subjectIdentifier);
+    }
+
+    public Map<String, String> loadProfile(String... keys) {
+        Map<String, String> out = new LinkedHashMap<>();
+        NVGenericMap props = subjectIdentifier == null ? null : subjectIdentifier.getProperties();
+        for (String key : keys) {
+            Object v = (props == null) ? null : props.getValue(key);
+            out.put(key, v == null ? "" : v.toString());
+        }
+        return out;
     }
 
     /**

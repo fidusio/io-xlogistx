@@ -2,8 +2,10 @@ package io.xlogistx.nosneak.app.mock;
 
 import io.xlogistx.gui.IconStatusWidget;
 import io.xlogistx.nosneak.app.mock.utility.AppContext;
+import io.xlogistx.nosneak.app.mock.utility.BackgroundTask;
 import io.xlogistx.nosneak.app.mock.utility.CardStack;
 import io.xlogistx.nosneak.app.mock.utility.PanelBuilder;
+import org.zoxweb.shared.security.PrincipalIdentifier;
 
 import javax.swing.*;
 import java.awt.*;
@@ -46,15 +48,29 @@ public class LoginPanel extends JPanel {
 
         // Action buttons branch on the current mode at click time.
         passwordAction.addActionListener(e -> {
+            String user = username.getText();
+            char[] pwd = password.getPassword();
+
             if (login) {
-                ctx.session().loginUsernamePassword(username.getText(), password.getPassword());
+
+                BackgroundTask.runReason(this, passwordAction,
+                        () -> ctx.session().loginUsernamePassword(user, pwd) ? null : "Invalid Credentials",
+                        null);
             } else {
-                if (!java.util.Arrays.equals(password.getPassword(), confirmPassword.getPassword())) {
+                if (!java.util.Arrays.equals(pwd, confirmPassword.getPassword())) {
                     JOptionPane.showMessageDialog(this, "Passwords do not match.", "Register",
                             JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-                ctx.session().registerUsernamePassword(username.getText(), password.getPassword());
+                BackgroundTask.runReason(this, passwordAction,
+                        () -> ctx.session().registerUsernamePassword(user, pwd),
+                        () -> {
+                            JOptionPane.showMessageDialog(this, "Registered Successfully");
+                            password.setText("");
+                            confirmPassword.setText("");
+                            username.setText("");
+                            toggleMode();
+                        });
             }
         });
         apiKeyAction.addActionListener(e -> {
@@ -67,6 +83,13 @@ public class LoginPanel extends JPanel {
         });
         modeToggle.addActionListener(e -> toggleMode());
         applyMode();
+
+        ctx.session().onAuthChange(e -> {
+            if (!(boolean) e.getNewValue()) {
+                password.setText("");
+                username.setText("");
+            }
+        });
 
         // Add Image @TODO probably replace with local image
         IconStatusWidget stateIcon = new IconStatusWidget(40, 40);
