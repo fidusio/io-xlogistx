@@ -33,7 +33,7 @@
         <module>core</module>
         <module>opsec</module>
         <module>gui-audio</module>
-        <module>no-sneak</module>
+<!--        <module>no-sneak</module>-->
         <module>ffm</module>
         <module>sec-model</module>
     </modules>
