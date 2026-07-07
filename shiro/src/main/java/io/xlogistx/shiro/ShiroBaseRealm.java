@@ -156,7 +156,7 @@ public abstract class ShiroBaseRealm
                 String appID = jwtAuthToken.getAppID();
                 if (sak instanceof AppDeviceDAO) {
                     domainID = ((AppDeviceDAO) sak).getDomainID();
-                    appID = ((AppDeviceDAO) sak).getAppID();
+                    appID = ((AppDeviceDAO) sak).getAppID().getAppID();
                 }
 
                 DomainAuthenticationInfo ret = new DomainAuthenticationInfo(jwtAuthToken.getSubjectID(), sak.getSubjectID(), sak //sak.getAPIKeyAsBytes()

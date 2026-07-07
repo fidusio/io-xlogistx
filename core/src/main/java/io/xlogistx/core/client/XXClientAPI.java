@@ -17,6 +17,7 @@ import org.zoxweb.server.util.GSONWrapper;
 import org.zoxweb.shared.accounting.AmountDAO;
 import org.zoxweb.shared.accounting.Currency;
 import org.zoxweb.shared.api.APIException;
+import org.zoxweb.shared.app.AppIDDefault;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.crypto.EncryptedData;
 import org.zoxweb.shared.data.*;
@@ -88,7 +89,7 @@ public class XXClientAPI {
                 }
                 JWT jwt = JWT
                         .createJWT(CryptoConst.JWTAlgo.HS256, add.getSubjectID(), add.getDomainID(),
-                                add.getAppID());
+                                add.getAppID().getAppID());
 
                 hmciToUse.setAuthorization(
                         new HTTPAuthorizationJWTBearer(JWTProvider.SINGLETON, add.getAPIKeyAsBytes(), jwt));
@@ -123,8 +124,8 @@ public class XXClientAPI {
     }
 
 
-    public static AppIDDAO createItemDAO(String url, String subjectID, String password, String domainID,
-                                         String appID) throws IOException {
+    public static AppIDDefault createItemDAO(String url, String subjectID, String password, String domainID,
+                                             String appID) throws IOException {
 
         String uri = XXURI.APP + "/" + domainID + "/" + appID;
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.POST);
@@ -202,8 +203,8 @@ public class XXClientAPI {
     public static AppDeviceDAO createAppDeviceDAO(String domainID, String appID) {
         AppDeviceDAO ret = new AppDeviceDAO();
         ret.setDevice(createDeviceDAO());
-        ret.setDomainID(domainID);
-        ret.setAppID(appID);
+
+        ret.setAppID(new AppIDDefault(domainID, appID));
         return ret;
     }
 
@@ -265,7 +266,7 @@ public class XXClientAPI {
 
     }
 
-    public static AppIDDAO createAppID(String url, String subjectID, String password, String domainID,
+    public static AppIDDefault createAppID(String url, String subjectID, String password, String domainID,
                                        String appID) throws IOException {
 
         String uri = XXURI.APP + "/" + domainID + "/" + appID;
@@ -277,12 +278,12 @@ public class XXClientAPI {
         return GWRAPPER.fromJSON(hc.sendRequest().getData());
     }
 
-    public static AppIDDAO deleteAppID(String url, String subjectID, String password, String domainID,
+    public static AppIDDefault deleteAppID(String url, String subjectID, String password, String domainID,
                                        String appID) throws IOException {
         AppDeviceDAO appDeviceDAO = new AppDeviceDAO();
 
-        appDeviceDAO.setDomainID(domainID);//setAppGUID(new AppIDDAO(domainID, appID).getAppGUID());
-        appDeviceDAO.setAppID(appID);
+
+        appDeviceDAO.setAppID(new AppIDDefault(domainID, appID));
         String uri = "" + XXURI.APP + "/" + domainID + "/" + appID;
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
         hmci.setBasicAuthorization(subjectID, password);
@@ -322,7 +323,7 @@ public class XXClientAPI {
     public static void deleteAppDevice(String url, AppDeviceDAO apd) throws IOException {
         JWT jwt = JWT
                 .createJWT(CryptoConst.JWTAlgo.HS256, apd.getSubjectID(), apd.getDomainID(),
-                        apd.getAppID());
+                        apd.getAppID().getAppID());
         String uri = XXURI.DEREGISTRATION;
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
 
@@ -425,7 +426,7 @@ public class XXClientAPI {
 
             JWT jwt = JWT
                     .createJWT(CryptoConst.JWTAlgo.HS256, add.getSubjectID(), add.getDomainID(),
-                            add.getAppID());
+                            add.getAppID().getAppID());
 
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.PATCH);
 
@@ -469,7 +470,7 @@ public class XXClientAPI {
 
         // if app_admin can only do it for his domain
         params.add("subject_id", subjectToUpdate);
-        params.add("app_gid", AppIDDAO.toDomainAppID(domainID, appID));
+        params.add("app_gid", AppIDDefault.toDomainAppID(domainID, appID));
         params.add("role", roleName);
         hmci.setContent(GWRAPPER.toJSONGenericMap(params, false, false, false));
         HTTPCall hc = new HTTPCall(hmci);
@@ -492,7 +493,7 @@ public class XXClientAPI {
 
         // if app_admin can only do it for his domain
         params.add("subject_id", subjectToUpdate);
-        params.add("app_gid", AppIDDAO.toDomainAppID(domainID, appID));
+        params.add("app_gid", AppIDDefault.toDomainAppID(domainID, appID));
         params.add("role", roleName);
         hmci.setContent(GWRAPPER.toJSONGenericMap(params, false, false, false));
         HTTPCall hc = new HTTPCall(hmci);
@@ -565,7 +566,7 @@ public class XXClientAPI {
             String password = args[index++];
             String domainID = args[index++];
             String appID = args[index++];
-            AppIDDAO appIDDAO = null;
+            AppIDDefault appIDDAO = null;
             AppConfigDAO appConfigDAO;
             File file;
             switch (command) {
@@ -637,7 +638,7 @@ public class XXClientAPI {
                     break;
                 case "createitem":
                     //AppIDDAO.toAppID(domainID, appID).getAppGUID();
-                    ItemDAO item = createItemDAO(AppIDDAO.toAppID(domainID, appID).toCanonicalID(), "http://localhost");
+                    ItemDAO item = createItemDAO(AppIDDefault.toAppID(domainID, appID).toCanonicalID(), "http://localhost");
 
                     renewToken(url, subjectID, password, domainID, appID,
                             args.length > index ? Bool.lookupValue(args[index++]) : false,

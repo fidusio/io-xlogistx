@@ -33,6 +33,15 @@
             <artifactId>xlogistx-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-opsec</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.xlogistx</groupId>
+            <artifactId>xlogistx-shiro</artifactId>
+        </dependency>
+
 
     </dependencies>
 
