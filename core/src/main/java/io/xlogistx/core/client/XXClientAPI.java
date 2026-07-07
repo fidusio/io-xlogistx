@@ -470,7 +470,7 @@ public class XXClientAPI {
 
         // if app_admin can only do it for his domain
         params.add("subject_id", subjectToUpdate);
-        params.add("app_gid", AppIDDefault.toDomainAppID(domainID, appID));
+        params.add("app_gid", AppID.toDomainAppID(domainID, appID));
         params.add("role", roleName);
         hmci.setContent(GWRAPPER.toJSONGenericMap(params, false, false, false));
         HTTPCall hc = new HTTPCall(hmci);
@@ -493,7 +493,7 @@ public class XXClientAPI {
 
         // if app_admin can only do it for his domain
         params.add("subject_id", subjectToUpdate);
-        params.add("app_gid", AppIDDefault.toDomainAppID(domainID, appID));
+        params.add("app_gid", AppID.toDomainAppID(domainID, appID));
         params.add("role", roleName);
         hmci.setContent(GWRAPPER.toJSONGenericMap(params, false, false, false));
         HTTPCall hc = new HTTPCall(hmci);
