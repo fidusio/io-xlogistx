@@ -44,6 +44,7 @@ public class IconWidgetDemo {
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });
+
     }
 
     private static JComponent labeled(String name, Icon icon) {
