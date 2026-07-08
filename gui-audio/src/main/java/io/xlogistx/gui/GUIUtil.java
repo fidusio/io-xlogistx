@@ -8,6 +8,10 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -228,6 +232,110 @@ public class GUIUtil {
         @Override
         public void paintIcon(Component c, Graphics g, int x, int y) {
             halfCirclePaintIcon(c, g, x, y);
+        }
+
+    }
+
+
+    public static class EditIcon extends IconWidget {
+
+
+        public EditIcon(int size) {
+            this(size, Color.WHITE);
+        }
+
+        public EditIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue());
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            c.setBackground(backGroundColor);
+            g2.setColor(color);
+
+            int w = getIconWidth();
+            int h = getIconHeight();
+            float cx = x + w / 2f;
+            float cy = y + h / 2f;
+
+            // pencil silhouette built horizontally (tip on the left) then rotated 45 degrees
+            g2.rotate(-Math.PI / 4, cx, cy);
+
+            float len = w * 1.1f;
+            float bodyH = w * 0.26f;
+            float tipLen = w * 0.26f;
+            float eraserLen = w * 0.15f;
+            float gap = Math.max(1f, w * 0.05f);
+            float left = cx - len / 2;
+            float top = cy - bodyH / 2;
+
+            // sharpened tip
+            Path2D.Float tip = new Path2D.Float();
+            tip.moveTo(left, cy);
+            tip.lineTo(left + tipLen, top);
+            tip.lineTo(left + tipLen, top + bodyH);
+            tip.closePath();
+            g2.fill(tip);
+
+            // body
+            g2.fill(new Rectangle2D.Float(left + tipLen + gap, top, len - tipLen - eraserLen - 2 * gap, bodyH));
+
+            // eraser
+            g2.fill(new Rectangle2D.Float(left + len - eraserLen, top, eraserLen, bodyH));
+
+            g2.dispose();
+        }
+
+    }
+
+    public static class DeleteIcon extends IconWidget {
+
+
+        public DeleteIcon(int size) {
+            this(size, Color.WHITE);
+        }
+
+        public DeleteIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue());
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            c.setBackground(backGroundColor);
+            g2.setColor(color);
+
+            int w = getIconWidth();
+            int h = getIconHeight();
+            float stroke = Math.max(1.5f, w / 11f);
+            g2.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            float lidY = y + h * 0.24f;
+            // handle: small arc sitting on the lid
+            g2.draw(new Arc2D.Float(x + w * 0.38f, y + h * 0.12f, w * 0.24f, h * 0.22f, 0, 180, Arc2D.OPEN));
+            // lid
+            g2.draw(new Line2D.Float(x + w * 0.14f, lidY, x + w * 0.86f, lidY));
+
+            // body: slightly tapered with a rounded bottom
+            float bodyBottom = y + h * 0.86f;
+            float r = w * 0.08f;
+            Path2D.Float body = new Path2D.Float();
+            body.moveTo(x + w * 0.21f, lidY);
+            body.lineTo(x + w * 0.26f, bodyBottom - r);
+            body.quadTo(x + w * 0.27f, bodyBottom, x + w * 0.27f + r, bodyBottom);
+            body.lineTo(x + w * 0.73f - r, bodyBottom);
+            body.quadTo(x + w * 0.73f, bodyBottom, x + w * 0.74f, bodyBottom - r);
+            body.lineTo(x + w * 0.79f, lidY);
+            g2.draw(body);
+
+            // ribs
+            g2.draw(new Line2D.Float(x + w * 0.41f, lidY + h * 0.14f, x + w * 0.42f, bodyBottom - h * 0.12f));
+            g2.draw(new Line2D.Float(x + w * 0.59f, lidY + h * 0.14f, x + w * 0.58f, bodyBottom - h * 0.12f));
+
+            g2.dispose();
         }
 
     }
