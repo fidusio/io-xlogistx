@@ -6,13 +6,15 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
+import com.github.weisj.jsvg.SVGDocument;
+import com.github.weisj.jsvg.attributes.ViewBox;
+import com.github.weisj.jsvg.parser.SVGLoader;
+
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.geom.Arc2D;
-import java.awt.geom.Line2D;
-import java.awt.geom.Path2D;
-import java.awt.geom.Rectangle2D;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.net.URL;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -239,6 +241,7 @@ public class GUIUtil {
 
     public static class EditIcon extends IconWidget {
 
+        private final SVGIcon svg;
 
         public EditIcon(int size) {
             this(size, Color.WHITE);
@@ -246,52 +249,20 @@ public class GUIUtil {
 
         public EditIcon(int size, Color color) {
             super(size, color, NVColor.BOOTSTRAP_BLUE.getValue());
+            svg = svgIcon("io/xlogistx/gui/icons/edit.svg", size, this.color);
         }
 
         @Override
         public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             c.setBackground(backGroundColor);
-            g2.setColor(color);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-            float cx = x + w / 2f;
-            float cy = y + h / 2f;
-
-            // pencil silhouette built horizontally (tip on the left) then rotated 45 degrees
-            g2.rotate(-Math.PI / 4, cx, cy);
-
-            float len = w * 1.1f;
-            float bodyH = w * 0.26f;
-            float tipLen = w * 0.26f;
-            float eraserLen = w * 0.15f;
-            float gap = Math.max(1f, w * 0.05f);
-            float left = cx - len / 2;
-            float top = cy - bodyH / 2;
-
-            // sharpened tip
-            Path2D.Float tip = new Path2D.Float();
-            tip.moveTo(left, cy);
-            tip.lineTo(left + tipLen, top);
-            tip.lineTo(left + tipLen, top + bodyH);
-            tip.closePath();
-            g2.fill(tip);
-
-            // body
-            g2.fill(new Rectangle2D.Float(left + tipLen + gap, top, len - tipLen - eraserLen - 2 * gap, bodyH));
-
-            // eraser
-            g2.fill(new Rectangle2D.Float(left + len - eraserLen, top, eraserLen, bodyH));
-
-            g2.dispose();
+            svg.paintIcon(c, g, x, y);
         }
 
     }
 
     public static class DeleteIcon extends IconWidget {
 
+        private final SVGIcon svg;
 
         public DeleteIcon(int size) {
             this(size, Color.WHITE);
@@ -299,43 +270,13 @@ public class GUIUtil {
 
         public DeleteIcon(int size, Color color) {
             super(size, color, NVColor.BOOTSTRAP_RED.getValue());
+            svg = svgIcon("io/xlogistx/gui/icons/delete.svg", size, this.color);
         }
 
         @Override
         public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             c.setBackground(backGroundColor);
-            g2.setColor(color);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-            float stroke = Math.max(1.5f, w / 11f);
-            g2.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-            float lidY = y + h * 0.24f;
-            // handle: small arc sitting on the lid
-            g2.draw(new Arc2D.Float(x + w * 0.38f, y + h * 0.12f, w * 0.24f, h * 0.22f, 0, 180, Arc2D.OPEN));
-            // lid
-            g2.draw(new Line2D.Float(x + w * 0.14f, lidY, x + w * 0.86f, lidY));
-
-            // body: slightly tapered with a rounded bottom
-            float bodyBottom = y + h * 0.86f;
-            float r = w * 0.08f;
-            Path2D.Float body = new Path2D.Float();
-            body.moveTo(x + w * 0.21f, lidY);
-            body.lineTo(x + w * 0.26f, bodyBottom - r);
-            body.quadTo(x + w * 0.27f, bodyBottom, x + w * 0.27f + r, bodyBottom);
-            body.lineTo(x + w * 0.73f - r, bodyBottom);
-            body.quadTo(x + w * 0.73f, bodyBottom, x + w * 0.74f, bodyBottom - r);
-            body.lineTo(x + w * 0.79f, lidY);
-            g2.draw(body);
-
-            // ribs
-            g2.draw(new Line2D.Float(x + w * 0.41f, lidY + h * 0.14f, x + w * 0.42f, bodyBottom - h * 0.12f));
-            g2.draw(new Line2D.Float(x + w * 0.59f, lidY + h * 0.14f, x + w * 0.58f, bodyBottom - h * 0.12f));
-
-            g2.dispose();
+            svg.paintIcon(c, g, x, y);
         }
 
     }
@@ -488,6 +429,93 @@ public class GUIUtil {
         int g = (int) (start.getGreen() + (end.getGreen() - start.getGreen()) * ratio);
         int b = (int) (start.getBlue() + (end.getBlue() - start.getBlue()) * ratio);
         return new Color(r, g, b);
+    }
+
+
+    /**
+     * Icon rendered from an SVG document via JSVG, scaled to the requested size.
+     * The vector is rasterized at the actual device scale (HiDPI aware) and can
+     * optionally be tinted with a single color while preserving the glyph alpha.
+     */
+    public static class SVGIcon implements Icon {
+
+        private final SVGDocument document;
+        private final Dimension dimension;
+        private final Color tint;
+
+        public SVGIcon(String resource, int size, Color tint) {
+            this.dimension = new Dimension(size, size);
+            this.tint = tint;
+            URL url = GUIUtil.class.getClassLoader().getResource(resource);
+            if (url == null)
+                throw new IllegalArgumentException("svg resource not found: " + resource);
+            document = new SVGLoader().load(url);
+            if (document == null)
+                throw new IllegalArgumentException("invalid svg resource: " + resource);
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            int w = getIconWidth();
+            int h = getIconHeight();
+
+            // rasterize at the device scale so the icon stays sharp on HiDPI displays
+            AffineTransform transform = g2.getTransform();
+            double scale = Math.max(transform.getScaleX(), transform.getScaleY());
+            if (scale <= 0)
+                scale = 1;
+            int pw = (int) Math.ceil(w * scale);
+            int ph = (int) Math.ceil(h * scale);
+
+            BufferedImage image = new BufferedImage(pw, ph, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D ig = image.createGraphics();
+            ig.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            document.render(c instanceof JComponent ? (JComponent) c : null, ig, new ViewBox(0, 0, pw, ph));
+            if (tint != null) {
+                // keep the glyph alpha, replace its color
+                ig.setComposite(AlphaComposite.SrcIn);
+                ig.setColor(tint);
+                ig.fillRect(0, 0, pw, ph);
+            }
+            ig.dispose();
+
+            g2.drawImage(image, x, y, w, h, null);
+            g2.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return dimension.width;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return dimension.height;
+        }
+    }
+
+    /**
+     * Loads an SVG icon from the classpath scaled to the given size.
+     *
+     * @param resource classpath resource path of the svg file (e.g. "io/xlogistx/gui/icons/edit.svg")
+     * @param size     icon width and height in pixels
+     * @return the svg icon
+     */
+    public static SVGIcon svgIcon(String resource, int size) {
+        return svgIcon(resource, size, null);
+    }
+
+    /**
+     * Loads an SVG icon from the classpath scaled to the given size and recolored.
+     *
+     * @param resource classpath resource path of the svg file
+     * @param size     icon width and height in pixels
+     * @param color    color applied to the whole glyph, null to keep the svg colors
+     * @return the svg icon
+     */
+    public static SVGIcon svgIcon(String resource, int size, Color color) {
+        return new SVGIcon(resource, size, color);
     }
 
 

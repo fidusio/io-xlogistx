@@ -16,6 +16,7 @@
         <flatlaf.version>3.5.4</flatlaf.version>
         <flatlab.roboto.version>2.137</flatlab.roboto.version>
         <miglayout.version>11.1</miglayout.version>
+        <jsvg.version>1.4.0</jsvg.version>
     </properties>
     <build>
         <directory>target</directory>
@@ -61,9 +62,9 @@
             <version>${flatlaf.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.formdev</groupId>
-            <artifactId>flatlaf-extras</artifactId>
-            <version>${flatlaf.version}</version>
+            <groupId>com.github.weisj</groupId>
+            <artifactId>jsvg</artifactId>
+            <version>${jsvg.version}</version>
         </dependency>
         <dependency>
             <groupId>com.formdev</groupId>
