@@ -10,6 +10,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * Auto-generated form editor for an {@link NVGenericMap}: renders one labeled editor
+ * row per entry (widgets chosen through {@link MetaToWidget}) plus save/cancel icon
+ * buttons.
+ * <p>
+ * Save writes every editor back into the backing map (and notifies the optional
+ * consumer set via {@link #setUpdateConsumer(Consumer)}); cancel re-loads the editors
+ * from the backing map, discarding UI edits. The widget keeps a live reference to the
+ * caller's map — saved changes are visible to the caller immediately.
+ */
 public class NVGenericMapWidget extends JPanel {
 
     //    private final Map<String, Object> nvgm;
@@ -21,6 +31,12 @@ public class NVGenericMapWidget extends JPanel {
     private final JButton save;
     private Consumer<NVGenericMap> updateConsumer = null;
 
+    /**
+     * Builds the form for the given map: a bold title (the map's name), one labeled
+     * editor row per entry pre-loaded with the current values, and save/cancel buttons.
+     *
+     * @param nvGenericMap backing map to edit; kept by reference, not copied
+     */
     public NVGenericMapWidget(NVGenericMap nvGenericMap) {
         super(new BorderLayout(10, 10));
         this.nvgm = nvGenericMap;
@@ -55,19 +71,15 @@ public class NVGenericMapWidget extends JPanel {
 
             gbc.gridx = 1;
             gbc.weightx = 1.0;
-            if (editor instanceof JScrollPane) {
-                form.add(editor, gbc);
-            } else {
-                form.add(editor, gbc);
-            }
+            form.add(editor, gbc);
             gbc.gridy++;
             mappedObject.valueToMap();
         }
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         int size = 32;
-        cancel = GUIUtil.iconButton(new GUIUtil.CancelIcon(size));
-        save = GUIUtil.iconButton(new GUIUtil.SaveIcon(size));
+        cancel = GUIUtil.iconButton(new IconUtil.CancelIcon(size), true);
+        save = GUIUtil.iconButton(new IconUtil.SaveIcon(size), true);
         buttons.add(save);
         buttons.add(cancel);
         add(buttons, BorderLayout.SOUTH);
@@ -77,95 +89,58 @@ public class NVGenericMapWidget extends JPanel {
     }
 
 
+    /**
+     * Returns the backing map (live reference, reflects saved edits).
+     *
+     * @return the backing NVGenericMap
+     */
     public NVGenericMap getData() {
         return nvgm;
     }
 
+    /**
+     * Returns the cancel button, e.g. to attach additional listeners or to hide it.
+     *
+     * @return the cancel button
+     */
     public JButton getCancel() {
         return cancel;
     }
 
+    /**
+     * Returns the save button, e.g. to attach additional listeners or to hide it.
+     *
+     * @return the save button
+     */
     public JButton getSave() {
         return save;
     }
 
+    /**
+     * Sets a callback invoked with the backing map after a successful save.
+     *
+     * @param updateConsumer callback, null to disable
+     */
     public void setUpdateConsumer(Consumer<NVGenericMap> updateConsumer) {
         this.updateConsumer = updateConsumer;
     }
 
+    /**
+     * Creates the bound editor widget for a map entry via {@link MetaToWidget}.
+     *
+     * @param gnv map entry to edit
+     * @return the entry/widget/binder bundle
+     */
     private MappedObject<?,JComponent> createWidgetFor(GetNameValue<?> gnv)
     {
         return MetaToWidget.SINGLETON.create(gnv);
     }
-
-//    private JComponent createEditorFor(Object value) {
-//        if (value instanceof String) {
-//            JTextArea ta = new JTextArea(4, 32);
-//            ta.setLineWrap(true);
-//            ta.setWrapStyleWord(true);
-//            ta.setText((String) value);
-//            return new JScrollPane(ta);
-//        } else if (value instanceof Integer || value instanceof Long
-//                || value instanceof Float || value instanceof Double) {
-//            JTextField tf = new JTextField(24);
-//            tf.setText(String.valueOf(value));
-//            tf.setToolTipText("Numeric value (" + value.getClass().getSimpleName() + ")");
-//            return tf;
-//        } else if (value instanceof Boolean) {
-//            JCheckBox cb = new JCheckBox();
-//            cb.setSelected((Boolean) value);
-//            return cb;
-//        } else if (value instanceof Enum) {
-//            Enum<?> enumVal = (Enum<?>) value;
-//            Object[] constants = enumVal.getDeclaringClass().getEnumConstants();
-//            JComboBox<Object> combo = new JComboBox<>(constants);
-//            combo.setSelectedItem(enumVal);
-//            return combo;
-//        } else if (value instanceof byte[]) {
-//            JTextArea ta = new JTextArea(4, 32);
-//            ta.setLineWrap(true);
-//            ta.setWrapStyleWord(true);
-//
-//            DataCodec<byte[], String> codec = DataCodecRegistrar.SINGLETON.lookup(value);
-//
-//            ta.setText(codec.encode((byte[]) value));
-//            return new JScrollPane(ta);
-//        } else {
-//            // Fallback: show toString in a disabled field
-//            JTextField tf = new JTextField(24);
-//            tf.setText(value == null ? "" : String.valueOf(value));
-//            tf.setEditable(false);
-//            tf.setToolTipText("Unsupported type: " + (value == null ? "null" : value.getClass().getName()));
-//            return tf;
-//        }
-//    }
 
     // Re-read backing map into UI (Cancel)
     private void onCancel(ActionEvent e) {
         for (GetNameValue<?> gnv : nvgm.values()) {
             MappedObject<?, ?> mappedObject = editors.get(gnv.getName());
             mappedObject.valueToMap();
-
-//            String key = gnv.getName();
-//            Object value = gnv.getValue();
-//            JComponent editor = editors.get(key);
-//
-//            if (editor instanceof JScrollPane) {
-//                Component c = ((JScrollPane) editor).getViewport().getView();
-//                DataCodec codec = MetaValueCodec.SINGLETON.lookupCodec(value);
-//
-//                if (c instanceof JTextArea) {
-//                    ((JTextArea) c).setText((String) codec.encode(value));
-//                }
-//            } else if (editor instanceof JTextField) {
-//                ((JTextField) editor).setText(String.valueOf(value));
-//            } else if (editor instanceof JCheckBox) {
-//                ((JCheckBox) editor).setSelected((Boolean) value);
-//            } else if (editor instanceof JComboBox) {
-//                @SuppressWarnings("unchecked")
-//                JComboBox<Object> combo = (JComboBox<Object>) editor;
-//                if (value instanceof Enum) combo.setSelectedItem(value);
-//            }
         }
     }
 
@@ -175,48 +150,15 @@ public class NVGenericMapWidget extends JPanel {
             for (GetNameValue<?> gnv : nvgm.values()) {
                 MappedObject<?, ?> mappedObject = editors.get(gnv.getName());
                 mappedObject.mapToValue();
-//                String key = gnv.getName();
-//                Object current = gnv.getValue();
-//                JComponent editor = editors.get(gnv.getName());
-//
-//                if (current instanceof String) {
-//                    JTextArea ta = (JTextArea) ((JScrollPane) editor).getViewport().getView();
-//                    nvgm.build(key, ta.getText());
-//                } else if (current instanceof Integer) {
-//                    String txt = ((JTextField) editor).getText().trim();
-//                    nvgm.build(new NVInt(key, Integer.parseInt(txt)));
-//                } else if (current instanceof Long) {
-//                    String txt = ((JTextField) editor).getText().trim();
-//                    nvgm.build(new NVLong(key, Long.parseLong(txt)));
-//                } else if (current instanceof Float) {
-//                    String txt = ((JTextField) editor).getText().trim();
-//                    nvgm.build(new NVFloat(key, Float.parseFloat(txt)));
-//                } else if (current instanceof Double) {
-//                    String txt = ((JTextField) editor).getText().trim();
-//                    nvgm.build(new NVDouble(key, Double.parseDouble(txt)));
-//                } else if (current instanceof Boolean) {
-//                    nvgm.build(new NVBoolean(key, ((JCheckBox) editor).isSelected()));
-//                } else if (current instanceof byte[]) {
-//                    JTextArea ta = (JTextArea) ((JScrollPane) editor).getViewport().getView();
-//                    DataCodec<byte[], String> codec = MetaValueCodec.SINGLETON.lookupCodec(byte[].class);
-//                    nvgm.build(new NVBlob(key, codec.decode(ta.getText().trim())));
-//                } else if (current instanceof Enum) {
-//                    @SuppressWarnings("unchecked")
-//                    JComboBox<Object> combo = (JComboBox<Object>) editor;
-//                    Object sel = combo.getSelectedItem();
-//                    if (sel != null && sel.getClass().isEnum()) {
-//                        nvgm.build(new NVEnum(key, (Enum) sel));
-//                    }
-//                } else {
-//                    // Unsupported types are ignored (read-only)
-//                }
             }
             if (updateConsumer != null)
                 updateConsumer.accept(nvgm);
 
             JOptionPane.showMessageDialog(this, "Saved successfully.", "Save", JOptionPane.INFORMATION_MESSAGE);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid numeric input: " + ex.getMessage(),
+        } catch (Exception ex) {
+            // catch everything (codec decode failures, range checks, ...) so a bad entry
+            // surfaces as a dialog instead of silently aborting the save mid-loop
+            JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage(),
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
         }
     }

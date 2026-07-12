@@ -1,49 +1,61 @@
 package io.xlogistx.gui;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.zoxweb.shared.util.SUS;
 
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Panel combining an editable combo box with add (+), delete (-) and optionally
+ * update icon buttons, letting the user maintain the item list at runtime:
+ * add inserts a new empty entry, delete removes the selected entry, and
+ * update/Enter commits the editor text to the selected entry (or appends it as a
+ * new entry when nothing is selected).
+ */
 public class DynamicComboBox extends JPanel {
 
 
-    private static final Logger log = LoggerFactory.getLogger(DynamicComboBox.class);
+    //private static final Logger log = LoggerFactory.getLogger(DynamicComboBox.class);
     private final JComboBox<String> comboBox;
     private final DefaultComboBoxModel<String> comboBoxModel;
     //private final JTextArea contentTA;
     // final Map<String, String> contentMap = new LinkedHashMap();
 
 
+    /**
+     * Creates a dynamic combo box.
+     *
+     * @param addUpdate if true an update button is added next to add/delete
+     */
     public DynamicComboBox(boolean addUpdate) {
         this(addUpdate, false);
     }
 
+    /**
+     * Creates a dynamic combo box.
+     *
+     * @param addUpdate          if true an update button is added next to add/delete
+     * @param addContentTextArea reserved for a companion content text area (currently unused)
+     */
     public DynamicComboBox(boolean addUpdate, boolean addContentTextArea) {
-        // Layout for this panel
-        setLayout(new BorderLayout(10, 10));
-
         // Create the model and combo box
         comboBoxModel = new DefaultComboBoxModel<>();
         comboBox = new JComboBox<>(comboBoxModel);
-        comboBox.setEditable(true); // Use a non-editable combo box so user picks from the dropdown
+        comboBox.setEditable(true); // editable so the user can type new/updated entries
 
 
         comboBox.getEditor().addActionListener((e) -> handleEditorUpdate());
 
 
         int size = 16;
-        Dimension buttonDimension = new Dimension(size, size);
         // Create buttons
-        JButton addButton = GUIUtil.iconButton(new GUIUtil.PlusIcon(size));
+        JButton addButton = GUIUtil.iconButton(new IconUtil.PlusIcon(size), true);
 
-        JButton deleteButton = GUIUtil.iconButton(new GUIUtil.MinusIcon(size));
+        JButton deleteButton = GUIUtil.iconButton(new IconUtil.MinusIcon(size), true);
 
         JButton updateButton = null;
         if (addUpdate) {
-            updateButton = GUIUtil.iconButton(new GUIUtil.UpdateIcon(size));
+            updateButton = GUIUtil.iconButton(new IconUtil.SaveIcon(size),  true);
         }
 
 
@@ -56,7 +68,6 @@ public class DynamicComboBox extends JPanel {
             buttonsPanel.add(updateButton);
 
 
-//        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
         add(buttonsPanel);
         add(comboBox);
@@ -73,6 +84,10 @@ public class DynamicComboBox extends JPanel {
     }
 
 
+    /**
+     * Commits the editor text: replaces the selected item when a selection exists,
+     * otherwise appends the text as a new item. Empty text is ignored.
+     */
     private void handleEditorUpdate() {
         // The edited text
         int selectedIndex = comboBox.getSelectedIndex();
@@ -99,6 +114,12 @@ public class DynamicComboBox extends JPanel {
     }
 
 
+    /**
+     * Adds an item to the combo box (no-op insert if it already exists) and selects it.
+     *
+     * @param content item text to add
+     * @return this widget for chaining
+     */
     public DynamicComboBox addItem(String content) {
 
         addNewEntry(content);
@@ -141,6 +162,11 @@ public class DynamicComboBox extends JPanel {
         return comboBoxModel;
     }
 
+    /**
+     * Returns the currently selected item.
+     *
+     * @return the trimmed selected item text, or null if nothing is selected or it is blank
+     */
     public String getSelectedItem() {
 //        if(contentTA != null)
 //            return SUS.trimOrNull(contentTA.getText());
@@ -148,8 +174,16 @@ public class DynamicComboBox extends JPanel {
         return SUS.trimOrNull((String) getModel().getSelectedItem());
     }
 
+    /**
+     * Advances the selection to the next item, wrapping back to the first item after
+     * the last.
+     *
+     * @return the newly selected index, or -1 if the combo box is empty
+     */
     public int moveNext() {
         int count = comboBox.getItemCount();
+        if (count == 0)
+            return -1;
         int nextIndex = comboBox.getSelectedIndex() + 1;
         if (nextIndex >= count)
             nextIndex = 0;

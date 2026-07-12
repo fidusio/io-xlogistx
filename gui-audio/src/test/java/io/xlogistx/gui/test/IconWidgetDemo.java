@@ -1,12 +1,13 @@
 package io.xlogistx.gui.test;
 
 import io.xlogistx.gui.GUIUtil;
+import io.xlogistx.gui.IconUtil;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * Visual demo of all GUIUtil IconWidget icons (Plus, Minus, Save, Cancel, Update, Edit, Delete)
+ * Visual demo of all IconUtil IconWidget icons (Plus, Minus, Save, Cancel, Update, Edit, Delete)
  * rendered at multiple sizes, both as raw icons and as icon buttons.
  */
 public class IconWidgetDemo {
@@ -21,24 +22,24 @@ public class IconWidgetDemo {
 
             for (int size : SIZES) {
                 frame.add(GUIUtil.createPanel("Size " + size, new FlowLayout(FlowLayout.LEFT, 10, 5),
-                        labeled("Plus", new GUIUtil.PlusIcon(size)),
-                        labeled("Minus", new GUIUtil.MinusIcon(size)),
-                        labeled("Save", new GUIUtil.SaveIcon(size)),
-                        labeled("Cancel", new GUIUtil.CancelIcon(size)),
-                        labeled("Update", new GUIUtil.UpdateIcon(size)),
-                        labeled("Edit", new GUIUtil.EditIcon(size)),
-                        labeled("Delete", new GUIUtil.DeleteIcon(size))));
+                        labeled("Plus", new IconUtil.PlusIcon(size)),
+                        labeled("Minus", new IconUtil.MinusIcon(size)),
+                        labeled("Save", new IconUtil.SaveIcon(size)),
+                        labeled("Cancel", new IconUtil.CancelIcon(size)),
+                        labeled("Update", new IconUtil.UpdateIcon(size)),
+                        labeled("Edit", new IconUtil.EditIcon(size)),
+                        labeled("Delete", new IconUtil.DeleteIcon(size))));
             }
 
             // as buttons, the typical usage
             frame.add(GUIUtil.createPanel("Buttons (24)", new FlowLayout(FlowLayout.LEFT, 10, 5),
-                    GUIUtil.iconButton(new GUIUtil.PlusIcon(24)),
-                    GUIUtil.iconButton(new GUIUtil.MinusIcon(24)),
-                    GUIUtil.iconButton(new GUIUtil.SaveIcon(24)),
-                    GUIUtil.iconButton(new GUIUtil.CancelIcon(24)),
-                    GUIUtil.iconButton(new GUIUtil.UpdateIcon(24)),
-                    GUIUtil.iconButton(new GUIUtil.EditIcon(24)),
-                    GUIUtil.iconButton(new GUIUtil.DeleteIcon(24))));
+                    GUIUtil.iconButton(new IconUtil.PlusIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.MinusIcon(24),true),
+                    GUIUtil.iconButton(new IconUtil.SaveIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.CancelIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.UpdateIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.EditIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.DeleteIcon(24), true)));
 
             frame.pack();
             frame.setLocationRelativeTo(null);

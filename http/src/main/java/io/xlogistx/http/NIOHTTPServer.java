@@ -99,7 +99,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.5.1");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.5.2");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -811,7 +811,6 @@ public class NIOHTTPServer
                                 sslPort = serverAddress.getPort();
 
 
-
                                 NVGenericMap sslConfig = cc.getSSLConfig();
                                 NVGenericMap[] certConfigs = CryptoConst.CertSource.parseCertConfig(sslConfig);
 
@@ -844,17 +843,14 @@ public class NIOHTTPServer
 
                                 long autoCheck = -1;
 
-                                try
-                                {
+                                try {
                                     autoCheck = Const.TimeInMillis.toMillis(sslConfig.getValue("auto_check"));
-                                    logger.getLogger().info("autoCheck enabled : " + Const.TimeInMillis.toString(autoCheck));
-                                }
-                                catch (Exception e)
-                                {
-                                    e.printStackTrace();
+                                    logger.getLogger().info("Cert autoCheck enabled : " + Const.TimeInMillis.toString(autoCheck));
+                                } catch (Exception e) {
+                                    logger.getLogger().info("Cert autoCheck disabled.");
                                 }
 
-                                if(autoCheck > 0)
+                                if (autoCheck > 0)
                                     nioSocket.getScheduler().scheduleAtFixedRate(store.getFileWatcher(), autoCheck, autoCheck, TimeUnit.MILLISECONDS);
 
                                 SSLContext sslContext = store.newSSLContext();

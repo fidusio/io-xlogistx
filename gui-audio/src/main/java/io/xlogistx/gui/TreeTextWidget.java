@@ -11,35 +11,53 @@ import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 
+/**
+ * Two-pane document editor: a tree of named nodes on the left and an editable text
+ * area on the right showing the selected node's content. Vertical icon buttons allow
+ * adding a child node under the selection (prompting for a label), updating the
+ * selected node's content from the text area, and deleting the selected node (with
+ * confirmation; the root cannot be deleted).
+ * <p>
+ * Nodes can also be added programmatically via {@link #addEntry(String, String, String)}.
+ */
 public class TreeTextWidget extends JPanel {
     private final JTree tree;
     private final JTextArea textArea;
     private final DefaultTreeModel model;
     private final DefaultMutableTreeNode root;
 
+    /**
+     * Tree node payload: the label shown in the tree plus the content shown in the
+     * text area.
+     *
+     * @param <V> content type; displayed via toString()
+     */
     // Node payload: label shown in tree + content shown in text area
     static class DocNode<V> {
         String label;
         V content;
-        DocNode(String label, V content) { this.label = label; this.content = content; }
-        @Override public String toString() { return label; }
+
+        DocNode(String label, V content) {
+            this.label = label;
+            this.content = content;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
+    /**
+     * Creates the widget with a single root node.
+     *
+     * @param mainEntryName label of the root node
+     */
     public TreeTextWidget(String mainEntryName) {
         super(new BorderLayout(8, 8));
 
         // ---- Build model ----
-        root = new DefaultMutableTreeNode(new DocNode(mainEntryName, ""));
-//        DefaultMutableTreeNode intro = new DefaultMutableTreeNode(new DocNode(
-//                "Introduction", "This is the introduction text."));
-//        DefaultMutableTreeNode usage = new DefaultMutableTreeNode(new DocNode(
-//                "Usage", "Steps to use the tool:\n1) Do this\n2) Do that\n3) Profit"));
-//        DefaultMutableTreeNode api = new DefaultMutableTreeNode(new DocNode("API", ""));
-//        api.add(new DefaultMutableTreeNode(new DocNode("Auth", "Auth API details here.")));
-//        api.add(new DefaultMutableTreeNode(new DocNode("Data", "Data API notes go here.")));
-//        root.add(intro);
-//        root.add(usage);
-//        root.add(api);
+        root = new DefaultMutableTreeNode(new DocNode<>(mainEntryName, ""));
         model = new DefaultTreeModel(root);
 
         // ---- Tree (scrollable) ----
@@ -61,9 +79,9 @@ public class TreeTextWidget extends JPanel {
         JPanel buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
         int size = 24;
-        JButton addBtn = GUIUtil.iconButton(new GUIUtil.PlusIcon(size));
-        JButton updateBtn = GUIUtil.iconButton(new GUIUtil.UpdateIcon(size));
-        JButton deleteBtn = GUIUtil.iconButton(new GUIUtil.MinusIcon(size));
+        JButton addBtn = GUIUtil.iconButton(new IconUtil.PlusIcon(size), true);
+        JButton updateBtn = GUIUtil.iconButton(new IconUtil.UpdateIcon(size), true);
+        JButton deleteBtn = GUIUtil.iconButton(new IconUtil.MinusIcon(size), true);
         addBtn.setMnemonic('A');
         updateBtn.setMnemonic('U');
         deleteBtn.setMnemonic('D');
@@ -99,7 +117,10 @@ public class TreeTextWidget extends JPanel {
     // Selection -> load content to text area
     private void onTreeSelectionChanged(TreeSelectionEvent e) {
         DefaultMutableTreeNode node = getSelectedNode();
-        if (node == null) { textArea.setText(""); return; }
+        if (node == null) {
+            textArea.setText("");
+            return;
+        }
         Object uo = node.getUserObject();
         if (uo instanceof DocNode) {
             DocNode dn = (DocNode) uo;
@@ -177,30 +198,33 @@ public class TreeTextWidget extends JPanel {
         tree.scrollPathToVisible(path);
     }
 
-//    public void addEntry(String nodeName, String content) {
-//        DocNode dn = new DocNode(nodeName, content);
-//        DefaultMutableTreeNode child = new DefaultMutableTreeNode(dn);
-//        model.insertNodeInto(child, root, root.getChildCount());
-//
-//        TreePath path = new TreePath(child.getPath());
-//        tree.setSelectionPath(path);
-//        tree.scrollPathToVisible(path);
-//
-//        textArea.setText(content);
-//        textArea.setCaretPosition(0);
-//    }
-
-    public<V> V lookup(String nodeName)
-    {
+    /**
+     * Looks up a node's content by node label.
+     *
+     * @param nodeName label of the node to find
+     * @param <V>      expected content type (String for nodes created through the UI
+     *                 or {@link #addEntry(String, String, String)})
+     * @return the node content, or null if the node is not found or has no content
+     */
+    @SuppressWarnings("unchecked")
+    public <V> V lookup(String nodeName) {
         DefaultMutableTreeNode result = findNodeByName(nodeName);
-        if(result != null)
-        {
-            result.getUserObject();
+        if (result != null) {
+            Object uo = result.getUserObject();
+            if (uo instanceof DocNode)
+                return (V) ((DocNode<?>) uo).content;
         }
-
         return null;
     }
 
+    /**
+     * Adds a node under the parent with the given label (root is used when the parent
+     * is not found), selects it, reveals it and loads its content into the text area.
+     *
+     * @param parentNodeName label of the parent node, falls back to root when not found
+     * @param nodeName       label of the new node
+     * @param content        content of the new node
+     */
     public void addEntry(String parentNodeName, String nodeName, String content) {
         DefaultMutableTreeNode parent = findNodeByName(parentNodeName);
         if (parent == null) {
@@ -218,6 +242,7 @@ public class TreeTextWidget extends JPanel {
         textArea.setText(content);
         textArea.setCaretPosition(0);
     }
+
     private DefaultMutableTreeNode findNodeByName(String name) {
         return findNodeRecursive(root, name);
     }
@@ -244,17 +269,15 @@ public class TreeTextWidget extends JPanel {
         return (DefaultMutableTreeNode) path.getLastPathComponent();
     }
 
-    public String getContent()
-    {
+    /**
+     * Returns the current text area content (which may contain unsaved edits not yet
+     * applied to the selected node).
+     *
+     * @return the text area content
+     */
+    public String getContent() {
         return textArea.getText();
     }
-
-//    private static String firstLineOr(String fallback, String text) {
-//        if (SUS.isEmpty(text)) return fallback;
-//        String line = text.trim().lines().findFirst().orElse(fallback);
-//        // Keep node labels short-ish
-//        return line.length() > 40 ? line.substring(0, 40) + "…" : line;
-//    }
 
     private static void expandAll(JTree tree) {
         for (int i = 0; i < tree.getRowCount(); i++) tree.expandRow(i);

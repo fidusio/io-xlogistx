@@ -81,10 +81,10 @@ public class StateIconDemo {
                 frame.setLayout(new FlowLayout());
 
                 // Load icons for different states
-                Icon xlogistxIcon = new ImageIcon(new URL("https://xlogistx.io/favicon.ico")); // Custom CircleIcon from previous example
-                Icon googleIcon = new ImageIcon("/google.ico");
+                ImageIcon xlogistxIcon = new ImageIcon(new URL("https://xlogistx.io/favicon.ico")); // Custom CircleIcon from previous example
+                ImageIcon googleIcon = new ImageIcon("/google.ico");
 
-                Icon youtubeIcon = new ImageIcon("/youtube.ico");
+                ImageIcon youtubeIcon = new ImageIcon("/youtube.ico");
 
                 // Create StateIcon with default state "OFF"
                 IconStatusWidget stateIcon = new IconStatusWidget(40,40);
