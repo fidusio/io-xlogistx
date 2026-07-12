@@ -10,7 +10,8 @@ import java.awt.*;
 /**
  * Base class for fixed-size, programmatically painted icons (see the concrete
  * implementations in {@link IconUtil}: PlusIcon, MinusIcon, SaveIcon, CancelIcon,
- * UpdateIcon, EditIcon, DeleteIcon).
+ * UpdateIcon, EditIcon, DeleteIcon, BackIcon, NextIcon, RollbackIcon, VisibleIcon,
+ * InvisibleIcon, CopyIcon, SearchIcon, RefreshIcon).
  * <p>
  * Holds the icon dimension, the glyph color and the background color applied to the
  * hosting component. On macOS the glyph and background colors are swapped because

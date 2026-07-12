@@ -8,9 +8,14 @@ Java package: `io.xlogistx.gui` (see `package-info.java` for the class map).
 The package has three groups:
 
 1. **Icons & helpers**
-   - `IconUtil` — the icon library. Vector-drawn icons (`PlusIcon`, `MinusIcon`, `SaveIcon`,
-     `CancelIcon`, `UpdateIcon`) and SVG-based icons (`EditIcon`, `DeleteIcon`, generic
-     `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`.
+   - `IconUtil` — the icon library. All icons are SVG-based (`PlusIcon`, `MinusIcon`,
+     `CancelIcon`, `SaveIcon`, `UpdateIcon`, `EditIcon`, `DeleteIcon`, `BackIcon`,
+     `NextIcon`, `RollbackIcon`, `VisibleIcon`, `InvisibleIcon`, `CopyIcon`, `SearchIcon`,
+     `RefreshIcon`, generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
+     ones share the `SVGIconWidget` base. **SVG icon constructor contract**:
+     `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
+     component's background; `XxxIcon(int size, Color color)` tints the glyph and paints
+     the icon's background color on the host component.
    - `GUIUtil` — static helpers only: `iconButton(...)` factories, screen capture
      (`captureSelectedArea()`), clipboard, panels/scroll panes, color interpolation
      (`colorToRatio`, `interpolateColors`).
@@ -50,10 +55,16 @@ The package has three groups:
 - **macOS color swap** in `IconWidget`: glyph/background colors are swapped on macOS
   (Swing buttons there don't honor background the same way). Null defaults are applied
   BEFORE the swap so neither field can end up null.
-- SVG resources live in `src/main/resources/io/xlogistx/gui/icons/` (`pencil`, `trash`,
-  `save`, `check`, `copy`, `search`, `rotate`, `eye`, `eye-off`, `arrow-left`).
-  `EditIcon` uses `pencil.svg`, `DeleteIcon` uses `trash.svg` (the old `edit.svg` /
-  `delete.svg` were removed).
+- SVG resources live in `src/main/resources/io/xlogistx/gui/icons/` (`plus`, `minus`,
+  `cancel`, `edit`, `delete`, `back`, `next`, `rollback`, `visible`, `invisible`, `save`,
+  `update`, `copy`, `search`, `refresh`). All are Feather-style: 24x24 viewBox,
+  `fill="none"`, `stroke="#5A5A5A"`, stroke-width 2, round caps/joins — match this style
+  when adding new ones. Each `XxxIcon` class maps to the same-named svg
+  (`PlusIcon`→`plus.svg`, ...), except: `EditIcon`→`edit.svg` is a pencil,
+  `DeleteIcon`→`delete.svg` is a trash can, `UpdateIcon`→`update.svg` is two chasing
+  arrows (sync), `RefreshIcon`→`refresh.svg` is a single clockwise arrow,
+  `RollbackIcon`→`rollback.svg` is its counterclockwise mirror. Every svg has a
+  dedicated class; one-off svgs can be loaded via `IconUtil.svgIcon(...)`.
 
 ## Dependencies
 

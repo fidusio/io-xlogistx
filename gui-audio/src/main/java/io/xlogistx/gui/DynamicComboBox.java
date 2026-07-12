@@ -4,6 +4,7 @@ import org.zoxweb.shared.util.SUS;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ItemEvent;
 
 /**
  * Panel combining an editable combo box with add (+), delete (-) and optionally
@@ -18,6 +19,10 @@ public class DynamicComboBox extends JPanel {
     //private static final Logger log = LoggerFactory.getLogger(DynamicComboBox.class);
     private final JComboBox<String> comboBox;
     private final DefaultComboBoxModel<String> comboBoxModel;
+    // last index that was really selected; editing the text detaches the combo's
+    // selection (selectedIndex becomes -1 because the typed text is not in the model),
+    // so update must fall back to this to know which item is being edited
+    private int lastSelectedIndex = -1;
     //private final JTextArea contentTA;
     // final Map<String, String> contentMap = new LinkedHashMap();
 
@@ -46,6 +51,14 @@ public class DynamicComboBox extends JPanel {
 
         comboBox.getEditor().addActionListener((e) -> handleEditorUpdate());
 
+        comboBox.addItemListener((e) -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                int index = comboBox.getSelectedIndex();
+                if (index >= 0)
+                    lastSelectedIndex = index;
+            }
+        });
+
 
         int size = 16;
         // Create buttons
@@ -55,7 +68,7 @@ public class DynamicComboBox extends JPanel {
 
         JButton updateButton = null;
         if (addUpdate) {
-            updateButton = GUIUtil.iconButton(new IconUtil.SaveIcon(size),  true);
+            updateButton = GUIUtil.iconButton(new IconUtil.UpdateIcon(size),  true);
         }
 
 
@@ -73,7 +86,7 @@ public class DynamicComboBox extends JPanel {
         add(comboBox);
 
         // Button Listeners
-        addButton.addActionListener((e) -> addNewEntry(""));
+        addButton.addActionListener((e) -> handleAdd());
 
         deleteButton.addActionListener((e) -> removeSelectedEntry());
 
@@ -85,29 +98,47 @@ public class DynamicComboBox extends JPanel {
 
 
     /**
+     * Adds an entry from the plus button: when the editor contains text the user typed
+     * (anything other than the committed selection), that text becomes the new entry;
+     * otherwise a blank entry is added for the user to type over.
+     */
+    private void handleAdd() {
+        String text = comboBox.getEditor().getItem().toString().trim();
+        int selectedIndex = comboBox.getSelectedIndex();
+        String selected = selectedIndex >= 0 ? comboBoxModel.getElementAt(selectedIndex) : null;
+
+        if (!text.isEmpty() && !text.equals(selected))
+            addNewEntry(text);
+        else
+            addNewEntry("");
+    }
+
+    /**
      * Commits the editor text: replaces the selected item when a selection exists,
      * otherwise appends the text as a new item. Empty text is ignored.
      */
     private void handleEditorUpdate() {
         // The edited text
-        int selectedIndex = comboBox.getSelectedIndex();
         String newText = comboBox.getEditor().getItem().toString().trim();
         if (newText.isEmpty()) {
             return;
         }
 
-        // Current selection index
-        //Object currentSelection = comboBoxModel.getSelectedItem();
-
-//        System.out.println("last selected:" + lastSelected + " selected index: " + selectedIndex);
+        int selectedIndex = comboBox.getSelectedIndex();
+        if (selectedIndex < 0)
+            selectedIndex = lastSelectedIndex; // selection detached by the edit, use the item being edited
+        if (selectedIndex >= comboBoxModel.getSize())
+            selectedIndex = -1; // stale index (items were removed since)
 
         if (selectedIndex >= 0) {
             // User was editing an existing item
-            comboBoxModel.removeElementAt(selectedIndex);
-            comboBoxModel.insertElementAt(newText, selectedIndex);
+            if (!newText.equals(comboBoxModel.getElementAt(selectedIndex))) {
+                comboBoxModel.removeElementAt(selectedIndex);
+                comboBoxModel.insertElementAt(newText, selectedIndex);
+            }
             comboBox.setSelectedIndex(selectedIndex);
         } else {
-            // No valid selection -> treat as a new item
+            // Nothing was ever selected -> treat as a new item
             comboBoxModel.addElement(newText);
             comboBox.setSelectedIndex(comboBoxModel.getSize() - 1);
         }
@@ -143,12 +174,23 @@ public class DynamicComboBox extends JPanel {
     }
 
     /**
-     * Removes the currently selected entry from the combo box.
+     * Removes the currently selected entry from the combo box, then resets the
+     * selection to the first item (or clears the editor when the list is empty).
+     * The explicit reselect is required: the model only auto-selects a neighbor when
+     * the selected object is the same instance as the removed element, and an editor
+     * commit replaces the selection with a fresh string — leaving the deleted text
+     * displayed.
      */
     private void removeSelectedEntry() {
         int selectedIndex = comboBox.getSelectedIndex();
         if (selectedIndex != -1) {
             comboBoxModel.removeElementAt(selectedIndex);
+            if (comboBoxModel.getSize() > 0) {
+                comboBox.setSelectedIndex(0);
+            } else {
+                lastSelectedIndex = -1;
+                comboBox.setSelectedItem(null); // clears the editor text
+            }
         }
     }
 

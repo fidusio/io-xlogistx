@@ -18,9 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Provides:
  * <ul>
- *   <li>Vector-drawn action icons ({@link PlusIcon}, {@link MinusIcon}, {@link SaveIcon},
- *       {@link CancelIcon}, {@link UpdateIcon})</li>
- *   <li>SVG-based icons ({@link EditIcon}, {@link DeleteIcon}, {@link SVGIcon}) and the
+ *   <li>SVG-based icons ({@link PlusIcon}, {@link MinusIcon}, {@link CancelIcon},
+ *       {@link SaveIcon}, {@link UpdateIcon}, {@link EditIcon}, {@link DeleteIcon},
+ *       {@link BackIcon}, {@link NextIcon}, {@link RollbackIcon}, {@link VisibleIcon},
+ *       {@link InvisibleIcon}, {@link CopyIcon}, {@link SearchIcon}, {@link RefreshIcon},
+ *       {@link SVGIcon}) and the
  *       {@link #svgIcon(String, int)} / {@link #svgIcon(String, int, Color)} factories</li>
  *   <li>Look-and-feel icon shortcuts ({@link #plusIcon()}, {@link #minusIcon()})</li>
  * </ul>
@@ -56,372 +58,442 @@ public class IconUtil {
     }
 
     /**
-     * Vector-drawn plus (+) icon, typically used for "add" buttons.
-     * Defaults to a white glyph on a dark green background.
+     * Plus (+) icon rendered from the bundled {@code plus.svg} classpath resource,
+     * typically used for "add" buttons.
      */
-    public static class PlusIcon extends IconWidget {
+    public static class PlusIcon extends SVGIconWidget {
 
         /**
-         * Creates a square plus icon with a white glyph.
+         * Creates a square plus icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public PlusIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/plus.svg");
         }
 
         /**
-         * Creates a square plus icon.
+         * Creates a square plus icon tinted with the given color on a blue background.
          *
          * @param size  icon width and height in pixels
-         * @param color glyph color
+         * @param color glyph tint color
          */
         public PlusIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue());
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/plus.svg");
         }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-            c.setBackground(backGroundColor);
-            g2.setColor(color);
-            int thickness = Math.max(2, w / 8);
-
-            // vertical line
-            g2.fillRect(x + w / 2 - thickness / 2, y + 4, thickness, h - 8);
-            // horizontal line
-            g2.fillRect(x + 4, y + h / 2 - thickness / 2, w - 8, thickness);
-
-            g2.dispose();
-        }
-
     }
 
 
     /**
-     * Vector-drawn check-mark icon, typically used for "save"/"confirm" buttons.
-     * Defaults to a white glyph on a dark green background.
+     * Base class for the SVG-backed icons. The single-int constructors render the svg
+     * with its own colors and leave the hosting component's background untouched; the
+     * tinted constructors recolor the glyph and paint the icon's background color on
+     * the hosting component.
      */
-    public static class SaveIcon extends IconWidget {
+    public static abstract class SVGIconWidget extends IconWidget {
+
+        /** The rendered svg icon. */
+        protected final SVGIcon svg;
+        /** True when the svg's own colors are used (no tint, no background override). */
+        protected final boolean svgDefaults;
 
         /**
-         * Creates a square save (check-mark) icon with a white glyph.
+         * Creates a square icon rendered with the svg's own colors.
+         *
+         * @param size     icon width and height in pixels
+         * @param resource classpath resource path of the svg file
+         */
+        protected SVGIconWidget(int size, String resource) {
+            super(size, (Color) null, (Color) null);
+            svgDefaults = true;
+            svg = svgIcon(resource, size);
+        }
+
+        /**
+         * Creates a square icon with a tinted glyph and a background color applied to
+         * the hosting component while painting.
+         *
+         * @param size            icon width and height in pixels
+         * @param color           glyph tint color
+         * @param backGroundColor background color applied to the hosting component
+         * @param resource        classpath resource path of the svg file
+         */
+        protected SVGIconWidget(int size, Color color, Color backGroundColor, String resource) {
+            super(size, color, backGroundColor);
+            svgDefaults = false;
+            svg = svgIcon(resource, size, this.color);
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            if (!svgDefaults)
+                c.setBackground(backGroundColor);
+            svg.paintIcon(c, g, x, y);
+        }
+    }
+
+    /**
+     * Save (floppy-disk) icon rendered from the bundled {@code save.svg} classpath resource.
+     */
+    public static class SaveIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square save icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public SaveIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/save.svg");
         }
 
         /**
-         * Creates a square save (check-mark) icon.
+         * Creates a square save icon tinted with the given color on a dark green background.
          *
          * @param size  icon width and height in pixels
-         * @param color glyph color
+         * @param color glyph tint color
          */
         public SaveIcon(int size, Color color) {
-            super(size, color, NVColor.DARK_GREEN.getValue());
+            super(size, color, NVColor.DARK_GREEN.getValue(), "io/xlogistx/gui/icons/save.svg");
         }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setStroke(new BasicStroke(Math.max(2, dimension.height / 6), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            c.setBackground(backGroundColor);
-            g2.setColor(color);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-
-            // Draw check mark: left bottom → middle → top right
-            int x1 = x + w / 6;
-            int y1 = y + h / 2;
-            int x2 = x + w / 2;
-            int y2 = y + h - h / 4;
-            int x3 = x + w - w / 6;
-            int y3 = y + h / 4;
-
-            g2.drawLine(x1, y1, x2, y2);
-            g2.drawLine(x2, y2, x3, y3);
-
-            g2.dispose();
-        }
-
     }
 
     /**
-     * Vector-drawn X (cross) icon, typically used for "cancel"/"close" buttons.
-     * Defaults to a white glyph on a red background.
+     * Cancel (X cross) icon rendered from the bundled {@code cancel.svg} classpath
+     * resource, typically used for "cancel"/"close" buttons.
      */
-    public static class CancelIcon extends IconWidget {
+    public static class CancelIcon extends SVGIconWidget {
 
         /**
-         * Creates a square cancel (X) icon with a white glyph.
+         * Creates a square cancel (X) icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public CancelIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/cancel.svg");
         }
 
         /**
-         * Creates a square cancel (X) icon.
+         * Creates a square cancel (X) icon tinted with the given color on a red background.
          *
          * @param size  icon width and height in pixels
-         * @param color glyph color
+         * @param color glyph tint color
          */
         public CancelIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_RED.color());
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue(), "io/xlogistx/gui/icons/cancel.svg");
         }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setStroke(new BasicStroke(Math.max(2, dimension.width / 6), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            c.setBackground(backGroundColor);
-            g2.setColor(color);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-
-            g2.drawLine(x + 4, y + 4, x + w - 4, y + h - 4);
-            g2.drawLine(x + w - 4, y + 4, x + 4, y + h - 4);
-
-            g2.dispose();
-        }
-
     }
 
     /**
-     * Vector-drawn minus (-) icon, typically used for "remove"/"delete" buttons.
-     * Defaults to a white glyph on a red background.
+     * Minus (-) icon rendered from the bundled {@code minus.svg} classpath resource,
+     * typically used for "remove" buttons.
      */
-    public static class MinusIcon extends IconWidget {
+    public static class MinusIcon extends SVGIconWidget {
 
         /**
-         * Creates a square minus icon with a white glyph.
+         * Creates a square minus icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public MinusIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/minus.svg");
         }
 
         /**
-         * Creates a square minus icon.
+         * Creates a square minus icon tinted with the given color on a red background.
          *
          * @param size  icon width and height in pixels
-         * @param color glyph color
+         * @param color glyph tint color
          */
         public MinusIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_RED.getValue());
-        }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-            c.setBackground(backGroundColor);
-            g2.setColor(color);
-            int thickness = Math.max(2, w / 8);
-
-            // horizontal line
-            g2.fillRect(x + 4, y + h / 2 - thickness / 2, w - 8, thickness);
-
-            g2.dispose();
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue(), "io/xlogistx/gui/icons/minus.svg");
         }
     }
 
     /**
-     * Vector-drawn circular-arrow (refresh) icon, typically used for "update" buttons.
-     * Defaults to a white glyph on a blue background. Two rendering variants are
-     * provided; {@link #paintIcon(Component, Graphics, int, int)} delegates to
-     * {@link #halfCirclePaintIcon(Component, Graphics, int, int)}.
+     * Update (two chasing arrows / sync) icon rendered from the bundled
+     * {@code update.svg} classpath resource.
      */
-    public static class UpdateIcon extends IconWidget {
+    public static class UpdateIcon extends SVGIconWidget {
 
         /**
-         * Creates a square update (refresh) icon with a white glyph.
+         * Creates a square update (two chasing arrows) icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public UpdateIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/update.svg");
         }
 
         /**
-         * Creates a square update (refresh) icon.
+         * Creates a square update (two chasing arrows) icon tinted with the given color
+         * on a blue background.
          *
          * @param size  icon width and height in pixels
-         * @param color glyph color
+         * @param color glyph tint color
          */
         public UpdateIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue());
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/update.svg");
         }
-
-
-        /**
-         * Alternative rendering: a 270-degree arc with an arrowhead, padded further
-         * from the icon edge than {@link #halfCirclePaintIcon(Component, Graphics, int, int)}.
-         *
-         * @param c component used for background painting
-         * @param g graphics context to draw into
-         * @param x left coordinate of the icon
-         * @param y top coordinate of the icon
-         */
-        public void circlePaintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setStroke(new BasicStroke(Math.max(2, dimension.width / 10), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.setColor(color);
-            c.setBackground(backGroundColor);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-            int pad = dimension.width / 6;
-
-            // Draw arc (almost a circle)
-            g2.drawArc(x + pad, y + pad, w - 2 * pad, h - 2 * pad, 45, 270);
-
-            // Draw arrowhead at the end of arc
-            int arrowSize = dimension.width / 4;
-            Polygon arrowHead = new Polygon();
-            int cx = x + w - pad;         // arrow tip X
-            int cy = y + h / 2;           // arrow tip Y
-
-            arrowHead.addPoint(cx, cy);                             // tip
-            arrowHead.addPoint(cx - arrowSize, cy - arrowSize / 2); // back top
-            arrowHead.addPoint(cx - arrowSize, cy + arrowSize / 2); // back bottom
-
-            g2.fill(arrowHead);
-
-            g2.dispose();
-        }
-
-        /**
-         * Default rendering: a 270-degree arc with an arrowhead close to the icon edge.
-         *
-         * @param c component used for background painting
-         * @param g graphics context to draw into
-         * @param x left coordinate of the icon
-         * @param y top coordinate of the icon
-         */
-        public void halfCirclePaintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            int w = getIconWidth();
-            int h = getIconHeight();
-            int strokeWidth = Math.max(2, dimension.width / 10);
-
-            g2.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-            c.setBackground(backGroundColor);
-
-            g2.setColor(color);
-
-            // Draw circular arc
-            int pad = strokeWidth;
-            g2.drawArc(x + pad, y + pad, w - 2 * pad, h - 2 * pad, 30, 270);
-
-            // Draw arrowhead at the end of arc
-            int arrowSize = dimension.width / 4;
-            Polygon arrowHead = new Polygon();
-            arrowHead.addPoint(x + w - pad - arrowSize, y + h / 2);        // left
-            arrowHead.addPoint(x + w - pad, y + h / 2 - arrowSize / 2);    // top
-            arrowHead.addPoint(x + w - pad, y + h / 2 + arrowSize / 2);    // bottom
-            g2.fillPolygon(arrowHead);
-
-            g2.dispose();
-        }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            halfCirclePaintIcon(c, g, x, y);
-        }
-
     }
 
 
     /**
-     * Pencil (edit) icon rendered from the bundled {@code pencil.svg} classpath resource,
-     * tinted with the requested color. Defaults to a white glyph on a blue background.
+     * Pencil (edit) icon rendered from the bundled {@code edit.svg} classpath resource.
      */
-    public static class EditIcon extends IconWidget {
-
-        private final SVGIcon svg;
+    public static class EditIcon extends SVGIconWidget {
 
         /**
-         * Creates a square edit (pencil) icon with a white glyph.
+         * Creates a square edit (pencil) icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public EditIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/edit.svg");
         }
 
         /**
-         * Creates a square edit (pencil) icon.
+         * Creates a square edit (pencil) icon tinted with the given color on a blue background.
          *
          * @param size  icon width and height in pixels
          * @param color glyph tint color
          */
         public EditIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue());
-            svg = svgIcon("io/xlogistx/gui/icons/pencil.svg", size, this.color);
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/edit.svg");
         }
-
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            c.setBackground(backGroundColor);
-            svg.paintIcon(c, g, x, y);
-        }
-
     }
 
     /**
-     * Trash-can (delete) icon rendered from the bundled {@code trash.svg} classpath
-     * resource, tinted with the requested color. Defaults to a white glyph on a red background.
+     * Trash-can (delete) icon rendered from the bundled {@code delete.svg} classpath resource.
      */
-    public static class DeleteIcon extends IconWidget {
-
-        private final SVGIcon svg;
+    public static class DeleteIcon extends SVGIconWidget {
 
         /**
-         * Creates a square delete (trash-can) icon with a white glyph.
+         * Creates a square delete (trash-can) icon rendered with the svg's own colors.
          *
          * @param size icon width and height in pixels
          */
         public DeleteIcon(int size) {
-            this(size, Color.WHITE);
+            super(size, "io/xlogistx/gui/icons/delete.svg");
         }
 
         /**
-         * Creates a square delete (trash-can) icon.
+         * Creates a square delete (trash-can) icon tinted with the given color on a red background.
          *
          * @param size  icon width and height in pixels
          * @param color glyph tint color
          */
         public DeleteIcon(int size, Color color) {
-            super(size, color, NVColor.BOOTSTRAP_RED.getValue());
-            svg = svgIcon("io/xlogistx/gui/icons/trash.svg", size, this.color);
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue(), "io/xlogistx/gui/icons/delete.svg");
+        }
+    }
+
+    /**
+     * Back (left arrow) icon rendered from the bundled {@code back.svg} classpath resource.
+     */
+    public static class BackIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square back (left arrow) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public BackIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/back.svg");
         }
 
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            c.setBackground(backGroundColor);
-            svg.paintIcon(c, g, x, y);
+        /**
+         * Creates a square back (left arrow) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public BackIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/back.svg");
+        }
+    }
+
+    /**
+     * Next (right arrow) icon rendered from the bundled {@code next.svg} classpath resource.
+     */
+    public static class NextIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square next (right arrow) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public NextIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/next.svg");
         }
 
+        /**
+         * Creates a square next (right arrow) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public NextIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/next.svg");
+        }
+    }
+
+    /**
+     * Rollback (counterclockwise circular arrow) icon rendered from the bundled
+     * {@code rollback.svg} classpath resource.
+     */
+    public static class RollbackIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square rollback icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RollbackIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/rollback.svg");
+        }
+
+        /**
+         * Creates a square rollback icon tinted with the given color on an orange background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public RollbackIcon(int size, Color color) {
+            super(size, color, NVColor.ORANGE.getValue(), "io/xlogistx/gui/icons/rollback.svg");
+        }
+    }
+
+    /**
+     * Visible (open eye) icon rendered from the bundled {@code visible.svg} classpath resource.
+     */
+    public static class VisibleIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square visible (open eye) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public VisibleIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/visible.svg");
+        }
+
+        /**
+         * Creates a square visible (open eye) icon tinted with the given color on a green background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public VisibleIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_GREEN.getValue(), "io/xlogistx/gui/icons/visible.svg");
+        }
+    }
+
+    /**
+     * Invisible (crossed-out eye) icon rendered from the bundled {@code invisible.svg}
+     * classpath resource.
+     */
+    public static class InvisibleIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square invisible (crossed-out eye) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public InvisibleIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/invisible.svg");
+        }
+
+        /**
+         * Creates a square invisible (crossed-out eye) icon tinted with the given color
+         * on a grey background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public InvisibleIcon(int size, Color color) {
+            super(size, color, NVColor.GREY.getValue(), "io/xlogistx/gui/icons/invisible.svg");
+        }
+    }
+
+
+    /**
+     * Copy (duplicate pages) icon rendered from the bundled {@code copy.svg} classpath resource.
+     */
+    public static class CopyIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square copy icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public CopyIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/copy.svg");
+        }
+
+        /**
+         * Creates a square copy icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public CopyIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/copy.svg");
+        }
+    }
+
+    /**
+     * Search (magnifying glass) icon rendered from the bundled {@code search.svg}
+     * classpath resource.
+     */
+    public static class SearchIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square search (magnifying glass) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public SearchIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/search.svg");
+        }
+
+        /**
+         * Creates a square search (magnifying glass) icon tinted with the given color
+         * on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public SearchIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/search.svg");
+        }
+    }
+
+
+    /**
+     * Refresh (circular arrows) icon rendered from the bundled {@code refresh.svg}
+     * classpath resource.
+     */
+    public static class RefreshIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square refresh (circular arrows) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RefreshIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/refresh.svg");
+        }
+
+        /**
+         * Creates a square refresh (circular arrows) icon tinted with the given color
+         * on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public RefreshIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/refresh.svg");
+        }
     }
 
 
