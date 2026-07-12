@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *       {@link InvisibleIcon}, {@link CopyIcon}, {@link SearchIcon}, {@link RefreshIcon},
  *       {@link SVGIcon}) and the
  *       {@link #svgIcon(String, int)} / {@link #svgIcon(String, int, Color)} factories</li>
- *   <li>Look-and-feel icon shortcuts ({@link #plusIcon()}, {@link #minusIcon()})</li>
+ *   <li>Look-and-feel icon shortcuts ({@link #TreePlusIcon()}, {@link #TreeMinusIcon()})</li>
  * </ul>
  * To wrap any of these in a button use {@link GUIUtil#iconButton(Icon, boolean)}.
  * All members are static; the class is not instantiable.
@@ -43,7 +43,7 @@ public class IconUtil {
      *
      * @return the icon, or null if the current look-and-feel does not define it
      */
-    public static Icon minusIcon() {
+    public static Icon TreeMinusIcon() {
         return UIManager.getIcon("Tree.expandedIcon");
     }
 
@@ -53,7 +53,7 @@ public class IconUtil {
      *
      * @return the icon, or null if the current look-and-feel does not define it
      */
-    public static Icon plusIcon() {
+    public static Icon TreePlusIcon() {
         return UIManager.getIcon("Tree.collapsedIcon");
     }
 
