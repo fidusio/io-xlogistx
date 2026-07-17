@@ -15,7 +15,6 @@ public class EndpointsUtil {
     private final AtomicBoolean onStartupCallStatus = new AtomicBoolean(false);
     private final AtomicBoolean postStartupCallStatus = new AtomicBoolean(false);
     private final AtomicBoolean onShutdownCallStatus = new AtomicBoolean(false);
-    ;
 
     private EndpointsUtil() {
     }
