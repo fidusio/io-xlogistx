@@ -129,9 +129,9 @@ public class PanelBuilder {
         return panel;
     }
 
-    public static JPanel listPage(String title, String addLabel, Runnable onAdd, String ...items) {
+    public static JPanel listPage(String title, String addLabel, Runnable onAdd, String... items) {
         JPanel group = group(title, addLabel, onAdd);
-        for(String item : items) {
+        for (String item : items) {
             group.add(row(item, new JButton("edit")));
         }
         return group;
@@ -162,5 +162,37 @@ public class PanelBuilder {
         JLabel label = new JLabel(text);
         label.putClientProperty(FlatClientProperties.STYLE_CLASS, "h2");
         return label;
+    }
+
+    public static JComponent sectionHeader(String title) {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        row.setOpaque(false);
+        JLabel t = new JLabel(title.toUpperCase());
+        t.setFont(t.getFont().deriveFont(Font.BOLD, 11f));
+        t.setForeground(UIManager.getColor("Label.disabledForeground"));
+        row.add(t);
+        return row;
+    }
+
+    public static JTextField textField(String placeholderText) {
+        JTextField out = new JTextField();
+        out.putClientProperty("JTextField.placeholderText", placeholderText);
+        return out;
+    }
+
+    public static JTextField textField(String placeholderText, int width) {
+        JTextField out = new JTextField(width);
+        out.putClientProperty("JTextField.placeholderText", placeholderText);
+        return out;
+    }
+
+    public static void addRow(JPanel form, String label, JComponent field) {
+        form.add(new JLabel(label));
+        form.add(field, "growx");
+    }
+
+    public static void addSection(JPanel form, String title) {
+        form.add(sectionHeader(title), "span 2, growx, gaptop 4");
+        form.add(new JSeparator(), "span 2, growx, gapbottom 4");
     }
 }
