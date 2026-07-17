@@ -91,8 +91,7 @@ public class XXClientAPI {
                         .createJWT(CryptoConst.JWTAlgo.HS256, add.getSubjectID(), add.getDomainID(),
                                 add.getAppID().getAppID());
 
-                hmciToUse.setAuthorization(
-                        new HTTPAuthorizationJWTBearer(JWTProvider.SINGLETON, add.getAPIKeyAsBytes(), jwt));
+                hmciToUse.setAuthorization(HTTPAuthorization.createBearer(jwt.hash(add.getAPIKeyAsBytes(), JWTProvider.SINGLETON)));
                 HTTPCall hc = new HTTPCall(hmciToUse);
                 try {
                     hc.sendRequest();
@@ -327,8 +326,7 @@ public class XXClientAPI {
         String uri = XXURI.DEREGISTRATION;
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.DELETE);
 
-        hmci.setAuthorization(
-                new HTTPAuthorizationJWTBearer(JWTProvider.SINGLETON, apd.getAPIKeyAsBytes(), jwt));
+        hmci.setAuthorization(HTTPAuthorization.createBearer(jwt.hash(apd.getAPIKeyAsBytes(), JWTProvider.SINGLETON)));
         HTTPCall hc = new HTTPCall(hmci);
         HTTPResponseData rd = hc.sendRequest();
         System.out.println(rd);
@@ -347,8 +345,7 @@ public class XXClientAPI {
         String uri = XXURI.LOGIN;
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
 
-        hmci.setAuthorization(
-                new HTTPAuthorizationJWTBearer(JWTProvider.SINGLETON, apd.getAPIKeyAsBytes(), jwt));
+        hmci.setAuthorization(HTTPAuthorization.createBearer(jwt.hash(apd.getAPIKeyAsBytes(), JWTProvider.SINGLETON)));
         HTTPCall hc = new HTTPCall(hmci);
         try {
             HTTPResponseData rd = hc.sendRequest();
@@ -430,8 +427,7 @@ public class XXClientAPI {
 
             HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.PATCH);
 
-            hmci.setAuthorization(
-                    new HTTPAuthorizationJWTBearer(JWTProvider.SINGLETON, add.getAPIKeyAsBytes(), jwt));
+            hmci.setAuthorization(HTTPAuthorization.createBearer(jwt.hash(add.getAPIKeyAsBytes(), JWTProvider.SINGLETON)));
             HTTPCall hc = new HTTPCall(hmci);
             HTTPResponseData hrd = hc.sendRequest();
 

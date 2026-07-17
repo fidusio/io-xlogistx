@@ -6,42 +6,33 @@ import org.apache.shiro.authc.UsernamePasswordToken;
 import org.zoxweb.server.http.HTTPAPIEncoder;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.http.HTTPAuthorization;
-import org.zoxweb.shared.http.HTTPAuthorizationBasic;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
 
 public class AuthenticationTokenEncoder
-    extends HTTPAPIEncoder<AuthenticationToken>
-{
+        extends HTTPAPIEncoder<AuthenticationToken> {
     @Override
-    public HTTPMessageConfigInterface encode(HTTPMessageConfigInterface hmci, AuthenticationToken authToken)
-    {
+    public HTTPMessageConfigInterface encode(HTTPMessageConfigInterface hmci, AuthenticationToken authToken) {
         HTTPAuthorization auth = hmci.getAuthorization();
-        if (auth == null)
-        {
+        if (auth == null) {
             // convert AuthenticationToken to HTTPAuthorization
 
-            if (authToken instanceof UsernamePasswordToken)
-            {
+            if (authToken instanceof UsernamePasswordToken) {
                 // we have a basic authentication
-                auth = new HTTPAuthorizationBasic((String) authToken.getPrincipal(), new String((char[])authToken.getCredentials()));
-            }
-            else if (authToken instanceof APIAuthenticationToken)
-            {
-                auth = new HTTPAuthorization(((APIAuthenticationToken) authToken).getType(),((APIAuthenticationToken) authToken).getToken());
+                auth = HTTPAuthorization.createBasic((String) authToken.getPrincipal(), new String((char[]) authToken.getCredentials()));
+            } else if (authToken instanceof APIAuthenticationToken) {
+                // TBD to change properly
+                auth = HTTPAuthorization.createBearer(((APIAuthenticationToken) authToken).getToken());
             }
             hmci.setAuthorization(auth);
-        }
-        else
-        {
+        } else {
             // convert AuthenticationToken to HTTPAuthorization in post mode
-            switch(hmci.getMethod())
-            {
+            switch (hmci.getMethod()) {
                 case POST:
                 case PUT:
                 case PATCH:
                     // create NVGM object
                     hmci.setContent(GSONUtil.toJSONDefault(authToken));
-                break;
+                    break;
             }
         }
         return hmci;

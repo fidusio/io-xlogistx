@@ -99,7 +99,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.5.2");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.5.3");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -402,7 +402,7 @@ public class NIOHTTPServer
                 throw new HTTPCallException("authentication missing", hmci);
 
             } else {
-                if (httpAuthorization instanceof HTTPAuthorizationBasic &&
+                if (httpAuthorization.authSchemeAsEnum() == HTTPAuthScheme.BASIC &&
                         (SharedUtil.lookupEnum(SecConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
                                 SharedUtil.lookupEnum(SecConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
 

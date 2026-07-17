@@ -36,8 +36,8 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.shared.http.HTTPAuthScheme;
 import org.zoxweb.shared.http.HTTPAuthorization;
-import org.zoxweb.shared.http.HTTPAuthorizationBasic;
 import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.SecConst;
@@ -291,8 +291,8 @@ public class ShiroUtil {
 
 
     public static AuthenticationToken httpAuthorizationToAuthToken(HTTPAuthorization httpAuthorization) {
-        if (httpAuthorization instanceof HTTPAuthorizationBasic) {
-            return new UsernamePasswordToken(((HTTPAuthorizationBasic) httpAuthorization).getUser(), ((HTTPAuthorizationBasic) httpAuthorization).getPassword());
+        if (httpAuthorization.authSchemeAsEnum() == HTTPAuthScheme.BASIC) {
+            return new UsernamePasswordToken(httpAuthorization.getTokenProperties().getValue("user"), (String) httpAuthorization.getTokenProperties().getValue("password"));
         }
 
         return null;
