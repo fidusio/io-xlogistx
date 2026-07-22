@@ -139,23 +139,10 @@ public class PanelBuilder {
 
 
     public static JPanel passwordField(JPasswordField field) {
-        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        row.add(field);
-        row.add(passwordToggle(field));
+        field.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
+        JPanel row = new JPanel(new BorderLayout());
+        row.add(field, BorderLayout.CENTER);
         return row;
-    }
-
-    private static JButton passwordToggle(JPasswordField field) {
-        char echo = field.getEchoChar();
-        JButton toggle = GUIUtil.iconButton(new IconUtil.VisibleIcon(16));
-        toggle.setToolTipText("Show");
-        toggle.addActionListener(e -> {
-            boolean shown = field.getEchoChar() == 0;   // currently visible?
-            field.setEchoChar(shown ? echo : (char) 0);
-            toggle.setIcon(shown ? new IconUtil.VisibleIcon(16) : new IconUtil.InvisibleIcon(16));
-            toggle.setToolTipText(shown ? "Show" : "Hide");
-        });
-        return toggle;
     }
 
     public static JLabel title(String text) {
