@@ -496,6 +496,28 @@ public class IconUtil {
         }
     }
 
+    public static class CameraIcon extends SVGIconWidget {
+
+        public CameraIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/camera.svg");
+        }
+
+        public CameraIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/camera.svg");
+        }
+    }
+
+    public static class AreaIcon extends SVGIconWidget {
+
+        public AreaIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/area.svg");
+        }
+
+        public AreaIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/area.svg");
+        }
+    }
+
 
     /**
      * Icon rendered from an SVG document via JSVG, scaled to the requested size.
