@@ -66,6 +66,7 @@ public class MDViewerPanel extends JPanel {
     private final HtmlRenderer renderer;
     private final JEditorPane viewer = new JEditorPane();
     private final HTMLDocument document;
+    private JScrollPane scrollPane;
 
     /**
      * Response-map to markdown decoder used by {@link #setMarkdown(NVGenericMap)};
@@ -173,7 +174,8 @@ public class MDViewerPanel extends JPanel {
         viewer.setDocument(document);
 
         setLayout(new BorderLayout());
-        add(new JScrollPane(viewer), BorderLayout.CENTER);
+        scrollPane = new JScrollPane(viewer);
+        add(scrollPane, BorderLayout.CENTER);
 
         setMarkdown(markdown);
     }
@@ -252,6 +254,51 @@ public class MDViewerPanel extends JPanel {
      */
     public JEditorPane getEditorPane() {
         return viewer;
+    }
+
+    /**
+     * @return the scroll pane currently hosting the viewer
+     */
+    public JScrollPane getScrollPane() {
+        return scrollPane;
+    }
+
+    /**
+     * Replaces the internal scroll pane with the given one at
+     * {@link BorderLayout#CENTER}; see
+     * {@link #overrideScrollPane(JScrollPane, String)}.
+     *
+     * @param external the replacement scroll pane, never null
+     * @return this panel, for chaining
+     * @throws NullPointerException if external is null
+     */
+    public MDViewerPanel overrideScrollPane(JScrollPane external) {
+        return overrideScrollPane(external, BorderLayout.CENTER);
+    }
+
+    /**
+     * Replaces the internal scroll pane with the given one, e.g. a subclassed or
+     * pre-configured scroll pane (scrollbar policies, custom borders, ...). The
+     * viewer is moved into the new scroll pane's viewport, the old scroll pane is
+     * removed and discarded, and the new one is added at the given
+     * {@link BorderLayout} position. Must be called on the EDT.
+     *
+     * @param external the replacement scroll pane, never null
+     * @param borderLayoutPosition the BorderLayout constraint to add the scroll
+     *        pane at (e.g. {@link BorderLayout#CENTER}), never null
+     * @return this panel, for chaining
+     * @throws NullPointerException if external or borderLayoutPosition is null
+     */
+    public MDViewerPanel overrideScrollPane(JScrollPane external, String borderLayoutPosition) {
+        SUS.checkIfNull("scrollPane null", external);
+        SUS.checkIfNull("borderLayoutPosition null", borderLayoutPosition);
+        remove(scrollPane);
+        scrollPane = external;
+        scrollPane.setViewportView(viewer);
+        add(scrollPane, borderLayoutPosition);
+        revalidate();
+        repaint();
+        return this;
     }
 
     private void applyStyles(StyleSheet styles) {

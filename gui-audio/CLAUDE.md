@@ -81,6 +81,9 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 - `StateIconDemo` — status widgets
 - `CaptureSelectedAreaDemo` — screen-area selection + screenshot (shows the intended
   off-EDT usage of `captureSelectedArea()`)
+- `MDViewerDemo` — live markdown editor (left) + rendered `MDViewerPanel` (right)
+- `MDViewerOverrideCheck` — windowless assertion run for
+  `MDViewerPanel.overrideScrollPane(...)`; exits 0 on success
 
 Build: `mvn clean install -pl gui-audio -am` (from repo root). No headless-safe unit tests
 exist for the Swing classes; verification is via the demos.

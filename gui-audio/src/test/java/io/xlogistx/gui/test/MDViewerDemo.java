@@ -3,6 +3,7 @@ package io.xlogistx.gui.test;
 import io.xlogistx.gui.MDViewerPanel;
 
 import javax.swing.*;
+import java.awt.*;
 
 /**
  * Interactive demo for {@link MDViewerPanel}: markdown source on the left,
@@ -72,7 +73,22 @@ public class MDViewerDemo {
                     new JScrollPane(source), viewer);
             split.setResizeWeight(0.5);
 
-            frame.add(split);
+            // visual demo of overrideScrollPane: orange border + always-on scrollbars
+            JCheckBox override = new JCheckBox("Custom scroll pane (overrideScrollPane)");
+            override.addActionListener(e -> {
+                if (override.isSelected()) {
+                    JScrollPane custom = new JScrollPane();
+                    custom.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+                    custom.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+                    custom.setBorder(BorderFactory.createLineBorder(Color.ORANGE, 3));
+                    viewer.overrideScrollPane(custom);
+                } else {
+                    viewer.overrideScrollPane(new JScrollPane());
+                }
+            });
+
+            frame.add(split, BorderLayout.CENTER);
+            frame.add(override, BorderLayout.SOUTH);
             frame.setSize(1000, 700);
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
