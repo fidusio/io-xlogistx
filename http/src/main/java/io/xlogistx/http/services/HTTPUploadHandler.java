@@ -87,7 +87,7 @@ public class HTTPUploadHandler
                                 md = MessageDigest.getInstance(hashType.getName());
                                 attachment.build(new NamedValue<>("md", md));
                             } catch (NoSuchAlgorithmException e) {
-                                throw new RuntimeException(e);
+                                throw new IOException(e);
                             }
                         }
 
@@ -124,7 +124,7 @@ public class HTTPUploadHandler
             }
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
+            throw new IOException(e);
         }
 
         return null;
@@ -178,7 +178,7 @@ public class HTTPUploadHandler
         try {
             md = MessageDigest.getInstance(CryptoConst.HashType.SHA_256.getName());
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new IOException(e);
         }
 
         long totalCopied = 0;
@@ -271,7 +271,7 @@ public class HTTPUploadHandler
                     md = MessageDigest.getInstance(CryptoConst.HashType.SHA_256.getName());
                     fileData.getProperties().build(new NamedValue<>("md", md));
                 } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException(e);
+                    throw new IOException(e);
                 }
             }
 
