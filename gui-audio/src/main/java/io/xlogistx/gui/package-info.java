@@ -22,6 +22,9 @@
  *       {@link io.xlogistx.gui.NVGenericMapWidget}; list/tree editors
  *       {@link io.xlogistx.gui.DynamicComboBox} and
  *       {@link io.xlogistx.gui.TreeTextWidget}.</li>
+ *   <li><b>Viewers</b> — {@link io.xlogistx.gui.MDViewerPanel} (read-only GitHub
+ *       flavored Markdown viewer, commonmark rendered into a
+ *       {@code JEditorPane}).</li>
  * </ul>
  */
 package io.xlogistx.gui;

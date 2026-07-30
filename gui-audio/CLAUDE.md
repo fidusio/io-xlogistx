@@ -69,6 +69,9 @@ The package has three groups:
 ## Dependencies
 
 - **JSVG** (`com.github.weisj:jsvg`) — SVG rendering. Do not add batik or other SVG libs.
+- **commonmark** (`org.commonmark` + gfm-tables/gfm-strikethrough/task-list-items
+  extensions) — Markdown parsing/rendering for `MDViewerPanel`. Do not add flexmark or
+  other Markdown libs.
 - `common` module (`NVColor`), zoxweb (`NVGenericMap`, `MappedObject`, `SUS`, `ServerUtil`).
 
 ## Demos / manual testing
