@@ -1,6 +1,8 @@
 package io.xlogistx.gui;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,8 +12,9 @@ import java.util.function.Supplier;
 
 
 /**
- * A bordered panel with a title and optional add button, over a refreshable list of rows.
- * Each row shows an item's label plus per-row action buttons. Built via {@link #of(Supplier)}.
+ * A bordered panel with a title, optional add button and optional search bar, over a
+ * refreshable list of rows. Each row shows an item's label plus per-row action buttons.
+ * Built via {@link #of(Supplier)}.
  *
  * @see #of(Supplier)
  */
@@ -47,6 +50,7 @@ public class ListSection<T> extends JPanel {
     private final Function<T, String> labelFunction;
     private final List<RowAction<T>> actions;
     private final String emptyText;
+    private final JTextField searchField;
 
     private ListSection(Builder<T> b) {
         this.source = b.source;
@@ -74,7 +78,23 @@ public class ListSection<T> extends JPanel {
         }
 
         header.add(titleRow);
-        header.add(new JSeparator());
+
+        if (b.search) {
+            searchField = PanelBuilder.textField(b.searchPlaceholder);
+            searchField.putClientProperty("JTextField.leadingIcon", new IconUtil.SearchIcon(16));
+            searchField.getDocument().addDocumentListener(new DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e) { refresh(); }
+                @Override public void removeUpdate(DocumentEvent e) { refresh(); }
+                @Override public void changedUpdate(DocumentEvent e) { refresh(); }
+            });
+            header.add(Box.createVerticalStrut(4));
+            header.add(searchField);
+            header.add(Box.createVerticalStrut(4));
+        } else {
+            searchField = null;
+        }
+
+        header.add(separator());
 
         add(header, BorderLayout.NORTH);
 
@@ -82,6 +102,16 @@ public class ListSection<T> extends JPanel {
         add(rows, BorderLayout.CENTER);
 
         refresh();
+    }
+
+    /**
+     * A horizontal separator whose max height is pinned to its preferred height, so
+     * BoxLayout can't stretch it vertically when the panel is taller than its content.
+     */
+    private static JSeparator separator() {
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, sep.getPreferredSize().height));
+        return sep;
     }
 
     /**
@@ -98,6 +128,7 @@ public class ListSection<T> extends JPanel {
      *       .action(new ListSection.RowAction<>(new IconUtil.CopyIcon(16), "Copy", s -> () -> copy(s)))
      *       .onEdit(s -> () -> edit(s))
      *       .onRemove(s -> () -> remove(s))
+     *       .search("Search servers")
      *       .emptyText("No servers")
      *       .build();
      * }</pre>
@@ -109,18 +140,19 @@ public class ListSection<T> extends JPanel {
     public void refresh() {
         rows.removeAll();
         List<T> items = (source != null) ? source.get() : null;
+        boolean noItems = (items == null || items.isEmpty());
 
-        if (items == null || items.isEmpty()) {
-            JLabel empty = new JLabel(emptyText);
+        List<T> matches = noItems ? new ArrayList<>() : filter(items);
+
+        if (matches.isEmpty()) {
+            JLabel empty = new JLabel(noItems ? emptyText : "No matches");
             empty.setEnabled(false);
             empty.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
             rows.add(empty);
-            rows.revalidate();
-            rows.repaint();
-            return;
         }
 
-        for (T item : items) {
+        for (int i = 0; i < matches.size(); i++) {
+            T item = matches.get(i);
             List<JButton> buttons = new ArrayList<>();
 
             for (RowAction<T> action : actions) {
@@ -133,12 +165,30 @@ public class ListSection<T> extends JPanel {
                 }
             }
 
+            if (i > 0)
+                rows.add(separator());
             rows.add(PanelBuilder.row(labelFunction.apply(item), buttons.toArray(new JButton[0])));
-
-            rows.add(new JSeparator());
         }
         rows.revalidate();
         rows.repaint();
+    }
+
+    /**
+     * Items whose label contains the search text (case-insensitive). All items when the
+     * search bar is absent or blank.
+     */
+    private List<T> filter(List<T> items) {
+        String query = (searchField != null) ? searchField.getText().trim().toLowerCase() : "";
+        if (query.isEmpty())
+            return items;
+
+        List<T> matches = new ArrayList<>();
+        for (T item : items) {
+            String label = labelFunction.apply(item);
+            if (label != null && label.toLowerCase().contains(query))
+                matches.add(item);
+        }
+        return matches;
     }
 
     /**
@@ -153,6 +203,8 @@ public class ListSection<T> extends JPanel {
         private Runnable onAdd;
         private Function<T, String> labelFunction;
         private String emptyText = "No items";
+        private boolean search;
+        private String searchPlaceholder = "Search";
 
         private Builder(Supplier<List<T>> source) {
             this.source = source;
@@ -210,6 +262,24 @@ public class ListSection<T> extends JPanel {
          */
         public Builder<T> emptyText(String emptyText) {
             this.emptyText = emptyText;
+            return this;
+        }
+
+        /**
+         * Adds a search bar under the title that filters rows as you type
+         * (case-insensitive match against the row label); without this call no
+         * search bar is shown.
+         */
+        public Builder<T> search() {
+            return search("Search");
+        }
+
+        /**
+         * Same as {@link #search()} with a custom placeholder text.
+         */
+        public Builder<T> search(String placeholder) {
+            this.search = true;
+            this.searchPlaceholder = placeholder;
             return this;
         }
 
