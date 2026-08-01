@@ -101,6 +101,36 @@ public class PanelBuilder {
         return row;
     }
 
+    /**
+     * {@link #row(String, JButton...)} with a muted second line under the label;
+     * a null or empty subtitle yields the single-line row.
+     */
+    public static JPanel row(String label, String subtitle, JButton... buttons) {
+        if (subtitle == null || subtitle.isEmpty())
+            return row(label, buttons);
+
+        JPanel row = new JPanel(new BorderLayout(6, 0));
+
+        JPanel text = new JPanel();
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+        text.setOpaque(false);
+        JLabel main = new JLabel(label);
+        JLabel sub = new JLabel(subtitle);
+        sub.setFont(sub.getFont().deriveFont(sub.getFont().getSize2D() - 2f));
+        sub.setForeground(UIManager.getColor("Label.disabledForeground"));
+        main.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sub.setAlignmentX(Component.LEFT_ALIGNMENT);
+        text.add(main);
+        text.add(sub);
+        row.add(text, BorderLayout.CENTER);
+
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        for (JButton btn : buttons) right.add(btn);
+        row.add(right, BorderLayout.EAST);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
+        return row;
+    }
+
     public static JPanel group(String title, String addLabel, Runnable onAdd) {
         JPanel group = new JPanel();
         group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
