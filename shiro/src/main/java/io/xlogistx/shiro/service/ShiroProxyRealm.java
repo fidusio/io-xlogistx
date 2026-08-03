@@ -48,8 +48,6 @@ public class ShiroProxyRealm extends AuthorizingRealm
 //        setName("ProxyRealm");
 //        setAuthenticationCachingEnabled(true);
 //        setAuthorizationCachingEnabled(true);
-
-
     }
 
     /**
