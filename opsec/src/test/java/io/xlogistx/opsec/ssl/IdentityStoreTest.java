@@ -53,7 +53,7 @@ public class IdentityStoreTest {
 
     @BeforeAll
     static void providers() {
-        OPSecUtil.SINGLETON.loadProviders(); // BC + BCJSSE + BCPQC
+        OPSecUtil.singleton(); // BC + BCJSSE + BCPQC
     }
 
     // ------------------------------------------------------------- the tests

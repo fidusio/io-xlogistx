@@ -111,7 +111,7 @@ public class CrystalKeyTest {
     @Test
     public void testKeyberByReloadingBCProviders() throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException {
         testKeyber();
-        OPSecUtil.SINGLETON.reloadProviders();
+        OPSecUtil.singleton();
         testKeyber();
 
     }

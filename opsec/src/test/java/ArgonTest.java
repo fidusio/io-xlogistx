@@ -21,7 +21,7 @@ public class ArgonTest {
     @BeforeAll
     public static void init()
     {
-        OPSecUtil.SINGLETON.loadProviders();
+        OPSecUtil.singleton();
     }
 
 

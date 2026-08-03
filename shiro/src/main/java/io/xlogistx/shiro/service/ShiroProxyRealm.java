@@ -79,16 +79,17 @@ public class ShiroProxyRealm extends AuthorizingRealm
         // the payload is a json object {"principal": token.getPrincipal(), "credentials": token.getCredentials()}
         // The remote server must validate the re
 
-        if (log.isEnabled()) log.getLogger().info("token: " + token);
+
 
         try {
 
             AuthenticationInfo authenticationInfo = kvAuthenticationInfo.get((String) token.getPrincipal());
+            if(log.isEnabled()) log.getLogger().info("authenticationInfo: " + authenticationInfo);
             if (authenticationInfo != null)
                 return authenticationInfo;
 
             if (remoteRealm != null) {
-                HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall(token);
+                HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall((AuthenticationToken)null, HTTPAuthTokenEncoder.SINGLETON.encode(token));
                 if (log.isEnabled()) log.getLogger().info("remoteRealm " + result);
                 CIPassword passwordDAO = credentialHasher.hash((char[]) token.getCredentials());
                 authenticationInfo = new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());

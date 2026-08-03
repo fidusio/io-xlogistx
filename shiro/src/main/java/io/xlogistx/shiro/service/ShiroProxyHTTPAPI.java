@@ -11,6 +11,6 @@ extends HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData>
     public ShiroProxyHTTPAPI(HTTPMessageConfigInterface config) {
         super(config);
         setDataDecoder(new ShiroSessionDataDecoder());
-        setDataEncoder(new AuthenticationTokenEncoder());
+        //setDataEncoder(new AuthenticationTokenEncoder());
     }
 }

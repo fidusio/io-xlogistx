@@ -21,7 +21,7 @@ import java.security.spec.*;
 
 public class PEMKeyReader {
     static {
-        OPSecUtil.SINGLETON.loadProviders();
+        OPSecUtil.singleton();
     }
 
 

@@ -34,12 +34,12 @@ public class DomainIdentityMatcherTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        OPSecUtil.SINGLETON.loadProviders();
+        OPSecUtil.singleton();
         KeyPairGenerator g = KeyPairGenerator.getInstance("EC", "BC");
         g.initialize(new ECGenParameterSpec("secp256r1"));
         KeyPair kp = g.generateKeyPair();
         X500Name dn = new X500Name("CN=dummy");
-        X509Certificate cert = OPSecUtil.SINGLETON.generateSelfSignedCertificate(kp, dn, dn, "1year");
+        X509Certificate cert = OPSecUtil.singleton().generateSelfSignedCertificate(kp, dn, dn, "1year");
         dummyKey = kp.getPrivate();
         dummyChain = new X509Certificate[]{ cert };
     }

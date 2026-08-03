@@ -19,7 +19,7 @@ public class PasswordToHash {
     }
 
     public static void main(String[] args) {
-        OPSecUtil.SINGLETON.loadProviders();
+        OPSecUtil.singleton();
         try {
             int index = 0;
             String algo = args[index++];

@@ -483,10 +483,10 @@ public final class IdentityStore {
      * provider (BCJSSE) when available — it supports TLS 1.3 on JDK 8 and PQC
      * signature schemes, neither of which the stock SunJSSE provider offers on
      * JDK 8 — falling back to the platform default provider otherwise. The BC
-     * providers are ensured installed via {@link OPSecUtil#loadProviders()}.
+     * providers are ensured installed via {@link OPSecUtil#singleton()}.
      */
     public SSLContext newSSLContext() throws GeneralSecurityException {
-        OPSecUtil.SINGLETON.loadProviders();
+        OPSecUtil.singleton();
         SSLContext ctx;
         try {
             ctx = SSLContext.getInstance("TLS", OPSecUtil.BC_BCJSSE);
