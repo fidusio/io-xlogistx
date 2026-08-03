@@ -1,6 +1,8 @@
 package io.xlogistx.gui;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,8 +12,9 @@ import java.util.function.Supplier;
 
 
 /**
- * A bordered panel with a title and optional add button, over a refreshable list of rows.
- * Each row shows an item's label plus per-row action buttons. Built via {@link #of(Supplier)}.
+ * A bordered panel with a title, optional add button and optional search bar, over a
+ * refreshable list of rows. Each row shows an item's label plus per-row action buttons.
+ * Built via {@link #of(Supplier)}.
  *
  * @see #of(Supplier)
  */
@@ -45,12 +48,15 @@ public class ListSection<T> extends JPanel {
     private final JPanel rows = new JPanel();
     private final Supplier<List<T>> source;
     private final Function<T, String> labelFunction;
+    private final Function<T, String> sublabelFunction;
     private final List<RowAction<T>> actions;
     private final String emptyText;
+    private final JTextField searchField;
 
     private ListSection(Builder<T> b) {
         this.source = b.source;
         this.labelFunction = Objects.requireNonNull(b.labelFunction, "Label cannot be null");
+        this.sublabelFunction = b.sublabelFunction;
         this.actions = b.actions;
         this.emptyText = b.emptyText;
 
@@ -59,11 +65,15 @@ public class ListSection<T> extends JPanel {
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
+        // Everything in the header must share the same alignmentX: BoxLayout positions
+        // mixed alignments against a common axis, shoving odd ones out sideways.
         JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         titleRow.add(PanelBuilder.title(b.title), BorderLayout.WEST);
 
+        Color borderColor = UIManager.getColor("Component.borderColor");
         setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEtchedBorder(),
+                BorderFactory.createLineBorder(borderColor != null ? borderColor : Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(6, 8, 6, 8)));
 
         if (b.onAdd != null) {
@@ -74,14 +84,74 @@ public class ListSection<T> extends JPanel {
         }
 
         header.add(titleRow);
-        header.add(new JSeparator());
+
+        if (b.search) {
+            searchField = PanelBuilder.textField(b.searchPlaceholder);
+            searchField.setAlignmentX(Component.LEFT_ALIGNMENT);
+            searchField.putClientProperty("JTextField.leadingIcon", new IconUtil.SearchIcon(16));
+            searchField.getDocument().addDocumentListener(new DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e) { refresh(); }
+                @Override public void removeUpdate(DocumentEvent e) { refresh(); }
+                @Override public void changedUpdate(DocumentEvent e) { refresh(); }
+            });
+            header.add(Box.createVerticalStrut(4));
+            header.add(searchField);
+            header.add(Box.createVerticalStrut(4));
+        } else {
+            searchField = null;
+        }
+
+        header.add(separator());
 
         add(header, BorderLayout.NORTH);
 
         rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
-        add(rows, BorderLayout.CENTER);
+
+        // NORTH-anchor the rows so they keep their preferred height instead of being
+        // stretched to fill CENTER.
+        AnchorPanel rowsAnchor = new AnchorPanel(rows);
+
+        if (b.scrollable) {
+            JScrollPane sp = new JScrollPane(rowsAnchor,
+                    ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            sp.setBorder(null);
+            sp.getVerticalScrollBar().setUnitIncrement(16);
+            add(sp, BorderLayout.CENTER);
+        } else {
+            add(rowsAnchor, BorderLayout.CENTER);
+        }
 
         refresh();
+    }
+
+    /**
+     * Top-anchors its content at preferred height; in a scroll pane it tracks the
+     * viewport width so rows wrap to the visible width instead of being clipped.
+     */
+    private static class AnchorPanel extends JPanel implements Scrollable {
+        AnchorPanel(Component content) {
+            super(new BorderLayout());
+            setOpaque(false);
+            add(content, BorderLayout.NORTH);
+        }
+
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 16; }
+        @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) { return Math.max(32, visible.height - 16); }
+        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
+    }
+
+    /**
+     * A horizontal separator whose max height is pinned to its preferred height, so
+     * BoxLayout can't stretch it vertically when the panel is taller than its content.
+     */
+    private static JSeparator separator() {
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, sep.getPreferredSize().height));
+        sep.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return sep;
     }
 
     /**
@@ -98,6 +168,7 @@ public class ListSection<T> extends JPanel {
      *       .action(new ListSection.RowAction<>(new IconUtil.CopyIcon(16), "Copy", s -> () -> copy(s)))
      *       .onEdit(s -> () -> edit(s))
      *       .onRemove(s -> () -> remove(s))
+     *       .search("Search servers")
      *       .emptyText("No servers")
      *       .build();
      * }</pre>
@@ -109,18 +180,20 @@ public class ListSection<T> extends JPanel {
     public void refresh() {
         rows.removeAll();
         List<T> items = (source != null) ? source.get() : null;
+        boolean noItems = (items == null || items.isEmpty());
 
-        if (items == null || items.isEmpty()) {
-            JLabel empty = new JLabel(emptyText);
+        List<T> matches = noItems ? new ArrayList<>() : filter(items);
+
+        if (matches.isEmpty()) {
+            JLabel empty = new JLabel(noItems ? emptyText : "No matches");
             empty.setEnabled(false);
             empty.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
             rows.add(empty);
-            rows.revalidate();
-            rows.repaint();
-            return;
         }
 
-        for (T item : items) {
+        for (int i = 0; i < matches.size(); i++) {
+            T item = matches.get(i);
             List<JButton> buttons = new ArrayList<>();
 
             for (RowAction<T> action : actions) {
@@ -133,12 +206,35 @@ public class ListSection<T> extends JPanel {
                 }
             }
 
-            rows.add(PanelBuilder.row(labelFunction.apply(item), buttons.toArray(new JButton[0])));
+            if (i > 0)
+                rows.add(separator());
 
-            rows.add(new JSeparator());
+            String sublabel = (sublabelFunction != null) ? sublabelFunction.apply(item) : null;
+            JPanel row = PanelBuilder.row(labelFunction.apply(item), sublabel, buttons.toArray(new JButton[0]));
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            rows.add(row);
         }
         rows.revalidate();
         rows.repaint();
+    }
+
+    /**
+     * Items whose label contains the search text (case-insensitive). All items when the
+     * search bar is absent or blank.
+     */
+    private List<T> filter(List<T> items) {
+        String query = (searchField != null) ? searchField.getText().trim().toLowerCase() : "";
+        if (query.isEmpty())
+            return items;
+
+        List<T> matches = new ArrayList<>();
+        for (T item : items) {
+            String label = labelFunction.apply(item);
+            if (label != null && label.toLowerCase().contains(query))
+                matches.add(item);
+        }
+        return matches;
     }
 
     /**
@@ -152,7 +248,11 @@ public class ListSection<T> extends JPanel {
         private String addLabel;
         private Runnable onAdd;
         private Function<T, String> labelFunction;
+        private Function<T, String> sublabelFunction;
         private String emptyText = "No items";
+        private boolean search;
+        private String searchPlaceholder = "Search";
+        private boolean scrollable;
 
         private Builder(Supplier<List<T>> source) {
             this.source = source;
@@ -184,6 +284,24 @@ public class ListSection<T> extends JPanel {
         }
 
         /**
+         * Maps an item to a muted second line under its label; a null or empty result
+         * hides the sublabel for that item. Optional.
+         */
+        public Builder<T> sublabel(Function<T, String> sublabelFunction) {
+            this.sublabelFunction = sublabelFunction;
+            return this;
+        }
+
+        /**
+         * Wraps the rows in a vertical scroll pane; without this call the section
+         * grows to its content height. For page-level lists that can outgrow the window.
+         */
+        public Builder<T> scrollable() {
+            this.scrollable = true;
+            return this;
+        }
+
+        /**
          * Appends a per-row action button (order preserved in the row).
          */
         public Builder<T> action(RowAction<T> action) {
@@ -206,10 +324,48 @@ public class ListSection<T> extends JPanel {
         }
 
         /**
+         * {@link #onRemove(Function)} with a built-in confirmation dialog; {@code what}
+         * names the thing being deleted (e.g. {@code Server::getName}). Use only with
+         * handlers that do not already confirm, or the user gets prompted twice.
+         */
+        public Builder<T> onRemoveConfirmed(Function<T, String> what, Function<T, Runnable> handler) {
+            return onRemove(item -> {
+                Runnable r = handler.apply(item);
+                if (r == null)
+                    return null;
+                return () -> {
+                    if (JOptionPane.showConfirmDialog(null,
+                            "Delete " + what.apply(item) + "? This cannot be undone.",
+                            "Confirm delete", JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION)
+                        r.run();
+                };
+            });
+        }
+
+        /**
          * Text shown when the source is null or empty. Defaults to "No items".
          */
         public Builder<T> emptyText(String emptyText) {
             this.emptyText = emptyText;
+            return this;
+        }
+
+        /**
+         * Adds a search bar under the title that filters rows as you type
+         * (case-insensitive match against the row label); without this call no
+         * search bar is shown.
+         */
+        public Builder<T> search() {
+            return search("Search");
+        }
+
+        /**
+         * Same as {@link #search()} with a custom placeholder text.
+         */
+        public Builder<T> search(String placeholder) {
+            this.search = true;
+            this.searchPlaceholder = placeholder;
             return this;
         }
 
