@@ -85,6 +85,11 @@ public class ListSection<T> extends JPanel {
 
         header.add(titleRow);
 
+        if (b.description != null && !b.description.isEmpty()) {
+            header.add(Box.createVerticalStrut(2));
+            header.add(description(b.description));
+        }
+
         if (b.search) {
             searchField = PanelBuilder.textField(b.searchPlaceholder);
             searchField.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -144,6 +149,25 @@ public class ListSection<T> extends JPanel {
     }
 
     /**
+     * A muted, word-wrapping line of explanatory text under the title. A JTextArea
+     * rather than a JLabel so long descriptions wrap to the panel width instead of
+     * being clipped; it is styled and disabled down to read as a label.
+     */
+    private static JTextArea description(String text) {
+        JTextArea area = new JTextArea(text);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setOpaque(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setBorder(null);
+        area.setFont(area.getFont().deriveFont(area.getFont().getSize2D() - 1f));
+        area.setForeground(UIManager.getColor("Label.disabledForeground"));
+        area.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return area;
+    }
+
+    /**
      * A horizontal separator whose max height is pinned to its preferred height, so
      * BoxLayout can't stretch it vertically when the panel is taller than its content.
      */
@@ -163,6 +187,7 @@ public class ListSection<T> extends JPanel {
      * <pre>{@code
      * ListSection<Server> section = ListSection.of(this::getServers)
      *       .title("Servers")
+     *       .description("Servers this client can connect to.")
      *       .addButton("Add", this::addServer)
      *       .label(Server::getName)
      *       .action(new ListSection.RowAction<>(new IconUtil.CopyIcon(16), "Copy", s -> () -> copy(s)))
@@ -220,8 +245,9 @@ public class ListSection<T> extends JPanel {
     }
 
     /**
-     * Items whose label contains the search text (case-insensitive). All items when the
-     * search bar is absent or blank.
+     * Items whose label or sublabel contains the search text (case-insensitive). All items when
+     * the search bar is absent or blank. The sublabel counts so a host can move metadata off the
+     * label without it dropping out of search.
      */
     private List<T> filter(List<T> items) {
         String query = (searchField != null) ? searchField.getText().trim().toLowerCase() : "";
@@ -230,11 +256,17 @@ public class ListSection<T> extends JPanel {
 
         List<T> matches = new ArrayList<>();
         for (T item : items) {
-            String label = labelFunction.apply(item);
-            if (label != null && label.toLowerCase().contains(query))
+            if (contains(labelFunction, item, query) || contains(sublabelFunction, item, query))
                 matches.add(item);
         }
         return matches;
+    }
+
+    private boolean contains(Function<T, String> text, T item, String query) {
+        if (text == null)
+            return false;
+        String value = text.apply(item);
+        return value != null && value.toLowerCase().contains(query);
     }
 
     /**
@@ -245,6 +277,7 @@ public class ListSection<T> extends JPanel {
         private final Supplier<List<T>> source;
         private final List<RowAction<T>> actions = new ArrayList<>();
         private String title;
+        private String description;
         private String addLabel;
         private Runnable onAdd;
         private Function<T, String> labelFunction;
@@ -263,6 +296,15 @@ public class ListSection<T> extends JPanel {
          */
         public Builder<T> title(String title) {
             this.title = title;
+            return this;
+        }
+
+        /**
+         * A muted line under the title describing what the section/page does; it wraps
+         * to the panel width. Without this call no description is shown.
+         */
+        public Builder<T> description(String description) {
+            this.description = description;
             return this;
         }
 

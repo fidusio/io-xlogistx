@@ -37,19 +37,21 @@ public class PanelBuilder {
      * buttons and the given content on the right.
      *
      * @param content the right-hand detail component
-     * @param buttons the left-hand section toggle buttons (added to one {@link ButtonGroup})
+     * @param items   the left-hand sidebar rows, top to bottom. Every {@link JToggleButton} joins
+     *                one {@link ButtonGroup}; anything else (a {@link javax.swing.JSeparator}, a
+     *                header label) is laid out but not grouped, so sections can be divided.
      * @return the assembled panel
      */
-    public static JPanel buildDefaultSplitPanel(JComponent content, JToggleButton... buttons) {
+    public static JPanel buildDefaultSplitPanel(JComponent content, JComponent... items) {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel options = new JPanel();
         options.setLayout(new GridLayout(0, 1, 0, 8));
 
         ButtonGroup group = new ButtonGroup();
 
-        for (JToggleButton button : buttons) {
-            group.add(button);
-            options.add(button);
+        for (JComponent item : items) {
+            if (item instanceof JToggleButton) group.add((JToggleButton) item);
+            options.add(item);
         }
 
         JPanel optionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
