@@ -9,6 +9,10 @@
  *       {@link io.xlogistx.gui.IconWidget} (base class for painted icons) and
  *       {@link io.xlogistx.gui.SelectionWindow} (full-screen drag selection
  *       overlay).</li>
+ *   <li><b>Screen capture</b> — {@link io.xlogistx.gui.SelectionArea} (named screen
+ *       rectangle), {@link io.xlogistx.gui.SelectionAreaSet} (ordered set of areas
+ *       with on-demand {@code snapShots()} capture) and
+ *       {@link io.xlogistx.gui.SnapShot} (immutable captured image + metadata).</li>
  *   <li><b>Status displays</b> — {@link io.xlogistx.gui.StatusWidget} and its
  *       concrete implementations {@link io.xlogistx.gui.LedWidget} (colored LED) and
  *       {@link io.xlogistx.gui.IconStatusWidget} (icon per status), plus

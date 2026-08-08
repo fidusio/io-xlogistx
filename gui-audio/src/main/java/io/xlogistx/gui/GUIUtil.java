@@ -1,7 +1,15 @@
 package io.xlogistx.gui;
 
 import io.xlogistx.common.util.NVColor;
+import org.zoxweb.server.io.UByteArrayInputStream;
+import org.zoxweb.server.io.UByteArrayOutputStream;
+import org.zoxweb.shared.io.SharedIOUtil;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
@@ -9,6 +17,8 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -85,7 +95,20 @@ public class GUIUtil {
      * @throws AWTException if the platform does not allow screen capture
      */
     public static BufferedImage captureSelectedArea(Rectangle area) throws AWTException {
-        Robot robot = new Robot();
+        return captureSelectedArea(area, null);
+    }
+
+    /**
+     * Captures a rectangular area of the screen.
+     *
+     * @param area screen region to be captured
+     * @param robot if null create one
+     * @return image of the captured area
+     * @throws AWTException if the platform does not allow screen capture
+     */
+    public static BufferedImage captureSelectedArea(Rectangle area, Robot robot) throws AWTException {
+        if(robot == null)
+            robot = new Robot();
         return robot.createScreenCapture(area);
     }
 
@@ -309,4 +332,87 @@ public class GUIUtil {
         }
         return ret;
     }
+
+    /**
+     * Scale the image so its longest side is at most maxDimension and re-encode as jpeg
+     * @param ubaos the source image bytes
+     * @param maxDimension max width/height in pixels, 0 to keep the original size
+     * @param quality jpeg quality 0.0 - 1.0 ie: 0.8f
+     * @return the compressed image buffer, encoded as jpeg
+     * @throws IOException in case of read/encode error
+     */
+    public static UByteArrayInputStream compressImage(UByteArrayOutputStream ubaos, int maxDimension, float quality)
+            throws IOException {
+        return compressImage(ubaos.toByteArrayInputStream(), maxDimension, quality);
+    }
+
+
+    /**
+     * Scale the image so its longest side is at most maxDimension and re-encode as jpeg
+     * @param buffer the source image bytes
+     * @param offset the offset within buffer
+     * @param length the number of bytes to read from offset
+     * @param maxDimension max width/height in pixels, 0 to keep the original size
+     * @param quality jpeg quality 0.0 - 1.0 ie: 0.8f
+     * @return the compressed image buffer, encoded as jpeg
+     * @throws IOException in case of read/encode error
+     */
+    public static UByteArrayInputStream compressImage(byte[] buffer, int offset, int length, int maxDimension, float quality)
+            throws IOException {
+        return compressImage(new UByteArrayInputStream(buffer, offset, length), maxDimension, quality);
+    }
+
+        /**
+         * Scale the image so its longest side is at most maxDimension and re-encode as jpeg
+         * @param is the source image stream, always closed
+         * @param maxDimension max width/height in pixels, 0 to keep original size
+         * @param quality jpeg quality 0.0 - 1.0 ie: 0.8
+         * @return the compressed image buffer, encoded as jpeg
+         * @throws IOException in case of read/encode error
+         */
+    public static UByteArrayInputStream compressImage(InputStream is, int maxDimension, float quality)
+            throws IOException
+    {
+        BufferedImage src;
+        try {
+            src = ImageIO.read(is);
+        } finally {
+            SharedIOUtil.close(is);
+        }
+        if (src == null)
+            throw new IOException("unsupported or corrupt image");
+
+        int w = src.getWidth(), h = src.getHeight();
+        if (maxDimension > 0 && Math.max(w, h) > maxDimension) {
+            float scale = (float) maxDimension / Math.max(w, h);
+            w = Math.max(1, Math.round(w * scale));
+            h = Math.max(1, Math.round(h * scale));
+        }
+
+        // TYPE_INT_RGB drops any alpha channel (jpeg has none); transparency lands on black,
+        // fill white first if the sources are pngs with transparent backgrounds
+        BufferedImage scaled = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = scaled.createGraphics();
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, w, h);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(src, 0, 0, w, h, null);
+        g.dispose();
+
+        UByteArrayOutputStream ret = new UByteArrayOutputStream();
+        ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+        ImageWriteParam param = writer.getDefaultWriteParam();
+        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        param.setCompressionQuality(quality);
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(ret)) {
+            writer.setOutput(ios);
+            writer.write(null, new IIOImage(scaled, null, null), param);
+        } finally {
+            writer.dispose();
+        }
+        return ret.toByteArrayInputStream();
+    }
+
+
+
 }

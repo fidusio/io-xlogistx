@@ -2,7 +2,9 @@ package io.xlogistx.http.services;
 
 import org.zoxweb.server.util.DateUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
+import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.*;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.SharedStringUtil;
 
@@ -18,6 +20,7 @@ public class CurrentTimestamp {
     }
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "startDate", uris = "/start-date")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "system:read:start-date")
     public HTTPMessageConfigInterface startDate() {
         HTTPMessageConfigInterface hmci = new HTTPMessageConfig();
         hmci.setContentType(HTTPMediaType.APPLICATION_JSON);

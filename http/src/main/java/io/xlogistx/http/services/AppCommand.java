@@ -7,18 +7,23 @@ import io.xlogistx.http.EndpointsUtil;
 import io.xlogistx.opsec.ssl.IdentityStore;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
+import org.zoxweb.server.util.DateUtil;
 import org.zoxweb.server.util.JMod;
 import org.zoxweb.server.util.ReflectionUtil;
+import org.zoxweb.server.util.RuntimeUtil;
 import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.data.SimpleMessage;
+import org.zoxweb.shared.data.VMInfoDAO;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.ResourceManager;
+
+import java.util.Date;
 
 
 public class AppCommand {
@@ -82,6 +87,26 @@ public class AppCommand {
             }
         }
         return HTTPStatusCode.NOT_FOUND;
+    }
+
+
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "app-gc", uris = "/app/invoke-gc")
+    @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "app:invoke:gc")
+    public NVGenericMap appInvokeGC() {
+        long ts = System.currentTimeMillis();
+        VMInfoDAO beforeGC = RuntimeUtil.vmSnapshot(Const.SizeInBytes.M);
+        RuntimeUtil.invokeGC();
+        VMInfoDAO afterGC = RuntimeUtil.vmSnapshot(Const.SizeInBytes.M);
+        beforeGC.setName("before-gc");
+        afterGC.setName("after-gc");
+        ts = System.currentTimeMillis() - ts;
+        return new NVGenericMap("gc")
+                .build("gc", "invoked")
+                .build("timestamp", DateUtil.DEFAULT_JAVA_FORMAT.format(new Date()))
+                .build("it-took", Const.TimeInMillis.toString(ts))
+                .build(beforeGC)
+                .build(afterGC);
+
     }
 
 }

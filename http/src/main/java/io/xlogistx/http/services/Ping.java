@@ -48,10 +48,11 @@ public class Ping
 
         response.build("server-name", niohttpServer.getName()).build("version", niohttpServer.getVersion());
 
-        NVGenericMap apiRegistrar = APIRegistrar.SINGLETON.stats(false);
+
 
 
         if (detailed) {
+            NVGenericMap apiRegistrar = APIRegistrar.SINGLETON.stats(false);
             try {
                 HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
                 InetSocketAddress callAddress = hph.getClientAddress();

@@ -4,6 +4,7 @@ import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.crypto.CredentialHasher;
+import org.zoxweb.shared.util.RateCounter;
 import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.io.Console;
@@ -20,6 +21,7 @@ public class PasswordToHash {
 
     public static void main(String[] args) {
         OPSecUtil.singleton();
+
         try {
             int index = 0;
             String algo = args[index++];
@@ -57,11 +59,18 @@ public class PasswordToHash {
             }
 
             System.out.println(Arrays.toString(SecUtil.credentialHasherAlgorithms()));
-
+            RateCounter rc = new RateCounter("test");
+            rc.start();
             for(int i = 0; i < 5; i++) {
+                rc.start();
                 CIPassword passwordDAO = credentialHasher.hash(rawPassword);
-                System.out.println(passwordDAO.toCanonicalID());
+                rc.stop();
+                System.out.println(passwordDAO.toCanonicalID() + " " + rc);
+                rc.reset().start();
                 SecUtil.validatePassword(passwordDAO, rawPassword);
+                rc.stop();
+                System.out.println("Validation " + passwordDAO.toCanonicalID() + " " + rc);
+                rc.reset();
             }
         } catch (Exception e) {
             e.printStackTrace();
