@@ -22,7 +22,7 @@ The package has three groups:
    - `SelectionWindow` — full-screen translucent drag-selection overlay used by
      `GUIUtil.captureSelectedArea()` (Lock/Condition handshake, predicate-loop guarded).
    - Screen capture data: `SelectionArea` (named screen rectangle),
-     `SelectionAreaSet` (ordered set of areas; `snapShots()` captures every area
+     `SelectionAreaSet` (ordered set of areas; `takeSnapShots()` captures every area
      on demand in one sweep — skips null/empty rectangles, snapshots carry the
      area name as id and a set-lifetime sequence number), `SnapShot` (immutable
      captured image + id/sequence/timestamp).
@@ -87,7 +87,7 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 - `CaptureSelectedAreaDemo` — screen-area selection + screenshot (shows the intended
   off-EDT usage of `captureSelectedArea()`)
 - `SelectionAreaSetDemo` — build a `SelectionAreaSet` interactively (add/name/remove
-  areas), snap selected areas or all via `snapShots(...)`, shows the latest snapshot
+  areas), snap selected areas or all via `takeSnapShots(...)`, shows the latest snapshot
 - `MDViewerDemo` — live markdown editor (left) + rendered `MDViewerPanel` (right)
 - `MDViewerOverrideCheck` — windowless assertion run for
   `MDViewerPanel.overrideScrollPane(...)`; exits 0 on success

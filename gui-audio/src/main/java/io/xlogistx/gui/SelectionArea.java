@@ -32,7 +32,7 @@ public class SelectionArea
     /**
      * Creates a fully populated area.
      *
-     * @param name        name of the area, used as the {@link SnapShot} id
+     * @param name        name of the area, used as the {@link SnapShot} source id
      * @param description optional description, may be null
      * @param captureArea screen rectangle to capture, may be null until selected
      */
@@ -98,5 +98,43 @@ public class SelectionArea
     @Override
     public String getName() {
         return namedDescription.getName();
+    }
+
+
+    /**
+     * Captures the current screen content of this area and wraps it in a
+     * {@link SnapShot} stamped with the current time. Creates a one-off
+     * {@link Robot}; for repeated captures prefer
+     * {@link #takeSnapShot(String, long, Robot)} with a reused instance.
+     *
+     * @param id       identifier of the snapshot or its capture session, may be null
+     * @param sequence sequence number of the snapshot within its capture stream
+     * @return the captured snapshot, its source id set to this area's name
+     * @throws AWTException          if the platform does not allow screen capture
+     * @throws IllegalStateException if this area has no rectangle set
+     */
+    public SnapShot takeSnapShot(String id, long sequence)
+            throws AWTException {
+        return takeSnapShot(id, sequence, null);
+    }
+
+    /**
+     * Captures the current screen content of this area with the given {@link Robot}
+     * and wraps it in a {@link SnapShot} stamped with the current time.
+     *
+     * @param id       identifier of the snapshot or its capture session, may be null
+     * @param sequence sequence number of the snapshot within its capture stream
+     * @param robot    robot to capture with, null to create a one-off instance
+     * @return the captured snapshot, its source id set to this area's name
+     * @throws AWTException          if robot is null and the platform does not allow
+     *                               screen capture
+     * @throws IllegalStateException if this area has no rectangle set
+     */
+    public SnapShot takeSnapShot(String id, long sequence, Robot robot)
+            throws AWTException {
+        Rectangle area = getSelectionArea();
+        if (area == null)
+            throw new IllegalStateException("selection area rectangle not set: " + getName());
+        return new SnapShot(id, sequence, getName(), GUIUtil.captureSelectedArea(area, robot));
     }
 }

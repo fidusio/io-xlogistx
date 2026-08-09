@@ -1,6 +1,7 @@
 package io.xlogistx.gui;
 
 import org.zoxweb.server.io.UByteArrayInputStream;
+import org.zoxweb.server.util.UUID7;
 import org.zoxweb.shared.util.CollectionAsArray;
 
 import java.awt.AWTException;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Ordered set of {@link SelectionArea}s with on-demand capture: {@link #snapShots()}
+ * Ordered set of {@link SelectionArea}s with on-demand capture: {@link #takeSnapShots()}
  * grabs the current screen content of every area and returns the result as
  * {@link SnapShot}s.
  * <p>
@@ -89,22 +90,22 @@ public class SelectionAreaSet {
      * @return one snapshot per capturable area, in insertion order
      * @throws IllegalStateException if the platform does not allow screen capture
      */
-    public SnapShot[] snapShots() {
-        return snapShots(selectionAreas.asArray());
+    public SnapShot[] takeSnapShots() {
+        return takeSnapShots(selectionAreas.asArray());
     }
 
     /**
      * Captures the current screen content of the given areas in one sweep; no areas
      * (or null) means every area in the set. Areas that are null or whose rectangle
-     * is unset or empty (click without drag) are skipped. All snapshots carry their
-     * area's name as id and a sequence number that increments per snapshot across
-     * the lifetime of this set.
+     * is unset or empty (click without drag) are skipped. Each snapshot carries a
+     * unique UUID as id, its area's name as source id, and a sequence number that
+     * increments per snapshot across the lifetime of this set.
      *
      * @param selectionAreas the areas to capture, empty or null for all areas in the set
      * @return one snapshot per capturable area, in the order given
      * @throws IllegalStateException if the platform does not allow screen capture
      */
-    public SnapShot[] snapShots(SelectionArea... selectionAreas) {
+    public SnapShot[] takeSnapShots(SelectionArea... selectionAreas) {
         List<SnapShot> ret = new ArrayList<>();
         if (selectionAreas == null || selectionAreas.length == 0)
             selectionAreas = getSelectionAreas();
@@ -120,8 +121,7 @@ public class SelectionAreaSet {
                     if (area == null || area.isEmpty())
                         continue;
                     try {
-                        ret.add(SnapShot.capture(selectionArea.getName(), sequence.getAndIncrement(),
-                                selectionArea, robot));
+                        ret.add(selectionArea.takeSnapShot(UUID7.randomUUID().toString(), sequence.getAndIncrement(), robot));
                     } catch (AWTException e) {
                         // unreachable: AWTException is only thrown when capture must
                         // create its own Robot, and we always pass the cached one
@@ -135,12 +135,12 @@ public class SelectionAreaSet {
 
     /**
      * Captures the given areas in one sweep and encodes each snapshot in the given
-     * format; no areas (or null) means the whole set, matching {@link #snapShots()}.
+     * format; no areas (or null) means the whole set, matching {@link #takeSnapShots()}.
      * <p>
      * The result carries the image bytes only — no area name, sequence or timestamp —
      * and may be shorter than the input since unset/empty rectangles are skipped, so
      * result indexes do NOT align with the areas passed in. Callers that need to know
-     * which image belongs to which area should use {@link #snapShots(SelectionArea...)}
+     * which image belongs to which area should use {@link #takeSnapShots(SelectionArea...)}
      * and {@link SnapShot#getImageAsInputStream(String)} instead.
      *
      * @param format         image format name, case-insensitive (e.g. "png", "jpg");
@@ -151,8 +151,8 @@ public class SelectionAreaSet {
      *                               the sweep's captures are discarded
      * @throws IllegalStateException if the platform does not allow screen capture
      */
-    public UByteArrayInputStream[] snapShotsAsInputStreams(String format, SelectionArea... selectionAreas) throws IOException {
-        SnapShot[] snapShots = snapShots(selectionAreas);
+    public UByteArrayInputStream[] takeSnapShotsAsInputStreams(String format, SelectionArea... selectionAreas) throws IOException {
+        SnapShot[] snapShots = takeSnapShots(selectionAreas);
         UByteArrayInputStream[] ret = new UByteArrayInputStream[snapShots.length];
         for (int i = 0; i < snapShots.length; i++) {
             ret[i] = snapShots[i].getImageAsInputStream(format);

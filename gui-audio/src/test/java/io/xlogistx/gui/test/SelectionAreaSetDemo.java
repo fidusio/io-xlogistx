@@ -174,7 +174,7 @@ public class SelectionAreaSetDemo {
      */
     private static void snap(JFrame frame, JButton trigger, JLabel statusLabel, JLabel imageLabel,
                              SelectionAreaSet areaSet, SelectionArea... targets) {
-        BackgroundTask.run(frame, trigger, () -> areaSet.snapShots(targets), snaps -> {
+        BackgroundTask.run(frame, trigger, () -> areaSet.takeSnapShots(targets), snaps -> {
             if (snaps.length == 0) {
                 statusLabel.setText("Nothing captured (empty or unset rectangles)");
                 return;
@@ -219,7 +219,7 @@ public class SelectionAreaSetDemo {
             int cellY = GRID_GAP + (i / cols) * (cellH + CAPTION_HEIGHT + GRID_GAP);
 
             g.setColor(Color.WHITE);
-            g.drawString(snaps[i].getSelectionArea().getName() + " #" + snaps[i].getSequence(),
+            g.drawString(snaps[i].getSourceID() + " #" + snaps[i].getSequence(),
                     cellX, cellY + CAPTION_HEIGHT - 5);
 
             BufferedImage img = snaps[i].getImage();
