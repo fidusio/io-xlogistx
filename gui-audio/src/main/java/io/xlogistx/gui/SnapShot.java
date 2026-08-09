@@ -10,27 +10,31 @@ import java.io.IOException;
 
 /**
  * Immutable snapshot of a captured screen image plus identification metadata:
- * id, source id (typically the {@link SelectionArea} name it was captured from),
+ * id, source id (typically the {@link CaptureArea} name it was captured from),
  * sequence number and capture timestamp. Holds no reference to the source area,
  * only its id, so snapshots stay valid if the area is mutated or removed.
  * <p>
  * Instances are value objects; use
- * {@link SelectionArea#takeSnapShot(String, long, java.awt.Robot)} to grab the current
- * screen content of a selection area.
+ * {@link CaptureArea#takeSnapShot(String, long, java.awt.Robot)} to grab the current
+ * screen content of a capture area.
  */
-public class SnapShot {
+public class SnapShot
+    implements Comparable<SnapShot> {
     private final BufferedImage image;
     private final String sourceID;
     private final String id;
     private final long sequence;
     private final long timestamp;
+    // lazily computed content hash, 0 = not computed yet (benign race: the
+    // computation is deterministic, so concurrent writers store the same value)
+    private int imageHash;
 
     /**
      * Creates a snapshot stamped with the current time.
      *
      * @param id       identifier of the snapshot or its capture session, may be null
      * @param sequence sequence number of the snapshot within its capture stream
-     * @param sourceID identifier of the capture source (typically the selection
+     * @param sourceID identifier of the capture source (typically the capture
      *                 area name), may be null
      * @param image    the captured image
      * @throws NullPointerException if image is null
@@ -45,7 +49,7 @@ public class SnapShot {
      * @param id        identifier of the snapshot or its capture session, may be null
      * @param sequence  sequence number of the snapshot within its capture stream
      * @param timestamp capture time in epoch millis
-     * @param sourceID  identifier of the capture source (typically the selection
+     * @param sourceID  identifier of the capture source (typically the capture
      *                  area name), may be null
      * @param image     the captured image
      * @throws NullPointerException if image is null
@@ -87,7 +91,7 @@ public class SnapShot {
     }
 
     /**
-     * @return identifier of the capture source (typically the selection area name),
+     * @return identifier of the capture source (typically the capture area name),
      *         may be null
      */
     public String getSourceID() {
@@ -113,6 +117,82 @@ public class SnapShot {
      */
     public long getTimestamp() {
         return timestamp;
+    }
+
+    /**
+     * Compares this snapshot's image with another snapshot's, pixel by pixel, via
+     * {@link GUIUtil#compareImages(BufferedImage, BufferedImage)}; metadata (id,
+     * source id, sequence, timestamp) is ignored. Useful to detect whether the
+     * screen content of an area changed between two captures.
+     *
+     * @param other the snapshot to compare against, may be null
+     * @return true if other is non-null and both images have identical dimensions
+     *         and every pixel matches; false otherwise
+     */
+    public boolean compare(SnapShot other) {
+        return other != null && GUIUtil.compareImages(image, other.getImage());
+    }
+
+    /**
+     * Orders snapshots by image content only — width, then height, then pixel
+     * values via {@link GUIUtil#compareImagesOrder(BufferedImage, BufferedImage)};
+     * metadata (id, source id, sequence, timestamp) is ignored. Returns 0 exactly
+     * when {@link #compare(SnapShot)} returns true, so the natural ordering is
+     * consistent with {@link #equals(Object)}.
+     *
+     * @param other the snapshot to compare against
+     * @return negative, zero or positive per the {@link Comparable} contract
+     * @throws NullPointerException if other is null
+     */
+    @Override
+    public int compareTo(SnapShot other) {
+        return GUIUtil.compareImagesOrder(image, other.getImage());
+    }
+
+    /**
+     * Equality on image content only — same dimensions and every pixel equal, via
+     * {@link GUIUtil#compareImages(BufferedImage, BufferedImage)}; metadata (id,
+     * source id, sequence, timestamp) is ignored. Accepts both a {@link SnapShot}
+     * and a raw {@link BufferedImage}. Two snapshots of unchanged screen content
+     * are therefore equal, so hash-based collections deduplicate them.
+     * <p>
+     * Note the BufferedImage form is one-way: {@code snapShot.equals(image)}
+     * compares content, but {@code image.equals(snapShot)} is identity-based and
+     * always false, and BufferedImage's identity hash means hash-based collection
+     * lookups only match between SnapShots.
+     *
+     * @param o the object to compare against, may be null
+     * @return true if o is a SnapShot or BufferedImage with pixel-identical
+     *         image content
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o instanceof SnapShot)
+            return GUIUtil.compareImages(image, ((SnapShot) o).getImage());
+        if (o instanceof BufferedImage)
+            return GUIUtil.compareImages(image, (BufferedImage) o);
+        return false;
+    }
+
+    /**
+     * Content hash matching {@link #equals(Object)}: derived from the image's
+     * dimensions and pixels via {@link GUIUtil#imageHashCode(BufferedImage)},
+     * computed once on first use and cached (the image is immutable by contract).
+     *
+     * @return the image content hash
+     */
+    @Override
+    public int hashCode() {
+        int h = imageHash;
+        if (h == 0) {
+            h = GUIUtil.imageHashCode(image);
+            if (h == 0)
+                h = 1; // reserve 0 as the not-computed sentinel
+            imageHash = h;
+        }
+        return h;
     }
 
     @Override

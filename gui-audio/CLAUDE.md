@@ -21,11 +21,12 @@ The package has three groups:
      (`colorToRatio`, `interpolateColors`).
    - `SelectionWindow` — full-screen translucent drag-selection overlay used by
      `GUIUtil.captureSelectedArea()` (Lock/Condition handshake, predicate-loop guarded).
-   - Screen capture data: `SelectionArea` (named screen rectangle),
-     `SelectionAreaSet` (ordered set of areas; `takeSnapShots()` captures every area
-     on demand in one sweep — skips null/empty rectangles, snapshots carry the
-     area name as id and a set-lifetime sequence number), `SnapShot` (immutable
-     captured image + id/sequence/timestamp).
+   - Screen capture data: `CaptureArea` (named screen rectangle; `takeSnapShot(...)`
+     captures itself), `CaptureAreaSet` (ordered set of areas; `takeSnapShots()`
+     captures every area on demand in one sweep — skips null/empty rectangles,
+     snapshots carry a UUID id, the area name as source id, and a set-lifetime
+     sequence number), `SnapShot` (immutable captured image + id/sourceID/sequence/
+     timestamp).
 2. **Status displays** — `StatusWidget<M>` base (status tag → mapped display value) with
    `LedWidget` (Color) and `IconStatusWidget` (ImageIcon); `ProgressBarWidget` (percent bar
    colored via `GUIUtil.colorToRatio`).
@@ -86,7 +87,7 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 - `StateIconDemo` — status widgets
 - `CaptureSelectedAreaDemo` — screen-area selection + screenshot (shows the intended
   off-EDT usage of `captureSelectedArea()`)
-- `SelectionAreaSetDemo` — build a `SelectionAreaSet` interactively (add/name/remove
+- `CaptureAreaSetDemo` — build a `CaptureAreaSet` interactively (add/name/remove
   areas), snap selected areas or all via `takeSnapShots(...)`, shows the latest snapshot
 - `MDViewerDemo` — live markdown editor (left) + rendered `MDViewerPanel` (right)
 - `MDViewerOverrideCheck` — windowless assertion run for

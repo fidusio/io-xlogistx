@@ -8,14 +8,14 @@ import java.awt.*;
 
 /**
  * A named rectangular region of the screen, the unit of capture used by
- * {@link SelectionAreaSet} and {@link SnapShot}.
+ * {@link CaptureAreaSet} and {@link SnapShot}.
  * <p>
  * The rectangle is typically produced by {@link GUIUtil#captureSelectedArea()}
  * (drag selection) and may be null until set, or empty when the user clicked
  * without dragging — consumers must handle both. The field is volatile so the
  * rectangle can be swapped while capture sweeps read it from another thread.
  */
-public class SelectionArea
+public class CaptureArea
     implements SetName, SetDescription {
 
     private NamedDescription namedDescription;
@@ -25,7 +25,7 @@ public class SelectionArea
     /**
      * Creates an unnamed area with no rectangle; populate via the setters.
      */
-    public SelectionArea() {
+    public CaptureArea() {
         namedDescription = new NamedDescription();
     }
 
@@ -36,7 +36,7 @@ public class SelectionArea
      * @param description optional description, may be null
      * @param captureArea screen rectangle to capture, may be null until selected
      */
-    public SelectionArea(String name, String description, Rectangle captureArea) {
+    public CaptureArea(String name, String description, Rectangle captureArea) {
         this();
         setName(name);
         setDescription(description);
@@ -47,7 +47,7 @@ public class SelectionArea
      * @return the screen rectangle to capture; null if not selected yet, may be
      *         empty (click without drag)
      */
-    public Rectangle getSelectionArea() {
+    public Rectangle getCaptureArea() {
         return captureArea;
     }
 
@@ -57,7 +57,7 @@ public class SelectionArea
      * @param selectedArea the new rectangle, in screen coordinates
      * @return this instance, for fluent chaining
      */
-    public SelectionArea setSelectionArea(Rectangle selectedArea) {
+    public CaptureArea setCaptureArea(Rectangle selectedArea) {
         captureArea = selectedArea;
         return this;
     }
@@ -132,9 +132,9 @@ public class SelectionArea
      */
     public SnapShot takeSnapShot(String id, long sequence, Robot robot)
             throws AWTException {
-        Rectangle area = getSelectionArea();
+        Rectangle area = getCaptureArea();
         if (area == null)
-            throw new IllegalStateException("selection area rectangle not set: " + getName());
+            throw new IllegalStateException("capture area rectangle not set: " + getName());
         return new SnapShot(id, sequence, getName(), GUIUtil.captureSelectedArea(area, robot));
     }
 }

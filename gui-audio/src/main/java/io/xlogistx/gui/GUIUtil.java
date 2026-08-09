@@ -91,6 +91,56 @@ public class GUIUtil {
     }
 
     /**
+     * Totally orders two images: by width, then height, then pixel values in
+     * row-major order. Returns 0 if and only if the images are pixel-identical,
+     * i.e. exactly when {@link #compareImages(BufferedImage, BufferedImage)}
+     * returns true.
+     *
+     * @param imgA first image
+     * @param imgB second image
+     * @return negative, zero or positive per the {@link Comparable} contract
+     * @throws NullPointerException if either image is null
+     */
+    public static int compareImagesOrder(BufferedImage imgA, BufferedImage imgB) {
+        int c = Integer.compare(imgA.getWidth(), imgB.getWidth());
+        if (c != 0)
+            return c;
+        c = Integer.compare(imgA.getHeight(), imgB.getHeight());
+        if (c != 0)
+            return c;
+
+        for (int y = 0; y < imgA.getHeight(); y++) {
+            for (int x = 0; x < imgA.getWidth(); x++) {
+                c = Integer.compare(imgA.getRGB(x, y), imgB.getRGB(x, y));
+                if (c != 0)
+                    return c;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Computes a content hash of the image from its dimensions and every pixel
+     * (row-major ARGB), consistent with
+     * {@link #compareImages(BufferedImage, BufferedImage)}: images that compare
+     * equal produce the same hash. O(width*height) — callers hashing repeatedly
+     * should cache the result.
+     *
+     * @param img the image to hash
+     * @return the content hash
+     * @throws NullPointerException if img is null
+     */
+    public static int imageHashCode(BufferedImage img) {
+        int h = 31 * img.getWidth() + img.getHeight();
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                h = 31 * h + img.getRGB(x, y);
+            }
+        }
+        return h;
+    }
+
+    /**
      * Captures a rectangular area of the screen.
      *
      * @param area screen region to be captured

@@ -14,48 +14,48 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Ordered set of {@link SelectionArea}s with on-demand capture: {@link #takeSnapShots()}
+ * Ordered set of {@link CaptureArea}s with on-demand capture: {@link #takeSnapShots()}
  * grabs the current screen content of every area and returns the result as
  * {@link SnapShot}s.
  * <p>
  * Reads go through a lock-free copy-on-write snapshot ({@link CollectionAsArray}),
- * so {@link #getSelectionAreas()} is safe while another thread mutates the set.
+ * so {@link #getCaptureAreas()} is safe while another thread mutates the set.
  */
-public class SelectionAreaSet {
-    private final CollectionAsArray<SelectionArea> selectionAreas = new CollectionAsArray<>(new LinkedHashSet<>(), new SelectionArea[0]);
+public class CaptureAreaSet {
+    private final CollectionAsArray<CaptureArea> captureAreas = new CollectionAsArray<>(new LinkedHashSet<>(), new CaptureArea[0]);
     private final AtomicLong sequence = new AtomicLong();
     private volatile Robot cachedRobot;
 
-    public SelectionAreaSet() {
+    public CaptureAreaSet() {
     }
 
     /**
      * @return snapshot of the areas in insertion order; shared and read-only, never null
      */
-    public SelectionArea[] getSelectionAreas() {
-        return selectionAreas.asArray();
+    public CaptureArea[] getCaptureAreas() {
+        return captureAreas.asArray();
     }
 
     /**
      * Adds the given areas at the end of the set; an area already present
      * (same instance) is not duplicated.
      *
-     * @param selectionArea areas to add
+     * @param captureArea areas to add
      * @return this instance, for fluent chaining
      */
-    public SelectionAreaSet addSelectionArea(SelectionArea... selectionArea) {
-        selectionAreas.add(selectionArea);
+    public CaptureAreaSet addCaptureArea(CaptureArea... captureArea) {
+        captureAreas.add(captureArea);
         return this;
     }
 
     /**
      * Removes the given areas from the set; areas not present are ignored.
      *
-     * @param selectionArea areas to remove
+     * @param captureArea areas to remove
      * @return this instance, for fluent chaining
      */
-    public SelectionAreaSet removeSelectionAreas(SelectionArea... selectionArea) {
-        selectionAreas.remove(selectionArea);
+    public CaptureAreaSet removeCaptureAreas(CaptureArea... captureArea) {
+        captureAreas.remove(captureArea);
         return this;
     }
 
@@ -64,8 +64,8 @@ public class SelectionAreaSet {
      *
      * @return this instance, for fluent chaining
      */
-    public SelectionAreaSet clearSelectionAreas() {
-        selectionAreas.clear();
+    public CaptureAreaSet clearCaptureAreas() {
+        captureAreas.clear();
         return this;
     }
 
@@ -76,10 +76,10 @@ public class SelectionAreaSet {
      * @param index zero-based position of the area to remove
      * @return this instance, for fluent chaining
      */
-    public SelectionAreaSet removeSelectionAreaAtIndex(int index) {
-        SelectionArea[] areas = getSelectionAreas();
+    public CaptureAreaSet removeCaptureAreaAtIndex(int index) {
+        CaptureArea[] areas = getCaptureAreas();
         if (index >= 0 && index < areas.length) {
-            return removeSelectionAreas(areas[index]);
+            return removeCaptureAreas(areas[index]);
         }
         return this;
     }
@@ -91,7 +91,7 @@ public class SelectionAreaSet {
      * @throws IllegalStateException if the platform does not allow screen capture
      */
     public SnapShot[] takeSnapShots() {
-        return takeSnapShots(selectionAreas.asArray());
+        return takeSnapShots(captureAreas.asArray());
     }
 
     /**
@@ -101,27 +101,27 @@ public class SelectionAreaSet {
      * unique UUID as id, its area's name as source id, and a sequence number that
      * increments per snapshot across the lifetime of this set.
      *
-     * @param selectionAreas the areas to capture, empty or null for all areas in the set
+     * @param captureAreas the areas to capture, empty or null for all areas in the set
      * @return one snapshot per capturable area, in the order given
      * @throws IllegalStateException if the platform does not allow screen capture
      */
-    public SnapShot[] takeSnapShots(SelectionArea... selectionAreas) {
+    public SnapShot[] takeSnapShots(CaptureArea... captureAreas) {
         List<SnapShot> ret = new ArrayList<>();
-        if (selectionAreas == null || selectionAreas.length == 0)
-            selectionAreas = getSelectionAreas();
+        if (captureAreas == null || captureAreas.length == 0)
+            captureAreas = getCaptureAreas();
 
-        if (selectionAreas.length > 0) {
+        if (captureAreas.length > 0) {
             Robot robot = robot();
             // Robot is not documented as thread-safe: serialize concurrent sweeps on it
             synchronized (robot) {
-                for (SelectionArea selectionArea : selectionAreas) {
-                    if (selectionArea == null)
+                for (CaptureArea captureArea : captureAreas) {
+                    if (captureArea == null)
                         continue;
-                    Rectangle area = selectionArea.getSelectionArea();
+                    Rectangle area = captureArea.getCaptureArea();
                     if (area == null || area.isEmpty())
                         continue;
                     try {
-                        ret.add(selectionArea.takeSnapShot(UUID7.randomUUID().toString(), sequence.getAndIncrement(), robot));
+                        ret.add(captureArea.takeSnapShot(UUID7.randomUUID().toString(), sequence.getAndIncrement(), robot));
                     } catch (AWTException e) {
                         // unreachable: AWTException is only thrown when capture must
                         // create its own Robot, and we always pass the cached one
@@ -140,19 +140,19 @@ public class SelectionAreaSet {
      * The result carries the image bytes only — no area name, sequence or timestamp —
      * and may be shorter than the input since unset/empty rectangles are skipped, so
      * result indexes do NOT align with the areas passed in. Callers that need to know
-     * which image belongs to which area should use {@link #takeSnapShots(SelectionArea...)}
+     * which image belongs to which area should use {@link #takeSnapShots(CaptureArea...)}
      * and {@link SnapShot#getImageAsInputStream(String)} instead.
      *
-     * @param format         image format name, case-insensitive (e.g. "png", "jpg");
-     *                       jpg is encoded at {@link GUIUtil#DEFAULT_JPG_QUALITY}
-     * @param selectionAreas the areas to capture, empty or null for all areas in the set
+     * @param format       image format name, case-insensitive (e.g. "png", "jpg");
+     *                     jpg is encoded at {@link GUIUtil#DEFAULT_JPG_QUALITY}
+     * @param captureAreas the areas to capture, empty or null for all areas in the set
      * @return one encoded image per capturable area, in capture order
      * @throws IOException           if the format is unsupported or encoding fails;
      *                               the sweep's captures are discarded
      * @throws IllegalStateException if the platform does not allow screen capture
      */
-    public UByteArrayInputStream[] takeSnapShotsAsInputStreams(String format, SelectionArea... selectionAreas) throws IOException {
-        SnapShot[] snapShots = takeSnapShots(selectionAreas);
+    public UByteArrayInputStream[] takeSnapShotsAsInputStreams(String format, CaptureArea... captureAreas) throws IOException {
+        SnapShot[] snapShots = takeSnapShots(captureAreas);
         UByteArrayInputStream[] ret = new UByteArrayInputStream[snapShots.length];
         for (int i = 0; i < snapShots.length; i++) {
             ret[i] = snapShots[i].getImageAsInputStream(format);

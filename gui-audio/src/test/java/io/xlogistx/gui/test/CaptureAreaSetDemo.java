@@ -1,9 +1,9 @@
 package io.xlogistx.gui.test;
 
 import io.xlogistx.gui.BackgroundTask;
+import io.xlogistx.gui.CaptureArea;
+import io.xlogistx.gui.CaptureAreaSet;
 import io.xlogistx.gui.GUIUtil;
-import io.xlogistx.gui.SelectionArea;
-import io.xlogistx.gui.SelectionAreaSet;
 import io.xlogistx.gui.SnapShot;
 import org.zoxweb.shared.util.SUS;
 
@@ -13,7 +13,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 /**
- * Interactive demo for {@link SelectionAreaSet} snapshot capture.
+ * Interactive demo for {@link CaptureAreaSet} snapshot capture.
  * <p>
  * "Add Area": the demo window hides itself, a rectangle is dragged on the screen
  * (via the translucent {@link GUIUtil#captureSelectedArea()} overlay) and named —
@@ -26,7 +26,7 @@ import java.util.List;
  * background thread (so the window can be restored on both success and failure),
  * the capture sweep goes through {@link BackgroundTask}, results land on the EDT.
  */
-public class SelectionAreaSetDemo {
+public class CaptureAreaSetDemo {
 
     /** Longest side an image may occupy inside a grid cell before being scaled down. */
     private static final int MAX_CELL_DIMENSION = 480;
@@ -36,7 +36,7 @@ public class SelectionAreaSetDemo {
     private static final int CAPTION_HEIGHT = 18;
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(SelectionAreaSetDemo::createAndShow);
+        SwingUtilities.invokeLater(CaptureAreaSetDemo::createAndShow);
     }
 
     /**
@@ -45,23 +45,23 @@ public class SelectionAreaSetDemo {
      * center. Must run on the EDT.
      */
     private static void createAndShow() {
-        SelectionAreaSet areaSet = new SelectionAreaSet();
+        CaptureAreaSet areaSet = new CaptureAreaSet();
 
-        JFrame frame = new JFrame("SelectionAreaSet SnapShot Demo");
+        JFrame frame = new JFrame("CaptureAreaSet SnapShot Demo");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout(10, 10));
 
-        DefaultListModel<SelectionArea> listModel = new DefaultListModel<>();
-        JList<SelectionArea> areaList = new JList<>(listModel);
+        DefaultListModel<CaptureArea> listModel = new DefaultListModel<>();
+        JList<CaptureArea> areaList = new JList<>(listModel);
         areaList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         areaList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                           boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                SelectionArea sa = (SelectionArea) value;
-                Rectangle r = sa.getSelectionArea();
-                setText(String.format("%s — %dx%d @ %d,%d", sa.getName(), r.width, r.height, r.x, r.y));
+                CaptureArea ca = (CaptureArea) value;
+                Rectangle r = ca.getCaptureArea();
+                setText(String.format("%s — %dx%d @ %d,%d", ca.getName(), r.width, r.height, r.x, r.y));
                 return this;
             }
         });
@@ -123,9 +123,9 @@ public class SelectionAreaSetDemo {
                     }
                     if (SUS.isEmpty(name))
                         name = defaultName;
-                    SelectionArea sa = new SelectionArea(name, null, selected);
-                    areaSet.addSelectionArea(sa);
-                    listModel.addElement(sa);
+                    CaptureArea ca = new CaptureArea(name, null, selected);
+                    areaSet.addCaptureArea(ca);
+                    listModel.addElement(ca);
                     statusLabel.setText(String.format("%s added: x=%d y=%d w=%d h=%d (%d total)",
                             name, selected.x, selected.y, selected.width, selected.height, listModel.size()));
                 });
@@ -135,13 +135,13 @@ public class SelectionAreaSetDemo {
         });
 
         snapSelectedBtn.addActionListener(e -> {
-            List<SelectionArea> selected = areaList.getSelectedValuesList();
+            List<CaptureArea> selected = areaList.getSelectedValuesList();
             if (selected.isEmpty()) {
                 statusLabel.setText("Select one or more areas in the list first");
                 return;
             }
             snap(frame, snapSelectedBtn, statusLabel, imageLabel, areaSet,
-                    selected.toArray(new SelectionArea[0]));
+                    selected.toArray(new CaptureArea[0]));
         });
 
         snapAllBtn.addActionListener(e -> {
@@ -149,16 +149,16 @@ public class SelectionAreaSetDemo {
                 statusLabel.setText("Add at least one area first");
                 return;
             }
-            snap(frame, snapAllBtn, statusLabel, imageLabel, areaSet, areaSet.getSelectionAreas());
+            snap(frame, snapAllBtn, statusLabel, imageLabel, areaSet, areaSet.getCaptureAreas());
         });
 
         removeBtn.addActionListener(e -> {
-            List<SelectionArea> selected = areaList.getSelectedValuesList();
+            List<CaptureArea> selected = areaList.getSelectedValuesList();
             if (selected.isEmpty()) {
                 statusLabel.setText("Select one or more areas in the list first");
                 return;
             }
-            areaSet.removeSelectionAreas(selected.toArray(new SelectionArea[0]));
+            areaSet.removeCaptureAreas(selected.toArray(new CaptureArea[0]));
             selected.forEach(listModel::removeElement);
             statusLabel.setText(selected.size() + " removed (" + listModel.size() + " left)");
         });
@@ -173,7 +173,7 @@ public class SelectionAreaSetDemo {
      * snapshot as-is, several composed into a captioned grid.
      */
     private static void snap(JFrame frame, JButton trigger, JLabel statusLabel, JLabel imageLabel,
-                             SelectionAreaSet areaSet, SelectionArea... targets) {
+                             CaptureAreaSet areaSet, CaptureArea... targets) {
         BackgroundTask.run(frame, trigger, () -> areaSet.takeSnapShots(targets), snaps -> {
             if (snaps.length == 0) {
                 statusLabel.setText("Nothing captured (empty or unset rectangles)");
