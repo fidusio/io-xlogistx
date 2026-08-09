@@ -47,6 +47,9 @@ public class GUIUtil {
     /** Unicode "counterclockwise arrows" symbol usable as a button label for "update" actions. */
     public static final String UPDATE_SIGN = "🔄";
 
+    /** Default jpeg encoding quality used when a caller does not specify one. */
+    public static final float DEFAULT_JPG_QUALITY = 0.8f;
+
 
     private static final Lock lock = new ReentrantLock();
 
@@ -381,7 +384,21 @@ public class GUIUtil {
         }
         if (src == null)
             throw new IOException("unsupported or corrupt image");
+        return compressImage(src, maxDimension, quality);
+    }
 
+    /**
+     * Scale the image so its longest side is at most maxDimension and encode as jpeg,
+     * skipping the decode step of the stream-based overloads.
+     * @param src the source image
+     * @param maxDimension max width/height in pixels, 0 to keep the original size
+     * @param quality jpeg quality 0.0 - 1.0 ie: 0.8f
+     * @return the compressed image buffer, encoded as jpeg
+     * @throws IOException in case of encode error
+     */
+    public static UByteArrayInputStream compressImage(BufferedImage src, int maxDimension, float quality)
+            throws IOException
+    {
         int w = src.getWidth(), h = src.getHeight();
         if (maxDimension > 0 && Math.max(w, h) > maxDimension) {
             float scale = (float) maxDimension / Math.max(w, h);

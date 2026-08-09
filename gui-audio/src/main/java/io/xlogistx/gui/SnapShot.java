@@ -1,11 +1,13 @@
 package io.xlogistx.gui;
 
+import org.zoxweb.server.io.UByteArrayInputStream;
+import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.util.SUS;
 
-import java.awt.AWTException;
-import java.awt.Rectangle;
-import java.awt.Robot;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
 /**
  * Immutable snapshot of a {@link SelectionArea}: the captured screen image plus
@@ -58,6 +60,26 @@ public class SnapShot {
      */
     public BufferedImage getImage() {
         return image;
+    }
+
+    /**
+     * Encodes the captured image in the given format; {@code "jpg"}/{@code "jpeg"}
+     * is encoded via {@link GUIUtil#compressImage(BufferedImage, int, float)} at
+     * {@link GUIUtil#DEFAULT_JPG_QUALITY}.
+     *
+     * @param format image format name, case-insensitive (e.g. "png", "jpg", "gif")
+     * @return the encoded image bytes as a stream
+     * @throws IOException if the format is unsupported or encoding fails
+     */
+    public UByteArrayInputStream getImageAsInputStream(String format) throws IOException {
+        if ("jpg".equalsIgnoreCase(format) || "jpeg".equalsIgnoreCase(format))
+            return GUIUtil.compressImage(getImage(), 0, GUIUtil.DEFAULT_JPG_QUALITY);
+
+        UByteArrayOutputStream out = new UByteArrayOutputStream();
+        // ImageIO.write does not throw on an unknown format, it returns false
+        if (!ImageIO.write(getImage(), format, out))
+            throw new IOException("unsupported image format: " + format);
+        return out.toByteArrayInputStream();
     }
 
     /**
