@@ -49,6 +49,7 @@ public class GUIUtil {
 
     /** Default jpeg encoding quality used when a caller does not specify one. */
     public static final float DEFAULT_JPG_QUALITY = 0.8f;
+    public static final int AI_IMAGE_MAX_DIMENSION = 1536;
 
 
     private static final Lock lock = new ReentrantLock();

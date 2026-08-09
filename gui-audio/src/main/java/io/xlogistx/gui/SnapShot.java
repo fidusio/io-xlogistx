@@ -81,7 +81,7 @@ public class SnapShot
      */
     public UByteArrayInputStream getImageAsInputStream(String format) throws IOException {
         if ("jpg".equalsIgnoreCase(format) || "jpeg".equalsIgnoreCase(format))
-            return GUIUtil.compressImage(getImage(), 0, GUIUtil.DEFAULT_JPG_QUALITY);
+            return GUIUtil.compressImage(getImage(), GUIUtil.AI_IMAGE_MAX_DIMENSION, GUIUtil.DEFAULT_JPG_QUALITY);
 
         UByteArrayOutputStream out = new UByteArrayOutputStream();
         // ImageIO.write does not throw on an unknown format, it returns false
