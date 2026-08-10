@@ -45,6 +45,25 @@ The package has three groups:
 - Save-side validation throws from `mapToValue` (e.g. NVInt int-range check);
   `NVGenericMapWidget.onSave` catches `Exception` and shows an error dialog.
 
+### Hex editor (`io.xlogistx.gui.hexeditor`)
+
+- `HexEditor` — pure model over zoxweb `UByteArrayOutputStream` (no Swing): file
+  I/O, edits, search/replace, undo/redo (bounded 100). Undo entry types MODIFY /
+  INSERT / DELETE / REPLACE — length-changing replaces MUST use REPLACE (MODIFY
+  undo corrupts the buffer). `reset()` = new-document (non-undoable) vs `clear()`
+  (undoable edit).
+- `HexPanel` — embeddable Swing view (offset/hex/ASCII columns, nibble-level
+  editing, clip-aware painting). Caret blink timer is started/stopped in
+  `addNotify`/`removeNotify`.
+- `HexEditorPane` — **the embeddable component** (JPanel: toolbar + view + status
+  bar + all dialogs, parented to the pane). Hosts install `createMenuBar()` in
+  their own window; document state via `getDocumentTitle()`/`isModified()`/
+  change listeners; `confirmDiscard()` before closing. Never exits the JVM.
+- `HexEditorFrame` — thin standalone wrapper; `System.exit` only when
+  `setExitOnClose(true)` (set by its `main`), so opening the frame from a host
+  app is safe.
+- `HexEditorConsole` — interactive CLI over the same model.
+
 ## Rules / invariants (do NOT regress)
 
 - **EDT discipline**: `GUIUtil.captureSelectedArea()` must be called OFF the EDT (it blocks

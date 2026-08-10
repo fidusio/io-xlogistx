@@ -2,11 +2,13 @@ package io.xlogistx.gui;
 
 import org.zoxweb.server.io.UByteArrayInputStream;
 import org.zoxweb.server.io.UByteArrayOutputStream;
+import org.zoxweb.shared.util.DataEncoder;
 import org.zoxweb.shared.util.SUS;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 /**
  * Immutable snapshot of a captured screen image plus identification metadata:
@@ -19,7 +21,7 @@ import java.io.IOException;
  * screen content of a capture area.
  */
 public class SnapShot
-    implements Comparable<SnapShot> {
+    implements Comparable<SnapShot>, DataEncoder<String, UByteArrayInputStream> {
     private final BufferedImage image;
     private final String sourceID;
     private final String id;
@@ -71,6 +73,25 @@ public class SnapShot
     }
 
     /**
+     * {@link DataEncoder} form of {@link #exportAsInputStream(String)}: encodes the
+     * captured image in the given format, wrapping any {@link IOException} in an
+     * unchecked one since the {@link DataEncoder} contract cannot throw checked
+     * exceptions.
+     *
+     * @param format image format name, case-insensitive (e.g. "png", "jpg")
+     * @return the encoded image bytes
+     * @throws UncheckedIOException if the format is unsupported or encoding fails
+     */
+    @Override
+    public UByteArrayInputStream encode(String format) {
+        try {
+            return exportAsInputStream(format);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
      * Encodes the captured image in the given format; {@code "jpg"}/{@code "jpeg"}
      * is encoded via {@link GUIUtil#compressImage(BufferedImage, int, float)} at
      * {@link GUIUtil#DEFAULT_JPG_QUALITY}.
@@ -79,7 +100,7 @@ public class SnapShot
      * @return the encoded image bytes as a stream
      * @throws IOException if the format is unsupported or encoding fails
      */
-    public UByteArrayInputStream getImageAsInputStream(String format) throws IOException {
+    public UByteArrayInputStream exportAsInputStream(String format) throws IOException {
         if ("jpg".equalsIgnoreCase(format) || "jpeg".equalsIgnoreCase(format))
             return GUIUtil.compressImage(getImage(), GUIUtil.AI_IMAGE_MAX_DIMENSION, GUIUtil.DEFAULT_JPG_QUALITY);
 

@@ -285,7 +285,8 @@ public class HexEditorConsole {
             }
         }
         
-        editor.clear();
+        // reset, not clear: a new document starts clean (no undo history, not modified)
+        editor.reset();
         viewOffset = 0;
         System.out.println("Created new empty buffer.");
     }
@@ -359,12 +360,13 @@ public class HexEditorConsole {
         
         int offset = parseOffset(parts[0]);
         byte[] data = HexEditor.parseHexString(parts[1]);
-        
-        // Extend buffer if necessary
-        while (offset + data.length > editor.size()) {
-            editor.appendBytes(new byte[]{0});
+
+        // Extend buffer if necessary — in one append, one byte at a time would
+        // flood the bounded undo stack with one entry per padding byte
+        if (offset + data.length > editor.size()) {
+            editor.appendBytes(new byte[offset + data.length - editor.size()]);
         }
-        
+
         editor.setBytes(offset, data);
         System.out.printf("Set %d bytes at 0x%08X%n", data.length, offset);
     }
@@ -618,12 +620,13 @@ public class HexEditorConsole {
         
         int offset = parseOffset(parts[0]);
         byte[] data = parts[1].getBytes();
-        
-        // Extend buffer if necessary
-        while (offset + data.length > editor.size()) {
-            editor.appendBytes(new byte[]{0});
+
+        // Extend buffer if necessary — in one append, one byte at a time would
+        // flood the bounded undo stack with one entry per padding byte
+        if (offset + data.length > editor.size()) {
+            editor.appendBytes(new byte[offset + data.length - editor.size()]);
         }
-        
+
         editor.setBytes(offset, data);
         System.out.printf("Written %d ASCII bytes at 0x%08X%n", data.length, offset);
     }

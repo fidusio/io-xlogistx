@@ -351,10 +351,13 @@ public class HexPanel extends JComponent implements Scrollable {
                         fireDataChanged();
                     }
                 } else {
-                    // Hex input
+                    // Hex input: capture the target offset BEFORE moving the caret —
+                    // reconstructing it afterwards mis-targets the previous byte when
+                    // the caret cannot advance (low nibble of the last byte)
                     if (isHexChar(c)) {
                         int nibble = Character.digit(c, 16);
-                        int currentByte = editor.getByte(caretPosition);
+                        int targetOffset = caretPosition;
+                        int currentByte = editor.getByte(targetOffset);
                         int newByte;
 
                         if (caretHighNibble) {
@@ -368,7 +371,6 @@ public class HexPanel extends JComponent implements Scrollable {
                             }
                         }
 
-                        int targetOffset = caretHighNibble && caretPosition > 0 ? caretPosition - 1 : caretPosition;
                         editor.setByte(targetOffset, newByte);
                         modifiedOffsets.add(targetOffset);
                         fireDataChanged();
@@ -383,6 +385,14 @@ public class HexPanel extends JComponent implements Scrollable {
         return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
     }
 
+    /**
+     * Extra pixel gap in the hex area before the given column: one cellWidth after
+     * every group of 8 bytes, so 24/32 bytes-per-row get separators too.
+     */
+    private int groupGap(int col) {
+        return (col / 8) * cellWidth;
+    }
+
     private void recalculateDimensions() {
         fontMetrics = getFontMetrics(monoFont);
         cellWidth = fontMetrics.charWidth('0');
@@ -391,9 +401,9 @@ public class HexPanel extends JComponent implements Scrollable {
         // Offset area: "00000000  "
         offsetWidth = cellWidth * 10;
 
-        // Hex area: 16 bytes * 3 chars each + extra space in middle
+        // Hex area: 3 chars per byte + one group gap after every 8 bytes
         hexAreaX = offsetWidth;
-        int hexAreaWidth = bytesPerRow * cellWidth * 3 + cellWidth;
+        int hexAreaWidth = bytesPerRow * cellWidth * 3 + groupGap(bytesPerRow - 1);
 
         // ASCII area
         asciiAreaX = hexAreaX + hexAreaWidth + cellWidth * 2;
@@ -457,7 +467,7 @@ public class HexPanel extends JComponent implements Scrollable {
                 int b = editor.getByte(byteOffset);
 
                 // Calculate positions
-                int hexX = hexAreaX + col * cellWidth * 3 + (col >= 8 ? cellWidth : 0);
+                int hexX = hexAreaX + col * cellWidth * 3 + groupGap(col);
                 int asciiX = asciiAreaX + col * cellWidth;
 
                 // Draw selection background
@@ -501,7 +511,7 @@ public class HexPanel extends JComponent implements Scrollable {
                 int x = asciiAreaX + col * cellWidth;
                 g2.drawRect(x - 1, y, cellWidth + 1, cellHeight - 1);
             } else {
-                int x = hexAreaX + col * cellWidth * 3 + (col >= 8 ? cellWidth : 0);
+                int x = hexAreaX + col * cellWidth * 3 + groupGap(col);
                 if (caretHighNibble) {
                     g2.drawLine(x, y + cellHeight - 2, x + cellWidth, y + cellHeight - 2);
                 } else {
@@ -547,12 +557,12 @@ public class HexPanel extends JComponent implements Scrollable {
         int col = -1;
 
         if (p.x >= hexAreaX && p.x < asciiAreaX - cellWidth) {
-            // In hex area
+            // In hex area: each 8-byte group spans 8 hex cells plus its trailing gap
             int relX = p.x - hexAreaX;
-            col = relX / (cellWidth * 3);
-            if (col >= 8) {
-                col = (relX - cellWidth) / (cellWidth * 3);
-            }
+            int groupWidth = cellWidth * 3 * 8 + cellWidth;
+            int group = relX / groupWidth;
+            int withinGroup = relX - group * groupWidth;
+            col = group * 8 + Math.min(7, withinGroup / (cellWidth * 3));
             col = Math.min(col, bytesPerRow - 1);
         } else if (p.x >= asciiAreaX) {
             // In ASCII area
@@ -597,8 +607,10 @@ public class HexPanel extends JComponent implements Scrollable {
         scrollRectToVisible(visible);
     }
 
+    // start == end is a valid single-byte selection (shift+click or drag in place):
+    // it must count, otherwise single-byte Fill/Cut operate on nothing
     private boolean hasSelection() {
-        return selectionStart >= 0 && selectionEnd >= 0 && selectionStart != selectionEnd;
+        return selectionStart >= 0 && selectionEnd >= 0;
     }
 
     private boolean isSelected(int offset) {
@@ -684,17 +696,17 @@ public class HexPanel extends JComponent implements Scrollable {
                     deleteSelection();
                 }
 
+                int insertPos = editor.size() == 0 ? 0 : caretPosition;
                 if (editor.size() == 0) {
                     editor.appendBytes(bytes);
-                    caretPosition = bytes.length - 1;
                 } else {
-                    editor.insertBytes(caretPosition, bytes);
-                    caretPosition += bytes.length;
+                    editor.insertBytes(insertPos, bytes);
                 }
 
                 for (int i = 0; i < bytes.length; i++) {
-                    modifiedOffsets.add(caretPosition - bytes.length + i);
+                    modifiedOffsets.add(insertPos + i);
                 }
+                caretPosition = Math.min(insertPos + bytes.length, editor.size() - 1);
 
                 fireDataChanged();
                 repaint();
@@ -702,6 +714,20 @@ public class HexPanel extends JComponent implements Scrollable {
         } catch (Exception e) {
             // Ignore clipboard errors
         }
+    }
+
+    // stop the caret blink timer when the panel leaves the component hierarchy so
+    // an embedded, discarded panel does not keep a Swing timer alive forever
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        caretTimer.start();
+    }
+
+    @Override
+    public void removeNotify() {
+        caretTimer.stop();
+        super.removeNotify();
     }
 
     // Scrollable implementation

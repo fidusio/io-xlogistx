@@ -4,9 +4,7 @@ import org.zoxweb.server.io.UByteArrayInputStream;
 import org.zoxweb.server.util.UUID7;
 import org.zoxweb.shared.util.CollectionAsArray;
 
-import java.awt.AWTException;
-import java.awt.Rectangle;
-import java.awt.Robot;
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -14,9 +12,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Ordered set of {@link CaptureArea}s with on-demand capture: {@link #takeSnapShots()}
- * grabs the current screen content of every area and returns the result as
- * {@link SnapShot}s.
+ * Ordered set of {@link CaptureArea}s with on-demand capture:
+ * {@link #takeSnapShots(CaptureArea...)} grabs the current screen content of the
+ * given areas (or every area in the set when called without arguments) and returns
+ * the result as {@link SnapShot}s.
  * <p>
  * Reads go through a lock-free copy-on-write snapshot ({@link CollectionAsArray}),
  * so {@link #getCaptureAreas()} is safe while another thread mutates the set.
@@ -43,7 +42,7 @@ public class CaptureAreaSet {
      * @param captureArea areas to add
      * @return this instance, for fluent chaining
      */
-    public CaptureAreaSet addCaptureArea(CaptureArea... captureArea) {
+    public CaptureAreaSet addCaptureAreas(CaptureArea... captureArea) {
         captureAreas.add(captureArea);
         return this;
     }
@@ -82,16 +81,6 @@ public class CaptureAreaSet {
             return removeCaptureAreas(areas[index]);
         }
         return this;
-    }
-
-    /**
-     * Captures the current screen content of every area in the set.
-     *
-     * @return one snapshot per capturable area, in insertion order
-     * @throws IllegalStateException if the platform does not allow screen capture
-     */
-    public SnapShot[] takeSnapShots() {
-        return takeSnapShots(captureAreas.asArray());
     }
 
     /**
@@ -135,13 +124,14 @@ public class CaptureAreaSet {
 
     /**
      * Captures the given areas in one sweep and encodes each snapshot in the given
-     * format; no areas (or null) means the whole set, matching {@link #takeSnapShots()}.
+     * format; no areas (or null) means the whole set, matching
+     * {@link #takeSnapShots(CaptureArea...)}.
      * <p>
      * The result carries the image bytes only — no area name, sequence or timestamp —
      * and may be shorter than the input since unset/empty rectangles are skipped, so
      * result indexes do NOT align with the areas passed in. Callers that need to know
      * which image belongs to which area should use {@link #takeSnapShots(CaptureArea...)}
-     * and {@link SnapShot#getImageAsInputStream(String)} instead.
+     * and {@link SnapShot#exportAsInputStream(String)} instead.
      *
      * @param format       image format name, case-insensitive (e.g. "png", "jpg");
      *                     jpg is encoded at {@link GUIUtil#DEFAULT_JPG_QUALITY}
@@ -151,11 +141,11 @@ public class CaptureAreaSet {
      *                               the sweep's captures are discarded
      * @throws IllegalStateException if the platform does not allow screen capture
      */
-    public UByteArrayInputStream[] takeSnapShotsAsInputStreams(String format, CaptureArea... captureAreas) throws IOException {
+    public UByteArrayInputStream[] exportAsInputStreams(String format, CaptureArea... captureAreas) throws IOException {
         SnapShot[] snapShots = takeSnapShots(captureAreas);
         UByteArrayInputStream[] ret = new UByteArrayInputStream[snapShots.length];
         for (int i = 0; i < snapShots.length; i++) {
-            ret[i] = snapShots[i].getImageAsInputStream(format);
+            ret[i] = snapShots[i].exportAsInputStream(format);
         }
         return ret;
     }

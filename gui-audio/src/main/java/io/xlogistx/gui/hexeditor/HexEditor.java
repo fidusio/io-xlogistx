@@ -50,7 +50,9 @@ public class HexEditor {
         final OperationType type;
 
         enum OperationType {
-            MODIFY, INSERT, DELETE
+            MODIFY, INSERT, DELETE,
+            /** oldData was replaced by newData at offset; lengths may differ. */
+            REPLACE
         }
 
         UndoEntry(int offset, byte[] oldData, byte[] newData, OperationType type) {
@@ -457,6 +459,12 @@ public class HexEditor {
                     buffer.removeAt(entry.offset, dataToRemove.length);
                 }
                 break;
+
+            case REPLACE:
+                // dataToRemove is what currently occupies the region: swap it out
+                buffer.removeAt(entry.offset, dataToRemove.length);
+                buffer.insertAt(entry.offset, dataToApply);
+                break;
         }
     }
 
@@ -551,10 +559,12 @@ public class HexEditor {
             }
             addUndoEntry(new UndoEntry(offset, oldData, replacement.clone(), UndoEntry.OperationType.MODIFY));
         } else {
-            // Different length - remove and insert
+            // Different length - remove and insert; MODIFY undo would corrupt the
+            // buffer here (it writes oldData over a differently-sized region), so
+            // record a REPLACE entry that swaps the regions on undo/redo
             buffer.removeAt(offset, search.length);
             buffer.insertAt(offset, replacement);
-            addUndoEntry(new UndoEntry(offset, oldData, replacement.clone(), UndoEntry.OperationType.MODIFY));
+            addUndoEntry(new UndoEntry(offset, oldData, replacement.clone(), UndoEntry.OperationType.REPLACE));
         }
 
         modified = true;
@@ -579,12 +589,12 @@ public class HexEditor {
                 for (int i = 0; i < replacement.length; i++) {
                     buffer.writeAt(offset + i, replacement[i]);
                 }
+                addUndoEntry(new UndoEntry(offset, oldData, replacement.clone(), UndoEntry.OperationType.MODIFY));
             } else {
                 buffer.removeAt(offset, search.length);
                 buffer.insertAt(offset, replacement);
+                addUndoEntry(new UndoEntry(offset, oldData, replacement.clone(), UndoEntry.OperationType.REPLACE));
             }
-
-            addUndoEntry(new UndoEntry(offset, oldData, replacement.clone(), UndoEntry.OperationType.MODIFY));
             offset += replacement.length;
             count++;
         }
@@ -645,8 +655,8 @@ public class HexEditor {
                     ascii.append(' ');
                 }
 
-                // Add extra space in middle
-                if (j == bytesPerLine / 2 - 1) {
+                // Add extra space after every 8-byte group
+                if (j % 8 == 7 && j < bytesPerLine - 1) {
                     sb.append(" ");
                 }
             }
@@ -787,6 +797,20 @@ public class HexEditor {
      */
     public String getCurrentFilePath() {
         return currentFilePath;
+    }
+
+    /**
+     * Resets the editor to a fresh empty document: clears the buffer, undo/redo
+     * history, modified flag, cursor and file association. Unlike {@link #clear()}
+     * this is NOT an undoable edit — use it for "New document" semantics.
+     */
+    public void reset() {
+        buffer.reset();
+        cursor = 0;
+        modified = false;
+        currentFilePath = null;
+        undoStack.clear();
+        redoStack.clear();
     }
 
     /**

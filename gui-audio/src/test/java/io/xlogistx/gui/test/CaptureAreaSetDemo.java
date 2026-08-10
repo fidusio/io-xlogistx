@@ -124,7 +124,7 @@ public class CaptureAreaSetDemo {
                     if (SUS.isEmpty(name))
                         name = defaultName;
                     CaptureArea ca = new CaptureArea(name, null, selected);
-                    areaSet.addCaptureArea(ca);
+                    areaSet.addCaptureAreas(ca);
                     listModel.addElement(ca);
                     statusLabel.setText(String.format("%s added: x=%d y=%d w=%d h=%d (%d total)",
                             name, selected.x, selected.y, selected.width, selected.height, listModel.size()));
