@@ -20,6 +20,8 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -167,8 +169,12 @@ public class GUIUtil {
     }
 
     /**
-     * Displays a full-screen translucent {@link SelectionWindow} and blocks the calling
-     * thread until the user drags out a rectangular selection with the mouse.
+     * Displays a translucent {@link SelectionWindow} on every monitor and blocks the
+     * calling thread until the user drags out a rectangular selection with the mouse
+     * on one of them (one overlay per monitor rather than a single spanning window,
+     * which macOS would clip to one display). A selection cannot cross monitors — it
+     * is clipped at the edge of the monitor it started on. The monitor the selection
+     * landed on can be resolved via {@link #deviceForArea(Rectangle)}.
      * <p>
      * Must NOT be called on the Event Dispatch Thread since it blocks until the
      * selection is completed.
@@ -183,34 +189,82 @@ public class GUIUtil {
             throw new IllegalStateException("captureSelectedArea() must not be called on the EDT");
 
         Condition cond = lock.newCondition();
-        SelectionWindow[] holder = new SelectionWindow[1];
+        List<SelectionWindow> windows = new ArrayList<>();
         try {
             // all window realization happens on the EDT; a mouse-released signal firing
             // before await() is harmless because the predicate loop re-checks the state
             SwingUtilities.invokeAndWait(() -> {
-                holder[0] = new SelectionWindow(lock, cond);
-                holder[0].setVisible(true);
-                holder[0].toFront();
+                for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+                    SelectionWindow selectionWindow = new SelectionWindow(device.getDefaultConfiguration(), lock, cond);
+                    selectionWindow.setVisible(true);
+                    selectionWindow.toFront();
+                    windows.add(selectionWindow);
+                }
             });
         } catch (InvocationTargetException e) {
-            throw new AWTException("failed to show selection window: " + e.getCause());
+            // dispose whatever was realized before the failure
+            SwingUtilities.invokeLater(() -> windows.forEach(Window::dispose));
+            throw new AWTException("failed to show selection windows: " + e.getCause());
         }
-        SelectionWindow selectionWindow = holder[0];
 
+        SelectionWindow selected;
         lock.lock();
         try {
-            while (!selectionWindow.isSelectionMade())
+            while ((selected = firstSelected(windows)) == null)
                 cond.await();
         } finally {
             lock.unlock();
+            // dispose every overlay, also when the wait is interrupted
+            SwingUtilities.invokeLater(() -> windows.forEach(Window::dispose));
         }
 
-        SwingUtilities.invokeLater(selectionWindow::dispose);
-
-        // Get the selected area
-        return selectionWindow.getSelectedArea();
+        return selected.getSelectedArea();
     }
 
+    /**
+     * Returns the first window whose selection is finalized.
+     *
+     * @param windows the per-monitor selection overlays
+     * @return the window holding the selection, or null if none is finalized yet
+     */
+    private static SelectionWindow firstSelected(List<SelectionWindow> windows) {
+        for (SelectionWindow selectionWindow : windows) {
+            if (selectionWindow.isSelectionMade())
+                return selectionWindow;
+        }
+        return null;
+    }
+
+
+    /**
+     * Determines which screen device holds the given area, in virtual-screen
+     * coordinates as returned by {@link #captureSelectedArea()}. A selection
+     * straddling two monitors resolves to the one holding the larger part; an empty
+     * selection (click without drag) resolves to the monitor containing its origin.
+     *
+     * @param area the screen region to locate
+     * @return the device holding (most of) the area, or null if the area lies
+     *         outside every monitor
+     */
+    public static GraphicsDevice deviceForArea(Rectangle area) {
+        GraphicsDevice best = null;
+        long bestOverlap = 0;
+        GraphicsDevice fallback = null;
+        for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+            Rectangle bounds = device.getDefaultConfiguration().getBounds();
+            if (fallback == null && bounds.contains(area.getLocation()))
+                fallback = device;
+            Rectangle intersection = bounds.intersection(area);
+            if (!intersection.isEmpty()) {
+                long overlap = (long) intersection.width * intersection.height;
+                if (overlap > bestOverlap) {
+                    bestOverlap = overlap;
+                    best = device;
+                }
+            }
+        }
+        return best != null ? best : fallback;
+    }
 
     /**
      * Copies the given text to the system clipboard.

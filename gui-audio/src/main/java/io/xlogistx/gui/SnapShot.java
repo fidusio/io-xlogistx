@@ -17,7 +17,7 @@ import java.io.UncheckedIOException;
  * only its id, so snapshots stay valid if the area is mutated or removed.
  * <p>
  * Instances are value objects; use
- * {@link CaptureArea#takeSnapShot(String, long, java.awt.Robot)} to grab the current
+ * {@link CaptureArea#takeSnapShot(String, long)} to grab the current
  * screen content of a capture area.
  */
 public class SnapShot

@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CaptureAreaSet {
     private final CollectionAsArray<CaptureArea> captureAreas = new CollectionAsArray<>(new LinkedHashSet<>(), new CaptureArea[0]);
     private final AtomicLong sequence = new AtomicLong();
-    private volatile Robot cachedRobot;
 
     public CaptureAreaSet() {
     }
@@ -99,24 +98,17 @@ public class CaptureAreaSet {
         if (captureAreas == null || captureAreas.length == 0)
             captureAreas = getCaptureAreas();
 
-        if (captureAreas.length > 0) {
-            Robot robot = robot();
-            // Robot is not documented as thread-safe: serialize concurrent sweeps on it
-            synchronized (robot) {
-                for (CaptureArea captureArea : captureAreas) {
-                    if (captureArea == null)
-                        continue;
-                    Rectangle area = captureArea.getCaptureArea();
-                    if (area == null || area.isEmpty())
-                        continue;
-                    try {
-                        ret.add(captureArea.takeSnapShot(UUID7.randomUUID().toString(), sequence.getAndIncrement(), robot));
-                    } catch (AWTException e) {
-                        // unreachable: AWTException is only thrown when capture must
-                        // create its own Robot, and we always pass the cached one
-                        throw new IllegalStateException("screen capture failed", e);
-                    }
-                }
+        // each area captures with its own robot and serializes concurrent use of it
+        for (CaptureArea captureArea : captureAreas) {
+            if (captureArea == null)
+                continue;
+            Rectangle area = captureArea.getCaptureArea();
+            if (area == null || area.isEmpty())
+                continue;
+            try {
+                ret.add(captureArea.takeSnapShot(UUID7.randomUUID().toString(), sequence.getAndIncrement()));
+            } catch (AWTException e) {
+                throw new IllegalStateException("screen capture not available", e);
             }
         }
         return ret.toArray(new SnapShot[0]);
@@ -150,27 +142,4 @@ public class CaptureAreaSet {
         return ret;
     }
 
-    /**
-     * Lazily creates and caches the {@link Robot} via double-checked locking (the
-     * field is volatile, making the pattern safe); it stays valid for the life of
-     * the process and keeps capturing the default screen device it was created for.
-     *
-     * @return the cached robot
-     * @throws IllegalStateException if the platform does not allow screen capture
-     */
-    private Robot robot() {
-        if (cachedRobot == null) {
-            synchronized (this) {
-                // re-check under the lock: another thread may have won the race
-                if (cachedRobot == null) {
-                    try {
-                        cachedRobot = new Robot();
-                    } catch (AWTException e) {
-                        throw new IllegalStateException("screen capture not available", e);
-                    }
-                }
-            }
-        }
-        return cachedRobot;
-    }
 }

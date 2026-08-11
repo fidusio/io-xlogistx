@@ -19,13 +19,19 @@ The package has three groups:
    - `GUIUtil` — static helpers only: `iconButton(...)` factories, screen capture
      (`captureSelectedArea()`), clipboard, panels/scroll panes, color interpolation
      (`colorToRatio`, `interpolateColors`).
-   - `SelectionWindow` — full-screen translucent drag-selection overlay used by
-     `GUIUtil.captureSelectedArea()` (Lock/Condition handshake, predicate-loop guarded).
-   - Screen capture data: `CaptureArea` (named screen rectangle; `takeSnapShot(...)`
-     captures itself), `CaptureAreaSet` (ordered set of areas; `takeSnapShots()`
-     captures every area on demand in one sweep — skips null/empty rectangles,
-     snapshots carry a UUID id, the area name as source id, and a set-lifetime
-     sequence number), `SnapShot` (immutable captured image + id/sourceID/sequence/
+   - `SelectionWindow` — translucent drag-selection overlay covering one monitor;
+     `GUIUtil.captureSelectedArea()` shows one per monitor (Lock/Condition handshake,
+     predicate-loop over all overlays). Per-display windows, NOT one spanning window:
+     macOS "Displays have separate Spaces" clips a spanning window to a single display.
+   - Screen capture data: `CaptureArea` (named screen rectangle; owns its lazily
+     created capture `Robot`, bound to a `GraphicsDevice` auto-resolved from the
+     rectangle by `setCaptureArea(...)` via `GUIUtil.deviceForArea(...)` —
+     `setGraphicsDevice(...)` overrides; the area, not the set, carries the device;
+     `takeSnapShot(...)` captures itself and serializes concurrent captures on its
+     robot), `CaptureAreaSet` (ordered set of areas; `takeSnapShots()` captures
+     every area on demand in one sweep — skips null/empty rectangles, snapshots
+     carry a UUID id, the area name as source id, and a set-lifetime sequence
+     number), `SnapShot` (immutable captured image + id/sourceID/sequence/
      timestamp).
 2. **Status displays** — `StatusWidget<M>` base (status tag → mapped display value) with
    `LedWidget` (Color) and `IconStatusWidget` (ImageIcon); `ProgressBarWidget` (percent bar
@@ -117,7 +123,14 @@ exist for the Swing classes; verification is via the demos.
 
 ## Known limitations (accepted, not bugs)
 
-- `SelectionWindow` covers the primary monitor only (`Toolkit.getScreenSize()`).
+- Multi-monitor selection uses one `SelectionWindow` per display; the selection
+  rectangle is returned in virtual-screen coordinates (origin can be negative when
+  a monitor sits left of/above the primary) and cannot cross monitors — it clips
+  at the edge of the display the drag started on. Resolve the monitor a selection
+  landed on via `GUIUtil.deviceForArea(Rectangle)`.
+- macOS: `Robot.createScreenCapture` needs the Screen Recording permission
+  (System Settings → Privacy & Security); without it captures silently show only
+  the wallpaper — no exception is thrown.
 - No ESC/cancel for a selection in progress (a JWindow without a visible owner cannot get
   key focus; would need an AWTEventListener if ever required).
 - A click without drag yields an empty (0x0) selection rectangle — callers must handle it

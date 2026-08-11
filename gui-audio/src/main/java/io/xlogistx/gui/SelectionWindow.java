@@ -9,9 +9,12 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 /**
- * Full-screen, semi-transparent, always-on-top window that lets the user drag out a
- * rectangular screen selection with the mouse. The selection outline is drawn in red
- * while dragging.
+ * Semi-transparent, always-on-top window covering one monitor that lets the user
+ * drag out a rectangular screen selection with the mouse. The selection outline is
+ * drawn in red while dragging. {@link GUIUtil#captureSelectedArea()} shows one
+ * instance per monitor — a single window spanning all monitors would be clipped to
+ * one display on macOS ("Displays have separate Spaces"), so multi-monitor support
+ * uses one overlay per display everywhere.
  * <p>
  * When the mouse is released, the selection is finalized and the supplied
  * {@link Condition} is signaled so a thread blocked in
@@ -26,15 +29,29 @@ public class SelectionWindow extends JWindow {
 
 
     /**
-     * Creates the selection overlay sized to the full screen.
+     * Creates the selection overlay on the default screen device.
      *
      * @param lock      lock guarding the condition, may be null if no signaling is needed
      * @param condition condition signaled when the user releases the mouse, may be null
      */
     public SelectionWindow(final Lock lock, final Condition condition) {
+        this(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration(),
+                lock, condition);
+    }
+
+    /**
+     * Creates the selection overlay sized to the given screen configuration's monitor.
+     *
+     * @param gc        screen configuration whose monitor this overlay covers
+     * @param lock      lock guarding the condition, may be null if no signaling is needed
+     * @param condition condition signaled when the user releases the mouse, may be null
+     */
+    public SelectionWindow(GraphicsConfiguration gc, final Lock lock, final Condition condition) {
+        super(gc);
         setAlwaysOnTop(true);
-        //System.out.println(Toolkit.getDefaultToolkit().getScreenSize());
-        setSize(Toolkit.getDefaultToolkit().getScreenSize());
+        // the monitor's region of the virtual screen: the origin may be non-zero,
+        // even negative when the monitor sits left of or above the primary
+        setBounds(gc.getBounds());
         setBackground(new Color(0, 0, 0, 50)); // Semi-transparent background
 
         // Mouse listeners
@@ -58,7 +75,7 @@ public class SelectionWindow extends JWindow {
                     // isSelectionMade() sees a consistent state with the signal
                     lock.lock();
                     try {
-                        selectionBounds = calculateSelectionRectangle();
+                        selectionBounds = toScreenRectangle();
                         selectionMade = true;
                         condition.signalAll();
                     }
@@ -68,7 +85,7 @@ public class SelectionWindow extends JWindow {
                 }
                 else
                 {
-                    selectionBounds = calculateSelectionRectangle();
+                    selectionBounds = toScreenRectangle();
                     selectionMade = true;
                 }
             }
@@ -95,7 +112,8 @@ public class SelectionWindow extends JWindow {
     }
 
     /**
-     * Normalizes the drag start/end points into a rectangle regardless of drag direction.
+     * Normalizes the drag start/end points into a rectangle regardless of drag
+     * direction, in window coordinates (used for painting).
      *
      * @return the rectangle spanned by the current start and end points
      */
@@ -105,6 +123,20 @@ public class SelectionWindow extends JWindow {
         int width = Math.abs(startPoint.x - endPoint.x);
         int height = Math.abs(startPoint.y - endPoint.y);
         return new Rectangle(x, y, width, height);
+    }
+
+    /**
+     * Converts the current selection to screen coordinates by offsetting it with the
+     * window origin — this monitor's origin in the virtual screen. AWT keeps sending
+     * drag events to the pressed window even when the mouse leaves it, so the result
+     * is clipped at this monitor's edge.
+     *
+     * @return the selection rectangle in screen coordinates, confined to this monitor
+     */
+    private Rectangle toScreenRectangle() {
+        Rectangle ret = calculateSelectionRectangle();
+        ret.translate(getX(), getY());
+        return ret.intersection(getBounds());
     }
 
     /**
