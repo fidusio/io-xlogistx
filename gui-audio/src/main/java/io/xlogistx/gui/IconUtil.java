@@ -22,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *       {@link SaveIcon}, {@link UpdateIcon}, {@link EditIcon}, {@link DeleteIcon},
  *       {@link BackIcon}, {@link NextIcon}, {@link RollbackIcon}, {@link VisibleIcon},
  *       {@link InvisibleIcon}, {@link CopyIcon}, {@link SearchIcon}, {@link RefreshIcon},
+ *       {@link InfoIcon}, {@link RunIcon}, {@link StopIcon}, {@link PauseIcon},
+ *       {@link CheckIcon}, {@link AlertIcon}, {@link ErrorIcon}, {@link QuestionIcon},
+ *       {@link FileIcon}, {@link FolderIcon}, {@link UndoIcon}, {@link RedoIcon},
  *       {@link SVGIcon}) and the
  *       {@link #svgIcon(String, int)} / {@link #svgIcon(String, int, Color)} factories</li>
  *   <li>Look-and-feel icon shortcuts ({@link #TreePlusIcon()}, {@link #TreeMinusIcon()})</li>
@@ -515,6 +518,323 @@ public class IconUtil {
 
         public AreaIcon(int size, Color color) {
             super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/area.svg");
+        }
+    }
+
+    /**
+     * Info ("i" in a circle) icon rendered from the bundled {@code info.svg}
+     * classpath resource.
+     */
+    public static class InfoIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square info icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public InfoIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/info.svg");
+        }
+
+        /**
+         * Creates a square info icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public InfoIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/info.svg");
+        }
+    }
+
+    /**
+     * Run (play triangle) icon rendered from the bundled {@code run.svg}
+     * classpath resource.
+     */
+    public static class RunIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square run (play triangle) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RunIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/run.svg");
+        }
+
+        /**
+         * Creates a square run (play triangle) icon tinted with the given color
+         * on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public RunIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/run.svg");
+        }
+    }
+
+    /**
+     * Stop (square) icon rendered from the bundled {@code stop.svg} classpath resource.
+     * Counterpart of {@link RunIcon}.
+     */
+    public static class StopIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square stop icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public StopIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/stop.svg");
+        }
+
+        /**
+         * Creates a square stop icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public StopIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/stop.svg");
+        }
+    }
+
+    /**
+     * Pause (two vertical bars) icon rendered from the bundled {@code pause.svg}
+     * classpath resource. Counterpart of {@link RunIcon}.
+     */
+    public static class PauseIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square pause icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public PauseIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/pause.svg");
+        }
+
+        /**
+         * Creates a square pause icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public PauseIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/pause.svg");
+        }
+    }
+
+    /**
+     * Check (tick) icon rendered from the bundled {@code check.svg} classpath resource.
+     * Intended as the "ok/success" glyph for {@link IconStatusWidget}.
+     */
+    public static class CheckIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square check icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public CheckIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/check.svg");
+        }
+
+        /**
+         * Creates a square check icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public CheckIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/check.svg");
+        }
+    }
+
+    /**
+     * Alert (exclamation in a triangle) icon rendered from the bundled {@code alert.svg}
+     * classpath resource. Intended as the "warning" glyph for {@link IconStatusWidget}.
+     */
+    public static class AlertIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square alert icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public AlertIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/alert.svg");
+        }
+
+        /**
+         * Creates a square alert icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public AlertIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/alert.svg");
+        }
+    }
+
+    /**
+     * Error ("x" in a circle) icon rendered from the bundled {@code error.svg} classpath
+     * resource. Intended as the "failure" glyph for {@link IconStatusWidget}; for a plain
+     * dismiss/close action use {@link CancelIcon}.
+     */
+    public static class ErrorIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square error icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public ErrorIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/error.svg");
+        }
+
+        /**
+         * Creates a square error icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public ErrorIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/error.svg");
+        }
+    }
+
+    /**
+     * Question ("?" in a circle) icon rendered from the bundled {@code question.svg}
+     * classpath resource. Intended for help actions and the "unknown" status glyph;
+     * for informational content use {@link InfoIcon}.
+     */
+    public static class QuestionIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square question icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public QuestionIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/question.svg");
+        }
+
+        /**
+         * Creates a square question icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public QuestionIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/question.svg");
+        }
+    }
+
+    /**
+     * File (dog-eared page) icon rendered from the bundled {@code file.svg} classpath
+     * resource. Intended for "new document" actions.
+     */
+    public static class FileIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square file icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public FileIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/file.svg");
+        }
+
+        /**
+         * Creates a square file icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public FileIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/file.svg");
+        }
+    }
+
+    /**
+     * Folder icon rendered from the bundled {@code folder.svg} classpath resource.
+     * Intended for "open document" actions.
+     */
+    public static class FolderIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square folder icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public FolderIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/folder.svg");
+        }
+
+        /**
+         * Creates a square folder icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public FolderIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/folder.svg");
+        }
+    }
+
+    /**
+     * Undo (arrow hooking back to the left) icon rendered from the bundled {@code undo.svg}
+     * classpath resource. Distinct from {@link RollbackIcon}, whose full circle reads as
+     * "revert/reload" rather than "undo the last edit".
+     */
+    public static class UndoIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square undo icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public UndoIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/undo.svg");
+        }
+
+        /**
+         * Creates a square undo icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public UndoIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/undo.svg");
+        }
+    }
+
+    /**
+     * Redo (arrow hooking back to the right) icon rendered from the bundled {@code redo.svg}
+     * classpath resource; the mirror of {@link UndoIcon}. Distinct from {@link RefreshIcon},
+     * whose full circle reads as "reload".
+     */
+    public static class RedoIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square redo icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RedoIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/redo.svg");
+        }
+
+        /**
+         * Creates a square redo icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public RedoIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/redo.svg");
         }
     }
 

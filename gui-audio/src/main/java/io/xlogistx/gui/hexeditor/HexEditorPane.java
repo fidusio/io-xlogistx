@@ -15,6 +15,7 @@
  */
 package io.xlogistx.gui.hexeditor;
 
+import io.xlogistx.gui.IconUtil;
 import io.xlogistx.gui.MDViewerPanel;
 
 import javax.swing.*;
@@ -49,6 +50,9 @@ import java.util.List;
  * titles and dirty state via {@link #getDocumentTitle()} / {@link #isModified()}.
  */
 public class HexEditorPane extends JPanel {
+
+    /** Pixel size of the toolbar button icons. */
+    private static final int TOOL_ICON_SIZE = 16;
 
     private final HexEditor editor;
     private final HexPanel hexPanel;
@@ -358,17 +362,17 @@ public class HexEditorPane extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
 
-        toolBar.add(toolButton("New", "Create new file", e -> handleNew()));
-        toolBar.add(toolButton("Open", "Open file", e -> handleOpen()));
-        toolBar.add(toolButton("Save", "Save file", e -> handleSave()));
+        toolBar.add(toolButton(new IconUtil.FileIcon(TOOL_ICON_SIZE), "New file", e -> handleNew()));
+        toolBar.add(toolButton(new IconUtil.FolderIcon(TOOL_ICON_SIZE), "Open file", e -> handleOpen()));
+        toolBar.add(toolButton(new IconUtil.SaveIcon(TOOL_ICON_SIZE), "Save file", e -> handleSave()));
         toolBar.addSeparator();
-        toolBar.add(toolButton("Undo", "Undo", e -> {
+        toolBar.add(toolButton(new IconUtil.UndoIcon(TOOL_ICON_SIZE), "Undo", e -> {
             if (editor.undo()) {
                 hexPanel.refresh();
                 updateStatus();
             }
         }));
-        toolBar.add(toolButton("Redo", "Redo", e -> {
+        toolBar.add(toolButton(new IconUtil.RedoIcon(TOOL_ICON_SIZE), "Redo", e -> {
             if (editor.redo()) {
                 hexPanel.refresh();
                 updateStatus();
@@ -381,7 +385,7 @@ public class HexEditorPane extends JPanel {
         searchField.setMaximumSize(new Dimension(150, 25));
         searchField.addActionListener(e -> findNext());
         toolBar.add(searchField);
-        toolBar.add(toolButton("Find", "Find next", e -> findNext()));
+        toolBar.add(toolButton(new IconUtil.SearchIcon(TOOL_ICON_SIZE), "Find next", e -> findNext()));
         toolBar.addSeparator();
 
         toolBar.add(new JLabel(" Go to: "));
@@ -400,8 +404,8 @@ public class HexEditorPane extends JPanel {
         return toolBar;
     }
 
-    private JButton toolButton(String text, String tooltip, java.awt.event.ActionListener action) {
-        JButton button = new JButton(text);
+    private JButton toolButton(Icon icon, String tooltip, java.awt.event.ActionListener action) {
+        JButton button = new JButton(icon);
         button.setToolTipText(tooltip);
         button.setFocusable(false);
         button.addActionListener(action);

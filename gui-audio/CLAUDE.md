@@ -11,7 +11,9 @@ The package has three groups:
    - `IconUtil` — the icon library. All icons are SVG-based (`PlusIcon`, `MinusIcon`,
      `CancelIcon`, `SaveIcon`, `UpdateIcon`, `EditIcon`, `DeleteIcon`, `BackIcon`,
      `NextIcon`, `RollbackIcon`, `VisibleIcon`, `InvisibleIcon`, `CopyIcon`, `SearchIcon`,
-     `RefreshIcon`, generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
+     `RefreshIcon`, `InfoIcon`, `RunIcon`, `StopIcon`, `PauseIcon`, `CheckIcon`, `AlertIcon`,
+     `ErrorIcon`, `QuestionIcon`, `FileIcon`, `FolderIcon`, `UndoIcon`, `RedoIcon`,
+     generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
      ones share the `SVGIconWidget` base. **SVG icon constructor contract**:
      `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
      component's background; `XxxIcon(int size, Color color)` tints the glyph and paints
@@ -61,7 +63,8 @@ The package has three groups:
 - `HexPanel` — embeddable Swing view (offset/hex/ASCII columns, nibble-level
   editing, clip-aware painting). Caret blink timer is started/stopped in
   `addNotify`/`removeNotify`.
-- `HexEditorPane` — **the embeddable component** (JPanel: toolbar + view + status
+- `HexEditorPane` — **the embeddable component** (JPanel: toolbar of icon-only
+  `IconUtil` buttons with tooltips + view + status
   bar + all dialogs, parented to the pane). Hosts install `createMenuBar()` in
   their own window; document state via `getDocumentTitle()`/`isModified()`/
   change listeners; `confirmDiscard()` before closing. Never exits the JVM.
@@ -88,13 +91,23 @@ The package has three groups:
   BEFORE the swap so neither field can end up null.
 - SVG resources live in `src/main/resources/io/xlogistx/gui/icons/` (`plus`, `minus`,
   `cancel`, `edit`, `delete`, `back`, `next`, `rollback`, `visible`, `invisible`, `save`,
-  `update`, `copy`, `search`, `refresh`). All are Feather-style: 24x24 viewBox,
+  `update`, `copy`, `search`, `refresh`, `info`, `run`, `stop`, `pause`, `check`, `alert`,
+  `error`, `question`, `file`, `folder`, `undo`, `redo`). All are Feather-style: 24x24 viewBox,
   `fill="none"`, `stroke="#5A5A5A"`, stroke-width 2, round caps/joins — match this style
   when adding new ones. Each `XxxIcon` class maps to the same-named svg
   (`PlusIcon`→`plus.svg`, ...), except: `EditIcon`→`edit.svg` is a pencil,
   `DeleteIcon`→`delete.svg` is a trash can, `UpdateIcon`→`update.svg` is two chasing
   arrows (sync), `RefreshIcon`→`refresh.svg` is a single clockwise arrow,
-  `RollbackIcon`→`rollback.svg` is its counterclockwise mirror. Every svg has a
+  `RollbackIcon`→`rollback.svg` is its counterclockwise mirror, `RunIcon`→`run.svg` is a
+  play triangle, `InfoIcon`→`info.svg` is an "i" in a circle. `UndoIcon`/`RedoIcon` are
+  hook arrows and are deliberately NOT mirrors of `rollback`/`refresh` (those two are
+  already exact mirrors of each other and read as revert/reload, not undo/redo).
+  `CheckIcon`/`AlertIcon`/`ErrorIcon`/`QuestionIcon` are the intended status glyphs for
+  `IconStatusWidget`; `ErrorIcon` (x-in-circle) is distinct from `CancelIcon` (bare x,
+  a dismiss action), and `CheckIcon` (bare tick, "ok") from `SaveIcon` (floppy disk,
+  "write to disk"). **No two svgs may render the same glyph** — the only 100% matches
+  allowed in the set are the three intentional h-mirror pairs `back`/`next`,
+  `undo`/`redo` and `rollback`/`refresh`. Every svg has a
   dedicated class; one-off svgs can be loaded via `IconUtil.svgIcon(...)`.
 
 ## Dependencies

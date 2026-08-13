@@ -39,7 +39,19 @@ public class IconWidgetDemo {
                         labeled("Invisible", new IconUtil.InvisibleIcon(size)),
                         labeled("Copy", new IconUtil.CopyIcon(size)),
                         labeled("Search", new IconUtil.SearchIcon(size)),
-                        labeled("Refresh", new IconUtil.RefreshIcon(size))));
+                        labeled("Refresh", new IconUtil.RefreshIcon(size)),
+                        labeled("Info", new IconUtil.InfoIcon(size)),
+                        labeled("Run", new IconUtil.RunIcon(size)),
+                        labeled("Stop", new IconUtil.StopIcon(size)),
+                        labeled("Pause", new IconUtil.PauseIcon(size)),
+                        labeled("Check", new IconUtil.CheckIcon(size)),
+                        labeled("Alert", new IconUtil.AlertIcon(size)),
+                        labeled("Error", new IconUtil.ErrorIcon(size)),
+                        labeled("Question", new IconUtil.QuestionIcon(size)),
+                        labeled("File", new IconUtil.FileIcon(size)),
+                        labeled("Folder", new IconUtil.FolderIcon(size)),
+                        labeled("Undo", new IconUtil.UndoIcon(size)),
+                        labeled("Redo", new IconUtil.RedoIcon(size))));
             }
 
             // as buttons, svg icons with their own default colors
@@ -58,7 +70,19 @@ public class IconWidgetDemo {
                     GUIUtil.iconButton(new IconUtil.InvisibleIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.CopyIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.SearchIcon(24), true),
-                    GUIUtil.iconButton(new IconUtil.RefreshIcon(24), true)));
+                    GUIUtil.iconButton(new IconUtil.RefreshIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.InfoIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.RunIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.StopIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.PauseIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.CheckIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.AlertIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.ErrorIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.QuestionIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.FileIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.FolderIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.UndoIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.RedoIcon(24), true)));
 
             // as buttons, svg icons tinted white on their background color
             frame.add(GUIUtil.createPanel("Tinted buttons (24)", new FlowLayout(FlowLayout.LEFT, 10, 5),
@@ -76,7 +100,19 @@ public class IconWidgetDemo {
                     GUIUtil.iconButton(new IconUtil.InvisibleIcon(24, Color.WHITE), true),
                     GUIUtil.iconButton(new IconUtil.CopyIcon(24, Color.WHITE), true),
                     GUIUtil.iconButton(new IconUtil.SearchIcon(24, Color.WHITE), true),
-                    GUIUtil.iconButton(new IconUtil.RefreshIcon(24, Color.WHITE), true)));
+                    GUIUtil.iconButton(new IconUtil.RefreshIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.InfoIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.RunIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.StopIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.PauseIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.CheckIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.AlertIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.ErrorIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.QuestionIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.FileIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.FolderIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.UndoIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.RedoIcon(24, Color.WHITE), true)));
 
             frame.pack();
             frame.setLocationRelativeTo(null);
