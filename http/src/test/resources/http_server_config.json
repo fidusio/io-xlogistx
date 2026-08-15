@@ -55,7 +55,7 @@
       },
       "ssl_config": {
         "simple_state_machine": true,
-        "auto_check" : "30sec",
+        "auto_check" : "5min",
         "certs": [
           {
             "cert_type": "ks",

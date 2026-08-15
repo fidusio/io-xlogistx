@@ -6,6 +6,7 @@ import org.zoxweb.server.io.ByteBufferUtil;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.net.DataPacket;
 import org.zoxweb.server.net.common.UDPSessionCallback;
+import org.zoxweb.server.net.ssl.SSLConfigInt;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -90,8 +91,17 @@ public class DNSUDPNIOCallback
 
     }
 
+    /**
+     * Invoked when the SSL handshake completed, gives the callback a chance to switch its
+     * delivery path or output stream to the secured channel.
+     *
+     * @param sci the session's SSL config seam (engine, channel, net buffers); pass it to
+     *            {@code CommonChannelOutputStream.setSSLSessionConfig} to flip the session
+     *            output stream to encrypted writes
+     * @throws IOException in case of error
+     */
     @Override
-    public void sslHandshakeSuccessful() throws IOException {
+    public void sslHandshakeSuccessful(SSLConfigInt sci) throws IOException {
 
     }
 }
