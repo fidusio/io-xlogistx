@@ -32,7 +32,7 @@ public class DNSUDPNIOCallback
     public void accept(DataPacket dp) throws IOException {
         Message queryMsg;
         // the dp.getBuffer() is already flipped
-        byte[] data = ByteBufferUtil.allocateByteArray(dp.getBuffer(), false);
+        byte[] data = ByteBufferUtil.allocateByteArray(dp.getIOBuffers().getInBuffer(), false);
         try {
             if (log.isEnabled()) log.getLogger().info(dp.getID() + " Data buffer size: " + data.length);
 
