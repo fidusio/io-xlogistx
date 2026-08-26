@@ -24,8 +24,6 @@ import org.bouncycastle.cert.ocsp.*;
 import org.bouncycastle.jcajce.SecretKeyWithEncapsulation;
 import org.bouncycastle.jcajce.spec.KEMExtractSpec;
 import org.bouncycastle.jcajce.spec.KEMGenerateSpec;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -43,7 +41,6 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.tls.CipherSuite;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.server.logging.LogWrapper;
@@ -52,7 +49,6 @@ import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.security.SShURI;
-import org.zoxweb.shared.security.SecTag;
 import org.zoxweb.shared.util.*;
 
 import javax.crypto.*;
@@ -77,11 +73,13 @@ public class OPSecUtil {
 
     public static final LogWrapper log = new LogWrapper(OPSecUtil.class).setEnabled(false);
 
-    public static final String BC_PROVIDER = "BC";
-    public static final String BC_CKD_PROVIDER = "BCPQC";
-    public static final String BC_BCJSSE = "BCJSSE";
-    public static final String CK_NAME = "KYBER";
-    public static final String CD_NAME = "DILITHIUM";
+//    public static final String BC_PROVIDER = "BC";
+//    public static final String BC_CKD_PROVIDER = "BCPQC";
+//    public static final String BC_BCJSSE = "BCJSSE";
+    // NIST-final PQC algorithm names (BC 1.85 removed the draft KYBER/DILITHIUM
+    // algorithms from the BCPQC provider; ML-KEM/ML-DSA live in the main BC provider)
+//    public static final String ML_KEM = "ML-KEM";
+//    public static final String ML_DSA = "ML-DSA";
 
     // OID Constants for certificate extensions
     public static final String OID_CRL_DISTRIBUTION_POINTS = "2.5.29.31";
@@ -609,13 +607,14 @@ public class OPSecUtil {
     //private final static AtomicBoolean init = new AtomicBoolean(false);
 
     private OPSecUtil() {
+        SecUtil.init();
 
-        java.util.logging.Logger bcLogger = java.util.logging.Logger.getLogger("org.bouncycastle");
-        bcLogger.setLevel(java.util.logging.Level.SEVERE);
-        bcLogger.setUseParentHandlers(false);  // Prevents parent loggers from handling
-
-        loadProviders();
-        SecUtil.addCredentialHasher(new ArgonPasswordHasher());
+//        java.util.logging.Logger bcLogger = java.util.logging.Logger.getLogger("org.bouncycastle");
+//        bcLogger.setLevel(java.util.logging.Level.SEVERE);
+//        bcLogger.setUseParentHandlers(false);  // Prevents parent loggers from handling
+//
+//        loadProviders();
+//        SecUtil.addCredentialHasher(new ArgonPasswordHasher());
 
 
     }
@@ -625,48 +624,48 @@ public class OPSecUtil {
         return SINGLETON;
     }
 
-    public synchronized void reloadProviders() {
-        boolean stat = SecUtil.removeProvider(BC_CKD_PROVIDER);
-        log.getLogger().info("Provider " + BC_CKD_PROVIDER + " removed: " + stat);
-        stat = SecUtil.removeProvider(BC_PROVIDER);
-        log.getLogger().info("Provider " + BC_PROVIDER + " removed: " + stat);
-        stat = SecUtil.removeProvider(BC_BCJSSE);
-        log.getLogger().info("Provider " + BC_BCJSSE + " removed: " + stat);
-
-        loadProviders();
-    }
-
-    public synchronized void loadProviders() {
-
-        if (SecUtil.getProvider(BC_PROVIDER) == null) {
-            Provider prov = new BouncyCastleProvider();
-            SecUtil.addProviderAt(prov, 1);
+//    public synchronized void reloadProviders() {
+//        boolean stat = SecUtil.removeProvider(BC_CKD_PROVIDER);
+//        log.getLogger().info("Provider " + BC_CKD_PROVIDER + " removed: " + stat);
+//        stat = SecUtil.removeProvider(BC_PROVIDER);
+//        log.getLogger().info("Provider " + BC_PROVIDER + " removed: " + stat);
+//        stat = SecUtil.removeProvider(BC_BCJSSE);
+//        log.getLogger().info("Provider " + BC_BCJSSE + " removed: " + stat);
+//
+//        loadProviders();
+//    }
+//
+//    public synchronized void loadProviders() {
+//
+//        if (SecUtil.getProvider(BC_PROVIDER) == null) {
+//            Provider prov = new BouncyCastleProvider();
+//            SecUtil.addProviderAt(prov, 1);
+////            SecUtil.addProvider(prov);
+//            checkProviderExists(BC_PROVIDER);
+//        }
+//
+//        if (SecUtil.getProvider(BC_BCJSSE) == null) {
+//            Provider prov = new BouncyCastleJsseProvider();
+//            SecUtil.addProviderAt(prov, 2);
+////            SecUtil.addProvider(prov);
+//            checkProviderExists(BC_BCJSSE);
+//            SecTag.REGISTRAR.registerValue(new SecTag(BC_BCJSSE, SecTag.TagID.X509));
+//            SecTag.REGISTRAR.registerValue(new SecTag(BC_BCJSSE, SecTag.TagID.TLS));
+//        }
+//        if (SecUtil.getProvider(BC_CKD_PROVIDER) == null) {
+//            Provider prov = new BouncyCastlePQCProvider();
 //            SecUtil.addProvider(prov);
-            checkProviderExists(BC_PROVIDER);
-        }
-
-        if (SecUtil.getProvider(BC_BCJSSE) == null) {
-            Provider prov = new BouncyCastleJsseProvider();
-            SecUtil.addProviderAt(prov, 2);
-//            SecUtil.addProvider(prov);
-            checkProviderExists(BC_BCJSSE);
-            SecTag.REGISTRAR.registerValue(new SecTag(BC_BCJSSE, SecTag.TagID.X509));
-            SecTag.REGISTRAR.registerValue(new SecTag(BC_BCJSSE, SecTag.TagID.TLS));
-        }
-        if (SecUtil.getProvider(BC_CKD_PROVIDER) == null) {
-            Provider prov = new BouncyCastlePQCProvider();
-            SecUtil.addProvider(prov);
-            checkProviderExists(BC_CKD_PROVIDER);
-        }
-    }
-
-    private static void checkProviderExists(String providerName) {
-        Provider provider = SecUtil.getProvider(providerName);
-        if (provider != null)
-            log.getLogger().info("Provider Loaded: " + SUS.toCanonicalID('-', provider.getName(), provider.getVersion(), provider.getInfo()));
-        else
-            log.getLogger().info("**Warning**: Provider " + providerName + " NOT Loaded ");
-    }
+//            checkProviderExists(BC_CKD_PROVIDER);
+//        }
+//    }
+//
+//    private static void checkProviderExists(String providerName) {
+//        Provider provider = SecUtil.getProvider(providerName);
+//        if (provider != null)
+//            log.getLogger().info("Provider Loaded: " + SUS.toCanonicalID('-', provider.getName(), provider.getVersion(), provider.getInfo()));
+//        else
+//            log.getLogger().info("**Warning**: Provider " + providerName + " NOT Loaded ");
+//    }
 
     public X500Name createSubject(String attributes) {
         X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
@@ -786,7 +785,7 @@ public class OPSecUtil {
                                    String duration,
                                    boolean copyExtensions) throws Exception {
         // Extract public key from CSR
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(SecUtil.BC_PROVIDER);
         PublicKey subjectPublicKey = converter.getPublicKey(csr.getSubjectPublicKeyInfo());
 
         // Set validity period
@@ -820,11 +819,11 @@ public class OPSecUtil {
         // Determine signature algorithm based on CA key type
         String signatureAlgorithm = getSignatureAlgorithm(caPrivateKey);
         ContentSigner signer = new JcaContentSignerBuilder(signatureAlgorithm)
-                .setProvider(BC_PROVIDER).build(caPrivateKey);
+                .setProvider(SecUtil.BC_PROVIDER).build(caPrivateKey);
 
         // Build and convert to X509Certificate
         return new JcaX509CertificateConverter()
-                .setProvider(BC_PROVIDER)
+                .setProvider(SecUtil.BC_PROVIDER)
                 .getCertificate(certBuilder.build(signer));
     }
 
@@ -844,7 +843,7 @@ public class OPSecUtil {
                                          int days,
                                          boolean copyExtensions) throws Exception {
         // Extract public key from CSR
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(SecUtil.BC_PROVIDER);
         PublicKey subjectPublicKey = converter.getPublicKey(csr.getSubjectPublicKeyInfo());
 
         // Set validity period
@@ -879,7 +878,7 @@ public class OPSecUtil {
         // Determine signature algorithm based on CA key type
         String signatureAlgorithm = getSignatureAlgorithm(caPrivateKey);
         ContentSigner signer = new JcaContentSignerBuilder(signatureAlgorithm)
-                .setProvider(BC_PROVIDER).build(caPrivateKey);
+                .setProvider(SecUtil.BC_PROVIDER).build(caPrivateKey);
 
         return certBuilder.build(signer);
     }
@@ -902,7 +901,7 @@ public class OPSecUtil {
                                    Extensions additionalExtensions,
                                    boolean copyCSRExtensions) throws Exception {
         // Extract public key from CSR
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(SecUtil.BC_PROVIDER);
         PublicKey subjectPublicKey = converter.getPublicKey(csr.getSubjectPublicKeyInfo());
 
         // Set validity period
@@ -944,11 +943,11 @@ public class OPSecUtil {
         // Determine signature algorithm based on CA key type
         String signatureAlgorithm = getSignatureAlgorithm(caPrivateKey);
         ContentSigner signer = new JcaContentSignerBuilder(signatureAlgorithm)
-                .setProvider(BC_PROVIDER).build(caPrivateKey);
+                .setProvider(SecUtil.BC_PROVIDER).build(caPrivateKey);
 
         // Build and convert to X509Certificate
         return new JcaX509CertificateConverter()
-                .setProvider(BC_PROVIDER)
+                .setProvider(SecUtil.BC_PROVIDER)
                 .getCertificate(certBuilder.build(signer));
     }
 
@@ -962,8 +961,8 @@ public class OPSecUtil {
             return "Ed25519";
         } else if ("Ed448".equalsIgnoreCase(algorithm)) {
             return "Ed448";
-        } else if (algorithm.toUpperCase().contains("DILITHIUM")) {
-            return "Dilithium";
+        } else if (algorithm.toUpperCase().contains("ML-DSA") || algorithm.toUpperCase().contains("DILITHIUM")) {
+            return CryptoConst.ML_DSA;
         }
         // Default to RSA
         return CryptoConst.SignatureAlgo.SHA256_RSA.getName();
@@ -1225,7 +1224,7 @@ public class OPSecUtil {
     }
 
     public PublicKey extractPublicKey(PKCS10CertificationRequest csr) throws IOException {
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(SecUtil.BC_PROVIDER);
         return converter.getPublicKey(csr.getSubjectPublicKeyInfo());
     }
 
@@ -1590,7 +1589,7 @@ public class OPSecUtil {
      */
     public List<X509Certificate> readCertificates(File pem) throws CertificateException, IOException {
         List<X509Certificate> out = new ArrayList<>();
-        JcaX509CertificateConverter conv = new JcaX509CertificateConverter().setProvider(BC_PROVIDER);
+        JcaX509CertificateConverter conv = new JcaX509CertificateConverter().setProvider(SecUtil.BC_PROVIDER);
         try (PEMParser parser = new PEMParser(new FileReader(pem))) {
             Object obj;
             while ((obj = parser.readObject()) != null) {
@@ -1617,7 +1616,7 @@ public class OPSecUtil {
      */
     public List<X509Certificate> readCertificates(InputStream pem) throws CertificateException, IOException {
         List<X509Certificate> out = new ArrayList<>();
-        JcaX509CertificateConverter conv = new JcaX509CertificateConverter().setProvider(BC_PROVIDER);
+        JcaX509CertificateConverter conv = new JcaX509CertificateConverter().setProvider(SecUtil.BC_PROVIDER);
         try (PEMParser parser = new PEMParser(new InputStreamReader(pem))) {
             Object obj;
             while ((obj = parser.readObject()) != null) {
@@ -1647,7 +1646,7 @@ public class OPSecUtil {
      * @throws GeneralSecurityException if no key is found or decryption fails
      */
     public PrivateKey readPrivateKey(File pem, char[] password) throws GeneralSecurityException, IOException {
-        JcaPEMKeyConverter conv = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        JcaPEMKeyConverter conv = new JcaPEMKeyConverter().setProvider(SecUtil.BC_PROVIDER);
         try (PEMParser parser = new PEMParser(new FileReader(pem))) {
             Object obj;
             while ((obj = parser.readObject()) != null) {
@@ -1675,7 +1674,7 @@ public class OPSecUtil {
      * @throws GeneralSecurityException if no key is found or decryption fails
      */
     public PrivateKey readPrivateKey(InputStream pem, char[] password) throws GeneralSecurityException, IOException {
-        JcaPEMKeyConverter conv = new JcaPEMKeyConverter().setProvider(BC_PROVIDER);
+        JcaPEMKeyConverter conv = new JcaPEMKeyConverter().setProvider(SecUtil.BC_PROVIDER);
         try (PEMParser parser = new PEMParser(new InputStreamReader(pem))) {
             Object obj;
             while ((obj = parser.readObject()) != null) {
@@ -1709,7 +1708,7 @@ public class OPSecUtil {
         if (obj instanceof PEMEncryptedKeyPair) {
             requireKeyPassword(password);
             PEMDecryptorProvider dec = new JcePEMDecryptorProviderBuilder()
-                    .setProvider(BC_PROVIDER).build(password);
+                    .setProvider(SecUtil.BC_PROVIDER).build(password);
             return conv.getKeyPair(((PEMEncryptedKeyPair) obj).decryptKeyPair(dec)).getPrivate();
         }
         // Encrypted PKCS#8: BEGIN ENCRYPTED PRIVATE KEY
@@ -1717,7 +1716,7 @@ public class OPSecUtil {
             requireKeyPassword(password);
             try {
                 InputDecryptorProvider dp = new JceOpenSSLPKCS8DecryptorProviderBuilder()
-                        .setProvider(BC_PROVIDER).build(password);
+                        .setProvider(SecUtil.BC_PROVIDER).build(password);
                 PrivateKeyInfo info = ((PKCS8EncryptedPrivateKeyInfo) obj).decryptPrivateKeyInfo(dp);
                 return conv.getPrivateKey(info);
             } catch (Exception e) {
@@ -1894,14 +1893,14 @@ public class OPSecUtil {
 
     public SecretKeyWithEncapsulation generateCKEncryptionKey(PublicKey publicKey)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
-        KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
+        KeyGenerator keyGen = KeyGenerator.getInstance(CryptoConst.ML_KEM, SecUtil.BC_PROVIDER);
         keyGen.init(new KEMGenerateSpec(publicKey, "AES"), SecUtil.defaultSecureRandom());
         return (SecretKeyWithEncapsulation) keyGen.generateKey();
     }
 
     public SecretKeyWithEncapsulation extractCKDecryptionKey(PrivateKey privateKey, byte[] encapsulatedKey)
             throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
-        KeyGenerator keyGen = KeyGenerator.getInstance("KYBER", "BCPQC");
+        KeyGenerator keyGen = KeyGenerator.getInstance(CryptoConst.ML_KEM, SecUtil.BC_PROVIDER);
         keyGen.init(new KEMExtractSpec(privateKey, encapsulatedKey, "AES"), SecUtil.defaultSecureRandom());
         return (SecretKeyWithEncapsulation) keyGen.generateKey();
     }
@@ -1914,16 +1913,16 @@ public class OPSecUtil {
 
     public byte[] encryptCKAESKey(PublicKey publicKey, SecretKey aesKey)
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException {
-        Cipher kyberWrapCipher = Cipher.getInstance("Kyber", "BCPQC");
-        kyberWrapCipher.init(Cipher.WRAP_MODE, publicKey, SecUtil.defaultSecureRandom());
-        return kyberWrapCipher.wrap(aesKey);
+        Cipher kemWrapCipher = Cipher.getInstance(CryptoConst.ML_KEM, SecUtil.BC_PROVIDER);
+        kemWrapCipher.init(Cipher.WRAP_MODE, publicKey, SecUtil.defaultSecureRandom());
+        return kemWrapCipher.wrap(aesKey);
     }
 
     public Key decryptCKAESKey(PrivateKey privateKey, byte[] wrappedAesKeyBytes)
             throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, IllegalBlockSizeException {
-        Cipher kyberUnwrapCipher = Cipher.getInstance("Kyber", "BCPQC");
-        kyberUnwrapCipher.init(Cipher.UNWRAP_MODE, privateKey);
-        return kyberUnwrapCipher.unwrap(wrappedAesKeyBytes, "AES", Cipher.SECRET_KEY);
+        Cipher kemUnwrapCipher = Cipher.getInstance(CryptoConst.ML_KEM, SecUtil.BC_PROVIDER);
+        kemUnwrapCipher.init(Cipher.UNWRAP_MODE, privateKey);
+        return kemUnwrapCipher.unwrap(wrappedAesKeyBytes, "AES", Cipher.SECRET_KEY);
     }
 
 
@@ -2323,7 +2322,7 @@ public class OPSecUtil {
         try {
             // Build OCSP request
             DigestCalculatorProvider digCalcProv = new org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder()
-                    .setProvider(BC_PROVIDER).build();
+                    .setProvider(SecUtil.BC_PROVIDER).build();
             CertificateID certId = new CertificateID(
                     digCalcProv.get(CertificateID.HASH_SHA1),
                     new JcaX509CertificateHolder(issuerCert),

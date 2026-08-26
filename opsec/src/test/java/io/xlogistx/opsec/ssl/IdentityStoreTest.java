@@ -13,6 +13,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.zoxweb.server.security.SecUtil;
 
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -283,7 +284,7 @@ public class IdentityStoreTest {
         }};
         SSLContext ctx;
         try {
-            ctx = SSLContext.getInstance("TLS", OPSecUtil.BC_BCJSSE);
+            ctx = SSLContext.getInstance("TLS", SecUtil.BC_BCJSSE);
         } catch (Exception e) {
             ctx = SSLContext.getInstance("TLS");
         }

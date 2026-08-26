@@ -4,7 +4,7 @@ package io.xlogistx.http;
 
 import io.xlogistx.common.http.*;
 import io.xlogistx.http.websocket.WSHandler;
-import io.xlogistx.opsec.BCSSLGroupSetter;
+
 import io.xlogistx.opsec.OPSecUtil;
 import io.xlogistx.opsec.ssl.IdentityStore;
 import io.xlogistx.shiro.ShiroInvoker;
@@ -29,6 +29,7 @@ import org.zoxweb.server.net.common.CommonChannelOutputStream;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionConfig;
+import org.zoxweb.server.security.BCSSLGroupSetter;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -99,7 +100,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.6.0");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.6.2");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
 
@@ -854,6 +855,7 @@ public class NIOHTTPServer
                                     nioSocket.getScheduler().scheduleAtFixedRate(store.getFileWatcher(), autoCheck, autoCheck, TimeUnit.MILLISECONDS);
 
                                 SSLContext sslContext = store.newSSLContext();
+                                logger.getLogger().info("SSL Context created: " + sslContext.getProtocol() + " provider: " + sslContext.getProvider().getName());
                                 NVStringList protocols = ((NVStringList) sslConfig.get(PROTOCOLS));
                                 NVStringList ciphers = ((NVStringList) sslConfig.get(CIPHERS));
                                 NVStringList groups = ((NVStringList) sslConfig.get(GROUPS));
@@ -861,6 +863,7 @@ public class NIOHTTPServer
                                         protocols != null && protocols.getValues().length > 0 ? protocols.getValues() : null,
                                         ciphers != null && ciphers.getValues().length > 0 ? ciphers.getValues() : null);
 
+                                logger.getLogger().info("GROUP: " + groups);
                                 // add ssl group setter here
                                 if (groups != null && groups.getValues().length > 0) {
                                     sslContextInfo.setSSLGroupSetter(new BCSSLGroupSetter(groups.getValues()));

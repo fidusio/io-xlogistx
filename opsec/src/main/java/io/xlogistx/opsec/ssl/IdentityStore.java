@@ -4,6 +4,7 @@ import io.xlogistx.opsec.OPSecUtil;
 import org.zoxweb.server.io.FileWatcher;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.IsValid;
 import org.zoxweb.shared.util.NVGenericMap;
@@ -489,7 +490,7 @@ public final class IdentityStore {
         OPSecUtil.singleton();
         SSLContext ctx;
         try {
-            ctx = SSLContext.getInstance("TLS", OPSecUtil.BC_BCJSSE);
+            ctx = SSLContext.getInstance("TLS", SecUtil.BC_BCJSSE);
         } catch (GeneralSecurityException e) {
             ctx = SSLContext.getInstance("TLS"); // platform default
         }
