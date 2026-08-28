@@ -7,6 +7,7 @@ import org.zoxweb.shared.io.CloseableTypeDelegate;
 import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.protocol.ProtoSession;
 import org.zoxweb.shared.util.CollectionAsArray;
+import org.zoxweb.shared.util.LazyValue;
 import org.zoxweb.shared.util.NVGenericMap;
 import org.zoxweb.shared.util.NamedValue;
 
@@ -22,10 +23,9 @@ public class ShiroSession<V>
     public final static String SHIRO_SESSION = "shiro-session-self";
 
     private final Subject subject;
-    private final NVGenericMap properties = new NVGenericMap("properties");
+    private final LazyValue<NVGenericMap> properties = new LazyValue<>(this, ()-> new NVGenericMap("properties"));
     private final CloseableTypeDelegate ctd;
-    private final CollectionAsArray<Supplier<Boolean>> closeDecisionMakers = new CollectionAsArray<Supplier<Boolean>>(new LinkedHashSet<>(), new Supplier[0]);
-    //private final Supplier<Boolean> canCloseDecisionMaker;
+    private final LazyValue<CollectionAsArray<Supplier<Boolean>>> closeDecisionMakers = new LazyValue<>(this, ()-> new CollectionAsArray<Supplier<Boolean>>(new LinkedHashSet<>(), new Supplier[0]));
     private final Set<AutoCloseable> autoCloseables = new LinkedHashSet<>();
 
 
@@ -46,9 +46,11 @@ public class ShiroSession<V>
         this.subject.getSession().setAttribute(SHIRO_SESSION, this);
 
         ctd = new CloseableTypeDelegate(() -> {
-            NamedValue<SubjectSwap> ss = getProperties().getNV(SubjectSwap.SUBJECT_SWAP);
-            if (ss != null && ss.getValue() != null)
-                ss.getValue().close();
+            if(properties.isInitialized()) {
+                NamedValue<SubjectSwap> ss = getProperties().getNV(SubjectSwap.SUBJECT_SWAP);
+                if (ss != null && ss.getValue() != null)
+                    ss.getValue().close();
+            }
             subject.logout();
             AutoCloseable[] toClose = autoCloseables.toArray(new AutoCloseable[0]);
             SharedIOUtil.close(toClose);
@@ -74,9 +76,11 @@ public class ShiroSession<V>
         if(isClosed())
             return true;
 
-        for (Supplier<Boolean> toCheck : closeDecisionMakers.asArray())
-            if (!toCheck.get())
-                return false;
+        if(closeDecisionMakers.isInitialized()) {
+            for (Supplier<Boolean> toCheck : closeDecisionMakers.get().asArray())
+                if (!toCheck.get())
+                    return false;
+        }
 
         return true;
     }
@@ -89,8 +93,13 @@ public class ShiroSession<V>
     @Override
     public void addCloseMonitor(Supplier<Boolean> closeMonitor) {
         if (closeMonitor != null)
-            closeDecisionMakers.add(closeMonitor);
+            closeDecisionMakers.get().add(closeMonitor);
+    }
 
+    @Override
+    public void removeCloseMonitor(Supplier<Boolean> closeMonitor) {
+        if (closeMonitor != null)
+            closeDecisionMakers.get().remove(closeMonitor);
     }
 
     /**
@@ -146,7 +155,7 @@ public class ShiroSession<V>
 
     @Override
     public NVGenericMap getProperties() {
-        return properties;
+        return properties.get();
     }
 
     /**
