@@ -9,18 +9,18 @@ import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.SecConst;
-import org.zoxweb.shared.security.shiro.ShiroSessionData;
+import org.zoxweb.shared.security.SecSessionData;
 
 public class SubjectLogin {
     public static final LogWrapper log = new LogWrapper(SubjectLogin.class).setEnabled(true);
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "subject-login", uris = "/subject/login/{appID}")
     @SecurityProp(authentications = {SecConst.AuthenticationType.ALL})
-    public ShiroSessionData login(@ParamProp(name = "appID", optional = true) String appID) {
+    public SecSessionData login(@ParamProp(name = "appID", optional = true) String appID) {
         if (log.isEnabled()) log.getLogger().info("appID: " + appID);
         AuthorizationInfo ai = ShiroUtil.lookupAuthorizationInfo(ShiroUtil.subject());
 
-        ShiroSessionData ssd = new ShiroSessionData();
+        SecSessionData ssd = new SecSessionData();
         ssd.setSubjectID((String) ShiroUtil.subject().getPrincipal());
         if (ai != null) {
 
@@ -46,7 +46,7 @@ public class SubjectLogin {
 //        AuthorizationInfo ai = ShiroUtil.lookupAuthorizationInfo(ShiroUtil.subject());
 //        if(ai != null)
 //        {
-//            ShiroSessionData ssd = new ShiroSessionData();
+//            SecSessionData ssd = new SecSessionData();
 //            ssd.setPermissions(ai.getStringPermissions());
 //            ssd.setRoles(ai.getRoles());
 //        }

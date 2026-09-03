@@ -1,6 +1,6 @@
 package io.xlogistx.shiro;
 
-import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.AuthorizationInfoLookup;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;

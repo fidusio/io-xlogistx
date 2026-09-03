@@ -20,7 +20,7 @@ import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.crypto.CredentialHasher;
 import org.zoxweb.shared.http.HTTPAPIResult;
 import org.zoxweb.shared.http.HTTPMessageConfigInterface;
-import org.zoxweb.shared.security.shiro.ShiroSessionData;
+import org.zoxweb.shared.security.SecSessionData;
 import org.zoxweb.shared.util.*;
 
 import java.io.File;
@@ -30,9 +30,9 @@ import java.util.HashMap;
 public class ShiroProxyRealm extends AuthorizingRealm
         implements SetNVProperties {
 
-    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
+    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(true);
 
-    private final KVMapStore<String, ShiroSessionData> kvSessionData = new KVMapStoreDefault<String, ShiroSessionData>(new HashMap<String, ShiroSessionData>());
+    private final KVMapStore<String, SecSessionData> kvSessionData = new KVMapStoreDefault<String, SecSessionData>(new HashMap<String, SecSessionData>());
     private final KVMapStore<String, AuthenticationInfo> kvAuthenticationInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());
 
     private NVGenericMap configProperties;
@@ -41,7 +41,7 @@ public class ShiroProxyRealm extends AuthorizingRealm
 
 
     private String configPath;
-    private HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm;
+    private HTTPAPIEndPoint<AuthenticationToken, SecSessionData> remoteRealm;
 
     public ShiroProxyRealm() {
         super();
@@ -87,7 +87,7 @@ public class ShiroProxyRealm extends AuthorizingRealm
                 return authenticationInfo;
 
             if (remoteRealm != null) {
-                HTTPAPIResult<ShiroSessionData> result = remoteRealm.syncCall((AuthenticationToken)null, HTTPAuthTokenEncoder.SINGLETON.encode(token));
+                HTTPAPIResult<SecSessionData> result = remoteRealm.syncCall((AuthenticationToken)null, HTTPAuthTokenEncoder.SINGLETON.encode(token));
                 if (log.isEnabled()) log.getLogger().info("remoteRealm " + result);
                 CIPassword passwordDAO = credentialHasher.hash((char[]) token.getCredentials());
                 authenticationInfo = new SimpleAuthenticationInfo(token.getPrincipal(), passwordDAO, getName());
@@ -118,7 +118,7 @@ public class ShiroProxyRealm extends AuthorizingRealm
         String user = (String) principals.getPrimaryPrincipal();
 
 
-        ShiroSessionData ssd = kvSessionData.get(user);
+        SecSessionData ssd = kvSessionData.get(user);
         SimpleAuthorizationInfo ret = new SimpleAuthorizationInfo();
 
         if (log.isEnabled()) log.getLogger().info(user + ": " + ssd.permissions());
@@ -144,7 +144,7 @@ public class ShiroProxyRealm extends AuthorizingRealm
         return configProperties;
     }
 
-    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, ShiroSessionData> remoteRealm) {
+    public void setRemoteRealm(HTTPAPIEndPoint<AuthenticationToken, SecSessionData> remoteRealm) {
         this.remoteRealm = remoteRealm;
     }
 

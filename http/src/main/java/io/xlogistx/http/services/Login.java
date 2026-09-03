@@ -75,7 +75,7 @@ public class Login
 //        AuthorizationInfo ai = ShiroUtil.lookupAuthorizationInfo(ShiroUtil.subject());
 //        if(ai != null)
 //        {
-//            ShiroSessionData ssd = new ShiroSessionData();
+//            SecSessionData ssd = new SecSessionData();
 //            ssd.setPermissions(ai.getStringPermissions());
 //            ssd.setRoles(ai.getRoles());
 //        }

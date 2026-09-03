@@ -2,8 +2,9 @@ package io.xlogistx.shiro;
 
 import org.junit.jupiter.api.Test;
 import org.zoxweb.server.util.GSONUtil;
-import org.zoxweb.shared.security.shiro.ShiroPermission;
-import org.zoxweb.shared.security.shiro.ShiroRole;
+import org.zoxweb.shared.app.AppIDDefault;
+import org.zoxweb.shared.security.PermissionInfo;
+import org.zoxweb.shared.security.RoleInfo;
 
 import java.io.IOException;
 
@@ -14,17 +15,20 @@ public class ShiroMetaModelTest {
 
     @Test
     public void permissions() throws IOException {
-        ShiroPermission permission = new ShiroPermission(DOMAIN, APP,"Read.Access", null, "user:read");
+        PermissionInfo permission = new PermissionInfo("Read.Access", "user:read");
+        permission.setAppIdDAO(new AppIDDefault(DOMAIN, APP));
         String json = GSONUtil.toJSONSimple(permission);
         System.out.println(json);
     }
 
     @Test
     public void roles() throws IOException {
-        ShiroPermission permission = new ShiroPermission(DOMAIN, APP,"Read.Access", null, "user:read");
+        PermissionInfo permission = new PermissionInfo("Read.Access", "user:read");
+        permission.setAppIdDAO(new AppIDDefault(DOMAIN, APP));
 
-        ShiroRole role = new ShiroRole(DOMAIN, APP, "user.role");
-        role.addPermissions(permission);
+        RoleInfo role = new RoleInfo("user.role", null);
+        role.setAppIdDAO(new AppIDDefault(DOMAIN, APP));
+        role.addPermission(permission);
 
         String json = GSONUtil.toJSONSimple(role);
 

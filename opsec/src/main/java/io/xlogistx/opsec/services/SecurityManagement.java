@@ -8,7 +8,7 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
-import org.zoxweb.shared.security.shiro.RealmController;
+import org.zoxweb.shared.security.RealmController;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.NVGenericMap;
 

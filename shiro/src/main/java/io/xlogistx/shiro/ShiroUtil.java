@@ -42,10 +42,10 @@ import org.zoxweb.shared.security.AccessException;
 import org.zoxweb.shared.security.ResourceSecurity;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
-import org.zoxweb.shared.security.shiro.AuthorizationInfoLookup;
-import org.zoxweb.shared.security.shiro.RealmController;
-import org.zoxweb.shared.security.shiro.RealmControllerHolder;
-import org.zoxweb.shared.security.shiro.ShiroTokenReplacement;
+import org.zoxweb.shared.security.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.RealmController;
+import org.zoxweb.shared.security.RealmControllerHolder;
+import org.zoxweb.shared.security.SecTokenReplacement;
 import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
 
@@ -355,7 +355,7 @@ public class ShiroUtil {
         return securityManager;
     }
 
-    public static void checkPermission(String permission, ShiroTokenReplacement str)
+    public static void checkPermission(String permission, SecTokenReplacement str)
             throws NullPointerException, AccessException {
         checkPermission(SecurityUtils.getSubject(), permission, str);
     }
@@ -400,7 +400,7 @@ public class ShiroUtil {
         return false;
     }
 
-    public static void checkPermission(Subject subject, String permission, ShiroTokenReplacement str)
+    public static void checkPermission(Subject subject, String permission, SecTokenReplacement str)
             throws NullPointerException, AccessException {
         SUS.checkIfNulls("Null parameters not allowed", subject, permission, str);
 
@@ -587,10 +587,7 @@ public class ShiroUtil {
     }
 
     public static AuthorizationInfo lookupAuthorizationInfo(PrincipalCollection pc) {
-        AuthorizationInfo ai = lookupAuthorizationInfo(ShiroBaseRealm.class, pc);
-        if (ai == null)
-            ai = lookupAuthorizationInfo(XlogistXIniRealm.class, pc);
-        return ai;
+        return lookupAuthorizationInfo(XlogistXIniRealm.class, pc);
     }
 
     public static AuthorizationInfo lookupAuthorizationInfo(Class<? extends Realm> realmClass, PrincipalCollection pc) {
