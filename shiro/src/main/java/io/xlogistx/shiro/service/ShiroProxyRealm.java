@@ -30,7 +30,7 @@ import java.util.HashMap;
 public class ShiroProxyRealm extends AuthorizingRealm
         implements SetNVProperties {
 
-    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(true);
+    public static final LogWrapper log = new LogWrapper(ShiroProxyRealm.class).setEnabled(false);
 
     private final KVMapStore<String, SecSessionData> kvSessionData = new KVMapStoreDefault<String, SecSessionData>(new HashMap<String, SecSessionData>());
     private final KVMapStore<String, AuthenticationInfo> kvAuthenticationInfo = new KVMapStoreDefault<String, AuthenticationInfo>(new HashMap<String, AuthenticationInfo>());

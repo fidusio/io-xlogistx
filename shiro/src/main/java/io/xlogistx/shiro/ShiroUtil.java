@@ -38,14 +38,8 @@ import org.apache.shiro.util.ThreadContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.shared.http.HTTPAuthScheme;
 import org.zoxweb.shared.http.HTTPAuthorization;
-import org.zoxweb.shared.security.AccessException;
-import org.zoxweb.shared.security.ResourceSecurity;
-import org.zoxweb.shared.security.SecConst;
+import org.zoxweb.shared.security.*;
 import org.zoxweb.shared.security.model.SecurityModel;
-import org.zoxweb.shared.security.AuthorizationInfoLookup;
-import org.zoxweb.shared.security.RealmController;
-import org.zoxweb.shared.security.RealmControllerHolder;
-import org.zoxweb.shared.security.SecTokenReplacement;
 import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.ExceptionReason.Reason;
 
@@ -204,27 +198,27 @@ public class ShiroUtil {
         return null;
     }
 
-    public static RealmController<AuthorizationInfo, PrincipalCollection> getRealmController() {
-        return getRealmController(SecurityUtils.getSecurityManager());
-    }
-
-    public static RealmController<AuthorizationInfo, PrincipalCollection> getRealmController(SecurityManager sm) {
-        if (sm instanceof RealmSecurityManager) {
-            Collection<Realm> realms = ((RealmSecurityManager) sm).getRealms();
-
-            if (realms != null) {
-                for (Realm realm : realms) {
-                    if (realm instanceof RealmControllerHolder) {
-                        return ((RealmControllerHolder<AuthorizationInfo, PrincipalCollection>) realm).getRealmController();
-                    }
-                    if (realm instanceof RealmController) {
-                        return (RealmController<AuthorizationInfo, PrincipalCollection>) realm;
-                    }
-                }
-            }
-        }
-        throw new NotFoundException("No shiro realm manager found.");
-    }
+//    public static RealmController<AuthorizationInfo, PrincipalCollection> getRealmController() {
+//        return getRealmController(SecurityUtils.getSecurityManager());
+//    }
+//
+//    public static RealmController<AuthorizationInfo, PrincipalCollection> getRealmController(SecurityManager sm) {
+//        if (sm instanceof RealmSecurityManager) {
+//            Collection<Realm> realms = ((RealmSecurityManager) sm).getRealms();
+//
+//            if (realms != null) {
+//                for (Realm realm : realms) {
+//                    if (realm instanceof RealmControllerHolder) {
+//                        return ((RealmControllerHolder<AuthorizationInfo, PrincipalCollection>) realm).getRealmController();
+//                    }
+//                    if (realm instanceof RealmController) {
+//                        return (RealmController<AuthorizationInfo, PrincipalCollection>) realm;
+//                    }
+//                }
+//            }
+//        }
+//        throw new NotFoundException("No shiro realm manager found.");
+//    }
 
     @SuppressWarnings("unchecked")
     public static <V extends Realm> List<V> getAllRealms(SecurityManager sm, Class<? extends Realm> c) {

@@ -29,7 +29,7 @@ public class RangeDAOTest {
   public void testInclusiveRange() {
 
 
-    Range range = new Range(1, 100, Range.Inclusive.BOTH);
+    Range range = new Range(1, 100, Range.Inclusivity.BOTH);
     assertNotNull(range.getStart());
     assertNotNull(range.getEnd());
     assertEquals("[1, 100]", range.toString());
@@ -41,7 +41,7 @@ public class RangeDAOTest {
   @Test
   public void testExclusiveRange() {
 
-    Range range = new Range(1, 100, Range.Inclusive.START);
+    Range range = new Range(1, 100, Range.Inclusivity.LEFT);
     assertNotNull(range.getStart());
     assertNotNull(range.getEnd());
     assertEquals("[1, 100)", range.toString());
@@ -55,7 +55,7 @@ public class RangeDAOTest {
 
 
 
-    Range range = new Range(1, Integer.MAX_VALUE, Range.Inclusive.START);
+    Range range = new Range(1, Integer.MAX_VALUE, Range.Inclusivity.LEFT);
     assertNotNull(range.getStart());
     assertNotNull(range.getEnd());
     assertEquals("[1, 2147483647)", range.toString());

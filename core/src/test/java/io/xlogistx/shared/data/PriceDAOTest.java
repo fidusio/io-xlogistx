@@ -32,7 +32,7 @@ public class PriceDAOTest {
     assertFalse(XXDataUtil.isWithinPriceRange(priceDAO, 101));
     assertFalse(XXDataUtil.isWithinPriceRange(priceDAO, 1000));
 
-    rangeDAO = new Range<Integer>(1, 100, Range.Inclusive.START);//(new LimitValueDAO(1), new LimitValueDAO(100, true));
+    rangeDAO = new Range<Integer>(1, 100, Range.Inclusivity.LEFT);//(new LimitValueDAO(1), new LimitValueDAO(100, true));
     priceDAO = new PriceDAO(rangeDAO, moneyValueDAO);
 
     assertFalse(XXDataUtil.isWithinPriceRange(priceDAO, 0));

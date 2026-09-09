@@ -501,7 +501,7 @@ public class XXClientAPI {
         String uri = XXURI.USER_DELETE;
         HTTPMessageConfigInterface hmci = createHMCI(url, uri, HTTPMethod.DELETE, subjectID, password);
         NVGenericMap params = new NVGenericMap();
-        params.add(MetaToken.SUBJECT_ID, userToDelete);
+        params.add(MetaToken.PRINCIPAL_ID, userToDelete);
 
         // subject_id
         // app_gid
