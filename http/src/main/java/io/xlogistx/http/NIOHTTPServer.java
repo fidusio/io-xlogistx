@@ -29,7 +29,10 @@ import org.zoxweb.server.net.common.CommonChannelOutputStream;
 import org.zoxweb.server.net.ssl.SSLContextInfo;
 import org.zoxweb.server.net.ssl.SSLNIOSocketHandlerFactory;
 import org.zoxweb.server.net.ssl.SSLSessionConfig;
+import io.xlogistx.opsec.ssl.JDKSSLGroupSetter;
 import org.zoxweb.server.security.BCSSLGroupSetter;
+import org.zoxweb.server.security.SSLGroupSetterInt;
+import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
@@ -103,6 +106,11 @@ public class NIOHTTPServer
     public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.6.6");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
+    /**
+     * Optional {@code ssl_config} key naming the JSSE provider the HTTPS SSLContext is
+     * built from, e.g. {@code "SunJSSE"} to bypass BouncyCastle. Absent means BCJSSE.
+     */
+    public final static String SSL_PROVIDER = "provider";
 
     private final HTTPServerConfig config;
     private volatile NIOSocket nioSocket;
@@ -837,6 +845,8 @@ public class NIOHTTPServer
                                         .setValidateValidity(true)        // reject expired / not-yet-valid leaf on load (default true)
                                         .setClockSkewMillis(60_000)       // optional: tolerate 60s host-clock skew
                                         .setPreferPqc(true)               // serve PQC to capable clients when a PQC cert is present (default true)
+                                        // optional "provider": "SunJSSE" bypasses BouncyCastle and uses the JDK TLS stack; absent = BCJSSE
+                                        .setProvider(sslConfig.getValue(SSL_PROVIDER))
                                         // existing PKCS12 / JKS keystore (alias is irrelevant — routing is by cert name):
                                         .addCertConfigs(certConfigs);
 //                                        .addKeyStore(keystoreFile.toPath(), sslConfig.getValue("keystore_type"), ksPassword.toCharArray());
@@ -866,7 +876,11 @@ public class NIOHTTPServer
                                 logger.getLogger().info("GROUP: " + groups);
                                 // add ssl group setter here
                                 if (groups != null && groups.getValues().length > 0) {
-                                    sslContextInfo.setSSLGroupSetter(new BCSSLGroupSetter(groups.getValues()));
+                                    // BCSSLGroupSetter only acts on a BCSSLEngine; the JDK stack needs SSLParameters.setNamedGroups
+                                    SSLGroupSetterInt groupSetter = SecUtil.BC_BCJSSE.equals(sslContext.getProvider().getName())
+                                            ? new BCSSLGroupSetter(groups.getValues())
+                                            : new JDKSSLGroupSetter(groups.getValues());
+                                    sslContextInfo.setSSLGroupSetter(groupSetter);
                                 }
 
                                 SSLNIOSocketHandlerFactory sslnioSocketHandlerFactory = new SSLNIOSocketHandlerFactory(sslContextInfo,

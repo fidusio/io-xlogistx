@@ -162,6 +162,11 @@ public final class IdentityStore {
     // serves a PQC identity to clients that advertise a PQC signature scheme,
     // falling back to a classical identity otherwise. Default true.
     private volatile boolean preferPqc = true;
+
+    // JSSE provider name used by newSSLContext(). null (the default) keeps the
+    // historical behaviour: BCJSSE when installed, else whatever the JVM picks.
+    // Set to e.g. SecTag.SUN_JSSE ("SunJSSE") to bypass BouncyCastle explicitly.
+    private volatile String provider = null;
     private final FileWatcher fileWatcher;
 
     public IdentityStore(FileWatcher fileWatcher) {
@@ -217,6 +222,24 @@ public final class IdentityStore {
     public IdentityStore setPreferPqc(boolean prefer) {
         this.preferPqc = prefer;
         return this;
+    }
+
+    /**
+     * JSSE provider that {@link #newSSLContext()} builds the {@link SSLContext} from.
+     * null (the default) selects BCJSSE when installed and falls back to the JVM
+     * default otherwise. Pass an explicit name such as {@code "SunJSSE"} (see
+     * {@code org.zoxweb.shared.security.SecTag#SUN_JSSE}) to bypass BouncyCastle
+     * and use the JDK's own TLS stack; an explicit provider is never silently
+     * replaced, an unknown name fails {@link #newSSLContext()}.
+     */
+    public IdentityStore setProvider(String provider) {
+        this.provider = provider != null && !provider.trim().isEmpty() ? provider.trim() : null;
+        return this;
+    }
+
+    /** @return the explicit JSSE provider name, or null for the BCJSSE-first default */
+    public String getProvider() {
+        return provider;
     }
 
     // ------------------------------------------------------------------ registration
@@ -480,19 +503,27 @@ public final class IdentityStore {
     }
 
     /**
-     * SSLContext wired to the routing KeyManager. Built from the BouncyCastle JSSE
-     * provider (BCJSSE) when available — it supports TLS 1.3 on JDK 8 and PQC
-     * signature schemes, neither of which the stock SunJSSE provider offers on
-     * JDK 8 — falling back to the platform default provider otherwise. The BC
-     * providers are ensured installed via {@link OPSecUtil#singleton()}.
+     * SSLContext wired to the routing KeyManager. When no provider was set via
+     * {@link #setProvider(String)} it is built from the BouncyCastle JSSE provider
+     * (BCJSSE) when available — it supports TLS 1.3 on JDK 8 and PQC signature
+     * schemes, neither of which the stock SunJSSE provider offers on JDK 8 —
+     * falling back to the JVM default provider otherwise. Note that the JVM default
+     * is also BCJSSE once {@link OPSecUtil#singleton()} has installed it ahead of
+     * SunJSSE, so callers that want the JDK stack must set the provider explicitly.
      */
     public SSLContext newSSLContext() throws GeneralSecurityException {
         OPSecUtil.singleton();
         SSLContext ctx;
-        try {
-            ctx = SSLContext.getInstance("TLS", SecUtil.BC_BCJSSE);
-        } catch (GeneralSecurityException e) {
-            ctx = SSLContext.getInstance("TLS"); // platform default
+        String explicit = provider;
+        if (explicit != null) {
+            // explicit choice: no fallback, an unknown provider is a configuration error
+            ctx = SSLContext.getInstance("TLS", explicit);
+        } else {
+            try {
+                ctx = SSLContext.getInstance("TLS", SecUtil.BC_BCJSSE);
+            } catch (GeneralSecurityException e) {
+                ctx = SSLContext.getInstance("TLS"); // JVM default
+            }
         }
         ctx.init(new KeyManager[]{keyManager()}, null, null);
         return ctx;

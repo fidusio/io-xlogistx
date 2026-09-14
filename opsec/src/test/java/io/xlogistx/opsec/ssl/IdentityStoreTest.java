@@ -78,6 +78,38 @@ public class IdentityStoreTest {
     }
 
     @Test
+    void explicitProvider_bypassesBouncyCastle() throws Exception {
+        Gen ec = ecCert("alpha.test", validNow());
+        IdentityStore store = new IdentityStore(null)
+                .setProvider("SunJSSE") // JDK stack, even though BCJSSE is installed ahead of it
+                .addKeyStore(p12("ec", ec.ecKey, ec.cert), "PKCS12", KS_PASS_CHARS);
+        store.reload();
+
+        SSLContext ctx = store.newSSLContext();
+        assertEquals("SunJSSE", ctx.getProvider().getName());
+        SSLEngine engine = ctx.createSSLEngine();
+        assertFalse(engine.getClass().getName().startsWith("org.bouncycastle"),
+                "engine must come from the JDK provider: " + engine.getClass().getName());
+
+        // the JDK group setter must be accepted by a SunJSSE engine
+        new JDKSSLGroupSetter(new String[]{"x25519", "secp256r1"}).setGroups(engine);
+
+        // and a real handshake still routes to the identity
+        X509Certificate served = handshakeServerCert(ctx, "alpha.test");
+        assertEquals(ec.cert.getSerialNumber(), served.getSerialNumber());
+    }
+
+    @Test
+    void defaultProvider_isBCJSSE_whenInstalled() throws Exception {
+        Gen ec = ecCert("alpha.test", validNow());
+        IdentityStore store = new IdentityStore(null)
+                .addKeyStore(p12("ec", ec.ecKey, ec.cert), "PKCS12", KS_PASS_CHARS);
+        store.reload();
+        assertNull(store.getProvider());
+        assertEquals(SecUtil.BC_BCJSSE, store.newSSLContext().getProvider().getName());
+    }
+
+    @Test
     void sniRouting_selectsCertByHostname() throws Exception {
         Gen ec = ecCert("alpha.test", validNow());
         Gen rsa = rsaCert("beta.test", validNow());
@@ -258,7 +290,9 @@ public class IdentityStoreTest {
         server.setUseClientMode(false);
         server.setEnabledProtocols(new String[]{ "TLSv1.2" });
 
-        SSLEngine client = trustAllContext().createSSLEngine();
+        // client mirrors the server's provider so an explicit-provider server is
+        // exercised end to end by the same stack (e.g. SunJSSE vs SunJSSE)
+        SSLEngine client = trustAllContext(serverCtx.getProvider().getName()).createSSLEngine();
         client.setUseClientMode(true);
         client.setEnabledProtocols(new String[]{ "TLSv1.2" });
         if (clientSni != null) {
@@ -276,7 +310,7 @@ public class IdentityStoreTest {
         return (X509Certificate) peer[0];
     }
 
-    private static SSLContext trustAllContext() throws Exception {
+    private static SSLContext trustAllContext(String provider) throws Exception {
         TrustManager[] tm = { new X509TrustManager() {
             public void checkClientTrusted(X509Certificate[] c, String a) {}
             public void checkServerTrusted(X509Certificate[] c, String a) {}
@@ -284,7 +318,7 @@ public class IdentityStoreTest {
         }};
         SSLContext ctx;
         try {
-            ctx = SSLContext.getInstance("TLS", SecUtil.BC_BCJSSE);
+            ctx = SSLContext.getInstance("TLS", provider != null ? provider : SecUtil.BC_BCJSSE);
         } catch (Exception e) {
             ctx = SSLContext.getInstance("TLS");
         }
