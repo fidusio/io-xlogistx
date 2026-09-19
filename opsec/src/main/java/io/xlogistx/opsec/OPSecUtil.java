@@ -593,7 +593,7 @@ public class OPSecUtil {
 //        }
 
         public static KeyUsageType lookup(String name) {
-            return SharedUtil.lookupTypedEnum(KeyUsageType.values(), name);
+            return SUS.lookupTypedEnum(KeyUsageType.values(), name);
         }
     }
 
@@ -1886,7 +1886,7 @@ public class OPSecUtil {
     public String outputFilename(String outDir, String filename) {
 
         if (outDir != null)
-            filename = SharedStringUtil.concat(outDir, filename, "/");
+            filename = SUS.concat(outDir, filename, "/");
 
         return filename;
     }

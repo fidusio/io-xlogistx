@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.HashUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.http.HTTPServerConfig;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.io.*;
 import java.net.Socket;
@@ -145,7 +145,7 @@ public class UploadPartialResetTest {
             OutputStream os = socket.getOutputStream();
 
             String auth = Base64.getEncoder().encodeToString(
-                    SharedStringUtil.getBytes(USER + ":" + PASSWORD));
+                    SUS.getBytes(USER + ":" + PASSWORD));
             StringBuilder headers = new StringBuilder()
                     .append("POST /system-upload/").append(filename).append(" HTTP/1.1\r\n")
                     .append("Host: localhost:").append(PORT).append("\r\n")

@@ -1,7 +1,6 @@
 package io.xlogistx.shared.util;
 
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedStringUtil;
 
 /**
  * URIs
@@ -107,7 +106,7 @@ public final class XXURI {
   }
 
   public String formatURI(String postURI) {
-    return SharedStringUtil.concat(preURI, postURI, "/");
+    return SUS.concat(preURI, postURI, "/");
   }
 
 }

@@ -38,7 +38,7 @@ public class HashContent {
 
         if (request != null) {
             if (log.isEnabled()) log.getLogger().info("headers: " + request.getHeaders());
-            if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.APPLICATION_OCTET_STREAM, true)) {
+            if (SUS.contains(request.getContentType(), HTTPMediaType.APPLICATION_OCTET_STREAM, true)) {
                 NVGenericMap attachment = hph.getRequest(true).attachment();
                 if (log.isEnabled()) log.getLogger().info("attachment: " + attachment);
 
@@ -76,7 +76,7 @@ public class HashContent {
                         response.build(hashResult.getProperties());
                         return response;
                     }
-                } else if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true)) {
+                } else if (SUS.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true)) {
                     if (log.isEnabled()) log.getLogger().info("length: " + request.getContent().length);
                 }
             }

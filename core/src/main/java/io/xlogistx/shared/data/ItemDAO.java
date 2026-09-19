@@ -46,7 +46,7 @@ public class ItemDAO
             false,
             false,
             ItemDAO.class,
-            SharedUtil.extractNVConfigs(Param.values()),
+            SUS.extractNVConfigs(Param.values()),
             null,
             false,
             AppIDResource.NVC_APP_ID_RESOURCE

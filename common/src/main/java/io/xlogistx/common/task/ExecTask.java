@@ -87,7 +87,7 @@ public class ExecTask {
         });
         for (File f : matchingFiles)
         {
-            commands.add(SharedStringUtil.embedText(command, token, f.getAbsolutePath()));
+            commands.add(SUS.embedText(command, token, f.getAbsolutePath()));
         }
 
         return execCommands(commands.toArray(new String[0]), delay);

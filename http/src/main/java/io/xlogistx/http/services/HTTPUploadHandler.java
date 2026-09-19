@@ -49,10 +49,10 @@ public class HTTPUploadHandler
             if (request != null) {
                 if (log.isEnabled()) log.getLogger().info("headers: " + request.getHeaders());
 
-                if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true))
+                if (SUS.contains(request.getContentType(), HTTPMediaType.MULTIPART_FORM_DATA, true))
                     return handleMultiPartForm(hph);
 
-                if (SharedStringUtil.contains(request.getContentType(), HTTPMediaType.APPLICATION_OCTET_STREAM, true)) {
+                if (SUS.contains(request.getContentType(), HTTPMediaType.APPLICATION_OCTET_STREAM, true)) {
                     if(SUS.isEmpty(filename)){
                         throw new APIException("Missing file name", HTTPStatusCode.BAD_REQUEST.CODE);
                     }
@@ -195,7 +195,7 @@ public class HTTPUploadHandler
         responseData.build("filename", file.getName())
                 .build(new NVPair("timestamp", DateUtil.DEFAULT_GMT_MILLIS.format(new Date())))
                 .build(new NVLong("data-length", hashResult.dataLength))
-                .build(hashResult.hashType.getName().toLowerCase(), SharedStringUtil.bytesToHex(hashResult.hash.asBytes()));
+                .build(hashResult.hashType.getName().toLowerCase(), SUS.bytesToHex(hashResult.hash.asBytes()));
 
 
         if (log.isEnabled()) log.getLogger().info("Done receiving File: " + file);

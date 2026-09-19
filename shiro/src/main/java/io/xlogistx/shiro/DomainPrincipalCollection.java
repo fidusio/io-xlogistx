@@ -41,8 +41,8 @@ public class DomainPrincipalCollection
     {
 		super(principal, realmName);
 		SUS.checkIfNulls("Subject GID can't be null", subjectGUID);
-		domain_id = SharedStringUtil.toLowerCase(domainID);
-		application_id = SharedStringUtil.toLowerCase(applicationID);
+		domain_id = SUS.toLowerCase(domainID);
+		application_id = SUS.toLowerCase(applicationID);
 		this.subject_guid = subjectGUID;
 		token_subject_id = jwtSubjectID;
 		

@@ -58,7 +58,7 @@ public class OrderDAO
             false,
             false,
             OrderDAO.class,
-            SharedUtil.extractNVConfigs(Param.values()),
+            SUS.extractNVConfigs(Param.values()),
             null,
             false,
             AppIDResource.NVC_APP_ID_RESOURCE

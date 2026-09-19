@@ -102,7 +102,7 @@ public class EndPointsManager {
     public static String updatePath(String baseURI, String path) {
         baseURI = SUS.trimOrNull(baseURI);
         if (baseURI != null) {
-            path = SharedStringUtil.concat(baseURI, path, "/");
+            path = SUS.concat(baseURI, path, "/");
         }
         return path;
     }
@@ -130,7 +130,7 @@ public class EndPointsManager {
                     }
                 }
 
-                String[] uris = SharedStringUtil.parseString(epp.uris(), ",", " ", "\t");
+                String[] uris = SUS.parseString(epp.uris(), ",", " ", "\t");
                 if (methodCheck) {
                     if (uris.length < 1)
                         throw new IllegalArgumentException(epp.name() + ": invalid configuration only one URI can be associated with a method " + Arrays.toString(uris));
@@ -470,8 +470,8 @@ public class EndPointsManager {
 
                 if (currentValue == null) {
                     if (pp.optional()) {
-                        if (SharedUtil.isPrimitive(p.getType())) {
-                            NVBase<?> paramValue = SharedUtil.classToNVBase(p.getType(), pp.name(), null);
+                        if (SUS.isPrimitive(p.getType())) {
+                            NVBase<?> paramValue = SUS.classToNVBase(p.getType(), pp.name(), null);
                             parameters.put(pp.name(), paramValue != null ? paramValue.getValue() : null);
                         }
                         continue;
@@ -480,8 +480,8 @@ public class EndPointsManager {
                     }
                 }
 
-                if (SharedUtil.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType())) {
-                    parameters.put(pp.name(), SharedUtil.classToNVBase(p.getType(), pp.name(), (String) currentValue).getValue());
+                if (SUS.isPrimitive(p.getType()) || Enum.class.isAssignableFrom(p.getType()) || Enum[].class.isAssignableFrom(p.getType())) {
+                    parameters.put(pp.name(), SUS.classToNVBase(p.getType(), pp.name(), (String) currentValue).getValue());
                 }
             }
         }

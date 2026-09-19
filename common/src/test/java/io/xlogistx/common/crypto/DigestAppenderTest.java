@@ -4,7 +4,7 @@ import io.xlogistx.common.crypto.DigestAppender;
 import org.junit.jupiter.api.Test;
 import org.zoxweb.shared.util.BytesValue;
 import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 
 import java.security.NoSuchAlgorithmException;
@@ -21,7 +21,7 @@ public class DigestAppenderTest {
             long nanos = System.nanoTime();
             byte[] result = da.append(BytesValue.INT.toBytes(i));
             nanos = System.nanoTime() - nanos;
-            System.out.println(SharedStringUtil.bytesToHex(result) + " it took " + Const.TimeInMillis.nanosToString(nanos));
+            System.out.println(SUS.bytesToHex(result) + " it took " + Const.TimeInMillis.nanosToString(nanos));
 
         }
     }

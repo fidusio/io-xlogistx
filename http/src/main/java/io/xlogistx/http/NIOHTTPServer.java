@@ -385,7 +385,7 @@ public class NIOHTTPServer
         // if the resource authentication is required
         // if the resource permission  is PERM_RESOURCE_ANY
         if (ShiroUtil.isAuthenticationRequired(resourceAuthTypes) &&
-                !SharedUtil.contains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
+                !SUS.genContains(SecurityModel.PERM_RESOURCE_ANY, epm.result.httpEndPoint.permissions())) {
             // check for the cookie
             if (logger.isEnabled())
                 logger.getLogger().info("Request Headers: " + hph.getRequest(true).getHeaders());
@@ -401,8 +401,8 @@ public class NIOHTTPServer
                 hmci.getHeaders().build(HTTPConst.toHTTPHeader(HTTPHeader.CONTENT_TYPE, HTTPMediaType.APPLICATION_JSON, HTTPConst.CHARSET_UTF_8));
 
                 // if basic authentication is supported
-                if (SharedUtil.contains(SecConst.AuthenticationType.BASIC, resourceAuthTypes) ||
-                        SharedUtil.contains(SecConst.AuthenticationType.ALL, resourceAuthTypes))
+                if (SUS.genContains(SecConst.AuthenticationType.BASIC, resourceAuthTypes) ||
+                        SUS.genContains(SecConst.AuthenticationType.ALL, resourceAuthTypes))
                     hmci.getHeaders().build(HTTPConst.CommonHeader.WWW_AUTHENTICATE);
 
 
@@ -412,8 +412,8 @@ public class NIOHTTPServer
 
             } else {
                 if (httpAuthorization.authSchemeAsEnum() == HTTPAuthScheme.BASIC &&
-                        (SharedUtil.lookupEnum(SecConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
-                                SharedUtil.lookupEnum(SecConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
+                        (SUS.lookupEnum(SecConst.AuthenticationType.BASIC.getName(), resourceAuthTypes) != null ||
+                                SUS.lookupEnum(SecConst.AuthenticationType.ALL.getName(), resourceAuthTypes) != null)) {
 
                     // need to check session HERE
                     ProtoSession<?, Subject> protoSession = hph.getConnectionSession();
@@ -809,7 +809,7 @@ public class NIOHTTPServer
             for (ConnectionConfig cc : ccs) {
                 String[] schemes = cc.getSchemes();
                 for (String scheme : schemes) {
-                    URIScheme uriScheme = SharedUtil.lookupEnum(scheme, URIScheme.values());
+                    URIScheme uriScheme = SUS.lookupEnum(scheme, URIScheme.values());
                     if (uriScheme != null) {
                         IPAddress serverAddress;
                         switch (uriScheme) {

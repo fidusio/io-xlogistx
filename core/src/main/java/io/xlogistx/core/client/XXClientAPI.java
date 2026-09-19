@@ -394,12 +394,12 @@ public class XXClientAPI {
             for (int i = 0; i < repeat; i++) {
                 String sData = "hello";
                 EncryptedData ed = new EncryptedData();
-                ed = CryptoUtil.encryptData(ed, add.getAPIKeyAsBytes(), SharedStringUtil.getBytes(sData));
+                ed = CryptoUtil.encryptData(ed, add.getAPIKeyAsBytes(), SUS.getBytes(sData));
                 String json = GWRAPPER.toJSON(ed, false, false, false);
                 System.out.println(json);
                 ed = GWRAPPER.fromJSON(json, EncryptedData.class);
                 byte data[] = CryptoUtil.decryptEncryptedData(ed, add.getAPIKeyAsBytes());
-                System.out.println("Decrypted data:" + SharedStringUtil.toString(data));
+                System.out.println("Decrypted data:" + SUS.toString(data));
             }
         } finally {
             if (autoDelete && add != null) {
@@ -439,7 +439,7 @@ public class XXClientAPI {
                 add = (AppDeviceDAO) nve;
             }
             if (nve != add) {
-                System.out.println(SharedStringUtil.toString(hrd.getData()));
+                System.out.println(SUS.toString(hrd.getData()));
             }
             System.out.println(GWRAPPER.toJSON(add, false, false, true));
 

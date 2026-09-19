@@ -71,7 +71,7 @@ public class EmailWebForm
 //                try {
 //                    GetNameValue<String> gnvTag = payload.getNV(tagId);
 //                    String value = (gnvTag != null && !SUS.isEmpty(gnvTag.getValue())) ? gnvTag.getValue() : "NP";
-//                    content = SharedStringUtil.embedText(content, tag, value);
+//                    content = SUS.embedText(content, tag, value);
 //                } catch (Exception e) {
 //                    e.printStackTrace();
 //                }
@@ -146,7 +146,7 @@ public class EmailWebForm
                 try {
                     GetNameValue<String> gnvTag = formData.getNV(tagId);
                     String value = (gnvTag != null && !SUS.isEmpty(gnvTag.getValue())) ? gnvTag.getValue() : "NP";
-                    content = SharedStringUtil.embedText(content, tag, value);
+                    content = SUS.embedText(content, tag, value);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

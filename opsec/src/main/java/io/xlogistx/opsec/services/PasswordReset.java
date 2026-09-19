@@ -151,11 +151,11 @@ public class PasswordReset
     }
 
     private static String fill(String text, String pre, String post, PasswordResetRequest req, String url) {
-        text = SharedStringUtil.embedText(text, pre + TAG_PRINCIPAL_ID + post, req.getPrincipalID());
-        text = SharedStringUtil.embedText(text, pre + TAG_TOKEN + post, req.getToken());
-        text = SharedStringUtil.embedText(text, pre + TAG_EXPIRY + post, new Date(req.getExpiryTS()).toString());
+        text = SUS.embedText(text, pre + TAG_PRINCIPAL_ID + post, req.getPrincipalID());
+        text = SUS.embedText(text, pre + TAG_TOKEN + post, req.getToken());
+        text = SUS.embedText(text, pre + TAG_EXPIRY + post, new Date(req.getExpiryTS()).toString());
         if (url != null) {
-            text = SharedStringUtil.embedText(text, pre + TAG_RESET_URL + post, url);
+            text = SUS.embedText(text, pre + TAG_RESET_URL + post, url);
         }
         return text;
     }

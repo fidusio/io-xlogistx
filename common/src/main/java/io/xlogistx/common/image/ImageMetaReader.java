@@ -12,7 +12,6 @@ import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.util.ParamUtil;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedStringUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -132,7 +131,7 @@ public class ImageMetaReader {
 //                ImageMetaReader meta = new ImageMetaReader();
 //                meta.readAndDisplayMetadata(imageFileName);
 
-                String format = SharedStringUtil.valueAfterRightToken(imageFileName, ".").toLowerCase();
+                String format = SUS.valueAfterRightToken(imageFileName, ".").toLowerCase();
 
 
 
@@ -140,7 +139,7 @@ public class ImageMetaReader {
 
 
 
-                String nameWithoutFormat = SharedStringUtil.valueBeforeRightToken(imageFileName, ".");
+                String nameWithoutFormat = SUS.valueBeforeRightToken(imageFileName, ".");
 //                System.out.println("GPS: " + image.getGPSDatum() + " " + Arrays.toString(image.getGPSCoordinate()));
 //                System.out.println(format + " " + Arrays.toString(image.getInputFormats()));
                 System.out.println(imageFileName + "  Just name " + nameWithoutFormat);

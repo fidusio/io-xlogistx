@@ -1,7 +1,7 @@
 package io.xlogistx.common.http;
 
 import org.zoxweb.shared.util.DataEncoder;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -57,10 +57,10 @@ public class URIMap<V> {
         V ret = uriMap.get(uri);
 
         if (ret == null) {
-            String[] tokens = SharedStringUtil.parseString(uri, "/", true);
+            String[] tokens = SUS.parseString(uri, "/", true);
 
             for (int i = tokens.length - 1; i > 0; i--) {
-                ret = uriMap.get(SharedStringUtil.concat("/", i, tokens));
+                ret = uriMap.get(SUS.concat("/", i, tokens));
                 if (ret != null)
                     break;
             }
@@ -77,12 +77,12 @@ public class URIMap<V> {
 //
 //        if (ret == null)
 //        {
-//            String[] tokens = SharedStringUtil.parseString(uri, "/", true);
+//            String[] tokens = SUS.parseString(uri, "/", true);
 //
 //            for(int i = tokens.length - 1 ; i > 0; i--)
 //            {
-//                path = SharedStringUtil.concat("/", i, tokens);
-//                ret =  uriMap.get(SharedStringUtil.concat("/", i, tokens));
+//                path = SUS.concat("/", i, tokens);
+//                ret =  uriMap.get(SUS.concat("/", i, tokens));
 //                if(ret != null)
 //                    break;
 //            }

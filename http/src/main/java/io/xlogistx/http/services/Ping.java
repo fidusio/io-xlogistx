@@ -109,7 +109,7 @@ public class Ping
         if (getProperties() != null) {
             String sizeInBytes = getProperties().getValue("size_in_bytes");
             if (sizeInBytes != null) {
-                Const.SizeInBytes sibValue = SharedUtil.enumValue(Const.SizeInBytes.class, sizeInBytes);
+                Const.SizeInBytes sibValue = SUS.enumValue(Const.SizeInBytes.class, sizeInBytes);
                 if (sibValue != null)
                     sib = sibValue;
             }

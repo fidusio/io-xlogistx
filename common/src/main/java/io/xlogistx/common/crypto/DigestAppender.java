@@ -2,7 +2,6 @@ package io.xlogistx.common.crypto;
 
 import org.zoxweb.shared.util.GetName;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -109,7 +108,7 @@ public class DigestAppender
      * @return hash string
      */
     public String appendToString(byte[] ...messages) {
-        return SharedStringUtil.bytesToHex(append(messages));
+        return SUS.bytesToHex(append(messages));
     }
 
     /**

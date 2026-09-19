@@ -11,7 +11,6 @@ import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.SharedBase64;
-import org.zoxweb.shared.util.SharedStringUtil;
 
 import javax.crypto.*;
 import java.security.*;
@@ -72,7 +71,7 @@ public class PQCKeyTest {
         Cipher kemWrapCipher = Cipher.getInstance(CryptoConst.ML_KEM, SecUtil.BC_PROVIDER);
         kemWrapCipher.init(Cipher.WRAP_MODE, kemPub, new SecureRandom());
         byte[] wrappedAesKeyBytes = kemWrapCipher.wrap(originalAesKey);
-        log.getLogger().info( wrappedAesKeyBytes.length + " ML-KEM AES Encryption : " + SharedStringUtil.bytesToHex(wrappedAesKeyBytes));
+        log.getLogger().info( wrappedAesKeyBytes.length + " ML-KEM AES Encryption : " + SUS.bytesToHex(wrappedAesKeyBytes));
         // 5. Unwrap the AES key using ML-KEM in UNWRAP_MODE
         Cipher kemUnwrapCipher = Cipher.getInstance(CryptoConst.ML_KEM, SecUtil.BC_PROVIDER);
         kemUnwrapCipher.init(Cipher.UNWRAP_MODE, kemPriv);
@@ -80,7 +79,7 @@ public class PQCKeyTest {
 
         // 6. Compare the original and unwrapped key bytes
         byte[] unwrappedAesKeyBytes = unwrappedAesKey.getEncoded();
-        log.getLogger().info("Unwrapped AES Key: " + SharedStringUtil.bytesToHex(unwrappedAesKeyBytes));
+        log.getLogger().info("Unwrapped AES Key: " + SUS.bytesToHex(unwrappedAesKeyBytes));
 
         boolean keysMatch = Arrays.equals(originalAesKeyBytes, unwrappedAesKeyBytes);
         log.getLogger().info("Do the original and unwrapped AES keys match? " + keysMatch);

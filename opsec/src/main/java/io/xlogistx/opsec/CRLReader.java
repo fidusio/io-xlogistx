@@ -1,7 +1,7 @@
 package io.xlogistx.opsec;
 
 
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.io.FileInputStream;
 import java.security.cert.X509CRL;
@@ -26,7 +26,7 @@ public class CRLReader {
             String copy = match;
             for (X509CRLEntry rev : OPSecUtil.SINGLETON.getRevokedCerts(crl)) {
 
-                String serial = SharedStringUtil.bytesToHex(rev.getSerialNumber().toByteArray());
+                String serial = SUS.bytesToHex(rev.getSerialNumber().toByteArray());
                 System.out.println("  Serial: " + serial + " Revoked: " + rev.getRevocationDate());
                 if (serial.equals(copy)) {
                     System.out.println("match is revoked");

@@ -8,7 +8,7 @@ import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.task.RunnableProperties;
 import org.zoxweb.shared.util.Appointment;
 import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 import org.zoxweb.shared.util.WaitTime;
 
 import java.lang.reflect.InvocationTargetException;
@@ -26,7 +26,7 @@ public class CronTool {
 
         public static Type lookup(String type)
         {
-            return SharedUtil.lookupEnum(type, Type.values());
+            return SUS.lookupEnum(type, Type.values());
         }
     }
 
@@ -104,7 +104,7 @@ public class CronTool {
 
     public CronTask lookupRegisteredCronTask(String type)
     {
-        Type eType = SharedUtil.lookupEnum(type, Type.values());
+        Type eType = SUS.lookupEnum(type, Type.values());
         if(eType == null)
             return null;
         return registeredTask.get(eType.name());

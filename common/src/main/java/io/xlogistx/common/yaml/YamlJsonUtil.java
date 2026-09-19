@@ -3,8 +3,7 @@ package io.xlogistx.common.yaml;
 import com.google.gson.Gson;
 import org.yaml.snakeyaml.Yaml;
 import org.zoxweb.server.io.IOUtil;
-import org.zoxweb.shared.util.SharedStringUtil;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -56,7 +55,7 @@ public class YamlJsonUtil {
 
     try
     {
-      YamlJsonMode mode = SharedUtil.lookupEnum(args[index++], YamlJsonMode.values());
+      YamlJsonMode mode = SUS.lookupEnum(args[index++], YamlJsonMode.values());
       if(mode == null)
         throw new IllegalArgumentException("Invalid mode");
       String urlOrFile = args[index++];
@@ -89,7 +88,7 @@ public class YamlJsonUtil {
       if(outFilename != null)
       {
         try(FileOutputStream fos = new FileOutputStream(outFilename)) {
-          fos.write(SharedStringUtil.getBytes(outContent));
+          fos.write(SUS.getBytes(outContent));
           System.out.println(outFilename + " was created successfully");
         }
 

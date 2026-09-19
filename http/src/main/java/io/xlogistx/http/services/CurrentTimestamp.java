@@ -6,13 +6,13 @@ import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.NVGenericMap;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.util.Date;
 
 
 public class CurrentTimestamp {
-    private static final byte[] START_DATE = SharedStringUtil.getBytes("{\"start-date\": \"" + DateUtil.DEFAULT_GMT_MILLIS.format(new Date())+ "\"}");
+    private static final byte[] START_DATE = SUS.getBytes("{\"start-date\": \"" + DateUtil.DEFAULT_GMT_MILLIS.format(new Date())+ "\"}");
 
     @EndPointProp(methods = {HTTPMethod.GET}, name = "timestamp", uris = "/timestamp")
     public NVGenericMap timestamp() {

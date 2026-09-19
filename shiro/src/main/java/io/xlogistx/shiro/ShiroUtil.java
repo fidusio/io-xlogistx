@@ -259,7 +259,7 @@ public class ShiroUtil {
     }
 
     public static boolean isAuthenticationRequired(SecConst.AuthenticationType... authTypes) {
-        if (SharedUtil.contains(SecConst.AuthenticationType.NONE, authTypes))
+        if (SUS.genContains(SecConst.AuthenticationType.NONE, authTypes))
             return false;
 
         if (authTypes != null && authTypes.length > 0) {
@@ -367,7 +367,7 @@ public class ShiroUtil {
 
         if (rs != null && rs.authenticationTypes() != null) {
 
-            if (SharedUtil.contains(SecConst.AuthenticationType.NONE, rs.authenticationTypes()))
+            if (SUS.genContains(SecConst.AuthenticationType.NONE, rs.authenticationTypes()))
                 return true;
 
             if (rs.permissions().length == 0 && rs.roles().length == 0) {
@@ -402,7 +402,7 @@ public class ShiroUtil {
         permission = str.replace(permission, (String) subject.getPrincipal());
         {
             try {
-                subject.checkPermission(SharedStringUtil.toLowerCase(permission));
+                subject.checkPermission(SUS.toLowerCase(permission));
             } catch (ShiroException e) {
                 throw new AccessSecurityException(e.getMessage());
             }
@@ -422,7 +422,7 @@ public class ShiroUtil {
 //		{
 //			try
 //            {
-//				subject.checkRole(SharedStringUtil.toLowerCase(role));
+//				subject.checkRole(SUS.toLowerCase(role));
 //			}
 //			catch (ShiroException e)
 //            {
@@ -446,7 +446,7 @@ public class ShiroUtil {
         int failureCount = 0;
         for (String role : roles) {
             try {
-                subject.checkRole(SharedStringUtil.toLowerCase(role));
+                subject.checkRole(SUS.toLowerCase(role));
             } catch (ShiroException e) {
                 failureCount++;
                 if (!partial)
@@ -526,7 +526,7 @@ public class ShiroUtil {
 //		{
 //			try
 //            {
-//				subject.checkPermission(SharedStringUtil.toLowerCase(permission));
+//				subject.checkPermission(SUS.toLowerCase(permission));
 //			}
 //			catch (ShiroException e)
 //            {
@@ -543,7 +543,7 @@ public class ShiroUtil {
         int failureCount = 0;
         for (String permission : permissions) {
             try {
-                subject.checkPermission(SharedStringUtil.toLowerCase(permission));
+                subject.checkPermission(SUS.toLowerCase(permission));
             } catch (ShiroException e) {
                 failureCount++;
                 if (!partial)
@@ -568,7 +568,7 @@ public class ShiroUtil {
         SUS.checkIfNulls("Null parameters not allowed", subject, permission);
         if (SecurityModel.PERM_RESOURCE_ANY.equals(permission))
             return true;
-        return subject.isPermitted(SharedStringUtil.toLowerCase(permission));
+        return subject.isPermitted(SUS.toLowerCase(permission));
     }
 
     public static boolean isPermitted(GetValue<String> gv)

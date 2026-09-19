@@ -15,7 +15,6 @@ import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SharedStringUtil;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -153,7 +152,7 @@ public class CredentialsInfoMatcher
         if (token.getCredentials() instanceof char[]) {
             password = new String((char[]) token.getCredentials());
         } else if (token.getCredentials() instanceof byte[]) {
-            password = SharedStringUtil.toString((byte[]) token.getCredentials());
+            password = SUS.toString((byte[]) token.getCredentials());
         } else if (token.getCredentials() instanceof String) {
             password = (String) token.getCredentials();
         }

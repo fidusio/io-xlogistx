@@ -72,7 +72,7 @@ public class HTTPWebHooks
 
             //String computed = Base64.getEncoder().encodeToString(hash);
             byte[] computedSignature = SharedBase64.encode(hash);
-            if(log.isEnabled()) log.getLogger().info("computedSignature: " + SharedStringUtil.toString(computedSignature) + " " + headerSigName + ": " + headerSignature);
+            if(log.isEnabled()) log.getLogger().info("computedSignature: " + SUS.toString(computedSignature) + " " + headerSigName + ": " + headerSignature);
             return MessageDigest.isEqual(
                     computedSignature,
                     headerSignature.getBytes(StandardCharsets.UTF_8));

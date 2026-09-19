@@ -235,7 +235,7 @@ public class HTTPProtocolHandler
         if (result instanceof HTTPMessageConfigInterface)
             response = (HTTPMessageConfigInterface) result;
             // json response
-        else if (SharedStringUtil.contains(contentType, "application/json", true) && result != null)
+        else if (SUS.contains(contentType, "application/json", true) && result != null)
             HTTPUtil.buildJSONResponse(response, result, statusCode, headersToAdd);
         else if (result instanceof String) {
             HTTPUtil.buildResponse(response, statusCode, headersToAdd);

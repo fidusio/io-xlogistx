@@ -129,7 +129,7 @@ public class ShiroSecurityController
                 EncryptedData ed = EncryptedData.fromCanonicalID(nvp.getValue());
                 byte[] data = CryptoUtil.decryptEncryptedData(ed, dataKey);
 
-                nvp.setValue(SharedStringUtil.toString(data));
+                nvp.setValue(SUS.toString(data));
                 return nvp.getValue();
 
 

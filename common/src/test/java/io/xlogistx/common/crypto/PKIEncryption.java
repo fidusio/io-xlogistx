@@ -48,7 +48,7 @@ public class PKIEncryption {
 
         System.out.println("Secret computed by U: 0x" +
                 (new BigInteger(1, keySU).toString(16)).toUpperCase());
-        System.out.println("Size:" + keySU.length + ", " + SharedStringUtil.bytesToHex(keySU));
+        System.out.println("Size:" + keySU.length + ", " + SUS.bytesToHex(keySU));
 
 
         System.out.println("Secret computed by V: 0x" +
@@ -60,7 +60,7 @@ public class PKIEncryption {
     @Test
     public void rsaEncryption() throws GeneralSecurityException, IOException {
         KeyPair kp = CryptoUtil.generateKeyPair(CryptoConst.PKInfo.RSA_2048);
-        byte[] data = SharedStringUtil.getBytes("1234567890abcdefgklmnopqrstuvwxyz");
+        byte[] data = SUS.getBytes("1234567890abcdefgklmnopqrstuvwxyz");
         byte[] encryptedData = CryptoUtil.encrypt(kp.getPublic(), data);
         NVGenericMap nvgm = new NVGenericMap();
         nvgm.add(new NVBlob("rsa", encryptedData));
@@ -71,22 +71,22 @@ public class PKIEncryption {
         System.out.println(json);
         nvgm = GSONUtil.fromJSONGenericMap(json, null, null);
         System.out.println(GSONUtil.toJSONGenericMap(nvgm, false, false, true));
-        System.out.println("RSA Encrypted data: " + encryptedData.length + ":" + SharedStringUtil.bytesToHex(encryptedData));
-        System.out.println("AES Encrypted data: " + edao.getEncryptedData().length + ":" + SharedStringUtil.bytesToHex(edao.getEncryptedData()));
+        System.out.println("RSA Encrypted data: " + encryptedData.length + ":" + SUS.bytesToHex(encryptedData));
+        System.out.println("AES Encrypted data: " + edao.getEncryptedData().length + ":" + SUS.bytesToHex(edao.getEncryptedData()));
         byte[] decryptedData = CryptoUtil.decrypt(kp.getPrivate(), nvgm.getValue("rsa"));
         System.out.println("RSA Decrypted data: " + new String(decryptedData));
         System.out.println(new String(decryptedData));
         edao = (EncryptedData) nvgm.getValue("aes");
         decryptedData = CryptoUtil.decryptEncryptedData(edao, aes.getEncoded());
-        System.out.println("Decrypted data: " + SharedStringUtil.bytesToHex(decryptedData));
+        System.out.println("Decrypted data: " + SUS.bytesToHex(decryptedData));
         System.out.println(new String(decryptedData));
 
-        System.out.println("Priv: " + SharedStringUtil.bytesToHex(kp.getPrivate().getEncoded()));
-        System.out.println("Pub : " + SharedStringUtil.bytesToHex(kp.getPublic().getEncoded()));
+        System.out.println("Priv: " + SUS.bytesToHex(kp.getPrivate().getEncoded()));
+        System.out.println("Pub : " + SUS.bytesToHex(kp.getPublic().getEncoded()));
         PublicKey pubGen = CryptoUtil.generatePublicKey("rsa", kp.getPublic().getEncoded());
         PrivateKey privGen = CryptoUtil.generatePrivateKey("rsa", kp.getPrivate().getEncoded());
-        System.out.println("Priv: " + pubGen.equals(kp.getPublic()) + ":" + SharedStringUtil.bytesToHex(privGen.getEncoded()));
-        System.out.println("Pub : " + privGen.equals(kp.getPrivate()) + ":" + SharedStringUtil.bytesToHex(pubGen.getEncoded()));
+        System.out.println("Priv: " + pubGen.equals(kp.getPublic()) + ":" + SUS.bytesToHex(privGen.getEncoded()));
+        System.out.println("Pub : " + privGen.equals(kp.getPrivate()) + ":" + SUS.bytesToHex(pubGen.getEncoded()));
     }
 
 //    @Test
@@ -105,7 +105,7 @@ public class PKIEncryption {
 //        String message = "Hello World";
 //
 //        byte[] ciphertext = iesCipher.doFinal(message.getBytes());
-//        System.out.println(SharedStringUtil.bytesToHex(ciphertext));
+//        System.out.println(SUS.bytesToHex(ciphertext));
 //
 //
 //        byte[] plaintext = CryptoUtil.decrypt(ecKeyPair.getPrivate(), "ECIESwithAES-CBC", iesCipher.getParameters(), ciphertext);
@@ -121,12 +121,12 @@ public class PKIEncryption {
         selfV.doPhase(kp.getPublic(), true);
 
         SecretKey keySelf = selfV.generateSecret("TlsPremasterSecret");
-        System.out.println("key:" + SUS.toCanonicalID(',', keySelf.getAlgorithm(), keySelf.getEncoded().length, keySelf.getFormat(), SharedStringUtil.bytesToHex(keySelf.getEncoded())));
+        System.out.println("key:" + SUS.toCanonicalID(',', keySelf.getAlgorithm(), keySelf.getEncoded().length, keySelf.getFormat(), SUS.bytesToHex(keySelf.getEncoded())));
 
         EncapsulatedKey ecd = CryptoUtil.createEncryptedKey(keySelf.getEncoded());
         System.out.println(GSONUtil.toJSON(ecd, true));
 
-        byte[] data = SharedStringUtil.getBytes("Hello World of cipher and key makers. Matrix Neo and  LANA");
+        byte[] data = SUS.getBytes("Hello World of cipher and key makers. Matrix Neo and  LANA");
         System.out.println(SharedBase64.encodeAsString(SharedBase64.Base64Type.URL, data));
         System.out.println(SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, data));
         EncryptedData encryptedData = CryptoUtil.encryptData(new EncryptedData(), keySelf.getEncoded(), data);
@@ -138,7 +138,7 @@ public class PKIEncryption {
         SharedBase64.Base64Type b64Type = SharedBase64.detectType(b64EncData);
         System.out.println(b64Type + ":" + encryptedData.getEncryptedData().length + ":" + b64EncData.length()
                 + ": " + b64EncData);
-        System.out.println(SharedStringUtil.toString(CryptoUtil.decryptEncryptedData(encryptedData, keySelf.getEncoded())));
+        System.out.println(SUS.toString(CryptoUtil.decryptEncryptedData(encryptedData, keySelf.getEncoded())));
 
     }
 }

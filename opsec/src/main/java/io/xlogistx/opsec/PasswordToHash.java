@@ -5,7 +5,7 @@ import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.crypto.CredentialHasher;
 import org.zoxweb.shared.util.RateCounter;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import java.io.Console;
 import java.util.Arrays;
@@ -40,7 +40,7 @@ public class PasswordToHash {
                     if (!Arrays.equals(passwd1, passwd2))
                         error("Password miss match", -1);
 
-                    rawPassword = SharedStringUtil.toString(passwd1);
+                    rawPassword = SUS.toString(passwd1);
 
                 } else {
                     // use the scanner

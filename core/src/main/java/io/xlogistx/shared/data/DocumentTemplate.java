@@ -57,7 +57,7 @@ public class DocumentTemplate
             false,
             false,
             DocumentTemplate.class,
-            SharedUtil.extractNVConfigs(Param.values()),
+            SUS.extractNVConfigs(Param.values()),
             null,
             false,
             SimpleDocumentDAO.NVC_SIMPLE_DOCUMENT_DAO

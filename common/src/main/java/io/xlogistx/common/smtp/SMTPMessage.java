@@ -42,7 +42,7 @@ public class SMTPMessage
                     false,
                     false,
                     SMTPMessage.class,
-                    SharedUtil.extractNVConfigs(Param.values()),
+                    SUS.extractNVConfigs(Param.values()),
                     null,
                     false,
                     CanonicalIDDAO.NVC_CANONICAL_ID_DAO

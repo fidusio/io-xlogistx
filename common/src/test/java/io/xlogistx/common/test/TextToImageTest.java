@@ -5,7 +5,7 @@ import io.xlogistx.common.image.TextToImage;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.util.Const;
-import org.zoxweb.shared.util.SharedStringUtil;
+import org.zoxweb.shared.util.SUS;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -28,7 +28,7 @@ public class TextToImageTest {
                 long ts = System.nanoTime();
                 int num = Math.abs(sr.nextInt() % 100000);
 
-                String text = SharedStringUtil.spaceChars("" + num, SharedStringUtil.repeatSequence(" ", num % 4));
+                String text = SUS.spaceChars("" + num, SUS.repeatSequence(" ", num % 4));
                 ii = TextToImage.textToImage(text, "gif", new Font("Arial", Font.ITALIC, 18), Color.GREEN, UUID.randomUUID().toString());
 
 

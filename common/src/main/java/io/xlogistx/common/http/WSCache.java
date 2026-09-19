@@ -5,7 +5,7 @@ import org.zoxweb.server.util.ReflectionUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.HTTPWSProto;
 import org.zoxweb.shared.io.BytesArray;
-import org.zoxweb.shared.util.SharedUtil;
+import org.zoxweb.shared.util.SUS;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
@@ -105,7 +105,7 @@ public class WSCache {
                 if (matching != null) {
                     for (Method m : matching) {
 
-                        Set<Set<Class<?>>> combos = SharedUtil.combinationsAsSet(false, wsmt.getParameterTypes());
+                        Set<Set<Class<?>>> combos = SUS.combinationsAsSet(false, wsmt.getParameterTypes());
 
                         for (Set<Class<?>> classes : combos) {
 

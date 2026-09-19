@@ -62,7 +62,7 @@ public class EmailRecipient
             false,
             false,
             EmailRecipient.class,
-            SharedUtil.extractNVConfigs(Param.values()),
+            SUS.extractNVConfigs(Param.values()),
             null,
             false,
             SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
@@ -134,7 +134,7 @@ public class EmailRecipient
         if (parsed.length == 1)
             return toRecipient(Type.TO, parsed[0]);
         else if (parsed.length == 2)
-            return toRecipient(SharedUtil.enumValue(Type.class, parsed[0]), parsed[1]);
+            return toRecipient(SUS.enumValue(Type.class, parsed[0]), parsed[1]);
 
         throw new IllegalArgumentException("Invalid Email format " + email);
     }
