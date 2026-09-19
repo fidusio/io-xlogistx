@@ -36,7 +36,7 @@ public class EndPointsManager {
     }
 
     public synchronized EndPointMeta map(String uri, HTTPEndPoint hep, MethodContainer mh) {
-        uri = SUS.toTrimmedLowerCase(uri);
+        uri = DataEncoder.TrimLowerCase.encode(uri);
         SUS.checkIfNulls("Mapping parameters can't be null", uri, hep);
         EndPointMeta epm = new EndPointMeta(hep, mh);
         SecUtil.applyAndCacheSecurityProfile(mh.methodAnnotations.method, null);

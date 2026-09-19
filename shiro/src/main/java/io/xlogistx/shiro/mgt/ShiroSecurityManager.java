@@ -5,7 +5,7 @@ import org.apache.shiro.subject.Subject;
 import org.apache.shiro.subject.SubjectContext;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
-import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.AccessSecurityException;
 
 public class ShiroSecurityManager extends DefaultSecurityManager {
     public static LogWrapper log = new LogWrapper(ShiroSecurityManager.class).setEnabled(true);
@@ -22,7 +22,7 @@ public class ShiroSecurityManager extends DefaultSecurityManager {
     public Subject createSubject(SubjectContext subjectContext) {
 
         if (isMainThreadBlocked() && TaskUtil.isMainThread())
-            throw new AccessException("Can not login via the main app thread");
+            throw new AccessSecurityException("Can not login via the main app thread");
         return super.createSubject(subjectContext);
     }
 

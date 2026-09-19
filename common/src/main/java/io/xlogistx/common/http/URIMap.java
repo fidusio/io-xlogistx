@@ -1,8 +1,7 @@
 package io.xlogistx.common.http;
 
-import org.zoxweb.shared.util.SUS;
+import org.zoxweb.shared.util.DataEncoder;
 import org.zoxweb.shared.util.SharedStringUtil;
-
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -116,7 +115,7 @@ public class URIMap<V> {
     }
 
     public static String normalize(String str) {
-        str = SUS.toTrimmedLowerCase(str);
+        str = DataEncoder.TrimLowerCase.encode(str);
         if (str.endsWith("/") && str.length() > 1) {
             str = str.substring(0, str.length() - 1);
         }

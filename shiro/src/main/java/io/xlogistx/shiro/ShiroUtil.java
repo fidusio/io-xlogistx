@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+
 public class ShiroUtil {
 
     public static final LogWrapper log = new LogWrapper(ShiroUtil.class);
@@ -77,7 +78,7 @@ public class ShiroUtil {
         try {
             subject().login(token);
         } catch (AuthenticationException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -106,7 +107,7 @@ public class ShiroUtil {
 //		}
 //		catch (ShiroException e)
 //        {
-//			throw new AccessException(e.getMessage());
+//			throw new AccessSecurityException(e.getMessage());
 //		}
 //	}
 
@@ -133,7 +134,7 @@ public class ShiroUtil {
             }
             return currentUser;
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -148,15 +149,15 @@ public class ShiroUtil {
                 }
             }
 
-            throw new AccessException("Subject not authenticated");
+            throw new AccessSecurityException("Subject not authenticated");
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
 
     }
 
     public static String subjectUserID()
-            throws AccessException {
+            throws AccessSecurityException {
         try {
             Subject subject = subject();
 
@@ -169,9 +170,9 @@ public class ShiroUtil {
 
             }
 
-            throw new AccessException("Subject not authenticated");
+            throw new AccessSecurityException("Subject not authenticated");
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -240,7 +241,7 @@ public class ShiroUtil {
     }
 
     public static String subjectDomainID()
-            throws AccessException {
+            throws AccessSecurityException {
 
         try {
             Subject subject = subject();
@@ -251,9 +252,9 @@ public class ShiroUtil {
                 }
             }
 
-            throw new AccessException("Subject not authenticated");
+            throw new AccessSecurityException("Subject not authenticated");
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -293,30 +294,30 @@ public class ShiroUtil {
     }
 
     public static String subjectSessionID()
-            throws AccessException {
+            throws AccessSecurityException {
         try {
             Subject subject = subject();
             if (subject.isAuthenticated()) {
                 return subject.getSession().getId().toString();
             }
 
-            throw new AccessException("Subject not authenticated");
+            throw new AccessSecurityException("Subject not authenticated");
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
     public static Subject subject()
-            throws AccessException {
+            throws AccessSecurityException {
         try {
             return SecurityUtils.getSubject();
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage(), Reason.NOT_FOUND);
+            throw new AccessSecurityException(e.getMessage(), Reason.NOT_FOUND);
         }
     }
 
     public static String subjectAppID()
-            throws AccessException {
+            throws AccessSecurityException {
         try {
             Subject subject = subject();
 
@@ -326,9 +327,9 @@ public class ShiroUtil {
                 }
             }
 
-            throw new AccessException("Subject not authenticated");
+            throw new AccessSecurityException("Subject not authenticated");
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -350,14 +351,14 @@ public class ShiroUtil {
     }
 
     public static void checkPermission(String permission, SecTokenReplacement str)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         checkPermission(SecurityUtils.getSubject(), permission, str);
     }
 
 
     public static void authorizationCheckPoint(ResourceSecurity rs) {
         if (!isAuthorizedCheckPoint(rs))
-            throw new AccessException("Subject not role or permission not Authorized", Reason.UNAUTHORIZED);
+            throw new AccessSecurityException("Subject not role or permission not Authorized", Reason.UNAUTHORIZED);
 
     }
 
@@ -395,7 +396,7 @@ public class ShiroUtil {
     }
 
     public static void checkPermission(Subject subject, String permission, SecTokenReplacement str)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("Null parameters not allowed", subject, permission, str);
 
         permission = str.replace(permission, (String) subject.getPrincipal());
@@ -403,18 +404,18 @@ public class ShiroUtil {
             try {
                 subject.checkPermission(SharedStringUtil.toLowerCase(permission));
             } catch (ShiroException e) {
-                throw new AccessException(e.getMessage());
+                throw new AccessSecurityException(e.getMessage());
             }
         }
     }
 
     public static void checkRoles(String... roles)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         checkRoles(SecurityUtils.getSubject(), roles);
     }
 
     public static void checkRoles(Subject subject, String... roles)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
 //		SUS.checkIfNulls("Null parameters not allowed", subject, roles);
 //
 //		for (String role : roles)
@@ -425,7 +426,7 @@ public class ShiroUtil {
 //			}
 //			catch (ShiroException e)
 //            {
-//			    throw new AccessException( e.getMessage());
+//			    throw new AccessSecurityException( e.getMessage());
 //			}
 //		}
 
@@ -433,14 +434,14 @@ public class ShiroUtil {
     }
 
 //    public static <V> V invokeMethod(boolean strict, Object bean, Method method, Object... parameters)
-//            throws InvocationTargetException, IllegalAccessException {
+//            throws InvocationTargetException, IllegalAccessSecurityException {
 //        authorizationCheckPoint(SecUtil.SINGLETON.lookupCachedResourceSecurity(method));
 //        return (V)ReflectionUtil.invokeMethod(strict, bean, method, parameters);
 //    }
 
 
     public static void checkRoles(boolean partial, Subject subject, String... roles)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("Null parameters not allowed", subject, roles);
         int failureCount = 0;
         for (String role : roles) {
@@ -449,12 +450,12 @@ public class ShiroUtil {
             } catch (ShiroException e) {
                 failureCount++;
                 if (!partial)
-                    throw new AccessException(e.getMessage());
+                    throw new AccessSecurityException(e.getMessage());
             }
         }
 
         if (failureCount == roles.length) {
-            throw new AccessException("All roles failed");
+            throw new AccessSecurityException("All roles failed");
         }
     }
 
@@ -477,12 +478,12 @@ public class ShiroUtil {
     }
 
     public static Session lookupSessionByID(String id)
-            throws AccessException {
+            throws AccessSecurityException {
         try {
             return SecurityUtils.getSecurityManager().getSession(new DefaultSessionKey(id));
 
         } catch (ShiroException e) {
-            throw new AccessException(e.getMessage());
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -513,12 +514,12 @@ public class ShiroUtil {
 
 
     public static void checkPermissions(String... permissions)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         checkPermissions(SecurityUtils.getSubject(), permissions);
     }
 
     public static void checkPermissions(Subject subject, String... permissions)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
 //		SUS.checkIfNulls("Null parameters not allowed", subject, permissions);
 //
 //		for (String permission : permissions)
@@ -529,14 +530,14 @@ public class ShiroUtil {
 //			}
 //			catch (ShiroException e)
 //            {
-//			    throw new AccessException( e.getMessage());
+//			    throw new AccessSecurityException( e.getMessage());
 //			}
 //		}
         checkPermissions(false, subject, permissions);
     }
 
     public static void checkPermissions(boolean partial, Subject subject, String... permissions)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("Null parameters not allowed", subject, permissions);
 
         int failureCount = 0;
@@ -546,24 +547,24 @@ public class ShiroUtil {
             } catch (ShiroException e) {
                 failureCount++;
                 if (!partial)
-                    throw new AccessException(e.getMessage(), Reason.UNAUTHORIZED);
+                    throw new AccessSecurityException(e.getMessage(), Reason.UNAUTHORIZED);
             }
         }
 
         if (failureCount == permissions.length) {
-            throw new AccessException("All permissions failed", Reason.UNAUTHORIZED);
+            throw new AccessSecurityException("All permissions failed", Reason.UNAUTHORIZED);
         }
     }
 
 
     public static boolean isPermitted(String permission)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         return isPermitted(subject(), permission);
     }
 
 
     public static boolean isPermitted(Subject subject, String permission)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("Null parameters not allowed", subject, permission);
         if (SecurityModel.PERM_RESOURCE_ANY.equals(permission))
             return true;
@@ -571,7 +572,7 @@ public class ShiroUtil {
     }
 
     public static boolean isPermitted(GetValue<String> gv)
-            throws NullPointerException, AccessException {
+            throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("Null parameters not allowed", gv, gv.getValue());
         return isPermitted(gv.getValue());
     }

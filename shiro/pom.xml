@@ -17,6 +17,9 @@
     <artifactId>xlogistx-shiro</artifactId>
 
 
+    <properties>
+
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

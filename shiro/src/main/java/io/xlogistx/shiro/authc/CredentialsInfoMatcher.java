@@ -8,6 +8,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.util.cache.JWTTokenCache;
 import org.zoxweb.shared.crypto.CIPassword;
+import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.JWT;
 import org.zoxweb.shared.security.JWTPayload;
 import org.zoxweb.shared.security.SecConst;
@@ -224,7 +225,7 @@ public class CredentialsInfoMatcher
             if (cache != null) {
                 try {
                     cache.put(signatureOf(raw), jwt);
-                } catch (SecurityException e) {
+                } catch (AccessSecurityException e) {
                     return reject("replay: " + e.getMessage());
                 }
             }

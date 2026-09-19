@@ -4,6 +4,7 @@ import io.xlogistx.common.data.MethodContainer;
 import io.xlogistx.common.http.HTTPProtocolHandler;
 import io.xlogistx.shiro.ShiroUtil;
 import org.zoxweb.server.util.DateUtil;
+import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.http.*;
 import org.zoxweb.shared.util.ResourceManager;
 
@@ -24,7 +25,7 @@ public class EndpointsUtil {
      *
      * @return null or value
      * @param <V> return type
-     * @exception SecurityException in case of error
+     * @exception AccessSecurityException in case of error
      */
     public <V> V startup() {
         if (!onStartupCallStatus.getAndSet(true)) {
@@ -34,7 +35,7 @@ public class EndpointsUtil {
                     return onStartup.invoke();
                 } catch (Exception e) {
                     e.printStackTrace();
-                    throw new SecurityException(e);
+                    throw new AccessSecurityException(e);
                 }
             }
         }
@@ -47,7 +48,7 @@ public class EndpointsUtil {
      *
      * @return null or value
      * @param <V> return type
-     * @exception SecurityException in case of error
+     * @exception AccessSecurityException in case of error
      */
     public <V> V postStartup() {
         if (!postStartupCallStatus.getAndSet(true)) {
@@ -57,7 +58,7 @@ public class EndpointsUtil {
                     return postStartup.invoke();
                 } catch (Exception e) {
                     e.printStackTrace();
-                    throw new SecurityException(e);
+                    throw new AccessSecurityException(e);
                 }
             }
         }

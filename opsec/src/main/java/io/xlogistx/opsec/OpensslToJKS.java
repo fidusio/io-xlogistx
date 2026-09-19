@@ -100,7 +100,7 @@ public class OpensslToJKS {
             String chain = params.stringValue("chain");
             String domain = params.stringValue("domain");
             String password = params.stringValue("password", null);
-            String keyStoreType = params.stringValue("ks_type", CryptoConst.PKCS12);
+            String keyStoreType = params.stringValue("ks_type", CryptoConst.KSType.PKCS12.getName());
             String outDir = params.stringValue("out_dir", null);
             String certAlias = params.stringValue("cer_alias", null);
 

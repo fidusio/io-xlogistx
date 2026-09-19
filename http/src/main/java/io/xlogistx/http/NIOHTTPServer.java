@@ -45,7 +45,7 @@ import org.zoxweb.shared.io.SharedIOUtil;
 import org.zoxweb.shared.net.ConnectionConfig;
 import org.zoxweb.shared.net.IPAddress;
 import org.zoxweb.shared.protocol.ProtoSession;
-import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.*;
@@ -103,7 +103,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.6.6");
+    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.7.0");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     /**
@@ -325,7 +325,7 @@ public class NIOHTTPServer
                     e = ((InvocationTargetException) e).getTargetException();
                 }
                 UByteArrayOutputStream responseStream = null;
-                if (e instanceof AccessException) {
+                if (e instanceof AccessSecurityException) {
                     responseStream = HTTPUtil.formatResponse(HTTPUtil.buildErrorResponse(e.getMessage() != null ? e.getMessage() : e.toString(), HTTPStatusCode.UNAUTHORIZED), hph.getResponseStream(),
                             HTTPHeader.CACHE_CONTROL.toHTTPHeader(HTTPConst.HTTPValue.NO_STORE),
                             HTTPConst.CommonHeader.EXPIRES_ZERO);

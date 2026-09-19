@@ -1009,7 +1009,7 @@ public class OPSecUtil {
     public KeyStore createKeyStore(String alias, String keystorePassword,
                                    PrivateKey privateKey, X509Certificate certificate) throws Exception {
         // Create a KeyStore object of type JKS
-        KeyStore keyStore = KeyStore.getInstance(CryptoConst.PKCS12);
+        KeyStore keyStore = KeyStore.getInstance(CryptoConst.KSType.PKCS12.getName());
         keyStore.load(null, null); // Initialize a new KeyStore
 
         // Set the entry for the key and certificate
@@ -1763,7 +1763,7 @@ public class OPSecUtil {
                                         char[] keyPassword, char[] keyStorePassword)
             throws GeneralSecurityException, IOException {
         return createKeyStoreFromPEM(certPem, keyPem, chainPem, keyPassword,
-                keyStorePassword, CryptoConst.PKCS12, null);
+                keyStorePassword, CryptoConst.KSType.PKCS12.getName(), null);
     }
 
     /**
@@ -1856,7 +1856,7 @@ public class OPSecUtil {
 
             PrivateKey privateKey = readPrivateKey(keyPem, keyPassword);
 
-            KeyStore keyStore = KeyStore.getInstance(SUS.isEmpty(keyStoreType) ? CryptoConst.PKCS12 : keyStoreType);
+            KeyStore keyStore = KeyStore.getInstance(SUS.isEmpty(keyStoreType) ? CryptoConst.KSType.PKCS12.getName() : keyStoreType);
             keyStore.load(null, null);
             keyStore.setKeyEntry(SUS.isEmpty(alias) ? "keyalias" : alias,
                     privateKey, keyStorePassword,

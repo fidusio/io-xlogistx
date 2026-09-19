@@ -1,5 +1,7 @@
 package io.xlogistx.gui;
 
+import org.zoxweb.shared.security.AccessSecurityException;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.concurrent.Callable;
@@ -49,7 +51,7 @@ public final class BackgroundTask {
                 } catch (InterruptedException | ExecutionException ex) {
                     Throwable cause = (ex instanceof ExecutionException && ex.getCause() != null)
                             ? ex.getCause() : ex;
-                    String msg = (cause instanceof SecurityException)
+                    String msg = (cause instanceof AccessSecurityException)
                             ? cause.getMessage()
                             : "Unexpected error: " + cause.getMessage();
                     JOptionPane.showMessageDialog(owner, msg, "Error", JOptionPane.ERROR_MESSAGE);
@@ -62,7 +64,7 @@ public final class BackgroundTask {
 
     /**
      * Convenience for the exception convention: run {@code work} off the EDT; if it throws,
-     * {@link #run}'s handler shows the error dialog (a {@link SecurityException} message as-is,
+     * {@link #run}'s handler shows the error dialog (a {@link AccessSecurityException} message as-is,
      * anything else as an unexpected error) and {@code onSuccess} is skipped. On success,
      * {@code onSuccess} (may be null) runs on the EDT.
      */

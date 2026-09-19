@@ -195,7 +195,7 @@ public class PQCKeyTest {
         signer.update(message);
         byte[] signature = signer.sign();
 
-        byte[] sign2 = CryptoUtil.sign(CryptoConst.SignatureAlgo.ML_DSA, priv, message);
+        byte[] sign2 = CryptoUtil.sign(CryptoConst.SignatureAlgo.ML_DSA_44, priv, message);
 
         // Verify the signature
         Signature verifier = Signature.getInstance(CryptoConst.ML_DSA, SecUtil.BC_PROVIDER);
@@ -206,9 +206,9 @@ public class PQCKeyTest {
 
         log.getLogger().info("Signature valid? " + isValid);
 
-        assert CryptoUtil.verify(CryptoConst.SignatureAlgo.ML_DSA, pub, message, signature);
+        assert CryptoUtil.verify(CryptoConst.SignatureAlgo.ML_DSA_44, pub, message, signature);
         log.getLogger().info("Signature " + signature.length + "\n" + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, signature));
-        assert CryptoUtil.verify(CryptoConst.SignatureAlgo.ML_DSA, pub, message, sign2);
+        assert CryptoUtil.verify(CryptoConst.SignatureAlgo.ML_DSA_44, pub, message, sign2);
         log.getLogger().info("Signature " + sign2.length + "\n" + SharedBase64.encodeAsString(SharedBase64.Base64Type.DEFAULT, sign2));
     }
 }

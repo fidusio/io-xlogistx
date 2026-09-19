@@ -119,6 +119,7 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
 ### Crypto & Certificates
 - `opsec/src/main/java/io/xlogistx/opsec/OPSecUtil.java` - X509, PKI, PQC utilities; `validateChain()` (PKIX→cacerts trust anchoring) and `matchesHostname()` (RFC 6125) live here
 - `opsec/src/main/java/io/xlogistx/opsec/CRLReader.java` - CRL checking
+- `opsec/src/main/java/io/xlogistx/opsec/SecretStore.java` - one-password BCFKS vault (2026-09-16): text secrets (`db.url`, `db.user`, `db.password`, ...) read back as `NVGenericMap` for app config, AES master keys, ML-DSA / ML-KEM key pairs with certificates; CLI `store= store.password= command=create|put|get|list|remove|ml-dsa|ml-kem|secret-key`. BCFKS on purpose: with BC at provider position 1, both PKCS12 implementations refuse the PBE secret entries. Tests: `SecretStoreTest` (7).
 
 ### Networking & DNS
 - `common/src/main/java/io/xlogistx/common/dns/DNSRegistrar.java` - DNS resolution with caching

@@ -43,7 +43,7 @@ public class ShiroSecurityController
 
     @Override
     public final Object encryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
         SUS.checkIfNulls("Null parameters", container.getGUID(), nvb);
 
 
@@ -71,7 +71,7 @@ public class ShiroSecurityController
                      | InvalidAlgorithmParameterException
                      | IllegalBlockSizeException | BadPaddingException e) {
                 // TODO Auto-generated catch block
-                throw new AccessException(e.getMessage());
+                throw new AccessSecurityException(e.getMessage());
             }
         } else {
             return nvb.getValue();
@@ -81,7 +81,7 @@ public class ShiroSecurityController
     @SuppressWarnings("unchecked")
     @Override
     public final NVEntity decryptValues(APIDataStore<?, ?> dataStore, NVEntity container, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
 
         if (container == null) {
             return null;
@@ -113,7 +113,7 @@ public class ShiroSecurityController
 
     @Override
     public final String decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVPair nvp, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
 
         if (container instanceof EncryptedData) {
             return nvp != null ? nvp.getValue() : null;
@@ -138,7 +138,7 @@ public class ShiroSecurityController
                      NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
                      IllegalBlockSizeException | BadPaddingException | SignatureException e) {
                 // TODO Auto-generated catch block
-                throw new AccessException(e.getMessage());
+                throw new AccessSecurityException(e.getMessage());
             }
         } else {
             return nvp.getValue();
@@ -148,7 +148,7 @@ public class ShiroSecurityController
 
     @Override
     public final Object decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVBase<?> nvb, Object value, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
 
         if (container instanceof EncryptedData && !(container instanceof EncapsulatedKey)) {
             container.setValue(nvb.getName(), value);
@@ -179,7 +179,7 @@ public class ShiroSecurityController
                      SignatureException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
-                throw new AccessException(e.getMessage());
+                throw new AccessSecurityException(e.getMessage());
             }
         } else {
 
@@ -189,7 +189,7 @@ public class ShiroSecurityController
 
     @Override
     public final Object decryptValue(String userID, APIDataStore<?, ?> dataStore, NVEntity container, Object value, byte[] msKey)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
 
         if (container instanceof EncryptedData && !(container instanceof EncapsulatedKey)) {
             return value;
@@ -214,7 +214,7 @@ public class ShiroSecurityController
                      BadPaddingException | SignatureException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
-                throw new AccessException(e.getMessage());
+                throw new AccessSecurityException(e.getMessage());
             }
         } else {
 
@@ -255,13 +255,13 @@ public class ShiroSecurityController
     }
 
     @Override
-    public String currentSubjectID() throws AccessException {
+    public String currentSubjectID() throws AccessSecurityException {
         // TODO Auto-generated method stub
         return (String) SecurityUtils.getSubject().getPrincipal();
     }
 
     @Override
-    public String currentSubjectGUID() throws AccessException {
+    public String currentSubjectGUID() throws AccessSecurityException {
         UUID subjectGUID = SecurityUtils.getSubject().getPrincipals().oneByType(UUID.class);
         return subjectGUID != null ? subjectGUID.toString() : null;
     }
@@ -278,7 +278,7 @@ public class ShiroSecurityController
         try {
             checkNVEntityAccess(lo, nve, permissions);
             return true;
-        } catch (AccessException e) {
+        } catch (AccessSecurityException e) {
             //e.printStackTrace();
             return false;
         }
@@ -286,13 +286,13 @@ public class ShiroSecurityController
 
 
     public final String checkNVEntityAccess(NVEntity nve, CRUD... permissions)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
         return checkNVEntityAccess(Const.LogicalOperator.AND, nve, permissions);
     }
 
 
     public final String checkNVEntityAccess(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
-            throws NullPointerException, IllegalArgumentException, AccessException {
+            throws NullPointerException, IllegalArgumentException, AccessSecurityException {
         SUS.checkIfNulls("Null NVEntity", lo, nve);
 
         if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO) {
@@ -302,7 +302,7 @@ public class ShiroSecurityController
         String subjectGUID = currentSubjectGUID();
 
         if (subjectGUID == null || nve.getSubjectGUID() == null) {
-            throw new AccessException("Unauthenticated subject: " + nve.getClass().getName());
+            throw new AccessSecurityException("Unauthenticated subject: " + nve.getClass().getName());
         }
 
         if (!nve.getSubjectGUID().equals(subjectGUID)) {
@@ -325,7 +325,7 @@ public class ShiroSecurityController
 
             if (log.isEnabled())
                 log.getLogger().info("nveUserID:" + nve.getSubjectGUID() + " subjectGUID:" + subjectGUID);
-            throw new AccessException("Access Denied. for resource:" + nve.getGUID());
+            throw new AccessSecurityException("Access Denied. for resource:" + nve.getGUID());
         }
 
         return subjectGUID;

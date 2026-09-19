@@ -11,7 +11,7 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.http.*;
-import org.zoxweb.shared.security.AccessException;
+import org.zoxweb.shared.security.AccessSecurityException;
 import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.*;
 
@@ -30,7 +30,7 @@ public class Login
         Subject subject = ShiroUtil.subject();
 
         if(!subject.isAuthenticated())
-            throw new AccessException("Not authenticated");
+            throw new AccessSecurityException("Not authenticated");
 
         subject.getSession(true);
 
