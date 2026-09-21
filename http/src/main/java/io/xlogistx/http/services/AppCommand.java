@@ -59,14 +59,14 @@ public class AppCommand {
 
     }
 
-    @EndPointProp(methods = {HTTPMethod.GET}, name = "expose-app-api", uris = "/app/api/")
+    @EndPointProp(methods = {HTTPMethod.GET}, name = "expose-app-api", uris = "/app/api/{detailed}")
     @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "app:apis:read")
-    public NVGenericMap exposeAppAPI() throws IllegalAccessException {
+    public NVGenericMap exposeAppAPI(@ParamProp(name = "detailed", optional = true) boolean detailed) throws IllegalAccessException {
         HTTPProtocolHandler hph = EndpointsUtil.SINGLETON.getProtocolHandler();
         EndPointMeta[] allUris = hph.getEndPointsManager().allEndPointMetas();
         NVGenericMap endPointsMeta = new NVGenericMap("api-endpoints");
         for (EndPointMeta meta : allUris) {
-            endPointsMeta.add(meta.httpEndPoint.toProperties(true));
+            endPointsMeta.add(meta.httpEndPoint.toProperties(detailed));
         }
         return endPointsMeta;
     }
