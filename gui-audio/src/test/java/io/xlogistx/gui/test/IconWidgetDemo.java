@@ -51,7 +51,10 @@ public class IconWidgetDemo {
                         labeled("File", new IconUtil.FileIcon(size)),
                         labeled("Folder", new IconUtil.FolderIcon(size)),
                         labeled("Undo", new IconUtil.UndoIcon(size)),
-                        labeled("Redo", new IconUtil.RedoIcon(size))));
+                        labeled("Redo", new IconUtil.RedoIcon(size)),
+                        labeled("Print", new IconUtil.PrintIcon(size)),
+                        labeled("Pan", new IconUtil.PanIcon(size)),
+                        labeled("Select", new IconUtil.SelectIcon(size))));
             }
 
             // as buttons, svg icons with their own default colors
@@ -82,7 +85,10 @@ public class IconWidgetDemo {
                     GUIUtil.iconButton(new IconUtil.FileIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.FolderIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.UndoIcon(24), true),
-                    GUIUtil.iconButton(new IconUtil.RedoIcon(24), true)));
+                    GUIUtil.iconButton(new IconUtil.RedoIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.PrintIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.PanIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.SelectIcon(24), true)));
 
             // as buttons, svg icons tinted white on their background color
             frame.add(GUIUtil.createPanel("Tinted buttons (24)", new FlowLayout(FlowLayout.LEFT, 10, 5),

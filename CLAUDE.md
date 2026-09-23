@@ -13,7 +13,7 @@
 | `http` | NIO HTTP/HTTPS server with WebSocket support |
 | `shiro` | Apache Shiro security integration |
 | `opsec` | PKI/X509 certificates, Bouncy Castle crypto, key management |
-| `gui-audio` | GUI and audio utilities |
+| `gui-audio` | Swing widgets, SVG icons, Markdown viewer, `MDToPDF` (Markdown → PDF via OpenHTMLtoPDF/PDFBox), `PDFViewerPanel` (PDFBox viewer: search, selection, save, print); see `gui-audio/CLAUDE.md` |
 | `no-sneak` | **ACTIVE** - SSL/TLS & PQC security scanner, NMap network scanner |
 
 ## Current Focus: no-sneak Module
@@ -132,6 +132,13 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
 
 ### HTTP/TLS Server
 - `http/src/main/java/io/xlogistx/http/NIOHTTPServer.java` - HTTPS server with SSLContext
+
+### GUI (gui-audio)
+- `gui-audio/src/main/java/io/xlogistx/gui/MDToPDF.java` - Markdown → PDF (commonmark → OpenHTMLtoPDF → PDFBox, embedded Roboto fonts, CLI `md=... pdf=... css=...`)
+- `gui-audio/src/main/java/io/xlogistx/gui/PDFViewerPanel.java` - PDFBox Swing viewer: lazy background rendering, LRU cache, zoom/fit, search highlighting, text selection/copy, open/save/print
+- `gui-audio/src/main/java/io/xlogistx/gui/MDViewerPanel.java` - read-only Markdown viewer
+- PDFBox version: `pdfbox.version` in the root pom (3.0.8) must match the line OpenHTMLtoPDF (`openhtmltopdf.version`, external parent pom) is built against
+- Tests: `gui-audio/src/test/java/io/xlogistx/gui/MDToPDFTest.java`, `PDFViewerPanelTest.java` (headless-safe); demos `MDViewerDemo`, `PDFViewerDemo`
 
 ## PQC Scanner Quick Reference
 

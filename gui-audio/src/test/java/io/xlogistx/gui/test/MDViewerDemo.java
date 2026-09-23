@@ -1,14 +1,21 @@
 package io.xlogistx.gui.test;
 
+import io.xlogistx.gui.BackgroundTask;
+import io.xlogistx.gui.MDToPDF;
 import io.xlogistx.gui.MDViewerPanel;
+import io.xlogistx.gui.PDFViewerPanel;
+import org.apache.pdfbox.Loader;
 import org.zoxweb.server.io.IOUtil;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * Interactive demo for {@link MDViewerPanel}: markdown source on the left,
- * rendered view on the right, re-rendered on every keystroke.
+ * Interactive demo for {@link MDViewerPanel} and {@link PDFViewerPanel}:
+ * markdown source on the left, rendered view in the middle (re-rendered on
+ * every keystroke) and the {@link MDToPDF} output on the right, regenerated
+ * off the EDT after a short typing pause; page and zoom are preserved across
+ * regenerations.
  */
 public class MDViewerDemo {
 
@@ -53,11 +60,14 @@ public class MDViewerDemo {
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
                 MDViewerPanel viewer = new MDViewerPanel(content);
+                PDFViewerPanel pdfViewer = new PDFViewerPanel();
+                PDFRefresher pdfRefresher = new PDFRefresher(pdfViewer);
 
                 JTextArea source = new JTextArea(content);
                 source.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
                     private void update() {
                         viewer.setMarkdown(source.getText());
+                        pdfRefresher.schedule(source.getText());
                     }
 
                     public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -73,9 +83,11 @@ public class MDViewerDemo {
                     }
                 });
 
+                JSplitPane right = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, viewer, pdfViewer);
+                right.setResizeWeight(0.5);
                 JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                        new JScrollPane(source), viewer);
-                split.setResizeWeight(0.5);
+                        new JScrollPane(source), right);
+                split.setResizeWeight(0.34);
 
                 // visual demo of overrideScrollPane: orange border + always-on scrollbars
                 JCheckBox override = new JCheckBox("Custom scroll pane (overrideScrollPane)");
@@ -93,13 +105,58 @@ public class MDViewerDemo {
 
                 frame.add(split, BorderLayout.CENTER);
                 frame.add(override, BorderLayout.SOUTH);
-                frame.setSize(1000, 700);
+                frame.setSize(1400, 800);
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);
+                pdfRefresher.schedule(content);
             });
         }
         catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Debounced markdown to PDF regeneration: waits {@value #DELAY_MS} ms after the
+     * last edit, converts and parses off the EDT, then swaps the document into the
+     * viewer keeping the current page. An edit arriving while a conversion is
+     * running is picked up as soon as it finishes.
+     */
+    private static final class PDFRefresher {
+        private static final int DELAY_MS = 500;
+        private final PDFViewerPanel viewer;
+        private final Timer timer;
+        private String pending;
+        private boolean running;
+
+        PDFRefresher(PDFViewerPanel viewer) {
+            this.viewer = viewer;
+            timer = new Timer(DELAY_MS, e -> start());
+            timer.setRepeats(false);
+        }
+
+        void schedule(String markdown) {
+            pending = markdown;
+            timer.restart();
+        }
+
+        private void start() {
+            if (running || pending == null)
+                return;
+            String markdown = pending;
+            pending = null;
+            running = true;
+            int page = viewer.getCurrentPage();
+            BackgroundTask.run(viewer, null,
+                    () -> Loader.loadPDF(MDToPDF.mdToPDF(markdown).toByteArray()),
+                    doc -> {
+                        running = false;
+                        viewer.setDocument(doc, true);
+                        if (page > 0)
+                            viewer.gotoPage(page);
+                        if (pending != null)
+                            timer.restart();
+                    });
         }
     }
 

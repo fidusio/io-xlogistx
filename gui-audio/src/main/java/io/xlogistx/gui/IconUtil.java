@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *       {@link InfoIcon}, {@link RunIcon}, {@link StopIcon}, {@link PauseIcon},
  *       {@link CheckIcon}, {@link AlertIcon}, {@link ErrorIcon}, {@link QuestionIcon},
  *       {@link FileIcon}, {@link FolderIcon}, {@link UndoIcon}, {@link RedoIcon},
- *       {@link SVGIcon}) and the
+ *       {@link PrintIcon}, {@link PanIcon}, {@link SelectIcon}, {@link SVGIcon}) and the
  *       {@link #svgIcon(String, int)} / {@link #svgIcon(String, int, Color)} factories</li>
  *   <li>Look-and-feel icon shortcuts ({@link #TreePlusIcon()}, {@link #TreeMinusIcon()})</li>
  * </ul>
@@ -808,6 +808,83 @@ public class IconUtil {
          */
         public UndoIcon(int size, Color color) {
             super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/undo.svg");
+        }
+    }
+
+    /**
+     * Print (printer) icon rendered from the bundled {@code print.svg} classpath resource.
+     */
+    public static class PrintIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square print icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public PrintIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/print.svg");
+        }
+
+        /**
+         * Creates a square print icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public PrintIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/print.svg");
+        }
+    }
+
+    /**
+     * Pan (four-way move arrows) icon rendered from the bundled {@code pan.svg} classpath
+     * resource; the "hand"/drag-to-scroll tool.
+     */
+    public static class PanIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square pan icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public PanIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/pan.svg");
+        }
+
+        /**
+         * Creates a square pan icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public PanIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/pan.svg");
+        }
+    }
+
+    /**
+     * Select (mouse pointer arrow) icon rendered from the bundled {@code select.svg}
+     * classpath resource; the text/object selection tool.
+     */
+    public static class SelectIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square select icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public SelectIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/select.svg");
+        }
+
+        /**
+         * Creates a square select icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public SelectIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/select.svg");
         }
     }
 

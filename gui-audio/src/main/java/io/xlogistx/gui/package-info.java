@@ -26,9 +26,13 @@
  *       {@link io.xlogistx.gui.NVGenericMapWidget}; list/tree editors
  *       {@link io.xlogistx.gui.DynamicComboBox} and
  *       {@link io.xlogistx.gui.TreeTextWidget}.</li>
- *   <li><b>Viewers</b> — {@link io.xlogistx.gui.MDViewerPanel} (read-only GitHub
- *       flavored Markdown viewer, commonmark rendered into a
- *       {@code JEditorPane}).</li>
+ *   <li><b>Viewers and converters</b> — {@link io.xlogistx.gui.MDViewerPanel}
+ *       (read-only GitHub flavored Markdown viewer, commonmark rendered into a
+ *       {@code JEditorPane}), {@link io.xlogistx.gui.PDFViewerPanel} (PDFBox
+ *       based PDF viewer: lazy background page rendering, LRU cache, zoom/fit
+ *       modes, text search) and {@link io.xlogistx.gui.MDToPDF} (Markdown to
+ *       PDF via commonmark, OpenHTMLtoPDF and PDFBox, embedded Roboto
+ *       fonts).</li>
  * </ul>
  */
 package io.xlogistx.gui;

@@ -24,6 +24,8 @@
     </scm>
     <properties>
         <xlogistx.version>1.0.0</xlogistx.version>
+        <!-- must match the PDFBox line OpenHTMLtoPDF ${openhtmltopdf.version} is built against -->
+        <pdfbox.version>3.0.8</pdfbox.version>
     </properties>
 
     <modules>
@@ -150,7 +152,16 @@
                 <artifactId>dnsjava</artifactId>
                 <version>${dnsjava.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>io.github.openhtmltopdf</groupId>
+                <artifactId>openhtmltopdf-pdfbox</artifactId>
+                <version>${openhtmltopdf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>

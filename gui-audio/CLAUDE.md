@@ -5,14 +5,15 @@ Java package: `io.xlogistx.gui` (see `package-info.java` for the class map).
 
 ## Architecture
 
-The package has three groups:
+The package has these groups:
 
 1. **Icons & helpers**
    - `IconUtil` — the icon library. All icons are SVG-based (`PlusIcon`, `MinusIcon`,
      `CancelIcon`, `SaveIcon`, `UpdateIcon`, `EditIcon`, `DeleteIcon`, `BackIcon`,
      `NextIcon`, `RollbackIcon`, `VisibleIcon`, `InvisibleIcon`, `CopyIcon`, `SearchIcon`,
      `RefreshIcon`, `InfoIcon`, `RunIcon`, `StopIcon`, `PauseIcon`, `CheckIcon`, `AlertIcon`,
-     `ErrorIcon`, `QuestionIcon`, `FileIcon`, `FolderIcon`, `UndoIcon`, `RedoIcon`,
+     `ErrorIcon`, `QuestionIcon`, `FileIcon`, `FolderIcon`, `UndoIcon`, `RedoIcon`, `PrintIcon`,
+     `PanIcon`, `SelectIcon`,
      generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
      ones share the `SVGIconWidget` base. **SVG icon constructor contract**:
      `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
@@ -53,6 +54,77 @@ The package has three groups:
 - Save-side validation throws from `mapToValue` (e.g. NVInt int-range check);
   `NVGenericMapWidget.onSave` catches `Exception` and shows an error dialog.
 
+### Viewers and converters
+
+- `MDViewerPanel` — read-only GFM markdown viewer (commonmark → HTML → `JEditorPane`).
+  Extensions: tables, strikethrough, task list items.
+- `MDToPDF` — static markdown → PDF converter: commonmark (the **same three extensions**
+  as `MDViewerPanel`) → HTML → Jsoup DOM → OpenHTMLtoPDF → PDFBox. Embeds the Roboto TTFs
+  shipped by `flatlaf-fonts-roboto` (font family `Roboto`, silent fallback to the built-in
+  fonts if the jar is absent) so non-Latin-1 text renders. Task-list
+  `<input type=checkbox>` is replaced by `[x]`/`[ ]` text (the PDF renderer draws no form
+  controls). `DEFAULT_CSS` is public; a caller-supplied stylesheet **replaces** it entirely
+  (include `@page`). CLI: `MDToPDF md=in.md [pdf=out.pdf] [css=style.css]` (`ParamUtil`
+  `name=value` args).
+- `PDFViewerPanel` — PDFBox-backed Swing viewer (details below).
+
+#### PDFViewerPanel
+
+**Rendering.** Pages stack vertically in the panel's own scroll pane (do not wrap it in
+another). Only pages within one viewport height of the view are rasterized
+(`PDFRenderer.renderImageWithDPI`, dpi = 72 × zoom × device scale) on **one shared daemon
+thread** (`RENDER_EXECUTOR`) and kept in a byte-bounded LRU (`DEFAULT_CACHE_BYTES` 64 MB,
+`setCacheBytes`, `getPageImage`). A `generation` counter invalidates in-flight renders on
+zoom change/close. Every `PDDocument` access is under `docLock` (PDFBox documents are not
+thread-safe); the only lock-free reader is painting, which peeks at the volatile
+`pageTexts`.
+
+**Layout/zoom.** `layoutPages()` positions the stack with `doLayout` (works without a
+peer, so headless tests see real bounds) and then validates for the on-screen case.
+`applyZoom` anchors on a page-relative point in points, never on raw stack pixels, because
+the fixed gaps between pages do not scale. Zoom modes `CUSTOM`/`FIT_WIDTH`/`FIT_PAGE`
+(fit modes re-apply on viewport resize); `zoomTo(page, ptRect)` fits a page area
+(e.g. a search `Match`).
+
+**Lifecycle.** `setPDF(bytes|File|InputStream)` parses off the EDT via `BackgroundTask`;
+`setDocument(doc, owns)` is synchronous; both go through `install(doc, owns, file)`.
+`close()` is idempotent, clears highlights/selection, and the panel is reusable. Page
+indexes are **zero-based** in the API, one-based in the toolbar.
+
+**Text.** `PageText` (per page, extracted lazily by a `PDFTextStripper` subclass) keeps
+the original-case `text`, a char-by-char lowercased `lower` copy for search (offsets stay
+aligned) and one `TextPosition` per char (null for inserted word/line separators). From
+it: `search(text)` → `Match`es (page, char range, glyph rects in pt with top-left origin,
+one per line); `find(text)` → pages; `setHighlights`/`gotoMatch`/`nextMatch`/
+`previousMatch` paint and step (wrapping); `highlightAsync` = search off the EDT +
+highlight. Text selection is a page+char-offset range (`select`, `selectAll`,
+`getSelectedText` — pages joined by a blank line —, `copySelection`, `clearSelection`,
+`charIndexAt(page, xPt, yPt)` hit test over lazily built lines). Selected pages whose text
+is not extracted yet request extraction on the render thread and repaint.
+
+**Tools/input.** `Tool` (toolbar toggle group) decides what a plain left drag does:
+`PAN` scrolls, `SELECT_TEXT` selects (double click = word, right click = Copy/Select all/
+Clear menu), `ZOOM_TO_SELECTION` rubber-bands a rectangle that is fitted to the viewport
+(`zoomToViewRect`); Shift+drag rubber-bands with any tool, a plain click in that tool
+zooms one step at the pointer. Keys (WHEN_ANCESTOR bindings on the panel, so they also
+work with focus in the toolbar fields): PgUp/PgDn scroll a screen (`scrollBy`),
+Ctrl+PgUp/PgDn jump pages, Ctrl+Home/End first/last page, Ctrl +/−, Ctrl+0 fit width,
+Ctrl+A/Ctrl+C select all/copy, Esc clears the selection else returns to `PAN`; Ctrl+wheel
+zooms around the pointer.
+
+**File/print.** Open (`openFile()` → shared `JFileChooser` *.pdf → `setPDF(File)`;
+`getFile()` remembers the origin, null for byte/stream documents). Save (`saveAs()`,
+`save(File)`: `PDDocument.save` to a temp file off the EDT, then moved into place; saving
+**over the source file** closes, replaces and reloads the document because PDFBox reads
+lazily from the source — never `save` straight onto it). Print (`print()`: `PrinterJob`
+dialog on the EDT, `job.print()` off the EDT; `createPageable()` wraps PDFBox
+`PDFPageable` so every page prints under `docLock` and reports `NO_SUCH_PAGE` after
+`close()`).
+
+**Toolbar order.** Open, Save, Print | Pan, Select text, Zoom to selection, Copy | prev,
+page field / count, next | zoom out, zoom combo (presets + fit modes), zoom in | search
+field, find next, "n / m". Annotations and form editing are intentionally out of scope.
+
 ### Hex editor (`io.xlogistx.gui.hexeditor`)
 
 - `HexEditor` — pure model over zoxweb `UByteArrayOutputStream` (no Swing): file
@@ -92,7 +164,7 @@ The package has three groups:
 - SVG resources live in `src/main/resources/io/xlogistx/gui/icons/` (`plus`, `minus`,
   `cancel`, `edit`, `delete`, `back`, `next`, `rollback`, `visible`, `invisible`, `save`,
   `update`, `copy`, `search`, `refresh`, `info`, `run`, `stop`, `pause`, `check`, `alert`,
-  `error`, `question`, `file`, `folder`, `undo`, `redo`). All are Feather-style: 24x24 viewBox,
+  `error`, `question`, `file`, `folder`, `undo`, `redo`, `print`, `pan`, `select`). All are Feather-style: 24x24 viewBox,
   `fill="none"`, `stroke="#5A5A5A"`, stroke-width 2, round caps/joins — match this style
   when adding new ones. Each `XxxIcon` class maps to the same-named svg
   (`PlusIcon`→`plus.svg`, ...), except: `EditIcon`→`edit.svg` is a pencil,
@@ -114,8 +186,14 @@ The package has three groups:
 
 - **JSVG** (`com.github.weisj:jsvg`) — SVG rendering. Do not add batik or other SVG libs.
 - **commonmark** (`org.commonmark` + gfm-tables/gfm-strikethrough/task-list-items
-  extensions) — Markdown parsing/rendering for `MDViewerPanel`. Do not add flexmark or
-  other Markdown libs.
+  extensions) — Markdown parsing/rendering for `MDViewerPanel` and `MDToPDF`. Do not add
+  flexmark or other Markdown libs.
+- **OpenHTMLtoPDF** (`io.github.openhtmltopdf:openhtmltopdf-pdfbox`, version from the
+  external parent pom `xlogistx-mvn`) + **Jsoup** — HTML → PDF for `MDToPDF`.
+- **PDFBox** (`org.apache.pdfbox:pdfbox`, `pdfbox.version` in the io-xlogistx root pom;
+  must stay on the line OpenHTMLtoPDF is built against, currently 3.0.x) — page
+  rendering/text extraction for `PDFViewerPanel`. Do not add ICEpdf/JPedal/other PDF
+  libs; `PDFViewerPanel` is the viewer.
 - `common` module (`NVColor`), zoxweb (`NVGenericMap`, `MappedObject`, `SUS`, `ServerUtil`).
 
 ## Demos / manual testing
@@ -127,12 +205,21 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
   off-EDT usage of `captureSelectedArea()`)
 - `CaptureAreaSetDemo` — build a `CaptureAreaSet` interactively (add/name/remove
   areas), snap selected areas or all via `takeSnapShots(...)`, shows the latest snapshot
-- `MDViewerDemo` — live markdown editor (left) + rendered `MDViewerPanel` (right)
+- `MDViewerDemo` — live markdown editor (left), rendered `MDViewerPanel` (middle) and
+  `PDFViewerPanel` showing the `MDToPDF` output (right, regenerated off the EDT 500 ms
+  after the last keystroke, current page preserved)
+- `PDFViewerDemo` — standalone `PDFViewerPanel` window; `PDFViewerDemo [file.pdf]`,
+  without an argument it shows a generated multi-page sample (use the Open button)
 - `MDViewerOverrideCheck` — windowless assertion run for
   `MDViewerPanel.overrideScrollPane(...)`; exits 0 on success
 
-Build: `mvn clean install -pl gui-audio -am` (from repo root). No headless-safe unit tests
-exist for the Swing classes; verification is via the demos.
+Build: `mvn clean install -pl gui-audio -am` (from repo root).
+
+Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest` and
+`PDFViewerPanelTest` (sets `java.awt.headless=true`, lays the component tree out by hand
+because `validate()` needs a peer, drives the panel through `invokeAndWait`). The other
+Swing classes are verified via the demos only. `mvn test` skips tests in this build (parent
+`skipTests`); see the memory note on the CLI JUnit launcher recipe.
 
 ## Known limitations (accepted, not bugs)
 
