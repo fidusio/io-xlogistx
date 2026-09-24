@@ -4,6 +4,8 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.printing.PDFPageable;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -77,6 +79,23 @@ import java.util.function.Consumer;
  * PDF file chooser (toolbar "Open" button); {@link #saveAs()} / {@link #save(File)}
  * write the current document out (toolbar "Save" button); {@link #print()} shows
  * the system print dialog and prints off the EDT (toolbar "Print" button).
+ *
+ * <h2>Merging</h2>
+ * {@link #insertPDF(File, int)} merges another PDF, or a Markdown file converted
+ * through {@link MDToPDF}, into the current document at a page index (0 = at the
+ * beginning, page count = at the end, n = after page n); {@link #insertDialog()}
+ * asks for the file and the position (toolbar "Insert" button). Merging marks
+ * the document {@linkplain #isModified() modified}; {@link #confirmDiscard()}
+ * asks before unsaved changes are thrown away (used by {@link #openFile()}).
+ *
+ * <h2>Deleting pages</h2>
+ * {@link #deletePages(int[])} removes pages by zero-based index and refreshes the
+ * view; {@link #deletePages(String)} takes the one-based selection a person types
+ * — {@code current}, {@code 3}, {@code 5-8}, or a comma / space separated list of
+ * those — through {@link #parsePageSelection(String, int, int)}; {@link #deleteDialog()}
+ * asks for that selection (toolbar "Delete" button). Deleting every page is
+ * refused, deleting marks the document {@linkplain #isModified() modified}, and
+ * there is no undo: reopen the file, or don't save.
  *
  * <h2>Threading</h2>
  * Like any Swing component the public API must be called on the EDT, except
@@ -218,6 +237,11 @@ public class PDFViewerPanel extends JPanel {
     private JLabel matchLabel;
     private JButton saveButton;
     private JButton printButton;
+    private JButton insertButton;
+    private JButton deleteButton;
+    private boolean modified;
+    /** Bumped by every page-tree edit (insert/delete); pageables created before it are stale. */
+    private int edits;
     private JToggleButton panButton;
     private JToggleButton selectButton;
     private JToggleButton zoomSelectButton;
@@ -331,6 +355,7 @@ public class PDFViewerPanel extends JPanel {
     private PDFViewerPanel install(PDDocument doc, boolean ownsDocument, File file) {
         close();
         currentFile = file;
+        modified = false;
         if (doc == null)
             return this;
 
@@ -380,6 +405,7 @@ public class PDFViewerPanel extends JPanel {
         pagesPanel.rebuild();
         currentPage = -1;
         currentFile = null;
+        modified = false;
         matches = new ArrayList<>();
         currentMatch = -1;
         lastQuery = null;
@@ -390,11 +416,358 @@ public class PDFViewerPanel extends JPanel {
     }
 
     /**
+     * @return true if the document has unsaved changes (pages were inserted)
+     */
+    public boolean isModified() {
+        return modified;
+    }
+
+    /**
+     * If the document has unsaved changes, asks the user whether to discard them.
+     *
+     * @return true if there is nothing to lose or the user chose to discard
+     */
+    public boolean confirmDiscard() {
+        if (!modified)
+            return true;
+        int choice = JOptionPane.showConfirmDialog(this,
+                "The document has unsaved changes. Discard them?", "Unsaved changes",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        return choice == JOptionPane.YES_OPTION;
+    }
+
+    /**
+     * Merges the pages of {@code source} into the current document so that its
+     * first page lands at {@code index}. Runs off the EDT (file loading, Markdown
+     * conversion and the merge itself); the view is refreshed on the EDT showing
+     * the first inserted page. With no document loaded the file is simply opened.
+     * Error dialog on failure. Must be called on the EDT.
+     *
+     * @param source a {@code .pdf} file, or a {@code .md}/{@code .markdown} file
+     *               converted with {@link MDToPDF} first; never null
+     * @param index  0 = at the beginning, {@link #getPageCount()} = at the end,
+     *               n = after page n (one-based); clamped to that range
+     */
+    public void insertPDF(File source, int index) {
+        SUS.checkIfNull("source null", source);
+        if (getDocument() == null) {
+            setPDF(source);
+            return;
+        }
+        final int at = Math.max(0, Math.min(pages.size(), index));
+        BackgroundTask.run(this, insertButton, () -> {
+            try (PDDocument src = isMarkdown(source) ? Loader.loadPDF(markdownToPDF(source)) : Loader.loadPDF(source)) {
+                return mergeInto(src, at);
+            }
+        }, added -> refreshPages(at, added));
+    }
+
+    /**
+     * Synchronous form of {@link #insertPDF(File, int)} for an already parsed
+     * document: merges (copying, {@code source} may be closed afterwards) and
+     * refreshes the view. Blocks the EDT for the duration of the merge, so it is
+     * meant for small documents and tests. Must be called on the EDT.
+     *
+     * @param source the document whose pages are inserted, never null
+     * @param index  see {@link #insertPDF(File, int)}
+     * @return number of pages inserted, 0 if nothing is loaded
+     * @throws IOException if the merge fails
+     */
+    public int insertDocument(PDDocument source, int index) throws IOException {
+        SUS.checkIfNull("source null", source);
+        if (getDocument() == null)
+            return 0;
+        int at = Math.max(0, Math.min(pages.size(), index));
+        int added = mergeInto(source, at);
+        refreshPages(at, added);
+        return added;
+    }
+
+    // ------------------------------------------------------------------ deleting pages
+
+    /**
+     * Removes the given pages from the current document and refreshes the view, which
+     * then shows the page that took the first deleted page's place (or the last page).
+     * Synchronous — page removal is cheap — and must be called on the EDT. Marks the
+     * document {@linkplain #isModified() modified}.
+     *
+     * @param indexes zero-based page indexes, in any order, duplicates ignored; never null
+     * @return number of pages removed, 0 if nothing is loaded or {@code pages} is empty
+     * @throws IllegalArgumentException if an index is out of range, or if the selection
+     *                                  would remove every page (a PDF needs at least one)
+     */
+    public int deletePages(int[] indexes) {
+        SUS.checkIfNull("indexes null", indexes);
+        if (getDocument() == null || indexes.length == 0)
+            return 0;
+        int count = pages.size();
+        java.util.TreeSet<Integer> set = new java.util.TreeSet<>();
+        for (int p : indexes) {
+            if (p < 0 || p >= count)
+                throw new IllegalArgumentException("Page " + (p + 1) + " is out of range (1-" + count + ").");
+            set.add(p);
+        }
+        if (set.size() >= count)
+            throw new IllegalArgumentException("That would delete every page; a PDF needs at least one.");
+        synchronized (docLock) {
+            if (document == null)
+                return 0;
+            for (Integer p : set.descendingSet())
+                document.removePage(p);
+        }
+        int first = set.first();
+        refreshPages(Math.min(first, count - set.size() - 1), set.size());
+        return set.size();
+    }
+
+    /**
+     * {@link #deletePages(int[])} over a typed selection: {@code current}, single pages,
+     * ranges, or a comma / semicolon / space separated list of those, one-based as the
+     * toolbar shows pages (see {@link #parsePageSelection(String, int, int)}).
+     *
+     * @param selection the selection text, never null
+     * @return number of pages removed
+     * @throws IllegalArgumentException with a message fit for a dialog when the text does
+     *                                  not parse, names a page out of range, says
+     *                                  {@code current} with no page shown, or would
+     *                                  delete every page
+     */
+    public int deletePages(String selection) {
+        return deletePages(parsePageSelection(selection, currentPage, pages.size()));
+    }
+
+    /**
+     * Parses a one-based page selection into sorted, distinct, zero-based indexes.
+     * Accepted tokens: {@code current} (also {@code cur}, {@code this}), a page number,
+     * and a range {@code a-b} ({@code b-a} is accepted and flipped); separators are
+     * comma, semicolon or whitespace; case does not matter.
+     *
+     * @param selection   the text, may be null
+     * @param currentPage zero-based page currently shown, -1 when none
+     * @param pageCount   pages in the document
+     * @return the indexes, never empty
+     * @throws IllegalArgumentException with a message fit for a dialog: no document, empty
+     *                                  selection, unparsable token, page out of range,
+     *                                  {@code current} with no page shown, or a selection
+     *                                  covering every page
+     */
+    public static int[] parsePageSelection(String selection, int currentPage, int pageCount) {
+        if (pageCount <= 0)
+            throw new IllegalArgumentException("No document is loaded.");
+        String s = selection == null ? "" : selection.trim().toLowerCase(java.util.Locale.ROOT);
+        if (s.isEmpty())
+            throw new IllegalArgumentException("Enter the pages to delete: current, 3, or 5-8.");
+        java.util.TreeSet<Integer> out = new java.util.TreeSet<>();
+        for (String token : s.split("[,;\\s]+")) {
+            if (token.isEmpty())
+                continue;
+            if (token.equals("current") || token.equals("cur") || token.equals("this")) {
+                if (currentPage < 0)
+                    throw new IllegalArgumentException("There is no current page.");
+                out.add(currentPage);
+                continue;
+            }
+            int dash = token.indexOf('-', 1);
+            try {
+                if (dash > 0) {
+                    int a = Integer.parseInt(token.substring(0, dash).trim());
+                    int b = Integer.parseInt(token.substring(dash + 1).trim());
+                    int lo = Math.min(a, b), hi = Math.max(a, b);
+                    checkPage(lo, pageCount);
+                    checkPage(hi, pageCount);
+                    for (int p = lo; p <= hi; p++)
+                        out.add(p - 1);
+                } else {
+                    int p = Integer.parseInt(token);
+                    checkPage(p, pageCount);
+                    out.add(p - 1);
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("\"" + token + "\" is not a page number or range.");
+            }
+        }
+        if (out.isEmpty())
+            throw new IllegalArgumentException("Enter the pages to delete: current, 3, or 5-8.");
+        if (out.size() >= pageCount)
+            throw new IllegalArgumentException("That would delete every page; a PDF needs at least one.");
+        return out.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    private static void checkPage(int oneBased, int pageCount) {
+        if (oneBased < 1 || oneBased > pageCount)
+            throw new IllegalArgumentException("Page " + oneBased + " is out of range (1-" + pageCount + ").");
+    }
+
+    /**
+     * Asks which pages to delete (a text field pre-filled with the current page, accepting
+     * {@code current}, single pages, ranges and lists) and {@link #deletePages(String) deletes}
+     * them. An unusable selection is reported and the dialog shown again.
+     *
+     * @return number of pages removed, 0 if cancelled or nothing is loaded
+     */
+    public int deleteDialog() {
+        if (pages.isEmpty())
+            return 0;
+        JTextField field = new JTextField(currentPage >= 0 ? String.valueOf(currentPage + 1) : "", 14);
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.add(new JLabel("Pages to delete (of " + pages.size() + "):"));
+        form.add(Box.createVerticalStrut(4));
+        form.add(field);
+        form.add(Box.createVerticalStrut(4));
+        JLabel hint = new JLabel("current, 3, 5-8 — or a list: current, 3, 5-8");
+        hint.setFont(hint.getFont().deriveFont(hint.getFont().getSize2D() - 2f));
+        form.add(hint);
+        while (true) {
+            if (JOptionPane.showConfirmDialog(this, form, "Delete pages", JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION)
+                return 0;
+            try {
+                return deletePages(field.getText());
+            } catch (IllegalArgumentException e) {
+                JOptionPane.showMessageDialog(this, e.getMessage(), "Delete pages", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+    }
+
+    /** Converts a Markdown file with {@link MDToPDF}, resolving relative images against its directory. */
+    private static byte[] markdownToPDF(File md) throws IOException {
+        File dir = md.getAbsoluteFile().getParentFile();
+        String baseUri = dir != null ? dir.toURI().toString() : null;
+        return MDToPDF.mdToPDF(IOUtil.inputStreamToString(md), baseUri, null).toByteArray();
+    }
+
+    private static boolean isMarkdown(File f) {
+        String n = f.getName().toLowerCase();
+        return n.endsWith(".md") || n.endsWith(".markdown");
+    }
+
+    /** Appends {@code source} to the document and moves the new pages to {@code at}. Under docLock. */
+    private int mergeInto(PDDocument source, int at) throws IOException {
+        synchronized (docLock) {
+            if (document == null)
+                throw new IOException("no document loaded");
+            PDPageTree tree = document.getPages();
+            int before = tree.getCount();
+            new PDFMergerUtility().appendDocument(document, source);
+            int added = tree.getCount() - before;
+            if (at < before && added > 0) {
+                List<PDPage> appended = new ArrayList<>();
+                for (int i = before; i < before + added; i++)
+                    appended.add(tree.get(i));
+                PDPage ref = tree.get(at);
+                for (PDPage p : appended) {
+                    tree.remove(p);
+                    tree.insertBefore(p, ref);
+                }
+            }
+            return added;
+        }
+    }
+
+    /**
+     * Rebuilds the page views after the document's page tree changed, keeping the
+     * document, zoom and tool; highlights and selection are cleared.
+     */
+    private void refreshPages(int showPage, int changed) {
+        if (changed <= 0)
+            return;
+        edits++;
+        generation.incrementAndGet();
+        cache.clear();
+        pages.clear();
+        matches = new ArrayList<>();
+        currentMatch = -1;
+        lastQuery = null;
+        selStartPage = selEndPage = -1;
+        selAnchor = null;
+        synchronized (docLock) {
+            if (document == null)
+                return;
+            pageTexts = new PageText[document.getNumberOfPages()];
+            for (int i = 0; i < document.getNumberOfPages(); i++)
+                pages.add(new PageView(i, document.getPage(i)));
+        }
+        modified = true;
+        pagesPanel.rebuild();
+        for (PageView pv : pages)
+            pv.updateSize();
+        layoutPages();
+        if (zoomMode != ZoomMode.CUSTOM)
+            applyZoomMode();
+        currentPage = -1;
+        gotoPage(showPage);
+        updateToolbar();
+        firePageChanged();
+        updateVisiblePages();
+    }
+
+    /**
+     * Shows a file chooser (PDF or Markdown) and a position dialog (beginning,
+     * end, after a page), then {@link #insertPDF(File, int) inserts} the file.
+     *
+     * @return the chosen file, or null if cancelled
+     */
+    public File insertDialog() {
+        JFileChooser fc = fileChooser();
+        fc.setDialogTitle("Insert PDF or Markdown");
+        FileNameExtensionFilter pdfOnly = (FileNameExtensionFilter) fc.getFileFilter();
+        FileNameExtensionFilter both = new FileNameExtensionFilter("PDF and Markdown files (*.pdf, *.md)", "pdf", "md", "markdown");
+        fc.addChoosableFileFilter(both);
+        fc.setFileFilter(both);
+        File f;
+        try {
+            // read the selection before restoring the filters: changing the active
+            // filter clears the chooser's selected file
+            f = fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION ? fc.getSelectedFile() : null;
+        } finally {
+            fc.removeChoosableFileFilter(both);
+            fc.setFileFilter(pdfOnly);
+        }
+        if (f == null)
+            return null;
+        int count = pages.size();
+        if (count == 0) {
+            insertPDF(f, 0);
+            return f;
+        }
+
+        JRadioButton begin = new JRadioButton("At the beginning");
+        JRadioButton end = new JRadioButton("At the end", true);
+        JRadioButton after = new JRadioButton("After page");
+        ButtonGroup g = new ButtonGroup();
+        g.add(begin);
+        g.add(end);
+        g.add(after);
+        JSpinner pageSpinner = new JSpinner(new SpinnerNumberModel(Math.max(1, currentPage + 1), 1, count, 1));
+        pageSpinner.addChangeListener(e -> after.setSelected(true));
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        row.add(after);
+        row.add(pageSpinner);
+        row.add(new JLabel("of " + count));
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.add(new JLabel("Insert \"" + f.getName() + "\":"));
+        form.add(Box.createVerticalStrut(6));
+        form.add(begin);
+        form.add(end);
+        form.add(row);
+        if (JOptionPane.showConfirmDialog(this, form, "Insert", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION)
+            return null;
+        int index = begin.isSelected() ? 0 : end.isSelected() ? count : (Integer) pageSpinner.getValue();
+        insertPDF(f, index);
+        return f;
+    }
+
+    /**
      * Shows a PDF file chooser and loads the selected file via {@link #setPDF(File)}.
      *
      * @return the chosen file, or null if the dialog was cancelled
      */
     public File openFile() {
+        if (!confirmDiscard())
+            return null;
         JFileChooser fc = fileChooser();
         fc.setDialogTitle("Open PDF");
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
@@ -475,6 +848,8 @@ public class PDFViewerPanel extends JPanel {
         }, tmp -> {
             if (!overSource) {
                 currentFile = target;
+                modified = false;
+                updateToolbar();
                 return;
             }
             // release the source before replacing it, then reload from the new content
@@ -522,14 +897,17 @@ public class PDFViewerPanel extends JPanel {
      * Creates a {@link Pageable} over the current document for hosts that run
      * their own print flow (e.g. a preset {@link PrinterJob} without a dialog).
      * Each page is printed while holding the document lock, so printing never
-     * overlaps with the background page renderer; after {@link #close()} the
-     * pageable reports {@link java.awt.print.Printable#NO_SUCH_PAGE}.
+     * overlaps with the background page renderer. The pageable is a snapshot of
+     * the page list: after {@link #close()}, or after pages were inserted or
+     * deleted, it reports {@link java.awt.print.Printable#NO_SUCH_PAGE} for every
+     * page instead of printing a stale document — create a new one after edits.
      *
      * @return the pageable, or null if nothing is loaded
      */
     public Pageable createPageable() {
         final PDDocument doc;
         final PDFPageable delegate;
+        final int snapshot = edits;
         synchronized (docLock) {
             if (document == null)
                 return null;
@@ -552,7 +930,7 @@ public class PDFViewerPanel extends JPanel {
                 java.awt.print.Printable printable = delegate.getPrintable(pageIndex);
                 return (graphics, pageFormat, index) -> {
                     synchronized (docLock) {
-                        if (document != doc)
+                        if (document != doc || edits != snapshot)
                             return java.awt.print.Printable.NO_SUCH_PAGE;
                         return printable.print(graphics, pageFormat, index);
                     }
@@ -1291,6 +1669,14 @@ public class PDFViewerPanel extends JPanel {
         printButton.setToolTipText("Print...");
         printButton.addActionListener(e -> print());
         tb.add(printButton);
+        insertButton = GUIUtil.iconButton(new IconUtil.InsertIcon(16));
+        insertButton.setToolTipText("Insert a PDF or Markdown file at the beginning, the end or after a page");
+        insertButton.addActionListener(e -> insertDialog());
+        tb.add(insertButton);
+        deleteButton = GUIUtil.iconButton(new IconUtil.DeleteIcon(16));
+        deleteButton.setToolTipText("Delete pages: the current one, a list or a range");
+        deleteButton.addActionListener(e -> deleteDialog());
+        tb.add(deleteButton);
         tb.addSeparator();
 
         JButton prev = GUIUtil.iconButton(new IconUtil.BackIcon(16));
@@ -1436,6 +1822,8 @@ public class PDFViewerPanel extends JPanel {
             pageField.setEnabled(!pages.isEmpty());
             saveButton.setEnabled(!pages.isEmpty());
             printButton.setEnabled(!pages.isEmpty());
+            if (deleteButton != null)
+                deleteButton.setEnabled(pages.size() > 1);
             if (copyButton != null)
                 copyButton.setEnabled(hasSelection());
             pageCountLabel.setText(" / " + pages.size() + " ");

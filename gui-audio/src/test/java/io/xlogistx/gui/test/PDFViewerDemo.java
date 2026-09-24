@@ -37,13 +37,20 @@ public class PDFViewerDemo {
         File file = args.length > 0 ? new File(args[0]) : null;
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("PDFViewerPanel Demo");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
             PDFViewerPanel viewer = new PDFViewerPanel();
             viewer.addPageChangeListener((page, count) -> {
                 File f = viewer.getFile();
-                String name = f != null ? f.getName() : "sample";
+                String name = (f != null ? f.getName() : "sample") + (viewer.isModified() ? " *" : "");
                 frame.setTitle("PDFViewerPanel Demo - " + name + (count > 0 ? "  [" + (page + 1) + " / " + count + "]" : ""));
+            });
+            frame.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
+                    if (viewer.confirmDiscard())
+                        System.exit(0);
+                }
             });
             frame.add(viewer, BorderLayout.CENTER);
             frame.setSize(900, 800);

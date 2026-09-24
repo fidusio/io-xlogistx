@@ -13,7 +13,7 @@ The package has these groups:
      `NextIcon`, `RollbackIcon`, `VisibleIcon`, `InvisibleIcon`, `CopyIcon`, `SearchIcon`,
      `RefreshIcon`, `InfoIcon`, `RunIcon`, `StopIcon`, `PauseIcon`, `CheckIcon`, `AlertIcon`,
      `ErrorIcon`, `QuestionIcon`, `FileIcon`, `FolderIcon`, `UndoIcon`, `RedoIcon`, `PrintIcon`,
-     `PanIcon`, `SelectIcon`,
+     `PanIcon`, `SelectIcon`, `InsertIcon`,
      generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
      ones share the `SVGIconWidget` base. **SVG icon constructor contract**:
      `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
@@ -118,10 +118,29 @@ zooms around the pointer.
 **over the source file** closes, replaces and reloads the document because PDFBox reads
 lazily from the source — never `save` straight onto it). Print (`print()`: `PrinterJob`
 dialog on the EDT, `job.print()` off the EDT; `createPageable()` wraps PDFBox
-`PDFPageable` so every page prints under `docLock` and reports `NO_SUCH_PAGE` after
-`close()`).
+`PDFPageable` so every page prints under `docLock`; it is a snapshot guarded by the
+`edits` counter, so after `close()` or any insert/delete it reports `NO_SUCH_PAGE` — hosts
+create a fresh one after edits). Insert (`insertDialog()` → file chooser accepting `*.pdf` **and** `*.md`
+(Markdown is converted with `MDToPDF` first) + position dialog; `insertPDF(file, index)`
+async, `insertDocument(doc, index)` sync primitive; index 0 = beginning, page count = end,
+n = after page n. `mergeInto` = `PDFMergerUtility.appendDocument` (deep copy, source may
+be closed) then `PDPageTree.remove` + `insertBefore` to move the appended pages into
+place; `refreshPages` rebuilds the page views keeping document/zoom/tool and clears
+highlights + selection). Merging sets `isModified()`; `save` clears it; `openFile()` and
+hosts' window-closing call `confirmDiscard()`. No undo — reopen the file instead.
+Delete (`deleteDialog()` → one text field, pre-filled with the current page, accepting
+`current` / `cur` / `this`, single pages, ranges `a-b` (`b-a` flipped) and comma / semicolon /
+space separated lists of those, one-based as the toolbar shows pages; an unusable entry is
+reported and the dialog re-shown; `deletePages(String)` parses via the public static
+`parsePageSelection(text, currentPage, pageCount)` and calls the primitive
+`deletePages(int[])` — zero-based, any order, duplicates ignored, synchronous under `docLock`
+(`PDDocument.removePage` highest index first), then `refreshPages` shows the page that took
+the first deleted page's slot, or the last page). Out-of-range indexes and a selection that
+would empty the document throw `IllegalArgumentException` with a dialog-ready message and
+change nothing. Deleting sets `isModified()` like Insert; the Delete button is enabled only
+with two or more pages. Same no-undo rule as Insert.
 
-**Toolbar order.** Open, Save, Print | Pan, Select text, Zoom to selection, Copy | prev,
+**Toolbar order.** Open, Save, Print, Insert, Delete | Pan, Select text, Zoom to selection, Copy | prev,
 page field / count, next | zoom out, zoom combo (presets + fit modes), zoom in | search
 field, find next, "n / m". Annotations and form editing are intentionally out of scope.
 
@@ -164,7 +183,7 @@ field, find next, "n / m". Annotations and form editing are intentionally out of
 - SVG resources live in `src/main/resources/io/xlogistx/gui/icons/` (`plus`, `minus`,
   `cancel`, `edit`, `delete`, `back`, `next`, `rollback`, `visible`, `invisible`, `save`,
   `update`, `copy`, `search`, `refresh`, `info`, `run`, `stop`, `pause`, `check`, `alert`,
-  `error`, `question`, `file`, `folder`, `undo`, `redo`, `print`, `pan`, `select`). All are Feather-style: 24x24 viewBox,
+  `error`, `question`, `file`, `folder`, `undo`, `redo`, `print`, `pan`, `select`, `insert`). All are Feather-style: 24x24 viewBox,
   `fill="none"`, `stroke="#5A5A5A"`, stroke-width 2, round caps/joins — match this style
   when adding new ones. Each `XxxIcon` class maps to the same-named svg
   (`PlusIcon`→`plus.svg`, ...), except: `EditIcon`→`edit.svg` is a pencil,

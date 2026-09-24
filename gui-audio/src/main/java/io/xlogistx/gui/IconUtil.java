@@ -25,7 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *       {@link InfoIcon}, {@link RunIcon}, {@link StopIcon}, {@link PauseIcon},
  *       {@link CheckIcon}, {@link AlertIcon}, {@link ErrorIcon}, {@link QuestionIcon},
  *       {@link FileIcon}, {@link FolderIcon}, {@link UndoIcon}, {@link RedoIcon},
- *       {@link PrintIcon}, {@link PanIcon}, {@link SelectIcon}, {@link SVGIcon}) and the
+ *       {@link PrintIcon}, {@link PanIcon}, {@link SelectIcon}, {@link InsertIcon},
+ *       {@link SVGIcon}) and the
  *       {@link #svgIcon(String, int)} / {@link #svgIcon(String, int, Color)} factories</li>
  *   <li>Look-and-feel icon shortcuts ({@link #TreePlusIcon()}, {@link #TreeMinusIcon()})</li>
  * </ul>
@@ -885,6 +886,33 @@ public class IconUtil {
          */
         public SelectIcon(int size, Color color) {
             super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/select.svg");
+        }
+    }
+
+    /**
+     * Insert (document with a plus) icon rendered from the bundled {@code insert.svg}
+     * classpath resource; "add a file into this one". Distinct from {@link FileIcon}
+     * (plain document) and {@link PlusIcon} (bare plus).
+     */
+    public static class InsertIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square insert icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public InsertIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/insert.svg");
+        }
+
+        /**
+         * Creates a square insert icon tinted with the given color on a dark green background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public InsertIcon(int size, Color color) {
+            super(size, color, NVColor.DARK_GREEN.getValue(), "io/xlogistx/gui/icons/insert.svg");
         }
     }
 

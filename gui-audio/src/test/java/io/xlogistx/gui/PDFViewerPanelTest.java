@@ -264,12 +264,19 @@ public class PDFViewerPanelTest {
         assertEquals(java.awt.print.Printable.PAGE_EXISTS, status);
         assertTrue(hasDarkPixel(img), "printed page should contain text pixels");
 
+        // a pageable is a snapshot: after a page edit it prints nothing, a fresh one works
+        onEDT(() -> panel.deletePages(new int[]{2}));
+        assertEquals(java.awt.print.Printable.NO_SUCH_PAGE, pageable.getPrintable(0).print(img.createGraphics(), pf, 0));
+        java.awt.print.Pageable fresh = onEDT(panel::createPageable);
+        assertEquals(2, fresh.getNumberOfPages());
+        assertEquals(java.awt.print.Printable.PAGE_EXISTS, fresh.getPrintable(0).print(img.createGraphics(), pf, 0));
+
         // after close the pageable of the old document prints nothing
         onEDT(() -> {
             panel.close();
             return null;
         });
-        assertEquals(java.awt.print.Printable.NO_SUCH_PAGE, pageable.getPrintable(0).print(img.createGraphics(), pf, 0));
+        assertEquals(java.awt.print.Printable.NO_SUCH_PAGE, fresh.getPrintable(0).print(img.createGraphics(), pf, 0));
     }
 
     @Test
@@ -378,6 +385,101 @@ public class PDFViewerPanelTest {
         assertEquals(maxY, onEDT(() -> viewport().getViewPosition().y));
     }
 
+    private static String firstLine(String pageText) {
+        String t = pageText.trim();
+        int nl = t.indexOf('\n');
+        return nl < 0 ? t : t.substring(0, nl);
+    }
+
+    /** First text line of every page, via the panel's own selection API. */
+    private java.util.List<String> pageHeadings() throws Exception {
+        java.util.List<String> ret = new java.util.ArrayList<>();
+        int n = onEDT(panel::getPageCount);
+        for (int i = 0; i < n; i++) {
+            int p = i;
+            onEDT(() -> panel.select(p, 0, p, Integer.MAX_VALUE));
+            ret.add(firstLine(onEDT(panel::getSelectedText)));
+        }
+        onEDT(panel::clearSelection);
+        return ret;
+    }
+
+    @Test
+    public void insertsPagesAtBeginningEndAndAfterAPage() throws Exception {
+        byte[] extra = MDToPDF.mdToPDF("# Extra A\n\nalpha" + PAGE_BREAK + "# Extra B\n\nbeta").toByteArray();
+        load(threePagePDF);
+        assertFalse(onEDT(panel::isModified));
+
+        // after page 1 (index 1)
+        try (PDDocument src = Loader.loadPDF(extra)) {
+            assertEquals(2, onEDT(() -> panel.insertDocument(src, 1)));
+        }
+        assertEquals(5, onEDT(panel::getPageCount));
+        assertTrue(onEDT(panel::isModified));
+        assertEquals(1, onEDT(panel::getCurrentPage), "view shows the first inserted page");
+        assertEquals(java.util.Arrays.asList("Page One", "Extra A", "Extra B", "Page Two", "Page Three"), pageHeadings());
+
+        // at the beginning
+        try (PDDocument src = Loader.loadPDF(extra)) {
+            onEDT(() -> panel.insertDocument(src, 0));
+        }
+        assertEquals(java.util.Arrays.asList("Extra A", "Extra B", "Page One", "Extra A", "Extra B", "Page Two", "Page Three"), pageHeadings());
+
+        // at the end (index clamped)
+        try (PDDocument src = Loader.loadPDF(extra)) {
+            onEDT(() -> panel.insertDocument(src, 999));
+        }
+        assertEquals(9, onEDT(panel::getPageCount));
+        java.util.List<String> heads = pageHeadings();
+        assertEquals("Extra A", heads.get(7));
+        assertEquals("Extra B", heads.get(8));
+
+        // search works over the merged document and the saved file keeps all pages
+        assertEquals(3, panel.find("alpha").size());
+        File dir = java.nio.file.Files.createTempDirectory("pdfmerge").toFile();
+        File out = new File(dir, "merged.pdf");
+        onEDT(() -> {
+            panel.save(out);
+            return null;
+        });
+        waitFor(() -> out.length() > 0 && out.equals(panel.getFile()), 10_000);
+        assertFalse(onEDT(panel::isModified), "save clears the modified flag");
+        try (PDDocument doc = Loader.loadPDF(out)) {
+            assertEquals(9, doc.getNumberOfPages());
+        }
+    }
+
+    @Test
+    public void insertsMarkdownFileConvertedOnTheFly() throws Exception {
+        load(threePagePDF);
+        File dir = java.nio.file.Files.createTempDirectory("pdfmergemd").toFile();
+        File md = new File(dir, "note.md");
+        java.nio.file.Files.write(md.toPath(), "# From Markdown\n\ninserted text".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        onEDT(() -> {
+            panel.insertPDF(md, 3);
+            return null;
+        });
+        waitFor(() -> panel.getPageCount() == 4, 15_000);
+        assertEquals(java.util.Arrays.asList("Page One", "Page Two", "Page Three", "From Markdown"), pageHeadings());
+        assertTrue(onEDT(panel::isModified));
+
+        // nothing loaded: insert simply opens the file
+        onEDT(() -> {
+            panel.close();
+            return null;
+        });
+        File pdf = new File(dir, "three.pdf");
+        java.nio.file.Files.write(pdf.toPath(), threePagePDF);
+        onEDT(() -> {
+            panel.insertPDF(pdf, 0);
+            return null;
+        });
+        waitFor(() -> panel.getPageCount() == 3, 10_000);
+        assertFalse(onEDT(panel::isModified));
+        assertEquals(pdf, onEDT(panel::getFile));
+        assertTrue(onEDT(panel::confirmDiscard), "nothing to discard, no dialog");
+    }
+
     @Test
     public void closeIsIdempotentAndReusable() throws Exception {
         load(threePagePDF);
@@ -466,6 +568,59 @@ public class PDFViewerPanelTest {
         assertThrows(NullPointerException.class, () -> panel.setPDF((byte[]) null));
         assertThrows(NullPointerException.class, () -> panel.setZoomMode(null));
         assertThrows(NullPointerException.class, () -> panel.addPageChangeListener(null));
+    }
+
+    // ---------------------------------------------------------------- deleting pages
+
+    @Test
+    public void deletesPagesByIndexAndShowsTheOneThatTookTheirPlace() throws Exception {
+        load(threePagePDF);
+        assertFalse(onEDT(panel::isModified));
+        assertEquals(1, onEDT(() -> panel.deletePages(new int[]{1})));
+        assertEquals(2, onEDT(panel::getPageCount));
+        assertTrue(onEDT(panel::isModified));
+        assertEquals(1, onEDT(panel::getCurrentPage), "the page after the deleted one moved into its slot");
+        assertEquals(java.util.Arrays.asList("Page One", "Page Three"), pageHeadings());
+
+        // deleting the last page shows the new last page
+        assertEquals(1, onEDT(() -> panel.deletePages(new int[]{1})));
+        assertEquals(java.util.Arrays.asList("Page One"), pageHeadings());
+        assertEquals(0, onEDT(panel::getCurrentPage));
+    }
+
+    @Test
+    public void deletesByTypedSelection() throws Exception {
+        load(threePagePDF);
+        onEDT(() -> panel.gotoPage(2));
+        assertEquals(2, onEDT(() -> panel.deletePages("current, 1")), "current is page 3, plus page 1");
+        assertEquals(java.util.Arrays.asList("Page Two"), pageHeadings());
+    }
+
+    @Test
+    public void deletionRefusesBadSelections() throws Exception {
+        load(threePagePDF);
+        assertThrows(IllegalArgumentException.class, () -> onEDT(() -> panel.deletePages(new int[]{3})), "out of range");
+        assertThrows(IllegalArgumentException.class, () -> onEDT(() -> panel.deletePages("1-3")), "every page");
+        assertThrows(IllegalArgumentException.class, () -> onEDT(() -> panel.deletePages("x")));
+        assertThrows(IllegalArgumentException.class, () -> onEDT(() -> panel.deletePages("")));
+        assertEquals(3, onEDT(panel::getPageCount), "nothing removed");
+        assertFalse(onEDT(panel::isModified));
+        assertEquals(0, onEDT(() -> panel.deletePages(new int[0])), "empty index list is a no-op");
+    }
+
+    @Test
+    public void parsePageSelectionGrammar() {
+        assertArrayEquals(new int[]{2}, PDFViewerPanel.parsePageSelection("current", 2, 10));
+        assertArrayEquals(new int[]{2}, PDFViewerPanel.parsePageSelection("3", 0, 10));
+        assertArrayEquals(new int[]{4, 5, 6, 7}, PDFViewerPanel.parsePageSelection("5-8", 0, 10));
+        assertArrayEquals(new int[]{4, 5, 6, 7}, PDFViewerPanel.parsePageSelection("8-5", 0, 10), "flipped range");
+        assertArrayEquals(new int[]{0, 2, 4, 5, 6, 7}, PDFViewerPanel.parsePageSelection("Current, 3; 5-8", 0, 10));
+        assertArrayEquals(new int[]{1, 2}, PDFViewerPanel.parsePageSelection(" 2 3 2 ", 0, 10), "duplicates collapse");
+        assertThrows(IllegalArgumentException.class, () -> PDFViewerPanel.parsePageSelection("0", 0, 10));
+        assertThrows(IllegalArgumentException.class, () -> PDFViewerPanel.parsePageSelection("11", 0, 10));
+        assertThrows(IllegalArgumentException.class, () -> PDFViewerPanel.parsePageSelection("current", -1, 10), "no current page");
+        assertThrows(IllegalArgumentException.class, () -> PDFViewerPanel.parsePageSelection("1", 0, 0), "no document");
+        assertThrows(IllegalArgumentException.class, () -> PDFViewerPanel.parsePageSelection(null, 0, 10));
     }
 
     // ---------------------------------------------------------------- helpers
