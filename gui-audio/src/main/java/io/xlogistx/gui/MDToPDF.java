@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -37,6 +38,12 @@ import java.util.List;
  * text renders correctly; the PDF standard fonts alone only cover Latin-1.
  * Monospace text uses the built-in Courier. If the Roboto resources are not on
  * the classpath the converter silently falls back to the built-in fonts.
+ *
+ * <h2>Diagrams</h2>
+ * {@code ```mermaid} fenced blocks holding a flowchart are rendered to PNG by
+ * {@link MermaidRenderer} and embedded as images (scaled to the text width at
+ * most); a block the renderer does not understand (other diagram types,
+ * syntax it lacks) is left as a code block so the source stays readable.
  *
  * <h2>Styling</h2>
  * {@link #DEFAULT_CSS} defines the page (A4, 2cm margins) and the basic
@@ -70,10 +77,15 @@ public final class MDToPDF {
             "th { background: #eee; }" +
             "th, td { border: 1px solid #999; padding: 4px 8px; }" +
             "img { max-width: 100%; }" +
+            "p.diagram { text-align: center; page-break-inside: avoid; }" +
             "del { text-decoration: line-through; }" +
             "a { color: #0b5cb5; }";
 
     private static final String ROBOTO_PATH = "/com/formdev/flatlaf/fonts/roboto/";
+    /** Diagram device scale: crisp when printed at the CSS size. */
+    private static final float DIAGRAM_SCALE = 2f;
+    /** Widest a diagram may be laid out, in CSS px (A4 text width at 2cm margins is ~640). */
+    private static final int DIAGRAM_MAX_WIDTH = 640;
 
     private static final List<Extension> EXT = Arrays.asList(
             TablesExtension.create(),
@@ -203,6 +215,12 @@ public final class MDToPDF {
         String body = RENDERER.render(PARSER.parse(markdown));
         Document doc = Jsoup.parse("<html><head><meta charset=\"UTF-8\"><style>"
                 + css + "</style></head><body>" + body + "</body></html>");
+        // mermaid flowcharts become images; anything the renderer rejects stays code
+        for (Element code : doc.select("pre > code.language-mermaid")) {
+            Element img = renderDiagram(doc, code.wholeText());
+            if (img != null)
+                code.parent().replaceWith(img);
+        }
         // commonmark emits task items as disabled <input type="checkbox">; the PDF
         // renderer does not draw form controls, so replace them with text markers
         for (Element input : doc.select("input[type=checkbox]")) {
@@ -212,6 +230,37 @@ public final class MDToPDF {
             input.replaceWith(marker);
         }
         return doc;
+    }
+
+    /**
+     * Renders a Mermaid block to a centered {@code <p class="diagram"><img></p>}
+     * with an inline PNG, or returns null if it cannot be rendered.
+     */
+    private static Element renderDiagram(Document doc, String source) {
+        if (!MermaidRenderer.isFlowchart(source))
+            return null;
+        try {
+            MermaidRenderer.Graph graph = MermaidRenderer.parse(source);
+            java.awt.image.BufferedImage image = MermaidRenderer.render(graph, DIAGRAM_SCALE);
+            java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(image, "png", png);
+            int cssWidth = Math.round(graph.getWidth()), cssHeight = Math.round(graph.getHeight());
+            if (cssWidth > DIAGRAM_MAX_WIDTH) {
+                cssHeight = Math.round(cssHeight * (float) DIAGRAM_MAX_WIDTH / cssWidth);
+                cssWidth = DIAGRAM_MAX_WIDTH;
+            }
+            Element img = doc.createElement("img");
+            img.attr("src", "data:image/png;base64," + Base64.getEncoder().encodeToString(png.toByteArray()));
+            img.attr("width", String.valueOf(cssWidth));
+            img.attr("height", String.valueOf(cssHeight));
+            img.attr("alt", "diagram");
+            Element p = doc.createElement("p");
+            p.addClass("diagram");
+            p.appendChild(img);
+            return p;
+        } catch (RuntimeException | IOException e) {
+            return null; // unsupported syntax: keep the source as a code block
+        }
     }
 
     private static void registerFonts(PdfRendererBuilder builder) {

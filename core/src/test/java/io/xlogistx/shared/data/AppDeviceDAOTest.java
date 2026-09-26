@@ -35,7 +35,7 @@ public class AppDeviceDAOTest {
     appDeviceDAO.setSubjectGUID(UUID.randomUUID().toString());
     appDeviceDAO.setSubjectID(UUID.randomUUID().toString());
 
-    appDeviceDAO.setAPIKeyAsBytes(CryptoUtil.generateKey(CryptoConst.CryptoAlgo.AES, 256).getEncoded());
+    appDeviceDAO.setAPIKeyAsBytes(CryptoUtil.generateSecretKey(CryptoConst.CryptoAlgo.AES, 256).getEncoded());
 
     appDeviceDAO.setStatus(Status.ACTIVE);
     appDeviceDAO.setDevice(deviceDAO);

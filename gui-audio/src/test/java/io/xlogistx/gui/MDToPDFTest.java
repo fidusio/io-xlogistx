@@ -96,6 +96,26 @@ public class MDToPDFTest {
     }
 
     @Test
+    public void mermaidFlowchartsBecomeImages() throws IOException {
+        String md = "# Diagram\n\n```mermaid\nflowchart TD\n    A[Raw secret] --> C[Extract]\n    B[Salt] --> C\n    C --> D[PRK]\n```\n\nafter\n\n"
+                + "```mermaid\nsequenceDiagram\n    Alice->>Bob: hi\n```\n";
+        String html = MDToPDF.toHTML(md);
+        assertTrue(html.contains("<p class=\"diagram\"><img src=\"data:image/png;base64,"), html);
+        assertTrue(html.contains("width=\""), html);
+        assertFalse(html.contains("flowchart TD"), "flowchart source replaced by the image");
+        assertTrue(html.contains("language-mermaid") && html.contains("sequenceDiagram"), "unsupported diagram stays as code");
+
+        byte[] pdf = MDToPDF.mdToPDF(md).toByteArray();
+        String text = extractText(pdf);
+        assertTrue(text.contains("Diagram") && text.contains("after"));
+        assertFalse(text.contains("Raw secret"), "diagram text is pixels now, not text");
+        assertTrue(text.contains("sequenceDiagram"));
+        try (PDDocument doc = Loader.loadPDF(pdf)) {
+            assertTrue(doc.getPage(0).getResources().getXObjectNames().iterator().hasNext(), "page carries an image");
+        }
+    }
+
+    @Test
     public void nullMarkdownRejected() {
         assertThrows(NullPointerException.class, () -> MDToPDF.mdToPDF((String) null));
     }

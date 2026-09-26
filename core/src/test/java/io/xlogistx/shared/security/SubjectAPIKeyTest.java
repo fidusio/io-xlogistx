@@ -16,17 +16,17 @@ import java.util.UUID;
  */
 public class SubjectAPIKeyTest {
 
-  @Test
-  public void testSubjectAPIKeyTest()
-      throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException, NoSuchAlgorithmException {
-    SubjectAPIKey subjectAPIKey = new SubjectAPIKey();
-    subjectAPIKey.setSubjectID(UUID.randomUUID().toString());
-    subjectAPIKey.setAPIKeyAsBytes(CryptoUtil.generateKey( CryptoConst.CryptoAlgo.AES, 256).getEncoded());
+    @Test
+    public void testSubjectAPIKeyTest()
+            throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException, NoSuchAlgorithmException {
+        SubjectAPIKey subjectAPIKey = new SubjectAPIKey();
+        subjectAPIKey.setSubjectID(UUID.randomUUID().toString());
+        subjectAPIKey.setAPIKeyAsBytes(CryptoUtil.generateSecretKey(CryptoConst.CryptoAlgo.AES, 256).getEncoded());
 
-    String json = GSONUtil.toJSON(subjectAPIKey, true);
+        String json = GSONUtil.toJSON(subjectAPIKey, true);
 
-    SubjectAPIKey fromJson = GSONUtil.fromJSON(json);
-    System.out.println(fromJson);
-  }
+        SubjectAPIKey fromJson = GSONUtil.fromJSON(json);
+        System.out.println(fromJson);
+    }
 
 }

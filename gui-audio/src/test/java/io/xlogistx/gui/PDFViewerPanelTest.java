@@ -481,6 +481,37 @@ public class PDFViewerPanelTest {
     }
 
     @Test
+    public void opensMarkdownConvertedOnTheFlyAndSavesAsPDF() throws Exception {
+        File dir = java.nio.file.Files.createTempDirectory("pdfopenmd").toFile();
+        File md = new File(dir, "readme.md");
+        java.nio.file.Files.write(md.toPath(), ("# Opened Markdown\n\nbody text" + PAGE_BREAK + "# Second\n\nmore")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        onEDT(() -> {
+            panel.setPDF(md);
+            return null;
+        });
+        waitFor(() -> panel.getPageCount() == 2, 15_000);
+        assertEquals(md, onEDT(panel::getFile), "the Markdown file stays the document's origin");
+        assertFalse(onEDT(panel::isModified));
+        assertEquals(java.util.Arrays.asList("Opened Markdown", "Second"), pageHeadings());
+        assertEquals(1, panel.find("body text").size());
+
+        // saving a Markdown-backed document writes a PDF; the .md is untouched
+        long mdLength = md.length();
+        File out = new File(dir, "readme.pdf");
+        onEDT(() -> {
+            panel.save(out);
+            return null;
+        });
+        waitFor(() -> out.length() > 0 && out.equals(panel.getFile()), 10_000);
+        assertEquals(mdLength, md.length());
+        try (PDDocument doc = Loader.loadPDF(out)) {
+            assertEquals(2, doc.getNumberOfPages());
+        }
+        assertEquals(2, onEDT(panel::getPageCount), "no reload was needed, the view stays");
+    }
+
+    @Test
     public void closeIsIdempotentAndReusable() throws Exception {
         load(threePagePDF);
         onEDT(() -> {

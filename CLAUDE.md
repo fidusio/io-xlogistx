@@ -137,8 +137,9 @@ mvn test -pl no-sneak -Dtest=PQCScannerTest
 - `gui-audio/src/main/java/io/xlogistx/gui/MDToPDF.java` - Markdown → PDF (commonmark → OpenHTMLtoPDF → PDFBox, embedded Roboto fonts, CLI `md=... pdf=... css=...`)
 - `gui-audio/src/main/java/io/xlogistx/gui/PDFViewerPanel.java` - PDFBox Swing viewer: lazy background rendering, LRU cache, zoom/fit, search highlighting, text selection/copy, open/save/print
 - `gui-audio/src/main/java/io/xlogistx/gui/MDViewerPanel.java` - read-only Markdown viewer
+- `gui-audio/src/main/java/io/xlogistx/gui/MermaidRenderer.java` - pure Java Mermaid flowchart → PNG (no JS/network); MDToPDF embeds ```mermaid blocks as images
 - PDFBox version: `pdfbox.version` in the root pom (3.0.8) must match the line OpenHTMLtoPDF (`openhtmltopdf.version`, external parent pom) is built against
-- Tests: `gui-audio/src/test/java/io/xlogistx/gui/MDToPDFTest.java`, `PDFViewerPanelTest.java` (headless-safe); demos `MDViewerDemo`, `PDFViewerDemo`
+- Tests: `gui-audio/src/test/java/io/xlogistx/gui/MDToPDFTest.java`, `MermaidRendererTest.java`, `PDFViewerPanelTest.java` (headless-safe); demos `MDViewerDemo`, `PDFViewerDemo`
 
 ## PQC Scanner Quick Reference
 

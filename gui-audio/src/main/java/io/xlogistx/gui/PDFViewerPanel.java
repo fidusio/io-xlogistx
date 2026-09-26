@@ -50,7 +50,11 @@ import java.util.function.Consumer;
  * <h2>Loading</h2>
  * {@link #setPDF(byte[])}, {@link #setPDF(File)} and {@link #setPDF(InputStream)}
  * parse the document off the EDT via {@link BackgroundTask} and return
- * immediately; an error dialog is shown if parsing fails. {@link #setDocument(PDDocument, boolean)}
+ * immediately; an error dialog is shown if parsing fails. A {@code .md} /
+ * {@code .markdown} file given to {@link #setPDF(File)} (or picked in
+ * {@link #openFile()}) is converted on the fly with {@link MDToPDF}; the viewer
+ * then shows the PDF, {@link #getFile()} still names the Markdown file, and
+ * saving writes a {@code .pdf} next to it by default (never over the {@code .md}). {@link #setDocument(PDDocument, boolean)}
  * installs an already parsed document synchronously. {@link #close()} releases
  * the current document; the panel can be reused afterwards.
  *
@@ -322,7 +326,9 @@ public class PDFViewerPanel extends JPanel {
      */
     public void setPDF(File pdf) {
         SUS.checkIfNull("pdf null", pdf);
-        BackgroundTask.run(this, null, () -> Loader.loadPDF(pdf), doc -> install(doc, true, pdf));
+        BackgroundTask.run(this, null,
+                () -> isMarkdown(pdf) ? Loader.loadPDF(markdownToPDF(pdf)) : Loader.loadPDF(pdf),
+                doc -> install(doc, true, pdf));
     }
 
     /**
@@ -709,23 +715,11 @@ public class PDFViewerPanel extends JPanel {
      * @return the chosen file, or null if cancelled
      */
     public File insertDialog() {
-        JFileChooser fc = fileChooser();
+        JFileChooser fc = fileChooser(true);
         fc.setDialogTitle("Insert PDF or Markdown");
-        FileNameExtensionFilter pdfOnly = (FileNameExtensionFilter) fc.getFileFilter();
-        FileNameExtensionFilter both = new FileNameExtensionFilter("PDF and Markdown files (*.pdf, *.md)", "pdf", "md", "markdown");
-        fc.addChoosableFileFilter(both);
-        fc.setFileFilter(both);
-        File f;
-        try {
-            // read the selection before restoring the filters: changing the active
-            // filter clears the chooser's selected file
-            f = fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION ? fc.getSelectedFile() : null;
-        } finally {
-            fc.removeChoosableFileFilter(both);
-            fc.setFileFilter(pdfOnly);
-        }
-        if (f == null)
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return null;
+        File f = fc.getSelectedFile();
         int count = pages.size();
         if (count == 0) {
             insertPDF(f, 0);
@@ -768,8 +762,8 @@ public class PDFViewerPanel extends JPanel {
     public File openFile() {
         if (!confirmDiscard())
             return null;
-        JFileChooser fc = fileChooser();
-        fc.setDialogTitle("Open PDF");
+        JFileChooser fc = fileChooser(true);
+        fc.setDialogTitle("Open PDF or Markdown");
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return null;
         File f = fc.getSelectedFile();
@@ -794,9 +788,9 @@ public class PDFViewerPanel extends JPanel {
     public File saveAs() {
         if (getDocument() == null)
             return null;
-        JFileChooser fc = fileChooser();
+        JFileChooser fc = fileChooser(false);
         fc.setDialogTitle("Save PDF");
-        fc.setSelectedFile(currentFile != null ? currentFile : new File(fc.getCurrentDirectory(), "document.pdf"));
+        fc.setSelectedFile(currentFile != null ? pdfSibling(currentFile) : new File(fc.getCurrentDirectory(), "document.pdf"));
         if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
             return null;
         File f = fc.getSelectedFile();
@@ -825,7 +819,8 @@ public class PDFViewerPanel extends JPanel {
         SUS.checkIfNull("target null", target);
         if (getDocument() == null)
             return;
-        final boolean overSource = currentFile != null && target.getAbsoluteFile().equals(currentFile.getAbsoluteFile());
+        final boolean overSource = currentFile != null && !isMarkdown(currentFile)
+                && target.getAbsoluteFile().equals(currentFile.getAbsoluteFile());
         final int page = currentPage;
         BackgroundTask.run(this, saveButton, () -> {
             File dir = target.getAbsoluteFile().getParentFile();
@@ -939,14 +934,35 @@ public class PDFViewerPanel extends JPanel {
         };
     }
 
-    private JFileChooser fileChooser() {
+    private FileNameExtensionFilter pdfFilter;
+    private FileNameExtensionFilter pdfOrMarkdownFilter;
+
+    /**
+     * The shared chooser, with the PDF-only or the PDF-and-Markdown filter active.
+     * Callers must read the selected file before switching the filter again, as
+     * changing the active filter clears the chooser's selection.
+     */
+    private JFileChooser fileChooser(boolean markdownToo) {
         if (fileChooser == null) {
             fileChooser = new JFileChooser();
-            fileChooser.setFileFilter(new FileNameExtensionFilter("PDF files (*.pdf)", "pdf"));
+            pdfFilter = new FileNameExtensionFilter("PDF files (*.pdf)", "pdf");
+            pdfOrMarkdownFilter = new FileNameExtensionFilter("PDF and Markdown files (*.pdf, *.md)", "pdf", "md", "markdown");
+            fileChooser.addChoosableFileFilter(pdfFilter);
+            fileChooser.addChoosableFileFilter(pdfOrMarkdownFilter);
         }
+        fileChooser.setFileFilter(markdownToo ? pdfOrMarkdownFilter : pdfFilter);
         if (currentFile != null)
             fileChooser.setCurrentDirectory(currentFile.getAbsoluteFile().getParentFile());
         return fileChooser;
+    }
+
+    /** {@code x.md} → {@code x.pdf} in the same directory; a {@code .pdf} is returned as is. */
+    private static File pdfSibling(File f) {
+        if (!isMarkdown(f))
+            return f;
+        String name = f.getName();
+        int dot = name.lastIndexOf('.');
+        return new File(f.getAbsoluteFile().getParentFile(), (dot > 0 ? name.substring(0, dot) : name) + ".pdf");
     }
 
     /**

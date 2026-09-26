@@ -188,7 +188,7 @@ public class SecretStoreTest {
             assertArrayEquals(encoded, ss.getSecretKey("master").getEncoded());
             assertNull(ss.get("master"));
             KeyMakerProvider kmp = KeyMakerProvider.SINGLETON;
-            kmp.setMasterKey(ss.getKeyStore(), "master", new String(PW));
+            kmp.setMasterSecretKey(ss.getKeyStore(), "master", new String(PW));
             assertArrayEquals(encoded, kmp.getMasterKey());
         }
     }

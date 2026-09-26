@@ -66,7 +66,54 @@ The package has these groups:
   controls). `DEFAULT_CSS` is public; a caller-supplied stylesheet **replaces** it entirely
   (include `@page`). CLI: `MDToPDF md=in.md [pdf=out.pdf] [css=style.css]` (`ParamUtil`
   `name=value` args).
+- `MermaidRenderer` — pure Java renderer for the Mermaid **flowchart** subset (no
+  browser/JS/network); details below. `MDToPDF` turns ```` ```mermaid ```` blocks into
+  `<p class="diagram"><img data:png>` at scale 2, capped at `DIAGRAM_MAX_WIDTH` CSS px;
+  unsupported diagrams (sequence, class, ...) stay code blocks. `MDViewerPanel` still shows
+  the source (Swing's HTML kit has no data-URI images).
 - `PDFViewerPanel` — PDFBox-backed Swing viewer (details below).
+
+#### MermaidRenderer
+
+**Pipeline.** `isFlowchart` (cheap header check) → `parse` → `Graph` of `Node`s and
+`Edge`s → `render(graph, scale)` (layout + Java2D paint) → `renderPNG`. Anything the
+parser does not understand throws `IllegalArgumentException` so callers can fall back to
+the source text.
+
+**Syntax.** Header `flowchart`/`graph` + `TD|TB|BT|LR|RL`. Ten node shapes by bracket
+pair (`[]` rect, `()` round, `([])` stadium, `[[]]` subroutine, `[()]` cylinder, `(())`
+circle, `{}` diamond, `{{}}` hexagon, `[//]`/`[\\]` parallelogram, `>]` flag), matched
+longest-opener-first via `OPENERS`. Labels: optional quotes, `<br/>` → newline, other tags
+stripped, basic entities decoded. Edges `-->`, `---`, `-.->`, `-.-`, `==>`, `===`
+(`x`/`o` heads count as arrows), labels as `-->|t|` or `-- t -->`, chains, `&` fans.
+Statements split on newlines and top-level `;`, `%%` comments dropped. `subgraph`/`end`,
+`classDef`, `class`, `style`, `linkStyle`, `click`, `direction` lines are skipped (nodes
+inside subgraphs are drawn ungrouped). Ids are `[A-Za-z0-9_]+` — never allow `-` or the
+scanner would eat `-->`.
+
+**Layout (Sugiyama-lite, `layout()`).** Sizes from `FontMetrics` (labels wider than
+`MAX_LABEL_WIDTH` are word-wrapped first, like Mermaid). DFS marks back edges; layers by
+longest path over forward edges; four barycenter sweeps order each layer; then 12
+relaxation rounds move every node to the mean of **all** its neighbours (both directions)
+and `resolveOverlaps` pushes layer neighbours apart symmetrically — this is what centres
+parents over children and spreads siblings evenly (one-directional placement drifted
+everything right). Work is done on a main/cross axis pair and mapped to x/y at the end
+(`vertical`, `reversed` for BT/RL).
+
+**Painting.** Neutral grey theme like the Claude app's Mermaid output (`NODE_FILL`
+#EDEDEA, `NODE_STROKE` #D2D2CD, `EDGE` #9A9A9A, text #333), not Mermaid's lavender
+default — change these constants for another look (`MermaidRendererTest` counts
+`NODE_FILL` pixels, keep it in sync). Forward edges are cubics from
+`anchorToward` (where the centre-to-centre line crosses the box, so fans leave a node at
+different points) with tangents along the layer axis; same-layer edges are straight; back
+edges leave the near side, enter the far side and loop past the farthest node of the layers
+they span (`BACK_EDGE_ROOM` is reserved in the image). Arrowheads are filled triangles at
+t=1, labels sit at t=0.5 on a `#E8E8E8` pill.
+
+**Verifying changes.** Tests check parsing, layering, non-overlap, pixels and PNG output,
+not looks: render the three diagrams in `MermaidRendererTest` to PNG and eyeball them
+against Mermaid/Claude output (the scratch `RenderSamples` recipe: write PNGs via
+`renderPNG` and open them).
 
 #### PDFViewerPanel
 
@@ -86,7 +133,10 @@ the fixed gaps between pages do not scale. Zoom modes `CUSTOM`/`FIT_WIDTH`/`FIT_
 (fit modes re-apply on viewport resize); `zoomTo(page, ptRect)` fits a page area
 (e.g. a search `Match`).
 
-**Lifecycle.** `setPDF(bytes|File|InputStream)` parses off the EDT via `BackgroundTask`;
+**Lifecycle.** `setPDF(bytes|File|InputStream)` parses off the EDT via `BackgroundTask`; a
+`.md`/`.markdown` `File` is converted with `MDToPDF` first (`markdownToPDF`, images relative
+to the file), `getFile()` keeps naming the `.md`, `saveAs` pre-fills the sibling `.pdf`
+(`pdfSibling`) and `save` never treats a Markdown origin as the lazily-read source;
 `setDocument(doc, owns)` is synchronous; both go through `install(doc, owns, file)`.
 `close()` is idempotent, clears highlights/selection, and the panel is reusable. Page
 indexes are **zero-based** in the API, one-based in the toolbar.
@@ -112,7 +162,9 @@ Ctrl+PgUp/PgDn jump pages, Ctrl+Home/End first/last page, Ctrl +/−, Ctrl+0 fit
 Ctrl+A/Ctrl+C select all/copy, Esc clears the selection else returns to `PAN`; Ctrl+wheel
 zooms around the pointer.
 
-**File/print.** Open (`openFile()` → shared `JFileChooser` *.pdf → `setPDF(File)`;
+**File/print.** Open (`openFile()` → shared `JFileChooser` (`fileChooser(markdownToo)`:
+PDF-only or PDF+Markdown filter; read the selection before switching filters, a filter
+change clears it) → `setPDF(File)`;
 `getFile()` remembers the origin, null for byte/stream documents). Save (`saveAs()`,
 `save(File)`: `PDDocument.save` to a temp file off the EDT, then moved into place; saving
 **over the source file** closes, replaces and reloads the document because PDFBox reads
@@ -234,8 +286,8 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 
 Build: `mvn clean install -pl gui-audio -am` (from repo root).
 
-Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest` and
-`PDFViewerPanelTest` (sets `java.awt.headless=true`, lays the component tree out by hand
+Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest`,
+`MermaidRendererTest` and `PDFViewerPanelTest` (sets `java.awt.headless=true`, lays the component tree out by hand
 because `validate()` needs a peer, drives the panel through `invokeAndWait`). The other
 Swing classes are verified via the demos only. `mvn test` skips tests in this build (parent
 `skipTests`); see the memory note on the CLI JUnit launcher recipe.
