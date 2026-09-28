@@ -25,7 +25,6 @@
     <properties>
         <xlogistx.version>1.0.0</xlogistx.version>
         <!-- must match the PDFBox line OpenHTMLtoPDF ${openhtmltopdf.version} is built against -->
-        <pdfbox.version>3.0.8</pdfbox.version>
     </properties>
 
     <modules>
