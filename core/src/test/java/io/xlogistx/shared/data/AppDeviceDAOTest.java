@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.shared.app.AppIDDefault;
 import org.zoxweb.shared.crypto.CryptoConst;
-import org.zoxweb.shared.data.AppDeviceDAO;
-import org.zoxweb.shared.data.DeviceDAO;
+import org.zoxweb.shared.data.AppDeviceInfo;
+import org.zoxweb.shared.data.DeviceInfo;
 import org.zoxweb.shared.util.Const.Status;
 
 import java.security.NoSuchAlgorithmException;
@@ -20,7 +20,7 @@ public class AppDeviceDAOTest {
   @Test
   public void testAppDeviceDAO() throws NoSuchAlgorithmException {
 
-    DeviceDAO deviceDAO = new DeviceDAO();
+    DeviceInfo deviceDAO = new DeviceInfo();
     deviceDAO.setDeviceID(UUID.randomUUID().toString());
     deviceDAO.setManufacturer("Apple");
     deviceDAO.setModel("iPhone 7");
@@ -29,7 +29,7 @@ public class AppDeviceDAOTest {
     deviceDAO.setVirtual(false);
     deviceDAO.setSerialNumber(UUID.randomUUID().toString());
 
-    AppDeviceDAO appDeviceDAO = new AppDeviceDAO();
+    AppDeviceInfo appDeviceDAO = new AppDeviceInfo();
 //    appDeviceDAO.setDomainID("xlogistx.io");
     appDeviceDAO.setAppID(new AppIDDefault("xlogistx.io","io/xlogistx"));
     appDeviceDAO.setSubjectGUID(UUID.randomUUID().toString());

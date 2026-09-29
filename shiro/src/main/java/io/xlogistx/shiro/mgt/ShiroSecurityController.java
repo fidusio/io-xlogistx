@@ -10,7 +10,7 @@ import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.api.APITokenDAO;
 import org.zoxweb.shared.crypto.EncryptedData;
 import org.zoxweb.shared.crypto.EncapsulatedKey;
-import org.zoxweb.shared.data.MessageTemplateDAO;
+import org.zoxweb.shared.data.MessageTemplate;
 import org.zoxweb.shared.filters.BytesValueFilter;
 import org.zoxweb.shared.filters.ChainedFilter;
 import org.zoxweb.shared.filters.FilterType;
@@ -231,7 +231,7 @@ public class ShiroSecurityController
                     subjectGUID = currentSubjectGUID();
 
                 /// must create a exclusion filter
-                if (!(nve instanceof SubjectIdentifier || nve instanceof MessageTemplateDAO))
+                if (!(nve instanceof SubjectIdentifier || nve instanceof MessageTemplate))
                     nve.setSubjectGUID(subjectGUID);// != null ? subjectGUID : currentSubjectGUID());
 
                 for (NVBase<?> nvb : nve.getAttributes().values().toArray(new NVBase[0])) {

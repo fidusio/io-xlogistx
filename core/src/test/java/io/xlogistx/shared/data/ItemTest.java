@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.accounting.AmountDAO;
 import org.zoxweb.shared.accounting.Currency;
-import org.zoxweb.shared.data.ImageDAO;
+import org.zoxweb.shared.data.ImageMetaInfo;
 import org.zoxweb.shared.data.Range;
 
 
@@ -55,8 +55,8 @@ public class ItemTest {
         priceRangeDAO.getPriceList().add(priceDAO6);
         priceRangeDAO.getPriceList().add(priceDAO7);
 
-        ImageDAO imageDAO = new ImageDAO();
-        imageDAO.setFormat(ImageDAO.ImageFormat.IMAGE_PNG);
+        ImageMetaInfo imageDAO = new ImageMetaInfo();
+        imageDAO.setFormat(ImageMetaInfo.ImageFormat.IMAGE_PNG);
         imageDAO.setName("item-tank.png");
         imageDAO.setResourceLocator(baseURL + "/images/pxp/item-tank.png");
         //imageDAO.setResourceLocator(baseURL + "" + XXURI.IMAGE + "/" + appIDDAO.getDomainID() + "/" + appIDDAO.getAppID() + "/item-tank.png");

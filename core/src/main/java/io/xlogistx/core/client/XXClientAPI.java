@@ -56,13 +56,13 @@ public class XXClientAPI {
         private AtomicInteger fails = new AtomicInteger();
         private AtomicInteger successes = new AtomicInteger();
         private volatile int repeat;
-        private volatile AppDeviceDAO add;
+        private volatile AppDeviceInfo add;
         private volatile HTTPMessageConfigInterface hmci;
         private volatile long ts;
         protected volatile UniqueTimeStamp uts = new UniqueTimeStamp();
 
         //private volatile AtomicInteger seq = new AtomicInteger();
-        public StressTest(AppDeviceDAO add, HTTPMessageConfigInterface hmci, int repeat) {
+        public StressTest(AppDeviceInfo add, HTTPMessageConfigInterface hmci, int repeat) {
             this.add = add;
             this.hmci = hmci;
             this.repeat = repeat;
@@ -173,8 +173,8 @@ public class XXClientAPI {
         priceRangeDAO.getPriceList().add(priceDAO6);
         priceRangeDAO.getPriceList().add(priceDAO7);
 
-        ImageDAO imageDAO = new ImageDAO();
-        imageDAO.setFormat(ImageDAO.ImageFormat.IMAGE_PNG);
+        ImageMetaInfo imageDAO = new ImageMetaInfo();
+        imageDAO.setFormat(ImageMetaInfo.ImageFormat.IMAGE_PNG);
         imageDAO.setName("item-tank.png");
         imageDAO.setResourceLocator(baseURL + "/images/pxp/item-tank.png");
         //imageDAO.setResourceLocator(baseURL + "" + XXURI.IMAGE + "/" + appIDDAO.getDomainID() + "/" + appIDDAO.getAppID() + "/item-tank.png");
@@ -190,8 +190,8 @@ public class XXClientAPI {
     }
 
 
-    public static DeviceDAO createDeviceDAO() {
-        DeviceDAO deviceDAO = new DeviceDAO();
+    public static DeviceInfo createDeviceDAO() {
+        DeviceInfo deviceDAO = new DeviceInfo();
         deviceDAO.setDeviceID(UUID.randomUUID().toString());
         deviceDAO.setManufacturer("android");
         deviceDAO.setModel("7");
@@ -199,8 +199,8 @@ public class XXClientAPI {
         return deviceDAO;
     }
 
-    public static AppDeviceDAO createAppDeviceDAO(String domainID, String appID) {
-        AppDeviceDAO ret = new AppDeviceDAO();
+    public static AppDeviceInfo createAppDeviceDAO(String domainID, String appID) {
+        AppDeviceInfo ret = new AppDeviceInfo();
         ret.setDevice(createDeviceDAO());
 
         ret.setAppID(new AppIDDefault(domainID, appID));
@@ -279,7 +279,7 @@ public class XXClientAPI {
 
     public static AppIDDefault deleteAppID(String url, String subjectID, String password, String domainID,
                                        String appID) throws IOException {
-        AppDeviceDAO appDeviceDAO = new AppDeviceDAO();
+        AppDeviceInfo appDeviceDAO = new AppDeviceInfo();
 
 
         appDeviceDAO.setAppID(new AppIDDefault(domainID, appID));
@@ -293,10 +293,10 @@ public class XXClientAPI {
     }
 
 
-    public static AppDeviceDAO createAppDevice(String url, String subjectID, String password,
+    public static AppDeviceInfo createAppDevice(String url, String subjectID, String password,
                                                String domainID, String appID)
             throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-        AppDeviceDAO appDeviceDAO = createAppDeviceDAO(domainID, appID);
+        AppDeviceInfo appDeviceDAO = createAppDeviceDAO(domainID, appID);
 
         String uri = XXURI.LOGIN + "/" + domainID + "/" + appID;
         HTTPMessageConfigInterface hmci = createHMCI(url, uri, HTTPMethod.POST, subjectID, password);
@@ -319,7 +319,7 @@ public class XXClientAPI {
     }
 
 
-    public static void deleteAppDevice(String url, AppDeviceDAO apd) throws IOException {
+    public static void deleteAppDevice(String url, AppDeviceInfo apd) throws IOException {
         JWT jwt = JWT
                 .createJWT(CryptoConst.JWTAlgo.HS256, apd.getSubjectID(), apd.getDomainID(),
                         apd.getAppID().getAppID());
@@ -338,7 +338,7 @@ public class XXClientAPI {
                                  String appID, long delay)
             throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException {
 
-        AppDeviceDAO apd = createAppDevice(url, subjectID, password, domainID, appID);
+        AppDeviceInfo apd = createAppDevice(url, subjectID, password, domainID, appID);
 
         JWT jwt = JWT.createJWT(CryptoConst.JWTAlgo.HS256, apd.getSubjectID(), domainID, appID);
         jwt.getPayload().setIssuedAt(Const.TimeInMillis.SECOND.convertTo(System.currentTimeMillis() - delay));
@@ -370,7 +370,7 @@ public class XXClientAPI {
                                   String appID, int repeat, long delay)
             throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException {
 
-        AppDeviceDAO add = createAppDevice(url, subjectID, password, domainID, appID);
+        AppDeviceInfo add = createAppDevice(url, subjectID, password, domainID, appID);
 
         String uri = XXURI.LOGIN;
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
@@ -388,7 +388,7 @@ public class XXClientAPI {
                                       String appID, int repeat, boolean autoDelete)
             throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException, NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, SignatureException {
 
-        AppDeviceDAO add = null;
+        AppDeviceInfo add = null;
         try {
             add = createAppDevice(url, subjectID, password, domainID, appID);
             for (int i = 0; i < repeat; i++) {
@@ -414,7 +414,7 @@ public class XXClientAPI {
                                   String appID, boolean encrypt, boolean autoDelete)
             throws IOException, IllegalAccessException, ClassNotFoundException, InstantiationException, NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, SignatureException {
 
-        AppDeviceDAO add = null;
+        AppDeviceInfo add = null;
         try {
             add = createAppDevice(url, subjectID, password, domainID, appID);
             System.out.println(GWRAPPER.toJSON(add, false, false, true));
@@ -436,7 +436,7 @@ public class XXClientAPI {
                 add = GWRAPPER
                         .fromJSON(CryptoUtil.decryptEncryptedData((EncryptedData) nve, add.getAPIKeyAsBytes()));
             } else {
-                add = (AppDeviceDAO) nve;
+                add = (AppDeviceInfo) nve;
             }
             if (nve != add) {
                 System.out.println(SUS.toString(hrd.getData()));
@@ -571,7 +571,7 @@ public class XXClientAPI {
                     System.out.println(appIDDAO + " created");
                     break;
                 case "createappdevice":
-                    AppDeviceDAO device = createAppDevice(url, subjectID, password, domainID, appID);
+                    AppDeviceInfo device = createAppDevice(url, subjectID, password, domainID, appID);
                     System.out.println(device + " created");
                     break;
                 case "deleteapp":

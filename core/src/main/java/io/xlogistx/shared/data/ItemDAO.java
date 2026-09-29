@@ -1,7 +1,7 @@
 package io.xlogistx.shared.data;
 
 import org.zoxweb.shared.data.AppIDResource;
-import org.zoxweb.shared.data.ImageDAO;
+import org.zoxweb.shared.data.ImageMetaInfo;
 import org.zoxweb.shared.util.*;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class ItemDAO
                         true, int.class)),
         IMAGES(NVConfigManager
                 .createNVConfigEntity("images", "Item images", "Images", false, true, true, false,
-                        ImageDAO.NVC_IMAGE_DAO, NVConfigEntity.ArrayType.LIST)),
+                        ImageMetaInfo.NVC_IMAGE_META_INFO, NVConfigEntity.ArrayType.LIST)),
 
         ;
 
@@ -89,14 +89,14 @@ public class ItemDAO
     /**
      * Returns list of item images.
      */
-    public List<ImageDAO> getImages() {
+    public List<ImageMetaInfo> getImages() {
         return lookupValue(Param.IMAGES);
     }
 
     /**
      * Sets list of item images.
      */
-    public void setImages(List<ImageDAO> images) {
+    public void setImages(List<ImageMetaInfo> images) {
         setValue(Param.IMAGES, images);
     }
 

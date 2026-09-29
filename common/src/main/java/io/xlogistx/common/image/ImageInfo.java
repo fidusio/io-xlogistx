@@ -11,8 +11,7 @@ public class ImageInfo {
     public final String id;
     public final int dataLength;
 
-    public ImageInfo(long timestamp, String id, InputStream data, int dataLength,String format, int width, int height)
-    {
+    public ImageInfo(long timestamp, String id, InputStream data, int dataLength, String format, int width, int height) {
         this.timestamp = timestamp;
         this.id = id;
         this.data = data;
@@ -21,10 +20,6 @@ public class ImageInfo {
         this.width = width;
         this.format = format;
     }
-
-
-
-
 
 
 }

@@ -16,7 +16,7 @@
 package io.xlogistx.shared.data;
 
 
-import org.zoxweb.shared.data.SimpleDocumentDAO;
+import org.zoxweb.shared.data.SimpleDocument;
 import org.zoxweb.shared.util.*;
 
 
@@ -26,7 +26,7 @@ import org.zoxweb.shared.util.*;
  */
 @SuppressWarnings("serial")
 public class DocumentTemplate
-        extends SimpleDocumentDAO {
+        extends SimpleDocument {
 
     public enum Param
             implements GetNVConfig {
@@ -60,7 +60,7 @@ public class DocumentTemplate
             SUS.extractNVConfigs(Param.values()),
             null,
             false,
-            SimpleDocumentDAO.NVC_SIMPLE_DOCUMENT_DAO
+            SimpleDocument.NVC_SIMPLE_DOCUMENT
     );
 
 
