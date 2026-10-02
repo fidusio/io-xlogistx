@@ -30,7 +30,8 @@
  *       (read-only GitHub flavored Markdown viewer, commonmark rendered into a
  *       {@code JEditorPane}), {@link io.xlogistx.gui.PDFViewerPanel} (PDFBox
  *       based PDF viewer: lazy background page rendering, LRU cache, zoom/fit
- *       modes, text search, selection, save/print/merge),
+ *       modes, text search, selection, clickable links, save/print/merge),
+ *       {@link io.xlogistx.gui.PDFViewerApp} (standalone window around it),
  *       {@link io.xlogistx.gui.MDToPDF} (Markdown to PDF via commonmark,
  *       OpenHTMLtoPDF and PDFBox, embedded Roboto fonts) and
  *       {@link io.xlogistx.gui.MermaidRenderer} (pure Java Mermaid flowchart

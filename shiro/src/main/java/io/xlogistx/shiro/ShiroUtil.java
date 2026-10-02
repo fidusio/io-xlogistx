@@ -47,6 +47,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 
 public class ShiroUtil {
@@ -350,6 +351,75 @@ public class ShiroUtil {
         return securityManager;
     }
 
+    /**
+     * The standardized resource access check (user decision 2026-09-29). Access to an NVEntity is a
+     * permission, never an equality test: the bound subject {@code C} may act on the resource when it
+     * holds either
+     * <ol>
+     * <li>the owner token {@code resource:<owner guid>:<C>:<permission>} — every subject {@code S}
+     * implicitly holds {@code resource:S:S:read,update,delete,share} (synthesized by the realm), so
+     * the owner passes here; or</li>
+     * <li>the grant token {@code resource:<resource guid>:<C>:<permission>} — a share of this
+     * resource to {@code C}.</li>
+     * </ol>
+     * Both tokens are composed by {@link SecurityModel#toResourceToken(String, String, String)}.
+     *
+     * @param nve        the resource; its GUID and subject GUID must be set
+     * @param permission the verb, e.g. {@link SecurityModel#READ}
+     * @return the owner's subject GUID ({@code nve.getSubjectGUID()}), the root of the resource's key chain
+     * @throws NullPointerException    if an argument, the GUID or the subject GUID is null
+     * @throws AccessSecurityException if nobody is authenticated, the subject has no GUID principal,
+     *                                 or neither token is held
+     */
+    public static String checkResourcePermission(NVEntity nve, String permission)
+            throws NullPointerException, AccessSecurityException {
+        SUS.checkIfNulls("nve, its guid and subject_guid cannot be null", nve, nve.getGUID(), nve.getSubjectGUID());
+        return checkResourcePermission(nve.getGUID(), nve.getSubjectGUID(), permission);
+    }
+
+    /**
+     * Same as {@link #checkResourcePermission(NVEntity, String)} without loading the entity.
+     *
+     * @param resourceGUID the resource GUID
+     * @param ownerGUID    the resource's {@code subject_guid}
+     * @param permission   the verb
+     * @return {@code ownerGUID}
+     */
+    public static String checkResourcePermission(String resourceGUID, String ownerGUID, String permission)
+            throws NullPointerException, AccessSecurityException {
+        SUS.checkIfNulls("resourceGUID, ownerGUID and permission cannot be null", resourceGUID, ownerGUID, permission);
+        Subject subject = subject();
+        if (!subject.isAuthenticated()) {
+            throw new AccessSecurityException("Subject not authenticated");
+        }
+        UUID uuid = subject.getPrincipals().oneByType(UUID.class);
+        if (uuid == null) throw new AccessSecurityException("Subject has no GUID principal");
+        String subjectGUID = uuid.toString();
+
+        // 1. owner rights: resource:<owner>:<subject>:<permission> (implied by the self permission)
+        if (isPermitted(subject, SecurityModel.toResourceToken(ownerGUID, subjectGUID, permission)))
+            return ownerGUID;
+
+        // 2. granted rights: resource:<resource>:<subject>:<permission>
+        String granted = SecurityModel.toResourceToken(resourceGUID, subjectGUID, permission);
+        if (!isPermitted(subject, granted))
+            throw new AccessSecurityException("Access denied " + granted, Reason.UNAUTHORIZED);
+        return ownerGUID;
+    }
+
+    /**
+     * Non-throwing form of {@link #checkResourcePermission(String, String, String)}: false when nobody
+     * is authenticated, the subject has no GUID principal, or neither token is held.
+     */
+    public static boolean isResourcePermitted(String resourceGUID, String ownerGUID, String permission) {
+        try {
+            checkResourcePermission(resourceGUID, ownerGUID, permission);
+            return true;
+        } catch (AccessSecurityException | NullPointerException e) {
+            return false;
+        }
+    }
+
     public static void checkPermission(String permission, SecTokenReplacement str)
             throws NullPointerException, AccessSecurityException {
         checkPermission(SecurityUtils.getSubject(), permission, str);
@@ -568,7 +638,7 @@ public class ShiroUtil {
         SUS.checkIfNulls("Null parameters not allowed", subject, permission);
         if (SecurityModel.PERM_RESOURCE_ANY.equals(permission))
             return true;
-        return subject.isPermitted(SUS.toLowerCase(permission));
+        return subject.isPermitted(DataEncoder.StringLower.encode(permission));
     }
 
     public static boolean isPermitted(GetValue<String> gv)

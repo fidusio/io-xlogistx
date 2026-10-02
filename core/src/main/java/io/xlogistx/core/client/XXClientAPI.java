@@ -207,8 +207,8 @@ public class XXClientAPI {
         return ret;
     }
 
-    public static AppConfigDAO lookupAppConfigDAO(String url, String subjectID, String password,
-                                                  String domainID, String appID) throws APIException, IOException {
+    public static AppConfigInfo lookupAppConfigInfo(String url, String subjectID, String password,
+                                                    String domainID, String appID) throws APIException, IOException {
         String uri = "" + XXURI.APP_CONFIG + "/" + domainID + "/" + appID;
         System.out.println(uri);
         HTTPMessageConfigInterface hmci = HTTPMessageConfig.createAndInit(url, uri, HTTPMethod.GET);
@@ -218,9 +218,9 @@ public class XXClientAPI {
         return GWRAPPER.fromJSON(hc.sendRequest().getData());
     }
 
-    public static AppConfigDAO updateAppConfigDAO(String urlIn, String subjectID, String password,
-                                                  String domainID, String appID, File jsonFile) throws APIException, IOException {
-        AppConfigDAO ret = lookupAppConfigDAO(urlIn, subjectID, password, domainID, appID);
+    public static AppConfigInfo updateAppConfigInfo(String urlIn, String subjectID, String password,
+                                                    String domainID, String appID, File jsonFile) throws APIException, IOException {
+        AppConfigInfo ret = lookupAppConfigInfo(urlIn, subjectID, password, domainID, appID);
 
 //		String url = "https://www.zipcodeapi.com";
 //        String uri = "rest";
@@ -563,7 +563,7 @@ public class XXClientAPI {
             String domainID = args[index++];
             String appID = args[index++];
             AppIDDefault appIDDAO = null;
-            AppConfigDAO appConfigDAO;
+            AppConfigInfo appConfigInfo;
             File file;
             switch (command) {
                 case "createapp":
@@ -579,13 +579,13 @@ public class XXClientAPI {
                     System.out.println(appIDDAO + " deleted");
                     break;
                 case "getappconfig":
-                    appConfigDAO = lookupAppConfigDAO(url, subjectID, password, domainID, appID);
-                    System.out.println(GWRAPPER.toJSON(appConfigDAO, true, Base64Type.DEFAULT));
+                    appConfigInfo = lookupAppConfigInfo(url, subjectID, password, domainID, appID);
+                    System.out.println(GWRAPPER.toJSON(appConfigInfo, true, Base64Type.DEFAULT));
                     break;
                 case "updateappconfig":
                     file = new File(args[index++]);
-                    appConfigDAO = updateAppConfigDAO(url, subjectID, password, domainID, appID, file);
-                    System.out.println(GWRAPPER.toJSON(appConfigDAO, true, Base64Type.DEFAULT));
+                    appConfigInfo = updateAppConfigInfo(url, subjectID, password, domainID, appID, file);
+                    System.out.println(GWRAPPER.toJSON(appConfigInfo, true, Base64Type.DEFAULT));
                     break;
 
                 case "changepassword":

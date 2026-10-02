@@ -72,6 +72,10 @@ The package has these groups:
   unsupported diagrams (sequence, class, ...) stay code blocks. `MDViewerPanel` still shows
   the source (Swing's HTML kit has no data-URI images).
 - `PDFViewerPanel` — PDFBox-backed Swing viewer (details below).
+- `PDFViewerApp` — standalone application (main class) around `PDFViewerPanel`:
+  `PDFViewerApp [file.pdf | file.md]`, starts empty without an argument; title follows
+  file/page/modified state, window close goes through `confirmDiscard()` then exits the JVM.
+  The test-side `PDFViewerDemo` is the same window pre-loaded with a generated sample.
 
 #### MermaidRenderer
 
@@ -151,6 +155,24 @@ highlight. Text selection is a page+char-offset range (`select`, `selectAll`,
 `getSelectedText` — pages joined by a blank line —, `copySelection`, `clearSelection`,
 `charIndexAt(page, xPt, yPt)` hit test over lazily built lines). Selected pages whose text
 is not extracted yet request extraction on the render thread and repaint.
+
+**Links.** PDF link annotations are clickable (`Link`: page, rect in pt top-left origin,
+`getURI()` or `getTargetPage()`). `extractLinks` (under `docLock`) keeps only URI actions
+with an `http`/`https`/`mailto` scheme (`isOpenable` — never hand launch/file/JavaScript
+targets to the desktop) and GoTo actions / direct or named destinations inside the
+document; `toViewRect` maps the annotation rectangle through crop box + page rotation.
+Links are cached per `PageView` (`links`, rebuilt with the page views after insert/delete),
+read lazily on the render thread at first paint (`requestLinks`) so hovering never waits
+on `docLock`; `getLinks(page)` / `linkAt(page, xPt, yPt)` read synchronously. Hover
+(`updateHover`, `mouseMoved`) shows the hand cursor + tooltip (URI or "Go to page n") —
+the tooltip is set on the pages panel, NOT on a `PageView` (a tooltip registers mouse
+listeners, and a `PageView` with listeners would swallow the events the pages panel's
+adapter relies on). A click = press and release on the same link within `CLICK_SLOP` px
+measured in **viewport** coordinates (panning keeps the pointer on the same pages-panel
+point) → `followLink`: `Desktop.browse`/`mail`, or `gotoPage` + scroll to the destination's
+top (XYZ / FitH, unrotated target pages only). Active with `PAN` and `SELECT_TEXT` (a drag
+still pans/selects), not with `ZOOM_TO_SELECTION`. Plain-text URLs without an annotation
+are not detected.
 
 **Tools/input.** `Tool` (toolbar toggle group) decides what a plain left drag does:
 `PAN` scrolls, `SELECT_TEXT` selects (double click = word, right click = Copy/Select all/

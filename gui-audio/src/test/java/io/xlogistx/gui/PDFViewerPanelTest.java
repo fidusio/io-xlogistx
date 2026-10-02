@@ -654,7 +654,65 @@ public class PDFViewerPanelTest {
         assertThrows(IllegalArgumentException.class, () -> PDFViewerPanel.parsePageSelection(null, 0, 10));
     }
 
+    @Test
+    public void linksAreFoundHoveredAndFollowed() throws Exception {
+        load(MDToPDF.mdToPDF("# Links\n\n[example](https://example.com/path) and [jump](#target)" + PAGE_BREAK
+                + "filler\n\n<h2 id=\"target\">Target</h2>\n\nlanded").toByteArray());
+
+        List<PDFViewerPanel.Link> links = onEDT(() -> panel.getLinks(0));
+        assertEquals(2, links.size(), "links: " + links);
+        PDFViewerPanel.Link external = links.get(0).getURI() != null ? links.get(0) : links.get(1);
+        PDFViewerPanel.Link internal = links.get(0).getURI() != null ? links.get(1) : links.get(0);
+        assertEquals("https://example.com/path", external.getURI());
+        assertEquals(-1, external.getTargetPage());
+        assertNull(internal.getURI());
+        assertEquals(1, internal.getTargetPage());
+        assertTrue(onEDT(() -> panel.getLinks(1)).isEmpty());
+        assertTrue(onEDT(() -> panel.getLinks(9)).isEmpty());
+
+        // the link rectangles sit on the link text (top-left origin, points)
+        List<PDFViewerPanel.Match> words = onEDT(() -> panel.search("jump"));
+        assertEquals(1, words.size());
+        java.awt.geom.Rectangle2D.Float word = words.get(0).getRects().get(0);
+        float cx = (float) word.getCenterX(), cy = (float) word.getCenterY();
+        assertTrue(internal.getRect().contains(cx, cy), internal.getRect() + " should cover " + word);
+        assertSame(internal, onEDT(() -> panel.linkAt(0, cx, cy)));
+        assertNull(onEDT(() -> panel.linkAt(0, 1, 1)));
+
+        // hovering shows the hand, clicking follows; a press that ends elsewhere does not
+        Component view = onEDT(() -> viewport().getView());
+        Component page = onEDT(() -> ((Container) view).getComponent(0));
+        float zoom = onEDT(panel::getZoom);
+        int x = page.getX() + Math.round(cx * zoom), y = page.getY() + Math.round(cy * zoom);
+        onEDT(() -> mouse(view, java.awt.event.MouseEvent.MOUSE_MOVED, x, y));
+        assertEquals(Cursor.HAND_CURSOR, onEDT(() -> view.getCursor().getType()));
+        assertEquals("Go to page 2", onEDT(() -> ((JComponent) view).getToolTipText()));
+        onEDT(() -> mouse(view, java.awt.event.MouseEvent.MOUSE_MOVED, page.getX() + 2, page.getY() + 2));
+        assertEquals(Cursor.DEFAULT_CURSOR, onEDT(() -> view.getCursor().getType()));
+        assertNull(onEDT(() -> ((JComponent) view).getToolTipText()));
+
+        onEDT(() -> mouse(view, java.awt.event.MouseEvent.MOUSE_PRESSED, x, y));
+        onEDT(() -> mouse(view, java.awt.event.MouseEvent.MOUSE_RELEASED, x + 40, y));
+        assertEquals(0, onEDT(panel::getCurrentPage), "a drag off the link must not follow it");
+        onEDT(() -> mouse(view, java.awt.event.MouseEvent.MOUSE_PRESSED, x, y));
+        onEDT(() -> mouse(view, java.awt.event.MouseEvent.MOUSE_RELEASED, x, y));
+        assertEquals(1, onEDT(panel::getCurrentPage));
+
+        onEDT(() -> panel.gotoPage(0));
+        assertTrue(onEDT(() -> panel.followLink(internal)));
+        assertEquals(1, onEDT(panel::getCurrentPage));
+        assertFalse(onEDT(() -> panel.followLink(external)), "no desktop in a headless run");
+        assertThrows(NullPointerException.class, () -> panel.followLink(null));
+    }
+
     // ---------------------------------------------------------------- helpers
+
+    private static Object mouse(Component target, int id, int x, int y) {
+        int button = id == java.awt.event.MouseEvent.MOUSE_MOVED ? java.awt.event.MouseEvent.NOBUTTON : java.awt.event.MouseEvent.BUTTON1;
+        int modifiers = id == java.awt.event.MouseEvent.MOUSE_PRESSED ? java.awt.event.InputEvent.BUTTON1_DOWN_MASK : 0;
+        target.dispatchEvent(new java.awt.event.MouseEvent(target, id, System.currentTimeMillis(), modifiers, x, y, 1, false, button));
+        return null;
+    }
 
     private void load(byte[] pdf) throws Exception {
         PDDocument doc = Loader.loadPDF(pdf);

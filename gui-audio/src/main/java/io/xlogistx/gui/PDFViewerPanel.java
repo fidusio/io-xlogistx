@@ -6,6 +6,16 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.interactive.action.PDAction;
+import org.apache.pdfbox.pdmodel.interactive.action.PDActionGoTo;
+import org.apache.pdfbox.pdmodel.interactive.action.PDActionURI;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDNamedDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageXYZDestination;
 import org.apache.pdfbox.printing.PDFPageable;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -29,6 +39,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -83,6 +94,15 @@ import java.util.function.Consumer;
  * PDF file chooser (toolbar "Open" button); {@link #saveAs()} / {@link #save(File)}
  * write the current document out (toolbar "Save" button); {@link #print()} shows
  * the system print dialog and prints off the EDT (toolbar "Print" button).
+ *
+ * <h2>Links</h2>
+ * PDF link annotations are clickable with the pan and select-text tools: the
+ * pointer turns into a hand with the target as tooltip, and a click opens an
+ * {@code http} / {@code https} / {@code mailto} URI through the desktop or
+ * scrolls to the destination of a link into the document. Other link kinds
+ * (launch, remote PDF, JavaScript, ...) are ignored. {@link #getLinks(int)},
+ * {@link #linkAt(int, float, float)} and {@link #followLink(Link)} are the
+ * programmatic forms.
  *
  * <h2>Merging</h2>
  * {@link #insertPDF(File, int)} merges another PDF, or a Markdown file converted
@@ -193,6 +213,53 @@ public class PDFViewerPanel extends JPanel {
         }
     }
 
+    /**
+     * A clickable area of a page, taken from a PDF link annotation: either an
+     * external URI ({@code http}, {@code https} or {@code mailto}) or a jump to
+     * another page of the same document.
+     */
+    public static final class Link {
+        private final int page;
+        private final Rectangle2D.Float rect;
+        private final String uri;
+        private final int targetPage;
+        /** Offset of the destination from the top of the target page in points, NaN = top of the page. */
+        private final float targetTop;
+
+        Link(int page, Rectangle2D.Float rect, String uri, int targetPage, float targetTop) {
+            this.page = page;
+            this.rect = rect;
+            this.uri = uri;
+            this.targetPage = targetPage;
+            this.targetTop = targetTop;
+        }
+
+        /** @return zero-based page the link sits on */
+        public int getPage() {
+            return page;
+        }
+
+        /** @return the clickable area in points, origin at the page's top-left corner */
+        public Rectangle2D.Float getRect() {
+            return (Rectangle2D.Float) rect.clone();
+        }
+
+        /** @return the external URI, null for a link into this document */
+        public String getURI() {
+            return uri;
+        }
+
+        /** @return zero-based destination page, -1 for an external link */
+        public int getTargetPage() {
+            return targetPage;
+        }
+
+        @Override
+        public String toString() {
+            return "Link{page=" + page + ", " + (uri != null ? uri : "-> page " + targetPage) + "}";
+        }
+    }
+
     /** Fill color of search highlights. */
     public static final Color HIGHLIGHT_COLOR = new Color(255, 230, 0, 100);
     /** Fill color of the current search highlight. */
@@ -208,6 +275,8 @@ public class PDFViewerPanel extends JPanel {
     private static final int PAGE_GAP = 12;
     private static final int PAGE_MARGIN = 10;
     private static final float ZOOM_STEP = 1.2f;
+    /** Pointer travel in pixels up to which a press and release still count as a click on a link. */
+    private static final int CLICK_SLOP = 3;
     private static final float[] ZOOM_PRESETS = {0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 3f};
     private static final String FIT_WIDTH_LABEL = "Fit width";
     private static final String FIT_PAGE_LABEL = "Fit page";
@@ -258,6 +327,8 @@ public class PDFViewerPanel extends JPanel {
     private int[] selAnchor;
     /** Rubber band being dragged, in pages panel coordinates; null when idle. */
     private Rectangle marquee;
+    /** Link under the pointer (hand cursor + tooltip shown); null when none. */
+    private Link hoverLink;
     private boolean updatingToolbar;
     private JFileChooser fileChooser;
     private File currentFile;
@@ -417,6 +488,8 @@ public class PDFViewerPanel extends JPanel {
         lastQuery = null;
         selStartPage = selEndPage = -1;
         selAnchor = null;
+        hoverLink = null;
+        pagesPanel.setToolTipText(null);
         updateToolbar();
         firePageChanged();
     }
@@ -1402,6 +1475,167 @@ public class PDFViewerPanel extends JPanel {
         return this;
     }
 
+    // -------------------------------------------------------------------- links
+
+    /**
+     * Returns the links of a page: the PDF link annotations that point to an
+     * {@code http}, {@code https} or {@code mailto} URI or to a page of this
+     * document. Other link kinds (launch, remote PDF, JavaScript, ...) are left
+     * out. Reads the annotations on first use, so this may block briefly.
+     *
+     * @param page zero-based page index
+     * @return the links, empty when the page is out of range or has none
+     */
+    public List<Link> getLinks(int page) {
+        if (page < 0 || page >= pages.size())
+            return Collections.emptyList();
+        PageView pv = pages.get(page);
+        if (pv.links == null) {
+            synchronized (docLock) {
+                pv.links = document != null ? extractLinks(document, page) : Collections.<Link>emptyList();
+            }
+        }
+        return pv.links;
+    }
+
+    /**
+     * @param page zero-based page index
+     * @param xPt  x in PDF points from the page's left edge
+     * @param yPt  y in PDF points from the page's top edge
+     * @return the link at that point, null if there is none
+     */
+    public Link linkAt(int page, float xPt, float yPt) {
+        return linkAt(getLinks(page), xPt, yPt);
+    }
+
+    /**
+     * Follows a link: an external URI is handed to the desktop (default browser
+     * or mail client), an internal one scrolls to its destination. This is what a
+     * click on a link does.
+     *
+     * @param link the link, never null
+     * @return true if the link was followed
+     */
+    public boolean followLink(Link link) {
+        SUS.checkIfNull("link null", link);
+        if (link.uri != null)
+            return openURI(link.uri);
+        if (link.targetPage < 0 || link.targetPage >= pages.size())
+            return false;
+        gotoPage(link.targetPage);
+        if (!Float.isNaN(link.targetTop))
+            scrollBy(0, Math.round(link.targetTop * zoom));
+        return true;
+    }
+
+    private boolean openURI(String uri) {
+        if (GraphicsEnvironment.isHeadless())
+            return false;
+        try {
+            URI u = new URI(uri);
+            if ("mailto".equalsIgnoreCase(u.getScheme()))
+                Desktop.getDesktop().mail(u);
+            else
+                Desktop.getDesktop().browse(u);
+            return true;
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Cannot open " + uri + "\n" + e.getMessage(), "Open link", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    /** Only these are handed to the desktop; a PDF must not get to launch files or arbitrary handlers. */
+    private static boolean isOpenable(String uri) {
+        return uri.regionMatches(true, 0, "http://", 0, 7) || uri.regionMatches(true, 0, "https://", 0, 8)
+                || uri.regionMatches(true, 0, "mailto:", 0, 7);
+    }
+
+    private static Link linkAt(List<Link> links, float xPt, float yPt) {
+        for (Link l : links)
+            if (l.rect.contains(xPt, yPt))
+                return l;
+        return null;
+    }
+
+    /** Link under a pages-panel point; null if none or the page's links are not read yet (never blocks). */
+    private Link linkAtView(Point p) {
+        Component c = pagesPanel.getComponentAt(p);
+        if (!(c instanceof PageView) || ((PageView) c).links == null)
+            return null;
+        return linkAt(((PageView) c).links, (p.x - c.getX()) / zoom, (p.y - c.getY()) / zoom);
+    }
+
+    /** Shows the hand cursor and the target as tooltip while the pointer is over a link. */
+    private void updateHover(Point p) {
+        Link link = tool == Tool.ZOOM_TO_SELECTION ? null : linkAtView(p);
+        pagesPanel.setCursor(link != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : cursorFor(tool));
+        if (link != hoverLink) {
+            hoverLink = link;
+            pagesPanel.setToolTipText(link == null ? null : link.uri != null ? link.uri : "Go to page " + (link.targetPage + 1));
+        }
+    }
+
+    /** The followable link annotations of a page. Call under docLock. */
+    private static List<Link> extractLinks(PDDocument doc, int index) {
+        List<Link> ret = new ArrayList<>();
+        try {
+            PDPage page = doc.getPage(index);
+            for (PDAnnotation a : page.getAnnotations(PDAnnotationLink.class::isInstance)) {
+                PDAnnotationLink la = (PDAnnotationLink) a;
+                if (la.getRectangle() == null)
+                    continue;
+                Rectangle2D.Float rect = toViewRect(la.getRectangle(), page.getCropBox(), page.getRotation());
+                try {
+                    PDAction action = la.getAction();
+                    if (action instanceof PDActionURI) {
+                        String uri = ((PDActionURI) action).getURI();
+                        if (uri != null && isOpenable(uri.trim()))
+                            ret.add(new Link(index, rect, uri.trim(), -1, Float.NaN));
+                        continue;
+                    }
+                    PDDestination dest = action instanceof PDActionGoTo ? ((PDActionGoTo) action).getDestination()
+                            : action == null ? la.getDestination() : null;
+                    if (dest instanceof PDNamedDestination)
+                        dest = doc.getDocumentCatalog().findNamedDestinationPage((PDNamedDestination) dest);
+                    if (!(dest instanceof PDPageDestination))
+                        continue;
+                    int target = ((PDPageDestination) dest).retrievePageNumber();
+                    if (target < 0 || target >= doc.getNumberOfPages())
+                        continue;
+                    // top is in the target page's user space (origin bottom-left); 0 or less = not given
+                    int top = dest instanceof PDPageXYZDestination ? ((PDPageXYZDestination) dest).getTop()
+                            : dest instanceof PDPageFitWidthDestination ? ((PDPageFitWidthDestination) dest).getTop() : -1;
+                    PDPage targetPage = doc.getPage(target);
+                    float fromTop = top > 0 && targetPage.getRotation() == 0
+                            ? Math.max(0, targetPage.getCropBox().getUpperRightY() - top) : Float.NaN;
+                    ret.add(new Link(index, rect, null, target, fromTop));
+                } catch (IOException e) {
+                    // unreadable target: not a link
+                }
+            }
+        } catch (IOException e) {
+            // unreadable annotations: the page has no links
+        }
+        return Collections.unmodifiableList(ret);
+    }
+
+    /** Converts a rectangle in PDF user space to points from the displayed (rotated) page's top-left corner. */
+    private static Rectangle2D.Float toViewRect(PDRectangle r, PDRectangle box, int rotation) {
+        float x1 = r.getLowerLeftX() - box.getLowerLeftX(), x2 = r.getUpperRightX() - box.getLowerLeftX();
+        float y1 = r.getLowerLeftY() - box.getLowerLeftY(), y2 = r.getUpperRightY() - box.getLowerLeftY();
+        float w = box.getWidth(), h = box.getHeight();
+        switch (((rotation % 360) + 360) % 360) {
+            case 90:
+                return new Rectangle2D.Float(y1, x1, y2 - y1, x2 - x1);
+            case 180:
+                return new Rectangle2D.Float(w - x2, y1, x2 - x1, y2 - y1);
+            case 270:
+                return new Rectangle2D.Float(h - y2, w - x2, y2 - y1, x2 - x1);
+            default:
+                return new Rectangle2D.Float(x1, h - y2, x2 - x1, y2 - y1);
+        }
+    }
+
     /**
      * Sets the byte budget of the rendered page cache; exceeding it evicts the
      * least recently painted pages.
@@ -1918,14 +2152,24 @@ public class PDFViewerPanel extends JPanel {
             updateToolbar();
         });
 
-        // plain drag: pan, select text or rubber-band a zoom rectangle depending on the tool
+        // plain drag: pan, select text or rubber-band a zoom rectangle depending on the tool;
+        // a click (press and release in place) on a link follows it with the pan and select tools
         MouseAdapter drag = new MouseAdapter() {
             private Point origin;
             private Point marqueeStart;
+            private Link pressedLink;
+            /** Where pressedLink was pressed, in viewport coordinates (panning moves the pages under the pointer). */
+            private Point pressedAt;
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                updateHover(e.getPoint());
+            }
 
             @Override
             public void mousePressed(MouseEvent e) {
                 pagesPanel.requestFocusInWindow();
+                pressedLink = null;
                 if (e.isPopupTrigger()) {
                     showSelectionMenu(e);
                     return;
@@ -1938,6 +2182,8 @@ public class PDFViewerPanel extends JPanel {
                     pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
                     return;
                 }
+                pressedLink = linkAtView(e.getPoint());
+                pressedAt = SwingUtilities.convertPoint(pagesPanel, e.getPoint(), scrollPane.getViewport());
                 if (tool == Tool.SELECT_TEXT) {
                     int[] hit = hitTest(e.getPoint());
                     if (hit != null && e.getClickCount() == 2) {
@@ -1949,8 +2195,9 @@ public class PDFViewerPanel extends JPanel {
                     clearSelection();
                     return;
                 }
-                origin = SwingUtilities.convertPoint(pagesPanel, e.getPoint(), scrollPane.getViewport());
-                pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                origin = pressedAt;
+                if (pressedLink == null)
+                    pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
             }
 
             @Override
@@ -1973,6 +2220,7 @@ public class PDFViewerPanel extends JPanel {
                 }
                 if (origin == null)
                     return;
+                pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
                 Point now = SwingUtilities.convertPoint(pagesPanel, e.getPoint(), scrollPane.getViewport());
                 JViewport vp = scrollPane.getViewport();
                 Point pos = vp.getViewPosition();
@@ -1987,10 +2235,15 @@ public class PDFViewerPanel extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 selAnchor = null;
+                Link clicked = pressedLink;
+                pressedLink = null;
                 if (e.isPopupTrigger()) {
                     showSelectionMenu(e);
                     return;
                 }
+                // zooming and following a link scroll the pages, the pointer stays put in the viewport
+                JViewport vp = scrollPane.getViewport();
+                Point at = SwingUtilities.convertPoint(pagesPanel, e.getPoint(), vp);
                 if (marqueeStart != null) {
                     Rectangle r = marquee;
                     marqueeStart = null;
@@ -2007,7 +2260,9 @@ public class PDFViewerPanel extends JPanel {
                     }
                 }
                 origin = null;
-                pagesPanel.setCursor(cursorFor(tool));
+                if (clicked != null && at.distance(pressedAt) <= CLICK_SLOP && clicked == linkAtView(e.getPoint()))
+                    followLink(clicked);
+                updateHover(SwingUtilities.convertPoint(vp, at, pagesPanel));
             }
         };
         pagesPanel.addMouseListener(drag);
@@ -2284,6 +2539,29 @@ public class PDFViewerPanel extends JPanel {
         final float heightPt;
         volatile float pendingZoom = -1;
         private boolean textRequested;
+        /** Links of this page, null until read (on first paint or by getLinks). EDT only. */
+        List<Link> links;
+        private boolean linksRequested;
+
+        /** Reads this page's links on the render thread, so hovering never waits for a render. */
+        private void requestLinks() {
+            if (linksRequested)
+                return;
+            linksRequested = true;
+            PDDocument doc = document;
+            RENDER_EXECUTOR.submit(() -> {
+                List<Link> found;
+                synchronized (docLock) {
+                    if (doc == null || doc != document || index >= doc.getNumberOfPages())
+                        return;
+                    found = extractLinks(doc, index);
+                }
+                SwingUtilities.invokeLater(() -> {
+                    if (links == null)
+                        links = found;
+                });
+            });
+        }
 
         /** Extracts this page's text on the render thread (for painting a selection), then repaints. */
         private void requestPageText() {
@@ -2338,6 +2616,8 @@ public class PDFViewerPanel extends JPanel {
                     g2.drawString(label, (w - fm.stringWidth(label)) / 2, (h + fm.getAscent()) / 2);
                     requestRender(this);
                 }
+                if (links == null)
+                    requestLinks();
                 paintHighlights(g2);
                 g2.setColor(new Color(0, 0, 0, 60));
                 g2.drawRect(0, 0, w - 1, h - 1);

@@ -2,7 +2,9 @@ package io.xlogistx.shiro.mgt;
 
 import io.xlogistx.shiro.ShiroUtil;
 import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.PrincipalCollection;
 import org.zoxweb.server.logging.LogWrapper;
+import org.zoxweb.server.security.CipherCodecs;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.KeyMakerProvider;
 import org.zoxweb.shared.api.APICredentialsDAO;
@@ -16,6 +18,7 @@ import org.zoxweb.shared.filters.ChainedFilter;
 import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.security.*;
 import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.util.ExceptionReason.Reason;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -48,14 +51,16 @@ public class ShiroSecurityController
 
 
         boolean encrypt = false;
+        boolean masked = false;
 
         // the nvpair filter will override nvc value
         if (nvb instanceof NVPair &&
                 (ChainedFilter.isFilterSupported(((NVPair) nvb).getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(((NVPair) nvb).getValueFilter(), FilterType.ENCRYPT_MASK))) {
             encrypt = true;
-
+            masked = ChainedFilter.isFilterSupported(((NVPair) nvb).getValueFilter(), FilterType.ENCRYPT_MASK);
         } else if (nvc != null && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK))) {
             encrypt = true;
+            masked = ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK);
         }
 
 
@@ -63,7 +68,14 @@ public class ShiroSecurityController
             // CRUD.MOVE was to allow shared with to move the data between folders
             byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
             try {
-                return CryptoUtil.encryptData(new EncryptedData(), dataKey, BytesValueFilter.SINGLETON.validate(nvb));
+                // labels are authenticated by the GCM tag: set them BEFORE sealing (META-ENCRYPTED-DATA §2.2)
+                EncryptedData record = new EncryptedData();
+                Object clear = nvb.getValue();
+                record.setDataType(clear.getClass().getName());
+                if (masked) {
+                    record.setMask(computeMask(clear));
+                }
+                return CryptoUtil.encryptData(record, dataKey, BytesValueFilter.SINGLETON.validate(nvb));
 
             } catch (InvalidKeyException | NullPointerException
                      | IllegalArgumentException | NoSuchAlgorithmException
@@ -78,6 +90,16 @@ public class ShiroSecurityController
         }
     }
 
+    /**
+     * The display fragment stored (and authenticated) in an {@code ENCRYPT_MASK} record: the last
+     * four characters of the clear text preceded by {@code ****}, or {@code ****} alone when the value
+     * is shorter than eight characters. Overridable for other masking policies.
+     */
+    protected String computeMask(Object clear) {
+        String s = String.valueOf(clear);
+        return s.length() >= 8 ? "****" + s.substring(s.length() - 4) : "****";
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public final NVEntity decryptValues(APIDataStore<?, ?> dataStore, NVEntity container, byte[] msKey)
@@ -88,10 +110,9 @@ public class ShiroSecurityController
         }
 
         SUS.checkIfNulls("Null parameters", container.getGUID());
+        // a sealed value is a packed record (byte[]), which a pair cannot hold: the store opens it on read
         for (NVBase<?> nvb : container.getAttributes().values().toArray(new NVBase[0])) {
-            if (nvb instanceof NVPair) {
-                decryptValue(dataStore, container, (NVPair) nvb, null);
-            } else if (nvb instanceof NVEntityReference) {
+            if (nvb instanceof NVEntityReference) {
                 NVEntity temp = (NVEntity) nvb.getValue();
                 if (temp != null) {
                     decryptValues(dataStore, temp, null);
@@ -100,7 +121,7 @@ public class ShiroSecurityController
                 ArrayValues<NVEntity> arrayValues = (ArrayValues<NVEntity>) nvb;
                 for (NVEntity nve : arrayValues.values()) {
                     if (nve != null) {
-                        decryptValues(dataStore, container, null);
+                        decryptValues(dataStore, nve, null);
                     }
                 }
             }
@@ -112,36 +133,27 @@ public class ShiroSecurityController
     }
 
     @Override
-    public final String decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVPair nvp, byte[] msKey)
+    public final String decryptValue(APIDataStore<?, ?> dataStore, NVEntity container, byte[] value, byte[] msKey)
             throws NullPointerException, IllegalArgumentException, AccessSecurityException {
 
-        if (container instanceof EncryptedData) {
-            return nvp != null ? nvp.getValue() : null;
+        if (value == null) {
+            return null;
         }
 
+        SUS.checkIfNulls("Null parameters", container.getGUID());
 
-        SUS.checkIfNulls("Null parameters", container.getGUID(), nvp);
+        // the storage form is the packed record (META-ENCRYPTED-DATA §5); anything else is refused here
+        EncryptedData ed = CipherCodecs.EDDecoder.decode(value);
 
-        if (nvp.getValue() != null && (ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvp.getValueFilter(), FilterType.ENCRYPT_MASK))) {
+        byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
+        try {
+            return SUS.toString(CryptoUtil.decryptEncryptedData(ed, dataKey));
 
-            byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
-            try {
-                EncryptedData ed = EncryptedData.fromCanonicalID(nvp.getValue());
-                byte[] data = CryptoUtil.decryptEncryptedData(ed, dataKey);
-
-                nvp.setValue(SUS.toString(data));
-                return nvp.getValue();
-
-
-            } catch (NullPointerException
-                     | IllegalArgumentException | InvalidKeyException |
-                     NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
-                     IllegalBlockSizeException | BadPaddingException | SignatureException e) {
-                // TODO Auto-generated catch block
-                throw new AccessSecurityException(e.getMessage());
-            }
-        } else {
-            return nvp.getValue();
+        } catch (NullPointerException
+                 | IllegalArgumentException | InvalidKeyException |
+                 NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
+                 IllegalBlockSizeException | BadPaddingException | SignatureException e) {
+            throw new AccessSecurityException(e.getMessage());
         }
     }
 
@@ -256,14 +268,24 @@ public class ShiroSecurityController
 
     @Override
     public String currentSubjectID() throws AccessSecurityException {
-        // TODO Auto-generated method stub
-        return (String) SecurityUtils.getSubject().getPrincipal();
+        try {
+            Object principal = SecurityUtils.getSubject().getPrincipal();
+            return principal != null ? principal.toString() : null;
+        } catch (org.apache.shiro.ShiroException | NullPointerException e) {
+            return null; // no security manager / no subject bound on this thread
+        }
     }
 
+    /** GUID of the bound subject, null when nobody is bound or the principals carry no UUID. */
     @Override
     public String currentSubjectGUID() throws AccessSecurityException {
-        UUID subjectGUID = SecurityUtils.getSubject().getPrincipals().oneByType(UUID.class);
-        return subjectGUID != null ? subjectGUID.toString() : null;
+        try {
+            PrincipalCollection principals = SecurityUtils.getSubject().getPrincipals();
+            UUID subjectGUID = principals != null ? principals.oneByType(UUID.class) : null;
+            return subjectGUID != null ? subjectGUID.toString() : null;
+        } catch (org.apache.shiro.ShiroException | NullPointerException e) {
+            return null;
+        }
     }
 
 
@@ -291,6 +313,17 @@ public class ShiroSecurityController
     }
 
 
+    /**
+     * Resource access is a permission (user decision 2026-09-29), never a {@code subject_guid}
+     * equality test: each requested verb is checked with
+     * {@link ShiroUtil#checkResourcePermission(NVEntity, String)} — the owner passes through its
+     * implicit {@code resource:<owner>:<owner>:read,update,delete,share}, a grantee through
+     * {@code resource:<guid>:<grantee>:<verb>}. {@code OR} succeeds on the first verb held,
+     * {@code AND} needs every verb. No verb ⇒ denied.
+     *
+     * @return the owner's subject GUID — the root of the resource's key chain
+     * @throws AccessSecurityException when denied, unauthenticated, or the entity has no subject GUID
+     */
     public final String checkNVEntityAccess(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
             throws NullPointerException, IllegalArgumentException, AccessSecurityException {
         SUS.checkIfNulls("Null NVEntity", lo, nve);
@@ -298,65 +331,58 @@ public class ShiroSecurityController
         if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO) {
             return nve.getSubjectGUID();
         }
-
-        String subjectGUID = currentSubjectGUID();
-
-        if (subjectGUID == null || nve.getSubjectGUID() == null) {
-            throw new AccessSecurityException("Unauthenticated subject: " + nve.getClass().getName());
+        if (nve.getGUID() == null || nve.getSubjectGUID() == null) {
+            throw new AccessSecurityException("Resource without guid or subject_guid: " + nve.getClass().getName(), Reason.UNAUTHORIZED);
+        }
+        if (permissions == null || permissions.length == 0) {
+            throw new AccessSecurityException("No permission requested for resource:" + nve.getGUID(), Reason.UNAUTHORIZED);
         }
 
-        if (!nve.getSubjectGUID().equals(subjectGUID)) {
-
-            if (permissions != null && permissions.length > 0) {
-                boolean checkStatus = false;
-                for (CRUD permission : permissions) {
-                    String pattern = SUS.toCanonicalID(':', "nventity", permission, nve.getGUID());
-                    checkStatus = ShiroUtil.isPermitted(pattern);
-                    if ((checkStatus && Const.LogicalOperator.OR == lo) ||
-                            (!checkStatus && Const.LogicalOperator.AND == lo)) {
-                        // we are ok
-                        break;
-                    }
-
-                }
-                if (checkStatus)
+        AccessSecurityException denied = null;
+        for (CRUD permission : permissions) {
+            try {
+                ShiroUtil.checkResourcePermission(nve, verb(permission));
+                if (lo == Const.LogicalOperator.OR) {
                     return nve.getSubjectGUID();
+                }
+            } catch (AccessSecurityException e) {
+                if (lo == Const.LogicalOperator.AND) {
+                    throw e;
+                }
+                denied = e;
             }
-
-            if (log.isEnabled())
-                log.getLogger().info("nveUserID:" + nve.getSubjectGUID() + " subjectGUID:" + subjectGUID);
-            throw new AccessSecurityException("Access Denied. for resource:" + nve.getGUID());
         }
-
-        return subjectGUID;
+        if (lo == Const.LogicalOperator.OR) {
+            if (log.isEnabled())
+                log.getLogger().info("denied resource:" + nve.getGUID() + " owner:" + nve.getSubjectGUID());
+            throw denied != null ? denied
+                    : new AccessSecurityException("Access Denied. for resource:" + nve.getGUID(), Reason.UNAUTHORIZED);
+        }
+        return nve.getSubjectGUID();
     }
 
+    /** The verb part of a resource token for a CRUD value: {@code read}, {@code update}, ... */
+    private static String verb(CRUD crud) {
+        return crud.name().toLowerCase();
+    }
 
+    /**
+     * {@inheritDoc}
+     * <p>All requested verbs must be held ({@code AND}); evaluated with
+     * {@link ShiroUtil#isResourcePermitted(String, String, String)} against the bound subject, so the
+     * owner passes via its implicit self permission and a grantee via its grant. False when nobody
+     * is bound, an id is null, or no verb is requested. Never throws.
+     */
     @Override
     public final boolean isNVEntityAccessible(String nveRefID, String nveUserID, CRUD... permissions) {
-        SUS.checkIfNulls("Null reference ID.", nveRefID);
-
-        String userID = currentSubjectID();
-
-        if (userID != null && nveUserID != null) {
-            if (!nveUserID.equals(userID)) {
-                if (permissions != null && permissions.length > 0) {
-
-                    for (CRUD permission : permissions) {
-                        if (!ShiroUtil.isPermitted(SUS.toCanonicalID(':', "nventity", permission, nveRefID))) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-
-                //if(log.isEnabled()) log.getLogger().info("NVEntity UserID:" + nveUserID + " UserID:" + userID);
-            } else {
-                return true;
+        if (nveRefID == null || nveUserID == null || permissions == null || permissions.length == 0) {
+            return false;
+        }
+        for (CRUD permission : permissions) {
+            if (!ShiroUtil.isResourcePermitted(nveRefID, nveUserID, verb(permission))) {
+                return false;
             }
         }
-
-        return false;
+        return true;
     }
 }
