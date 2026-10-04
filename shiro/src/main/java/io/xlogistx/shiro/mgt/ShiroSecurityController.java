@@ -28,6 +28,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 public class ShiroSecurityController
         implements SecurityController {
@@ -66,7 +67,7 @@ public class ShiroSecurityController
 
         if (encrypt && nvb.getValue() != null) {
             // CRUD.MOVE was to allow shared with to move the data between folders
-            byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
+            byte[] dataKey = dataKey(dataStore, msKey, checkNVEntityAccess(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
             try {
                 // labels are authenticated by the GCM tag: set them BEFORE sealing (META-ENCRYPTED-DATA §2.2)
                 EncryptedData record = new EncryptedData();
@@ -145,7 +146,7 @@ public class ShiroSecurityController
         // the storage form is the packed record (META-ENCRYPTED-DATA §5); anything else is refused here
         EncryptedData ed = CipherCodecs.EDDecoder.decode(value);
 
-        byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
+        byte[] dataKey = dataKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
         try {
             return SUS.toString(CryptoUtil.decryptEncryptedData(ed, dataKey));
 
@@ -173,7 +174,7 @@ public class ShiroSecurityController
 
         if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK))) {
 
-            byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
+            byte[] dataKey = dataKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
             try {
 
                 byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
@@ -213,7 +214,7 @@ public class ShiroSecurityController
         if (value instanceof EncryptedData) {
             //if(log.isEnabled()) log.getLogger().info("userID:" + userID);
 
-            byte[] dataKey = KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, (userID != null ? userID : checkNVEntityAccess(container, CRUD.READ)), container.getGUID());
+            byte[] dataKey = dataKey(dataStore, msKey, (userID != null ? userID : checkNVEntityAccess(container, CRUD.READ)), container.getGUID());
             try {
 
                 byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
@@ -232,6 +233,26 @@ public class ShiroSecurityController
 
             return value;
         }
+    }
+
+    /**
+     * The entity's data key, read through the owner's key chain in the system context: the caller
+     * has already passed the access check on the entity, and the key rows it walks belong to the
+     * owner — a grantee may not read them through the store on its own.
+     */
+    private byte[] dataKey(APIDataStore<?, ?> dataStore, byte[] msKey, String ownerGUID, String entityGUID) {
+        return runAsSystem(() -> KeyMakerProvider.SINGLETON.getKey(dataStore, msKey, ownerGUID, entityGUID));
+    }
+
+    /** {@inheritDoc} Delegates to {@link ShiroUtil#runAsSystem(Supplier)}. */
+    @Override
+    public <V> V runAsSystem(Supplier<V> work) {
+        return ShiroUtil.runAsSystem(work);
+    }
+
+    @Override
+    public boolean isSystemContext() {
+        return ShiroUtil.isSystemContext();
     }
 
     @Override
@@ -317,7 +338,7 @@ public class ShiroSecurityController
      * Resource access is a permission (user decision 2026-09-29), never a {@code subject_guid}
      * equality test: each requested verb is checked with
      * {@link ShiroUtil#checkResourcePermission(NVEntity, String)} — the owner passes through its
-     * implicit {@code resource:<owner>:<owner>:read,update,delete,share}, a grantee through
+     * implicit {@code resource:<owner>:<owner>:create,read,update,delete,share}, a grantee through
      * {@code resource:<guid>:<grantee>:<verb>}. {@code OR} succeeds on the first verb held,
      * {@code AND} needs every verb. No verb ⇒ denied.
      *
@@ -370,12 +391,14 @@ public class ShiroSecurityController
      * {@inheritDoc}
      * <p>All requested verbs must be held ({@code AND}); evaluated with
      * {@link ShiroUtil#isResourcePermitted(String, String, String)} against the bound subject, so the
-     * owner passes via its implicit self permission and a grantee via its grant. False when nobody
-     * is bound, an id is null, or no verb is requested. Never throws.
+     * owner passes via its implicit self permission and a grantee via its grant. A null owner
+     * ({@code nveUserID}) is a resource without owner: only a grant on the resource (or a wildcard)
+     * reaches it. True in the system context. False when nobody is bound, the resource id is null,
+     * or no verb is requested. Never throws.
      */
     @Override
     public final boolean isNVEntityAccessible(String nveRefID, String nveUserID, CRUD... permissions) {
-        if (nveRefID == null || nveUserID == null || permissions == null || permissions.length == 0) {
+        if (nveRefID == null || permissions == null || permissions.length == 0) {
             return false;
         }
         for (CRUD permission : permissions) {

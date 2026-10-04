@@ -16,21 +16,20 @@ import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.util.Const;
 import org.zoxweb.shared.util.SUS;
 
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 
 /**
- * The credentials matcher for every xlogistx realm. Three token kinds:
+ * The credentials matcher for every xlogistx realm. Two token kinds log a subject in; a raw API
+ * key does not (2026-10-03: an API key is a subject's credential for a third-party API, never a
+ * login to this system — an {@link APIKeyAuthenticationToken} is always rejected):
  * <ul>
  *   <li><b>Password</b> ({@link DomainUsernamePasswordToken} or any token whose realm info carries a
  *       {@link CIPassword} / canonical password string): the token principal must equal the primary
  *       principal, {@code autoAuthenticationEnabled} skips the check (trusted-caller path), otherwise
  *       {@link SecUtil#isPasswordValid}.</li>
- *   <li><b>Raw API key</b> ({@link APIKeyAuthenticationToken}): constant-time compare against the
- *       stored {@link SubjectAPIKey}, then {@link #isUsable(SubjectAPIKey)} (status / expiry).</li>
  *   <li><b>JWT bearer token</b> ({@link JWTAuthenticationToken}) against the {@link SubjectAPIKey} the
- *       realm resolved from the {@code sub} claim: HMAC signature with the key's secret bytes,
+ *       realm resolved from the {@code sub} claim, which must be a signing key
+ *       ({@link SubjectAPIKey#isSigningKey()}): HMAC signature with the key's secret bytes,
  *       {@code sub} equal to the key ID, {@code exp} / {@code nbf} honoured within
  *       {@link #setClockSkewMillis(long)}, the key's domain / app scope (when set) matching the
  *       claims, and, for keys flagged {@link SubjectAPIKey#isTimeStampRequired()}, an {@code iat}
@@ -114,7 +113,7 @@ public class CredentialsInfoMatcher
                 log.getLogger().info("credentials " + info.getCredentials() + " " + info.getCredentials().getClass());
 
             if (token instanceof APIKeyAuthenticationToken) {
-                return apiKeyMatches((APIKeyAuthenticationToken) token, info);
+                return reject("an API key is not a login credential");
             }
             if (token instanceof JWTAuthenticationToken) {
                 return jwtMatches((JWTAuthenticationToken) token, info);
@@ -159,27 +158,14 @@ public class CredentialsInfoMatcher
         return SecUtil.isPasswordValid(ciPassword, password);
     }
 
-    private boolean apiKeyMatches(APIKeyAuthenticationToken token, AuthenticationInfo info) {
-        if (!(info.getCredentials() instanceof SubjectAPIKey)) {
-            return reject("no API key resolved");
-        }
-        SubjectAPIKey sak = (SubjectAPIKey) info.getCredentials();
-        String stored = sak.getAPIKey();
-        String given = token.getAPIKey();
-        if (stored == null || given == null) {
-            return reject("missing API key");
-        }
-        if (!MessageDigest.isEqual(stored.getBytes(StandardCharsets.UTF_8), given.getBytes(StandardCharsets.UTF_8))) {
-            return reject("API key mismatch");
-        }
-        return isUsable(sak) || reject("API key not usable");
-    }
-
     private boolean jwtMatches(JWTAuthenticationToken token, AuthenticationInfo info) {
         if (!(info.getCredentials() instanceof SubjectAPIKey)) {
             return reject("no API key resolved");
         }
         SubjectAPIKey sak = (SubjectAPIKey) info.getCredentials();
+        if (!sak.isSigningKey()) {
+            return reject("not a signing key: a third-party API key never verifies a login");
+        }
         if (!isUsable(sak)) {
             return reject("API key not usable");
         }

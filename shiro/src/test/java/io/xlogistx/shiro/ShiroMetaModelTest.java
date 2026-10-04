@@ -16,7 +16,7 @@ public class ShiroMetaModelTest {
     @Test
     public void permissions() throws IOException {
         PermissionInfo permission = new PermissionInfo("Read.Access", "user:read");
-        permission.setAppIdDAO(new AppIDDefault(DOMAIN, APP));
+        permission.setAppID(new AppIDDefault(DOMAIN, APP));
         String json = GSONUtil.toJSONSimple(permission);
         System.out.println(json);
     }
@@ -24,10 +24,10 @@ public class ShiroMetaModelTest {
     @Test
     public void roles() throws IOException {
         PermissionInfo permission = new PermissionInfo("Read.Access", "user:read");
-        permission.setAppIdDAO(new AppIDDefault(DOMAIN, APP));
+        permission.setAppID(new AppIDDefault(DOMAIN, APP));
 
         RoleInfo role = new RoleInfo("user.role", null);
-        role.setAppIdDAO(new AppIDDefault(DOMAIN, APP));
+        role.setAppID(new AppIDDefault(DOMAIN, APP));
         role.addPermission(permission);
 
         String json = GSONUtil.toJSONSimple(role);

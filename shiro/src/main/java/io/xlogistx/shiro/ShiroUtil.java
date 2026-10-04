@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 
 public class ShiroUtil {
@@ -55,6 +56,41 @@ public class ShiroUtil {
     public static final LogWrapper log = new LogWrapper(ShiroUtil.class);
 
     private ShiroUtil() {
+    }
+
+    /** Depth of {@link #runAsSystem(Supplier)} on the calling thread; absent outside the system context. */
+    private static final ThreadLocal<int[]> SYSTEM_DEPTH = new ThreadLocal<>();
+
+    /**
+     * Runs {@code work} in the system context of the calling thread: every resource access check
+     * ({@link #checkResourcePermission(String, String, String)}) passes for its duration. For the
+     * code that must reach the datastore with nobody logged in, or on behalf of every subject —
+     * login, grant loading, key-chain lookups, setup. Re-entrant; the context ends with the
+     * outermost call, also when {@code work} throws. Never wrap an application request in it.
+     */
+    public static <V> V runAsSystem(Supplier<V> work) {
+        SUS.checkIfNulls("work can't be null", work);
+        int[] depth = SYSTEM_DEPTH.get();
+        if (depth == null) {
+            depth = new int[1];
+            SYSTEM_DEPTH.set(depth);
+        }
+        depth[0]++;
+        try {
+            return work.get();
+        } finally {
+            if (--depth[0] == 0) {
+                SYSTEM_DEPTH.remove();
+            }
+        }
+    }
+
+    /**
+     * @return true while the calling thread is inside {@link #runAsSystem(Supplier)}
+     */
+    public static boolean isSystemContext() {
+        int[] depth = SYSTEM_DEPTH.get();
+        return depth != null && depth[0] > 0;
     }
 
     public static boolean login(String domain, String realm, String username, String password) {
@@ -357,8 +393,8 @@ public class ShiroUtil {
      * holds either
      * <ol>
      * <li>the owner token {@code resource:<owner guid>:<C>:<permission>} — every subject {@code S}
-     * implicitly holds {@code resource:S:S:read,update,delete,share} (synthesized by the realm), so
-     * the owner passes here; or</li>
+     * implicitly holds {@code resource:S:S:create,read,update,delete,share} (synthesized by the
+     * realm), so the owner passes here; or</li>
      * <li>the grant token {@code resource:<resource guid>:<C>:<permission>} — a share of this
      * resource to {@code C}.</li>
      * </ol>
@@ -378,16 +414,24 @@ public class ShiroUtil {
     }
 
     /**
-     * Same as {@link #checkResourcePermission(NVEntity, String)} without loading the entity.
+     * Same as {@link #checkResourcePermission(NVEntity, String)} without loading the entity. This is
+     * the check behind the datastore access control: every row read, updated or deleted through a
+     * store configured with the Shiro controller ends here.
+     * <p>In the system context ({@link #runAsSystem(Supplier)}) the check passes without a subject.
+     * A resource without owner ({@code ownerGUID} null) has no owner token: only a grant on the
+     * resource itself — or a wildcard such as {@code resource:*:*:<verb>} or {@code *} — reaches it.
      *
      * @param resourceGUID the resource GUID
-     * @param ownerGUID    the resource's {@code subject_guid}
+     * @param ownerGUID    the resource's {@code subject_guid}, null for a resource without owner
      * @param permission   the verb
      * @return {@code ownerGUID}
      */
     public static String checkResourcePermission(String resourceGUID, String ownerGUID, String permission)
             throws NullPointerException, AccessSecurityException {
-        SUS.checkIfNulls("resourceGUID, ownerGUID and permission cannot be null", resourceGUID, ownerGUID, permission);
+        SUS.checkIfNulls("resourceGUID and permission cannot be null", resourceGUID, permission);
+        if (isSystemContext()) {
+            return ownerGUID;
+        }
         Subject subject = subject();
         if (!subject.isAuthenticated()) {
             throw new AccessSecurityException("Subject not authenticated");
@@ -397,7 +441,7 @@ public class ShiroUtil {
         String subjectGUID = uuid.toString();
 
         // 1. owner rights: resource:<owner>:<subject>:<permission> (implied by the self permission)
-        if (isPermitted(subject, SecurityModel.toResourceToken(ownerGUID, subjectGUID, permission)))
+        if (ownerGUID != null && isPermitted(subject, SecurityModel.toResourceToken(ownerGUID, subjectGUID, permission)))
             return ownerGUID;
 
         // 2. granted rights: resource:<resource>:<subject>:<permission>
@@ -409,7 +453,8 @@ public class ShiroUtil {
 
     /**
      * Non-throwing form of {@link #checkResourcePermission(String, String, String)}: false when nobody
-     * is authenticated, the subject has no GUID principal, or neither token is held.
+     * is authenticated, the subject has no GUID principal, or neither token is held; true in the
+     * system context.
      */
     public static boolean isResourcePermitted(String resourceGUID, String ownerGUID, String permission) {
         try {

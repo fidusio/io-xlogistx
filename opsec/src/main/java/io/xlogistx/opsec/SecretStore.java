@@ -10,6 +10,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.shared.crypto.CryptoConst;
+import org.zoxweb.shared.security.SecConst;
 import org.zoxweb.shared.util.*;
 
 import javax.crypto.KeyGenerator;
@@ -66,6 +67,9 @@ import java.util.*;
  *   store=... store.password=... command=ml-kem alias=&lt;alias&gt; [algo=ML-KEM-512|ML-KEM-768|ML-KEM-1024] [signer=&lt;ml-dsa alias&gt;] [subject=CN=...] [validity=10year]
  *   store=... store.password=... command=secret-key alias=&lt;alias&gt; [algo=AES] [bits=256]
  * </pre>
+ * The super admin id is the reserved text entry {@value #SUPER_ADMIN_ID}, a username or an email
+ * address: {@link #setSuperAdminID} / {@link #getSuperAdminID} / {@link #removeSuperAdminID}, or
+ * on the command line {@code put}, {@code get} and {@code remove} with {@code name=super-admin-id}.
  */
 public final class SecretStore implements AutoCloseable {
 
@@ -78,6 +82,10 @@ public final class SecretStore implements AutoCloseable {
     public static final String PROVIDER = SecUtil.BC_PROVIDER;
     public static final String DEFAULT_VALIDITY = "10year";
     public static final String DEFAULT_SUBJECT_PREFIX = "CN=";
+    /**
+     * Reserved text entry: the super admin's subject id, a username or an email address (see {@link #setSuperAdminID}).
+     */
+    public static final String SUPER_ADMIN_ID = "super-admin-id";
 
     public static final String DEFAULT_ML_DSA = CryptoConst.ML_DSA_65;
     public static final String DEFAULT_ML_KEM = CryptoConst.ML_KEM_768;
@@ -280,10 +288,14 @@ public final class SecretStore implements AutoCloseable {
 
     /**
      * Stores (or replaces) a text secret under {@code name}. Not saved until {@link #save()}.
+     * The reserved {@value #SUPER_ADMIN_ID} entry is validated as in {@link #setSuperAdminID}.
      */
     public SecretStore put(String name, String value) throws GeneralSecurityException {
         name = checkAlias(name);
         SUS.checkIfNulls("value can't be null", value);
+        if (SUPER_ADMIN_ID.equals(name)) {
+            value = SecConst.SubjectIDFilter.SINGLETON.validate(value);
+        }
         keyStore.setEntry(name, new KeyStore.SecretKeyEntry(new TextSecret(value.toCharArray())), protection);
         return this;
     }
@@ -346,6 +358,37 @@ public final class SecretStore implements AutoCloseable {
             }
         }
         return ret;
+    }
+
+    // ------------------------------------------------------------------
+    // Super admin
+    // ------------------------------------------------------------------
+
+    /**
+     * Sets or replaces the super admin id, stored as the text secret {@value #SUPER_ADMIN_ID}.
+     * Not saved until {@link #save()}.
+     *
+     * @param id a username or an email address; stored as normalized by
+     *           {@link SecConst.SubjectIDFilter} (trimmed, lower-cased)
+     * @throws NullPointerException     if id is null or blank
+     * @throws IllegalArgumentException if id is neither a valid email address nor a valid username
+     */
+    public SecretStore setSuperAdminID(String id) throws GeneralSecurityException {
+        return put(SUPER_ADMIN_ID, id);
+    }
+
+    /**
+     * The super admin id, or null when none is set.
+     */
+    public String getSuperAdminID() throws GeneralSecurityException {
+        return get(SUPER_ADMIN_ID);
+    }
+
+    /**
+     * Deletes the super admin id; true if it was set. Not saved until {@link #save()}.
+     */
+    public boolean removeSuperAdminID() throws GeneralSecurityException {
+        return remove(SUPER_ADMIN_ID);
     }
 
     // ------------------------------------------------------------------
@@ -678,6 +721,8 @@ public final class SecretStore implements AutoCloseable {
                     + "  ml-dsa     alias=<a> [algo=" + CryptoConst.ML_DSA_44 + "|" + CryptoConst.ML_DSA_65 + "|" + CryptoConst.ML_DSA_87 + "] [subject=CN=..] [validity=" + DEFAULT_VALIDITY + "]\n"
                     + "  ml-kem     alias=<a> [algo=" + CryptoConst.ML_KEM_512 + "|" + CryptoConst.ML_KEM_768 + "|" + CryptoConst.ML_KEM_1024 + "] [signer=<ml-dsa alias>] [subject=CN=..] [validity=" + DEFAULT_VALIDITY + "]\n"
                     + "  secret-key alias=<a> [algo=AES] [bits=256]\n"
+                    + "\n"
+                    + "Super admin id (a username or an email address): put|get|remove name=" + SUPER_ADMIN_ID + "\n"
                     + "\n"
                     + "The store is a " + TYPE + " keystore; one password protects the file and every entry.";
 

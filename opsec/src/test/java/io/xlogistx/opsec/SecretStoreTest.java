@@ -98,6 +98,46 @@ public class SecretStoreTest {
     }
 
     @Test
+    public void superAdminID_setUpdateRemove(@TempDir Path dir) throws Exception {
+        File file = dir.resolve("vault.bcfks").toFile();
+        try (SecretStore ss = SecretStore.create(file, PW)) {
+            assertNull(ss.getSuperAdminID());
+            assertFalse(ss.removeSuperAdminID());
+            ss.setSuperAdminID("  Root@XLogistX.io ");
+            assertEquals("root@xlogistx.io", ss.getSuperAdminID(), "email is trimmed and lower-cased");
+            ss.save();
+        }
+        try (SecretStore ss = SecretStore.open(file, PW)) {
+            assertEquals("root@xlogistx.io", ss.getSuperAdminID());
+            assertEquals(SecretStore.EntryType.TEXT, ss.typeOf(SecretStore.SUPER_ADMIN_ID));
+            assertEquals("root@xlogistx.io", ss.toNVGenericMap().getValue(SecretStore.SUPER_ADMIN_ID));
+
+            // update: a username replaces the email
+            ss.setSuperAdminID("SuperAdmin");
+            assertEquals("superadmin", ss.getSuperAdminID());
+            assertEquals(1, ss.size());
+
+            // neither an email nor a username: rejected, previous value kept
+            assertThrows(IllegalArgumentException.class, () -> ss.setSuperAdminID("super admin"));
+            assertThrows(IllegalArgumentException.class, () -> ss.setSuperAdminID("root"));
+            assertThrows(NullPointerException.class, () -> ss.setSuperAdminID("   "));
+            assertThrows(IllegalArgumentException.class, () -> ss.put(SecretStore.SUPER_ADMIN_ID, "bad id@"), "put validates too");
+            assertEquals("superadmin", ss.getSuperAdminID());
+            ss.save();
+        }
+        try (SecretStore ss = SecretStore.open(file, PW)) {
+            assertEquals("superadmin", ss.getSuperAdminID());
+            assertTrue(ss.removeSuperAdminID());
+            assertNull(ss.getSuperAdminID());
+            ss.save();
+        }
+        try (SecretStore ss = SecretStore.open(file, PW)) {
+            assertNull(ss.getSuperAdminID());
+            assertEquals(0, ss.size());
+        }
+    }
+
+    @Test
     public void mlDsa_selfSigned_signsAfterReload(@TempDir Path dir) throws Exception {
         File file = dir.resolve("vault.bcfks").toFile();
         try (SecretStore ss = SecretStore.create(file, PW)) {
@@ -232,6 +272,17 @@ public class SecretStoreTest {
         assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, "store=" + store, pw, "command=remove", "name=master"));
         assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, "store=" + store, pw, "command=remove", "name=master"));
         assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, "store=" + store, "store.password=wrong", "command=list"));
+
+        // super admin id: set, update, reject, delete
+        String adminName = "name=" + SecretStore.SUPER_ADMIN_ID;
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, "store=" + store, pw, "command=put", adminName, "value=superadmin"), err.toString());
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, "store=" + store, pw, "command=put", adminName, "value=Root@XLogistX.io"), err.toString());
+        assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, "store=" + store, pw, "command=put", adminName, "value=root"), "too short for a username");
+        out.reset();
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, "store=" + store, pw, "command=get", adminName));
+        assertEquals("root@xlogistx.io", out.toString("UTF-8").trim());
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, "store=" + store, pw, "command=remove", adminName));
+        assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, "store=" + store, pw, "command=get", adminName), "deleted");
 
         try (SecretStore ss = SecretStore.open(new File(store), PW)) {
             assertEquals(Arrays.asList("db.password", "db.user", "kem", "signer"), new java.util.ArrayList<>(ss.aliases()));
