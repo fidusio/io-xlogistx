@@ -16,6 +16,7 @@
 package io.xlogistx.shiro;
 
 
+import org.zoxweb.shared.app.AppIDDefault;
 import io.xlogistx.shiro.authc.DomainUsernamePasswordToken;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.ShiroException;
@@ -56,6 +57,33 @@ public class ShiroUtil {
     public static final LogWrapper log = new LogWrapper(ShiroUtil.class);
 
     private ShiroUtil() {
+    }
+
+    /** Default name of the datastore-backed realm, {@code io.xlogistx.shiro.ds.DSAuthorizingRealm}. */
+    public static final String REALM_NAME = "shiro-ds";
+
+    /** Domain of the platform's own app: the record that owns the built-in catalog. */
+    public static final String COMMON_DOMAIN_ID = "xlogistx.com";
+    /** App id of the platform's own app: with the domain, {@code xlogistx.com-common}. */
+    public static final String COMMON_APP_ID = "common";
+    /** Scope label of the common app, the meaning of "no domain/app" in logins, grants and catalog rows. */
+    public static final String COMMON_SCOPE = SUS.toLowerCase(AppID.toDomainAppID(COMMON_DOMAIN_ID, COMMON_APP_ID));
+
+    /**
+     * The label of an app scope: the lower-cased {@code <domain>-<app>} canonical ID, or null for
+     * no app. Used in cache keys, logs and the CLI; grants are never prefixed with it.
+     */
+    public static String appScope(AppIDDefault app) {
+        return app == null ? null : SUS.toLowerCase(app.getDomainAppID());
+    }
+
+    /**
+     * The label of a scope under the platform convention: no domain/app is the common app
+     * ({@link #COMMON_SCOPE}). Used wherever a login scope, a grant scope or a catalog row's app is
+     * compared.
+     */
+    public static String scopeLabel(AppIDDefault app) {
+        return app == null ? COMMON_SCOPE : appScope(app);
     }
 
     /** Depth of {@link #runAsSystem(Supplier)} on the calling thread; absent outside the system context. */
@@ -704,7 +732,7 @@ public class ShiroUtil {
         Realm realm = getRealm(realmClass);
         // set the permission manually
         if (realm instanceof AuthorizationInfoLookup)
-            return (AuthorizationInfo) ((AuthorizationInfoLookup<AuthorizationInfo, PrincipalCollection>) realm).lookupAuthorizationInfo(pc);
+            return (AuthorizationInfo) ((AuthorizationInfoLookup<PrincipalCollection, AuthorizationInfo>) realm).lookupAuthorizationInfo(pc);
         return null;
     }
 

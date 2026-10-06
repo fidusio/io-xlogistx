@@ -4,7 +4,7 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.RuntimeUtil;
-import org.zoxweb.shared.data.RuntimeResultDAO;
+import org.zoxweb.shared.data.RuntimeResultData;
 import org.zoxweb.shared.filters.MatchPatternFilter;
 import org.zoxweb.shared.util.*;
 
@@ -24,7 +24,7 @@ public class ExecTask {
         long ts = System.currentTimeMillis();
         for(String cmd : commands)
         {
-            RuntimeResultDAO rrd =  RuntimeUtil.runAndFinish(cmd);
+            RuntimeResultData rrd =  RuntimeUtil.runAndFinish(cmd);
 
             if(rrd.getExitCode() == 0)
                 passCount++;

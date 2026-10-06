@@ -116,6 +116,62 @@ public final class SecretStore implements AutoCloseable {
     }
 
     /**
+     * The entries an application reads from its store when it starts: the master key, the super
+     * admin's identity and initial password, and the database settings. {@link #getName()} is the
+     * alias of the entry in the store; {@link #isMandatory()} says whether a store must hold it
+     * ({@link #missingMandatory()} lists the ones a store lacks).
+     */
+    public enum StoreParam implements GetName, IsMandatory {
+        /**
+         * Secret key (AES): the master key every subject key is wrapped under.
+         */
+        MASTER_KEY("master-key", true),
+        /**
+         * Text: the super admin's subject id, a username or an email address.
+         */
+        SUPER_ADMIN_ID(SecretStore.SUPER_ADMIN_ID, true),
+        /**
+         * Text: the password the super admin account is created with. It initializes the account
+         * only; the password is changed afterwards through the application.
+         */
+        SUPER_ADMIN_PASSWORD("super-admin-password", true),
+        /**
+         * Text: JDBC URL of the database. Mandatory: the store is the one place that names it.
+         */
+        DB_URL("db.url", true),
+        /**
+         * Text: database user.
+         */
+        DB_USER("db.user", false),
+        /**
+         * Text: database user's password.
+         */
+        DB_PASSWORD("db.password", false),
+        /**
+         * Text: file password of an encrypted H2 database; unused by the other databases.
+         */
+        DB_ENC_PASSWORD("db.enc-password", false),
+        ;
+        private final String name;
+        private final boolean mandatory;
+
+        StoreParam(String name, boolean mandatory) {
+            this.name = name;
+            this.mandatory = mandatory;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public boolean isMandatory() {
+            return mandatory;
+        }
+    }
+
+    /**
      * The shape BCFKS stores as a password entry; the characters come back via {@link PBEKey#getPassword()}.
      */
     private static final class TextSecret implements PBEKey {
@@ -569,6 +625,20 @@ public final class SecretStore implements AutoCloseable {
 
     public boolean contains(String alias) throws GeneralSecurityException {
         return !SUS.isEmpty(alias) && keyStore.containsAlias(alias.trim());
+    }
+
+    /**
+     * The mandatory {@link StoreParam} entries this store does not hold, in declaration order;
+     * empty when the store is complete.
+     */
+    public List<StoreParam> missingMandatory() throws GeneralSecurityException {
+        List<StoreParam> ret = new ArrayList<>();
+        for (StoreParam param : StoreParam.values()) {
+            if (param.isMandatory() && !contains(param.getName())) {
+                ret.add(param);
+            }
+        }
+        return ret;
     }
 
     /**

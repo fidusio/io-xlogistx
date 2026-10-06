@@ -28,6 +28,38 @@ public class SecretStoreTest {
     private static final char[] PW = "store-p@ss".toCharArray();
 
     @Test
+    public void storeParam_namesAndMandatoryFlags_missingMandatory() throws Exception {
+        assertEquals("master-key", SecretStore.StoreParam.MASTER_KEY.getName());
+        assertEquals(SecretStore.SUPER_ADMIN_ID, SecretStore.StoreParam.SUPER_ADMIN_ID.getName());
+        assertEquals("super-admin-password", SecretStore.StoreParam.SUPER_ADMIN_PASSWORD.getName());
+        assertEquals("db.url", SecretStore.StoreParam.DB_URL.getName());
+        assertEquals("db.user", SecretStore.StoreParam.DB_USER.getName());
+        assertEquals("db.password", SecretStore.StoreParam.DB_PASSWORD.getName());
+        assertEquals("db.enc-password", SecretStore.StoreParam.DB_ENC_PASSWORD.getName());
+        for (SecretStore.StoreParam param : SecretStore.StoreParam.values()) {
+            boolean expected = param == SecretStore.StoreParam.MASTER_KEY
+                    || param == SecretStore.StoreParam.SUPER_ADMIN_ID
+                    || param == SecretStore.StoreParam.SUPER_ADMIN_PASSWORD
+                    || param == SecretStore.StoreParam.DB_URL;
+            assertEquals(expected, param.isMandatory(), param.getName());
+        }
+
+        try (SecretStore ss = SecretStore.inMemory(PW.clone())) {
+            assertEquals(Arrays.asList(SecretStore.StoreParam.MASTER_KEY, SecretStore.StoreParam.SUPER_ADMIN_ID,
+                    SecretStore.StoreParam.SUPER_ADMIN_PASSWORD, SecretStore.StoreParam.DB_URL), ss.missingMandatory(),
+                    "an empty store lacks all four");
+            ss.put(SecretStore.StoreParam.DB_USER.getName(), "dbuser");
+            assertEquals(4, ss.missingMandatory().size(), "an optional entry changes nothing");
+            ss.createSecretKey(SecretStore.StoreParam.MASTER_KEY.getName());
+            ss.setSuperAdminID("admin.local");
+            ss.put(SecretStore.StoreParam.SUPER_ADMIN_PASSWORD.getName(), "Init-1234-aA1!");
+            assertEquals(Arrays.asList(SecretStore.StoreParam.DB_URL), ss.missingMandatory());
+            ss.put(SecretStore.StoreParam.DB_URL.getName(), "jdbc:h2:mem:x");
+            assertTrue(ss.missingMandatory().isEmpty(), "complete");
+        }
+    }
+
+    @Test
     public void textSecrets_roundTripThroughFile_andNVGenericMap(@TempDir Path dir) throws Exception {
         File file = dir.resolve("vault.bcfks").toFile();
         try (SecretStore ss = SecretStore.create(file, PW)) {

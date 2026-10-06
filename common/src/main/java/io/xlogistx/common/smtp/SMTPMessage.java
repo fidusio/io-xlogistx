@@ -1,13 +1,13 @@
 package io.xlogistx.common.smtp;
 
-import org.zoxweb.shared.data.CanonicalIDDAO;
+import org.zoxweb.shared.data.CanonicalIDImpl;
 
 import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.util.*;
 
 
 public class SMTPMessage
-        extends CanonicalIDDAO {
+        extends CanonicalIDImpl {
 
     public enum Param
             implements GetNVConfig {
@@ -45,7 +45,7 @@ public class SMTPMessage
                     SUS.extractNVConfigs(Param.values()),
                     null,
                     false,
-                    CanonicalIDDAO.NVC_CANONICAL_ID_DAO
+                    CanonicalIDImpl.NVC_CANONICAL_ID_IMPL
             );
 
 

@@ -11,7 +11,7 @@ import org.zoxweb.server.logging.LogWrapper;
 
 public class XlogistXIniRealm
 extends IniRealm
-implements AuthorizationInfoLookup<AuthorizationInfo, PrincipalCollection>
+implements AuthorizationInfoLookup<PrincipalCollection, AuthorizationInfo>
 {
     public static final LogWrapper log = new LogWrapper(XlogistXIniRealm.class).setEnabled(false);
     public AuthorizationInfo lookupAuthorizationInfo(PrincipalCollection principalCollection)
