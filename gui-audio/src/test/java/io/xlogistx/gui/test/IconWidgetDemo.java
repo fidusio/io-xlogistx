@@ -55,7 +55,8 @@ public class IconWidgetDemo {
                         labeled("Print", new IconUtil.PrintIcon(size)),
                         labeled("Pan", new IconUtil.PanIcon(size)),
                         labeled("Select", new IconUtil.SelectIcon(size)),
-                        labeled("Insert", new IconUtil.InsertIcon(size))));
+                        labeled("Insert", new IconUtil.InsertIcon(size)),
+                        labeled("PDF", new IconUtil.PDFIcon(size))));
             }
 
             // as buttons, svg icons with their own default colors
@@ -90,6 +91,7 @@ public class IconWidgetDemo {
                     GUIUtil.iconButton(new IconUtil.PrintIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.PanIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.SelectIcon(24), true),
+                    GUIUtil.iconButton(new IconUtil.PDFIcon(24), true),
                     GUIUtil.iconButton(new IconUtil.InsertIcon(24), true)));
 
             // as buttons, svg icons tinted white on their background color
@@ -120,7 +122,8 @@ public class IconWidgetDemo {
                     GUIUtil.iconButton(new IconUtil.FileIcon(24, Color.WHITE), true),
                     GUIUtil.iconButton(new IconUtil.FolderIcon(24, Color.WHITE), true),
                     GUIUtil.iconButton(new IconUtil.UndoIcon(24, Color.WHITE), true),
-                    GUIUtil.iconButton(new IconUtil.RedoIcon(24, Color.WHITE), true)));
+                    GUIUtil.iconButton(new IconUtil.RedoIcon(24, Color.WHITE), true),
+                    GUIUtil.iconButton(new IconUtil.PDFIcon(24, Color.WHITE), true)));
 
             frame.pack();
             frame.setLocationRelativeTo(null);

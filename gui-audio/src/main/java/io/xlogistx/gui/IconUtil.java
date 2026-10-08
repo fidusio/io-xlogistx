@@ -10,8 +10,11 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntFunction;
 
 /**
  * Icon library for the io.xlogistx GUI components.
@@ -26,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *       {@link CheckIcon}, {@link AlertIcon}, {@link ErrorIcon}, {@link QuestionIcon},
  *       {@link FileIcon}, {@link FolderIcon}, {@link UndoIcon}, {@link RedoIcon},
  *       {@link PrintIcon}, {@link PanIcon}, {@link SelectIcon}, {@link InsertIcon},
- *       {@link SVGIcon}) and the
+ *       {@link PDFIcon}, {@link SVGIcon}) and the
  *       {@link #svgIcon(String, int)} / {@link #svgIcon(String, int, Color)} factories</li>
  *   <li>Look-and-feel icon shortcuts ({@link #TreePlusIcon()}, {@link #TreeMinusIcon()})</li>
  * </ul>
@@ -917,6 +920,33 @@ public class IconUtil {
     }
 
     /**
+     * PDF (dog-eared page with "PDF" lettering) icon rendered from the bundled
+     * {@code pdf.svg} classpath resource. Marks PDF documents and PDF export actions;
+     * distinct from {@link FileIcon} (plain document).
+     */
+    public static class PDFIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square pdf icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public PDFIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/pdf.svg");
+        }
+
+        /**
+         * Creates a square pdf icon tinted with the given color on a red background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public PDFIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue(), "io/xlogistx/gui/icons/pdf.svg");
+        }
+    }
+
+    /**
      * Redo (arrow hooking back to the right) icon rendered from the bundled {@code redo.svg}
      * classpath resource; the mirror of {@link UndoIcon}. Distinct from {@link RefreshIcon},
      * whose full circle reads as "reload".
@@ -1073,5 +1103,108 @@ public class IconUtil {
      */
     public static SVGIcon svgIcon(String resource, int size, Color color) {
         return new SVGIcon(resource, size, color);
+    }
+
+    /**
+     * Rasterizes an icon into a transparent image of the icon's own size, e.g. to use a
+     * {@link SVGIconWidget} as a window icon or drag image. The icon is painted against a
+     * throwaway component, so tinted widgets that recolor their host work as well.
+     *
+     * @param icon the icon to paint
+     * @return a new ARGB image holding the painted icon
+     */
+    public static BufferedImage toImage(Icon icon) {
+        BufferedImage image = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        icon.paintIcon(new JPanel(), g, 0, 0);
+        g.dispose();
+        return image;
+    }
+
+    /**
+     * Rasterizes an icon as a badge: a filled rounded square of {@code background} with the
+     * icon's glyph recolored to {@code glyph} and centered on it at about three quarters of
+     * the badge size. Thin outline icons that vanish at 16 px in a title bar or task bar
+     * become a solid, recognizable tile this way. The colors are applied verbatim on every
+     * platform (no macOS swap).
+     *
+     * @param icon       the icon whose glyph (alpha) is used; its own colors are ignored
+     * @param glyph      glyph color
+     * @param background badge fill color
+     * @param size       badge width and height in pixels
+     * @return a new ARGB image holding the badge
+     */
+    public static BufferedImage badgeImage(Icon icon, Color glyph, Color background, int size) {
+        BufferedImage mask = toImage(icon);
+        Graphics2D mg = mask.createGraphics();
+        mg.setComposite(AlphaComposite.SrcIn);
+        mg.setColor(glyph);
+        mg.fillRect(0, 0, mask.getWidth(), mask.getHeight());
+        mg.dispose();
+
+        BufferedImage badge = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = badge.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        int arc = Math.max(2, size / 4);
+        g.setColor(background);
+        g.fillRoundRect(0, 0, size, size, arc, arc);
+        int inner = Math.max(1, Math.round(size * 0.78f));
+        int offset = (size - inner) / 2;
+        g.drawImage(mask, offset, offset, inner, inner, null);
+        g.dispose();
+        return badge;
+    }
+
+    /** Default pixel sizes for {@link #windowIcons}: title bar, task bar, switcher and dock. */
+    private static final int[] WINDOW_ICON_SIZES = {16, 24, 32, 48, 64, 128};
+
+    /**
+     * Builds the multi-resolution image list expected by
+     * {@link java.awt.Window#setIconImages(List)} from one icon type, so the window
+     * manager can pick a sharp image for the title bar, task bar and alt-tab switcher.
+     * The icon is rendered with its own colors; for a solid tile use
+     * {@link #windowIcons(IntFunction, Color, Color, int...)}.
+     * <pre>
+     * frame.setIconImages(IconUtil.windowIcons(IconUtil.PDFIcon::new));
+     * </pre>
+     *
+     * @param factory creates the icon at a given pixel size, typically a size-only constructor
+     * @param sizes   pixel sizes to render; defaults to 16, 24, 32, 48, 64 and 128 when empty
+     * @return the rendered images, one per size
+     */
+    public static List<Image> windowIcons(IntFunction<? extends Icon> factory, int... sizes) {
+        if (sizes == null || sizes.length == 0)
+            sizes = WINDOW_ICON_SIZES;
+        List<Image> images = new ArrayList<>(sizes.length);
+        for (int size : sizes)
+            images.add(toImage(factory.apply(size)));
+        return images;
+    }
+
+    /**
+     * Builds the multi-resolution image list expected by
+     * {@link java.awt.Window#setIconImages(List)} as badges (see
+     * {@link #badgeImage(Icon, Color, Color, int)}): the icon's glyph in {@code glyph} on a
+     * filled rounded square of {@code background}.
+     * <pre>
+     * frame.setIconImages(IconUtil.windowIcons(IconUtil.PDFIcon::new, Color.WHITE, NVColor.BOOTSTRAP_RED.getValue()));
+     * </pre>
+     *
+     * @param factory    creates the icon at a given pixel size, typically a size-only constructor
+     * @param glyph      glyph color
+     * @param background badge fill color
+     * @param sizes      pixel sizes to render; defaults to 16, 24, 32, 48, 64 and 128 when empty
+     * @return the rendered badges, one per size
+     */
+    public static List<Image> windowIcons(IntFunction<? extends Icon> factory, Color glyph, Color background, int... sizes) {
+        if (sizes == null || sizes.length == 0)
+            sizes = WINDOW_ICON_SIZES;
+        List<Image> images = new ArrayList<>(sizes.length);
+        for (int size : sizes)
+            images.add(badgeImage(factory.apply(size), glyph, background, size));
+        return images;
     }
 }

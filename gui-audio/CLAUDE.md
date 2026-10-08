@@ -13,7 +13,7 @@ The package has these groups:
      `NextIcon`, `RollbackIcon`, `VisibleIcon`, `InvisibleIcon`, `CopyIcon`, `SearchIcon`,
      `RefreshIcon`, `InfoIcon`, `RunIcon`, `StopIcon`, `PauseIcon`, `CheckIcon`, `AlertIcon`,
      `ErrorIcon`, `QuestionIcon`, `FileIcon`, `FolderIcon`, `UndoIcon`, `RedoIcon`, `PrintIcon`,
-     `PanIcon`, `SelectIcon`, `InsertIcon`,
+     `PanIcon`, `SelectIcon`, `InsertIcon`, `PDFIcon`,
      generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
      ones share the `SVGIconWidget` base. **SVG icon constructor contract**:
      `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
@@ -73,8 +73,11 @@ The package has these groups:
   the source (Swing's HTML kit has no data-URI images).
 - `PDFViewerPanel` — PDFBox-backed Swing viewer (details below).
 - `PDFViewerApp` — standalone application (main class) around `PDFViewerPanel`:
-  `PDFViewerApp [file.pdf | file.md]`, starts empty without an argument; title follows
-  file/page/modified state, window close goes through `confirmDiscard()` then exits the JVM.
+  `PDFViewerApp [file.pdf | file.md | image.png]`, starts empty without an argument; title
+  follows file/page/modified state, window close goes through `confirmDiscard()` then exits
+  the JVM. Window icon = `IconUtil.windowIcons(IconUtil.PDFIcon::new, Color.WHITE,
+  NVColor.BOOTSTRAP_RED.getValue())` — the badge form, because the thin grey outline is an
+  unreadable smudge at the 16 px Windows title bar renders.
   The test-side `PDFViewerDemo` is the same window pre-loaded with a generated sample.
 
 #### MermaidRenderer
@@ -138,9 +141,16 @@ the fixed gaps between pages do not scale. Zoom modes `CUSTOM`/`FIT_WIDTH`/`FIT_
 (e.g. a search `Match`).
 
 **Lifecycle.** `setPDF(bytes|File|InputStream)` parses off the EDT via `BackgroundTask`; a
-`.md`/`.markdown` `File` is converted with `MDToPDF` first (`markdownToPDF`, images relative
-to the file), `getFile()` keeps naming the `.md`, `saveAs` pre-fills the sibling `.pdf`
-(`pdfSibling`) and `save` never treats a Markdown origin as the lazily-read source;
+`File` goes through `loadSource`: a `.md`/`.markdown` is converted with `MDToPDF` first
+(`markdownToPDF`, images relative to the file), an image (`IMAGE_EXTENSIONS`: png, jpg,
+jpeg, gif, bmp) becomes a one-page document via the public static `imageToPDF(File)` (A4,
+portrait if taller than wide else landscape, image centered inside `IMAGE_MARGIN` = 36 pt,
+scaled down to fit and never up; JPEG embedded as DCT via `JPEGFactory`, everything else
+decoded with ImageIO, normalized to (A)RGB and stored with `LosslessFactory` — do not hand
+the decoded image straight to PDFBox: a two-color palette GIF/PNG is then embedded as 1-bit
+gray and loses its color). For both converted kinds (`isConverted`) `getFile()` keeps naming
+the source, `saveAs` pre-fills the sibling `.pdf` (`pdfSibling`) and `save` never treats the
+origin as the lazily-read source;
 `setDocument(doc, owns)` is synchronous; both go through `install(doc, owns, file)`.
 `close()` is idempotent, clears highlights/selection, and the panel is reusable. Page
 indexes are **zero-based** in the API, one-based in the toolbar.
@@ -182,11 +192,17 @@ zooms one step at the pointer. Keys (WHEN_ANCESTOR bindings on the panel, so the
 work with focus in the toolbar fields): PgUp/PgDn scroll a screen (`scrollBy`),
 Ctrl+PgUp/PgDn jump pages, Ctrl+Home/End first/last page, Ctrl +/−, Ctrl+0 fit width,
 Ctrl+A/Ctrl+C select all/copy, Esc clears the selection else returns to `PAN`; Ctrl+wheel
-zooms around the pointer.
+zooms around the pointer. The wheel listener sits on the pages panel, and a component with
+a wheel listener never lets wheel events bubble to the enclosing `JScrollPane`
+(`Component.dispatchMouseWheelToAncestor` runs only for listener-less components), so the
+listener forwards every plain wheel event to `scrollPane.dispatchEvent(...)` itself — remove
+that and the wheel only scrolls with the pointer over the scroll bar
+(`mouseWheelOverThePagesScrollsAndCtrlWheelZooms` guards it).
 
-**File/print.** Open (`openFile()` → shared `JFileChooser` (`fileChooser(markdownToo)`:
-PDF-only or PDF+Markdown filter; read the selection before switching filters, a filter
-change clears it) → `setPDF(File)`;
+**File/print.** Open (`openFile()` → shared `JFileChooser` (`fileChooser(allSources)`:
+PDF-only filter for saving, or the PDF+Markdown+images `sourceFilter` for opening and
+inserting; read the selection before switching filters, a filter change clears it) →
+`setPDF(File)`;
 `getFile()` remembers the origin, null for byte/stream documents). Save (`saveAs()`,
 `save(File)`: `PDDocument.save` to a temp file off the EDT, then moved into place; saving
 **over the source file** closes, replaces and reloads the document because PDFBox reads
@@ -194,8 +210,9 @@ lazily from the source — never `save` straight onto it). Print (`print()`: `Pr
 dialog on the EDT, `job.print()` off the EDT; `createPageable()` wraps PDFBox
 `PDFPageable` so every page prints under `docLock`; it is a snapshot guarded by the
 `edits` counter, so after `close()` or any insert/delete it reports `NO_SUCH_PAGE` — hosts
-create a fresh one after edits). Insert (`insertDialog()` → file chooser accepting `*.pdf` **and** `*.md`
-(Markdown is converted with `MDToPDF` first) + position dialog; `insertPDF(file, index)`
+create a fresh one after edits). Insert (`insertDialog()` → file chooser accepting `*.pdf`, `*.md` and images
+(Markdown is converted with `MDToPDF`, an image wrapped in one page by `imageToPDF`, both
+through `loadSource`) + position dialog; `insertPDF(file, index)`
 async, `insertDocument(doc, index)` sync primitive; index 0 = beginning, page count = end,
 n = after page n. `mergeInto` = `PDFMergerUtility.appendDocument` (deep copy, source may
 be closed) then `PDPageTree.remove` + `insertBefore` to move the appended pages into
@@ -302,7 +319,8 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
   `PDFViewerPanel` showing the `MDToPDF` output (right, regenerated off the EDT 500 ms
   after the last keystroke, current page preserved)
 - `PDFViewerDemo` — standalone `PDFViewerPanel` window; `PDFViewerDemo [file.pdf]`,
-  without an argument it shows a generated multi-page sample (use the Open button)
+  without an argument it shows a generated multi-page sample (Open/Insert accept PDF,
+  Markdown and PNG/JPEG/GIF/BMP files)
 - `MDViewerOverrideCheck` — windowless assertion run for
   `MDViewerPanel.overrideScrollPane(...)`; exits 0 on success
 

@@ -3,6 +3,10 @@ package io.xlogistx.gui;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDPageTree;
@@ -24,6 +28,7 @@ import org.apache.pdfbox.text.TextPosition;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.util.SUS;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -105,8 +110,9 @@ import java.util.function.Consumer;
  * programmatic forms.
  *
  * <h2>Merging</h2>
- * {@link #insertPDF(File, int)} merges another PDF, or a Markdown file converted
- * through {@link MDToPDF}, into the current document at a page index (0 = at the
+ * {@link #insertPDF(File, int)} merges another PDF, a Markdown file converted
+ * through {@link MDToPDF}, or an image file wrapped in one page by
+ * {@link #imageToPDF(File)}, into the current document at a page index (0 = at the
  * beginning, page count = at the end, n = after page n); {@link #insertDialog()}
  * asks for the file and the position (toolbar "Insert" button). Merging marks
  * the document {@linkplain #isModified() modified}; {@link #confirmDiscard()}
@@ -393,13 +399,14 @@ public class PDFViewerPanel extends JPanel {
     /**
      * Parses the PDF file off the EDT and shows the document once ready.
      *
-     * @param pdf the PDF file, never null
+     * @param pdf the PDF file, never null; a {@code .md}/{@code .markdown} file is
+     *            converted with {@link MDToPDF} first, an image file
+     *            ({@code .png}, {@code .jpg}, {@code .jpeg}, {@code .gif}, {@code .bmp})
+     *            becomes a one-page document (see {@link #imageToPDF(File)})
      */
     public void setPDF(File pdf) {
         SUS.checkIfNull("pdf null", pdf);
-        BackgroundTask.run(this, null,
-                () -> isMarkdown(pdf) ? Loader.loadPDF(markdownToPDF(pdf)) : Loader.loadPDF(pdf),
-                doc -> install(doc, true, pdf));
+        BackgroundTask.run(this, null, () -> loadSource(pdf), doc -> install(doc, true, pdf));
     }
 
     /**
@@ -522,8 +529,9 @@ public class PDFViewerPanel extends JPanel {
      * the first inserted page. With no document loaded the file is simply opened.
      * Error dialog on failure. Must be called on the EDT.
      *
-     * @param source a {@code .pdf} file, or a {@code .md}/{@code .markdown} file
-     *               converted with {@link MDToPDF} first; never null
+     * @param source a {@code .pdf} file, a {@code .md}/{@code .markdown} file
+     *               converted with {@link MDToPDF} first, or an image file turned
+     *               into one page with {@link #imageToPDF(File)}; never null
      * @param index  0 = at the beginning, {@link #getPageCount()} = at the end,
      *               n = after page n (one-based); clamped to that range
      */
@@ -535,7 +543,7 @@ public class PDFViewerPanel extends JPanel {
         }
         final int at = Math.max(0, Math.min(pages.size(), index));
         BackgroundTask.run(this, insertButton, () -> {
-            try (PDDocument src = isMarkdown(source) ? Loader.loadPDF(markdownToPDF(source)) : Loader.loadPDF(source)) {
+            try (PDDocument src = loadSource(source)) {
                 return mergeInto(src, at);
             }
         }, added -> refreshPages(at, added));
@@ -709,6 +717,19 @@ public class PDFViewerPanel extends JPanel {
         }
     }
 
+    /**
+     * Parses a source file into a document: a PDF as is, a Markdown file through
+     * {@link #markdownToPDF(File)}, an image through {@link #imageToPDF(File)}.
+     * Off the EDT.
+     */
+    private static PDDocument loadSource(File f) throws IOException {
+        if (isMarkdown(f))
+            return Loader.loadPDF(markdownToPDF(f));
+        if (isImage(f))
+            return imageToPDF(f);
+        return Loader.loadPDF(f);
+    }
+
     /** Converts a Markdown file with {@link MDToPDF}, resolving relative images against its directory. */
     private static byte[] markdownToPDF(File md) throws IOException {
         File dir = md.getAbsoluteFile().getParentFile();
@@ -716,9 +737,82 @@ public class PDFViewerPanel extends JPanel {
         return MDToPDF.mdToPDF(IOUtil.inputStreamToString(md), baseUri, null).toByteArray();
     }
 
+    /** Page margin around an inserted image, in points (half an inch). */
+    static final float IMAGE_MARGIN = 36f;
+
+    /**
+     * Wraps an image file in a new one-page document. The page is A4, portrait for
+     * an image taller than wide and landscape otherwise; the image is centered and
+     * scaled down to fit inside {@link #IMAGE_MARGIN} margins, never scaled up
+     * (one pixel = one point at most). JPEGs keep their compressed data; other
+     * formats are decoded, converted to (A)RGB and stored losslessly (a palette
+     * image with two colors would otherwise be embedded as 1-bit gray by PDFBox).
+     * The caller owns and closes the document.
+     *
+     * @param image a {@code .png}, {@code .jpg}, {@code .jpeg}, {@code .gif} or {@code .bmp} file
+     * @return a new document with one page showing the image
+     * @throws IOException if the file cannot be read or decoded
+     */
+    public static PDDocument imageToPDF(File image) throws IOException {
+        SUS.checkIfNull("image null", image);
+        PDDocument doc = new PDDocument();
+        try {
+            PDImageXObject img = embedImage(image, doc);
+            boolean portrait = img.getHeight() >= img.getWidth();
+            PDRectangle size = portrait ? PDRectangle.A4
+                    : new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth());
+            PDPage page = new PDPage(size);
+            doc.addPage(page);
+            float maxW = size.getWidth() - 2 * IMAGE_MARGIN;
+            float maxH = size.getHeight() - 2 * IMAGE_MARGIN;
+            float scale = Math.min(1f, Math.min(maxW / img.getWidth(), maxH / img.getHeight()));
+            float w = img.getWidth() * scale;
+            float h = img.getHeight() * scale;
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                cs.drawImage(img, (size.getWidth() - w) / 2, (size.getHeight() - h) / 2, w, h);
+            }
+            return doc;
+        } catch (IOException | RuntimeException e) {
+            doc.close();
+            throw e;
+        }
+    }
+
+    /** JPEG as is (DCT), everything else decoded with ImageIO, normalized to (A)RGB and stored losslessly. */
+    private static PDImageXObject embedImage(File image, PDDocument doc) throws IOException {
+        String n = image.getName().toLowerCase();
+        if (n.endsWith(".jpg") || n.endsWith(".jpeg"))
+            return JPEGFactory.createFromStream(doc, Files.newInputStream(image.toPath()));
+        BufferedImage decoded = ImageIO.read(image);
+        if (decoded == null)
+            throw new IOException("unsupported or corrupt image: " + image.getName());
+        int type = decoded.getColorModel().hasAlpha() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB;
+        BufferedImage rgb = new BufferedImage(decoded.getWidth(), decoded.getHeight(), type);
+        Graphics2D g = rgb.createGraphics();
+        g.drawImage(decoded, 0, 0, null);
+        g.dispose();
+        return LosslessFactory.createFromImage(doc, rgb);
+    }
+
     private static boolean isMarkdown(File f) {
         String n = f.getName().toLowerCase();
         return n.endsWith(".md") || n.endsWith(".markdown");
+    }
+
+    /** Image extensions accepted by {@link #imageToPDF(File)} and the file choosers. */
+    private static final String[] IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "bmp"};
+
+    private static boolean isImage(File f) {
+        String n = f.getName().toLowerCase();
+        for (String ext : IMAGE_EXTENSIONS)
+            if (n.endsWith("." + ext))
+                return true;
+        return false;
+    }
+
+    /** True for a source that is converted on load (Markdown or image), so saving never targets it. */
+    private static boolean isConverted(File f) {
+        return isMarkdown(f) || isImage(f);
     }
 
     /** Appends {@code source} to the document and moves the new pages to {@code at}. Under docLock. */
@@ -789,7 +883,7 @@ public class PDFViewerPanel extends JPanel {
      */
     public File insertDialog() {
         JFileChooser fc = fileChooser(true);
-        fc.setDialogTitle("Insert PDF or Markdown");
+        fc.setDialogTitle("Insert PDF, Markdown or image");
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return null;
         File f = fc.getSelectedFile();
@@ -828,7 +922,8 @@ public class PDFViewerPanel extends JPanel {
     }
 
     /**
-     * Shows a PDF file chooser and loads the selected file via {@link #setPDF(File)}.
+     * Shows a file chooser (PDF, Markdown, images) and loads the selected file via
+     * {@link #setPDF(File)}.
      *
      * @return the chosen file, or null if the dialog was cancelled
      */
@@ -836,7 +931,7 @@ public class PDFViewerPanel extends JPanel {
         if (!confirmDiscard())
             return null;
         JFileChooser fc = fileChooser(true);
-        fc.setDialogTitle("Open PDF or Markdown");
+        fc.setDialogTitle("Open PDF, Markdown or image");
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return null;
         File f = fc.getSelectedFile();
@@ -892,7 +987,7 @@ public class PDFViewerPanel extends JPanel {
         SUS.checkIfNull("target null", target);
         if (getDocument() == null)
             return;
-        final boolean overSource = currentFile != null && !isMarkdown(currentFile)
+        final boolean overSource = currentFile != null && !isConverted(currentFile)
                 && target.getAbsoluteFile().equals(currentFile.getAbsoluteFile());
         final int page = currentPage;
         BackgroundTask.run(this, saveButton, () -> {
@@ -1008,30 +1103,35 @@ public class PDFViewerPanel extends JPanel {
     }
 
     private FileNameExtensionFilter pdfFilter;
-    private FileNameExtensionFilter pdfOrMarkdownFilter;
+    private FileNameExtensionFilter sourceFilter;
 
     /**
-     * The shared chooser, with the PDF-only or the PDF-and-Markdown filter active.
-     * Callers must read the selected file before switching the filter again, as
-     * changing the active filter clears the chooser's selection.
+     * The shared chooser, with the PDF-only filter (saving) or the all-sources filter
+     * (PDF, Markdown and images; opening and inserting) active. Callers must read the
+     * selected file before switching the filter again, as changing the active filter
+     * clears the chooser's selection.
      */
-    private JFileChooser fileChooser(boolean markdownToo) {
+    private JFileChooser fileChooser(boolean allSources) {
         if (fileChooser == null) {
             fileChooser = new JFileChooser();
             pdfFilter = new FileNameExtensionFilter("PDF files (*.pdf)", "pdf");
-            pdfOrMarkdownFilter = new FileNameExtensionFilter("PDF and Markdown files (*.pdf, *.md)", "pdf", "md", "markdown");
+            List<String> exts = new ArrayList<>(java.util.Arrays.asList("pdf", "md", "markdown"));
+            exts.addAll(java.util.Arrays.asList(IMAGE_EXTENSIONS));
+            sourceFilter = new FileNameExtensionFilter(
+                    "PDF, Markdown and image files (*.pdf, *.md, *.png, *.jpg, *.gif, *.bmp)",
+                    exts.toArray(new String[0]));
             fileChooser.addChoosableFileFilter(pdfFilter);
-            fileChooser.addChoosableFileFilter(pdfOrMarkdownFilter);
+            fileChooser.addChoosableFileFilter(sourceFilter);
         }
-        fileChooser.setFileFilter(markdownToo ? pdfOrMarkdownFilter : pdfFilter);
+        fileChooser.setFileFilter(allSources ? sourceFilter : pdfFilter);
         if (currentFile != null)
             fileChooser.setCurrentDirectory(currentFile.getAbsoluteFile().getParentFile());
         return fileChooser;
     }
 
-    /** {@code x.md} → {@code x.pdf} in the same directory; a {@code .pdf} is returned as is. */
+    /** {@code x.md} / {@code x.png} → {@code x.pdf} in the same directory; a {@code .pdf} is returned as is. */
     private static File pdfSibling(File f) {
-        if (!isMarkdown(f))
+        if (!isConverted(f))
             return f;
         String name = f.getName();
         int dot = name.lastIndexOf('.');
@@ -1920,7 +2020,7 @@ public class PDFViewerPanel extends JPanel {
         printButton.addActionListener(e -> print());
         tb.add(printButton);
         insertButton = GUIUtil.iconButton(new IconUtil.InsertIcon(16));
-        insertButton.setToolTipText("Insert a PDF or Markdown file at the beginning, the end or after a page");
+        insertButton.setToolTipText("Insert a PDF, Markdown or image file at the beginning, the end or after a page");
         insertButton.addActionListener(e -> insertDialog());
         tb.add(insertButton);
         deleteButton = GUIUtil.iconButton(new IconUtil.DeleteIcon(16));
@@ -2137,10 +2237,16 @@ public class PDFViewerPanel extends JPanel {
                 setTool(Tool.PAN);
         });
 
-        // ctrl+wheel zooms around the pointer; plain wheel is left to the scroll pane
+        // ctrl+wheel zooms around the pointer; a plain wheel scrolls. The scroll pane only
+        // sees wheel events that bubble up from components WITHOUT wheel listeners
+        // (Component.dispatchMouseWheelToAncestor), and the pages panel has this one, so
+        // plain events are handed to the scroll pane explicitly or nothing scrolls unless
+        // the pointer is over the scroll bar itself.
         pagesPanel.addMouseWheelListener(e -> {
-            if (!e.isControlDown())
+            if (!e.isControlDown()) {
+                scrollPane.dispatchEvent(SwingUtilities.convertMouseEvent(pagesPanel, e, scrollPane));
                 return;
+            }
             e.consume();
             if (pages.isEmpty())
                 return;

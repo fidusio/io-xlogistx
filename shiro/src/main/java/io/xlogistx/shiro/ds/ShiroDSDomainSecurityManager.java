@@ -97,7 +97,13 @@ import java.util.logging.Level;
  * through its self permission, or a grantee whose share carries {@code share}), and a catalog grant
  * scoped to a resource is also open to the global assign permission. Revoking a scoped grant deletes
  * the grant and its map row; revocation is open to the grantor, a {@code share} holder on the
- * resource, and holders of the global remove permission.</p>
+ * resource, and holders of the global remove permission.
+ * Share rules (user decision 2026-10-06, inlined shares only; catalog-scoped grants are unchanged):
+ * one share per grantee per resource; the owner changes a share in place
+ * ({@link #updatePermissionGrant(PermissionGrant, String)}) and is the only one who may; a sharer
+ * who is not the owner gives only {@code read} or {@code read,share}; revoking a share, or
+ * taking {@code share} out of it, revokes what the grantee issued on the resource, recursively,
+ * in the same transaction. No key row is touched by any of it.</p>
  *
  * <p><b>Wiring.</b> Two modes. <i>Self-managed</i>: {@link #ShiroDSDomainSecurityManager(APIDataStore)}
  * builds its own {@link ShiroSecurityManager} with one {@link DSAuthorizingRealm};
@@ -1586,11 +1592,79 @@ public class ShiroDSDomainSecurityManager
         if (caller == null) {
             return false;
         }
-        if (resource.getSubjectGUID() != null
-                && ShiroUtil.isPermitted(subject, SecurityModel.toResourceToken(resource.getSubjectGUID(), caller, verb))) {
+        if (ownsResource(resource, verb)) {
             return true;
         }
         return ShiroUtil.isPermitted(subject, SecurityModel.toResourceToken(resource.getGUID(), caller, verb));
+    }
+
+    /**
+     * The owner half of {@link #holdsResource}: the bound subject holds {@code verb} through the
+     * resource's owner token {@code resource:<owner>:<caller>:<verb>} (the self permission when the
+     * caller is the owner, or a wildcard holder). A grantee's share never satisfies it. Never throws.
+     */
+    private static boolean ownsResource(NVEntity resource, String verb) {
+        Subject subject = boundSubject();
+        if (subject == null || !subject.isAuthenticated() || resource == null || resource.getSubjectGUID() == null) {
+            return false;
+        }
+        String caller = DSAuthorizingRealm.subjectGUIDOf(subject.getPrincipals());
+        return caller != null
+                && ShiroUtil.isPermitted(subject, SecurityModel.toResourceToken(resource.getSubjectGUID(), caller, verb));
+    }
+
+    /** The verbs of a stored {@code resource:<verbs>} token (normalized by the filter), empty for null. */
+    private static Set<String> verbsOf(String resourceToken) {
+        Set<String> ret = new LinkedHashSet<>();
+        if (SUS.isEmpty(resourceToken)) {
+            return ret;
+        }
+        String[] parts = resourceToken.split(SecurityModel.PART_SEP, -1);
+        if (parts.length == 2) {
+            for (String verb : parts[1].split(SecurityModel.SUBPART_SEP, -1)) {
+                if (!verb.trim().isEmpty()) {
+                    ret.add(verb.trim());
+                }
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Sharing rule (user decision 2026-10-06): a sharer who is not the owner may hand out only
+     * {@code read} or {@code read,share}; {@code update} and {@code delete} come from the owner
+     * alone. No-op unless enforcement is on; called after {@link #enforceGrantOnResource}, so the
+     * caller is known to hold {@code share} on the resource.
+     */
+    private void enforceSharerVerbs(NVEntity resource, String inlinedToken) {
+        if (!enforcePermissions || ownsResource(resource, SecurityModel.SHARE)) {
+            return;
+        }
+        Set<String> verbs = verbsOf(inlinedToken);
+        verbs.remove(SecurityModel.READ);
+        verbs.remove(SecurityModel.SHARE);
+        if (!verbs.isEmpty()) {
+            throw new AccessSecurityException("Not permitted to share " + resource.getGUID() + " with " + verbs
+                    + ": a sharer who is not the owner may give only " + SecurityModel.READ + " or "
+                    + SecurityModel.READ + SecurityModel.SUBPART_SEP + SecurityModel.SHARE, Reason.UNAUTHORIZED);
+        }
+    }
+
+    /**
+     * Who may change a share (user decision 2026-10-06): the owner only, through the owner token;
+     * a grantee's {@code share} does not qualify. No-op unless enforcement is on.
+     */
+    private void enforceOwnerChange(NVEntity resource) {
+        if (!enforcePermissions) {
+            return;
+        }
+        if (currentSubjectGUID() == null) {
+            throw new AccessSecurityException("Authentication required to change a share on " + resource.getGUID(), Reason.UNAUTHORIZED);
+        }
+        if (!ownsResource(resource, SecurityModel.SHARE)) {
+            throw new AccessSecurityException("Not permitted to change a share on " + resource.getGUID()
+                    + " (owner only)", Reason.UNAUTHORIZED);
+        }
     }
 
     /**
@@ -2415,7 +2489,60 @@ public class ShiroDSDomainSecurityManager
         grant.validateShape();
         NVEntity res = loadResource(resource);
         enforceGrantOnResource(res, true);
-        return insertGrant(grant);
+        enforceSharerVerbs(res, grant.getPermissionToken());
+        return inTransaction(() -> {
+            PermissionGrant existing = inlinedShareOf(subject.getGUID(), res.getGUID());
+            if (existing != null) {
+                throw new IllegalArgumentException("Subject " + subject.getGUID() + " already holds share " + existing.getGUID()
+                        + " (" + existing.getPermissionToken() + ") on " + res.getGUID()
+                        + ": one share per grantee per resource; the owner changes it with updatePermissionGrant");
+            }
+            return insertGrant(grant);
+        });
+    }
+
+    /**
+     * Changes an inlined share in place (user decision 2026-10-06): the grant keeps its GUID,
+     * grantee, resource and grantor; only {@code permission_token} changes. Owner only under
+     * enforcement. When the new token drops {@code share}, the shares the grantee issued on the
+     * resource are revoked recursively in the same transaction. Catalog-scoped grants are not
+     * shares and are refused. No key row is touched.
+     */
+    @Override
+    public PermissionGrant updatePermissionGrant(PermissionGrant permissionGrant, String permissionToken) {
+        SUS.checkIfNulls("grant can't be null", permissionGrant);
+        if (SUS.isEmpty(permissionGrant.getGUID())) {
+            throw new IllegalArgumentException("grant GUID required");
+        }
+        if (SUS.isEmpty(permissionToken)) {
+            throw new IllegalArgumentException("permission token required for an inlined grant");
+        }
+        PermissionGrant stored = first(ds().searchByID(PermissionGrant.NVC_PERMISSION_GRANT, permissionGrant.getGUID()));
+        if (stored == null) {
+            throw new IllegalArgumentException("Unknown grant " + permissionGrant.getGUID());
+        }
+        if (SUS.isEmpty(stored.getPermissionToken()) || stored.getResourceMap() == null) {
+            throw new IllegalArgumentException("Grant " + stored.getGUID() + " is not an inlined share; only a share can be changed in place");
+        }
+        String token = SecurityModel.ResourcePermissionTokenFilter.SINGLETON.validate(permissionToken);
+        NVEntity res = loadResource(stored.getResourceMap());
+        enforceOwnerChange(res);
+        boolean dropsShare = verbsOf(stored.getPermissionToken()).contains(SecurityModel.SHARE)
+                && !verbsOf(token).contains(SecurityModel.SHARE);
+        stored.setPermissionToken(token);
+        Set<String> evicted = new LinkedHashSet<>();
+        PermissionGrant ret = inTransaction(() -> {
+            PermissionGrant updated = ds().update(stored);
+            if (dropsShare) {
+                revokeIssuedShares(res.getGUID(), stored.getSubjectGUID(), evicted, new HashSet<>());
+            }
+            return updated;
+        });
+        evicted.add(stored.getSubjectGUID());
+        for (String guid : evicted) {
+            realm.evictAuthorization(guid);
+        }
+        return ret;
     }
 
     /**
@@ -2432,7 +2559,52 @@ public class ShiroDSDomainSecurityManager
             return false;
         }
         enforceRevoke(stored);
-        return deleteGrantAndMap(stored);
+        if (SUS.isEmpty(stored.getPermissionToken()) || stored.getResourceMap() == null) {
+            return deleteGrantAndMap(stored);
+        }
+        // an inlined share: revoking it revokes what the grantee handed out on the resource (user decision 2026-10-06)
+        Set<String> evicted = new LinkedHashSet<>();
+        String resourceGUID = stored.getResourceMap().getResourceGUID();
+        boolean ret = inTransaction(() -> {
+            boolean deleted = deleteGrantRows(stored);
+            revokeIssuedShares(resourceGUID, stored.getSubjectGUID(), evicted, new HashSet<>());
+            return deleted;
+        });
+        evicted.add(stored.getSubjectGUID());
+        for (String guid : evicted) {
+            realm.evictAuthorization(guid);
+        }
+        return ret;
+    }
+
+    /**
+     * Cascade of a revoke or of a lost {@code share} (user decision 2026-10-06): every inlined share
+     * on {@code resourceGUID} issued by {@code brokerGUID} is revoked, and first what its grantee
+     * issued in turn. Catalog-scoped grants are left alone. Runs inside the caller's transaction;
+     * the grantees are collected in {@code evicted} for the caller to evict after the commit.
+     * {@code visited} guards against cycles in pre-rule data.
+     */
+    private void revokeIssuedShares(String resourceGUID, String brokerGUID, Set<String> evicted, Set<String> visited) {
+        if (SUS.isEmpty(resourceGUID) || SUS.isEmpty(brokerGUID) || !visited.add(brokerGUID)) {
+            return;
+        }
+        for (PermissionGrant g : getPermissionGrantsByResource(resourceGUID)) {
+            if (!SUS.isEmpty(g.getPermissionToken()) && brokerGUID.equals(g.getBrokerGUID())) {
+                revokeIssuedShares(resourceGUID, g.getSubjectGUID(), evicted, visited);
+                deleteGrantRows(g);
+                evicted.add(g.getSubjectGUID());
+            }
+        }
+    }
+
+    /** The inlined share {@code granteeGUID} holds on {@code resourceGUID}, or null (one per grantee per resource). */
+    private PermissionGrant inlinedShareOf(String granteeGUID, String resourceGUID) {
+        for (PermissionGrant g : getPermissionGrantsByResource(resourceGUID)) {
+            if (!SUS.isEmpty(g.getPermissionToken()) && granteeGUID.equals(g.getSubjectGUID())) {
+                return g;
+            }
+        }
+        return null;
     }
 
     @Override

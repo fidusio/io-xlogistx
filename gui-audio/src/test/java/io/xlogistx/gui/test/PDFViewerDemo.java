@@ -10,7 +10,8 @@ import java.io.File;
 /**
  * Standalone demo for {@link PDFViewerPanel}: {@code PDFViewerDemo [file.pdf]}.
  * Without an argument a generated multi-page sample is shown; use the toolbar
- * Open button to load any PDF. The title bar follows the loaded file and the
+ * Open button to load any PDF, Markdown or image file, and Insert to merge one
+ * into the shown document. The title bar follows the loaded file and the
  * current page.
  */
 public class PDFViewerDemo {

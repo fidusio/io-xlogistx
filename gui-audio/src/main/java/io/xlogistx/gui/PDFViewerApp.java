@@ -1,5 +1,7 @@
 package io.xlogistx.gui;
 
+import io.xlogistx.common.util.NVColor;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -8,8 +10,9 @@ import java.io.File;
 
 /**
  * Standalone PDF viewer application around {@link PDFViewerPanel}:
- * {@code PDFViewerApp [file.pdf | file.md]}. Without an argument the viewer
- * starts empty; use the toolbar Open button to load a PDF or Markdown file. The
+ * {@code PDFViewerApp [file.pdf | file.md | image.png]}. Without an argument the
+ * viewer starts empty; use the toolbar Open button to load a PDF, a Markdown file
+ * or an image (PNG, JPEG, GIF, BMP; shown as a one-page document). The
  * title bar follows the loaded file and the current page, and closing the
  * window asks before unsaved changes are discarded.
  */
@@ -28,13 +31,14 @@ public class PDFViewerApp {
     /**
      * Main entry point.
      *
-     * @param args command line arguments (optional PDF or Markdown file to open)
+     * @param args command line arguments (optional PDF, Markdown or image file to open)
      */
     public static void main(String[] args) {
         File file = args.length > 0 ? new File(args[0]) : null;
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame(TITLE);
             frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+            frame.setIconImages(IconUtil.windowIcons(IconUtil.PDFIcon::new, Color.WHITE, NVColor.BOOTSTRAP_RED.getValue()));
 
             PDFViewerPanel viewer = new PDFViewerPanel();
             viewer.addPageChangeListener((page, count) -> frame.setTitle(title(viewer, page, count)));

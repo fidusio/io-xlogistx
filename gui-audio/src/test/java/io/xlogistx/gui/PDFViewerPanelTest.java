@@ -2,6 +2,7 @@ package io.xlogistx.gui;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -385,6 +386,44 @@ public class PDFViewerPanelTest {
         assertEquals(maxY, onEDT(() -> viewport().getViewPosition().y));
     }
 
+    @Test
+    public void mouseWheelOverThePagesScrollsAndCtrlWheelZooms() throws Exception {
+        load(threePagePDF);
+        onEDT(() -> panel.setZoom(2f));
+        onEDT(() -> {
+            layoutTree(panel); // the scroll bar must have been laid out visible for the wheel handler to use it
+            viewport().setViewPosition(new Point(0, 0));
+            return null;
+        });
+        // the pages panel holds the ctrl+wheel listener; without a peer a wheel event does not
+        // bubble from a page to it, so the panel is the deepest target reachable headless
+        Component view = onEDT(() -> viewport().getView());
+        float zoomBefore = onEDT(panel::getZoom);
+        onEDT(() -> {
+            view.dispatchEvent(wheel(view, 3, 0));
+            return null;
+        });
+        assertTrue(onEDT(() -> viewport().getViewPosition().y) > 0, "plain wheel scrolls down");
+        assertEquals(zoomBefore, onEDT(panel::getZoom), 0.0001f, "plain wheel does not zoom");
+        onEDT(() -> {
+            view.dispatchEvent(wheel(view, -3, 0));
+            return null;
+        });
+        assertEquals(0, onEDT(() -> viewport().getViewPosition().y), "plain wheel scrolls back up");
+
+        onEDT(() -> {
+            view.dispatchEvent(wheel(view, -1, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+            return null;
+        });
+        assertTrue(onEDT(panel::getZoom) > zoomBefore, "ctrl+wheel up zooms in");
+    }
+
+    private static java.awt.event.MouseWheelEvent wheel(Component on, int rotation, int modifiers) {
+        return new java.awt.event.MouseWheelEvent(on, java.awt.event.MouseEvent.MOUSE_WHEEL, System.currentTimeMillis(),
+                modifiers, on.getWidth() / 2, on.getHeight() / 2, 0, false,
+                java.awt.event.MouseWheelEvent.WHEEL_UNIT_SCROLL, 3, rotation);
+    }
+
     private static String firstLine(String pageText) {
         String t = pageText.trim();
         int nl = t.indexOf('\n');
@@ -478,6 +517,73 @@ public class PDFViewerPanelTest {
         assertFalse(onEDT(panel::isModified));
         assertEquals(pdf, onEDT(panel::getFile));
         assertTrue(onEDT(panel::confirmDiscard), "nothing to discard, no dialog");
+    }
+
+    @Test
+    public void insertsAndOpensImagesAsOnePageEach() throws Exception {
+        File dir = java.nio.file.Files.createTempDirectory("pdfimage").toFile();
+        File wide = new File(dir, "wide.png");
+        File tall = new File(dir, "tall.jpg");
+        writeImage(wide, 1600, 900, "png");
+        writeImage(tall, 300, 500, "jpg");
+
+        // insert: a landscape A4 page carrying the image, scaled down into the margins
+        load(threePagePDF);
+        onEDT(() -> {
+            panel.insertPDF(wide, 1);
+            return null;
+        });
+        waitFor(() -> panel.getPageCount() == 4, 15_000);
+        assertEquals(java.util.Collections.singletonList(2), panel.find("needle-two"), "Page Two moved behind the image");
+        PDRectangle box = onEDT(() -> panel.getDocument().getPage(1).getMediaBox());
+        assertEquals(PDRectangle.A4.getHeight(), box.getWidth(), 0.01f, "landscape for a wide image");
+        assertEquals(PDRectangle.A4.getWidth(), box.getHeight(), 0.01f);
+        assertTrue(onEDT(() -> panel.getDocument().getPage(1).getResources().getXObjectNames().iterator().hasNext()),
+                "the page draws an image");
+        assertTrue(onEDT(panel::isModified));
+
+        // open: the image is the origin, Save proposes the sibling .pdf and never the image
+        onEDT(() -> {
+            panel.setPDF(tall);
+            return null;
+        });
+        waitFor(() -> panel.getPageCount() == 1 && tall.equals(panel.getFile()), 15_000);
+        box = onEDT(() -> panel.getDocument().getPage(0).getMediaBox());
+        assertEquals(PDRectangle.A4.getWidth(), box.getWidth(), 0.01f, "portrait for a tall image");
+        assertFalse(onEDT(panel::isModified));
+        long jpgLength = tall.length();
+        File out = new File(dir, "tall.pdf");
+        onEDT(() -> {
+            panel.save(out);
+            return null;
+        });
+        waitFor(() -> out.length() > 0 && out.equals(panel.getFile()), 10_000);
+        assertEquals(jpgLength, tall.length(), "the image file is untouched");
+        try (PDDocument doc = Loader.loadPDF(out)) {
+            assertEquals(1, doc.getNumberOfPages());
+        }
+
+        // a small image is not scaled up: 1 px = 1 pt
+        try (PDDocument doc = PDFViewerPanel.imageToPDF(writeImage(new File(dir, "small.gif"), 100, 80, "gif"))) {
+            assertEquals(1, doc.getNumberOfPages());
+            BufferedImage rendered = new org.apache.pdfbox.rendering.PDFRenderer(doc).renderImage(0, 1f);
+            // the 100x80 red image sits centered on the 842x595 landscape page
+            int cx = rendered.getWidth() / 2, cy = rendered.getHeight() / 2;
+            assertEquals(0xFF0000, rendered.getRGB(cx, cy) & 0xFFFFFF, "center pixel is the image");
+            assertNotEquals(0xFF0000, rendered.getRGB(cx - 60, cy) & 0xFFFFFF, "60 pt left of center is page, not image");
+            assertNotEquals(0xFF0000, rendered.getRGB(cx, cy - 50) & 0xFFFFFF);
+        }
+    }
+
+    /** Writes a solid red image of the given size and format, returns the file. */
+    private static File writeImage(File f, int w, int h, String format) throws Exception {
+        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = img.createGraphics();
+        g.setColor(java.awt.Color.RED);
+        g.fillRect(0, 0, w, h);
+        g.dispose();
+        assertTrue(javax.imageio.ImageIO.write(img, format, f), "no writer for " + format);
+        return f;
     }
 
     @Test
