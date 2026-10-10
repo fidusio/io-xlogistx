@@ -1,4 +1,4 @@
-package io.xlogistx.shiro.ds.tools;
+package io.xlogistx.opsec.tools.ds;
 
 import io.xlogistx.shiro.ShiroUtil;
 import io.xlogistx.opsec.OPSecUtil;

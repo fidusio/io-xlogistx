@@ -46,7 +46,7 @@ import java.util.UUID;
  * account and hands it the reserved {@code super_admin} role, whose single permission is the
  * wildcard {@code *}. The grant carries no domain/app: the account belongs to no app and its
  * wildcard applies in every login. Not called by the manager itself: an operator runs it through
- * the admin CLI ({@code io.xlogistx.shiro.ds.tools.SecurityAdminTool}), which is the trusted
+ * the admin CLI ({@code io.xlogistx.opsec.tools.ds.SecurityAdminTool}), which is the trusted
  * bootstrap path. Idempotent: an existing account is left as it is (password untouched), a missing
  * role grant is added, the catalog is seeded first. The password is hashed with ARGON2 and never
  * logged or kept.

@@ -51,11 +51,11 @@ import java.util.logging.Level;
  * {@link DomainSecurityManager} that persists through an {@link APIDataStore} and authenticates,
  * authorizes and caches through Apache Shiro.
  *
- * <p><b>Persistence.</b> Same entities and tables as {@code DomainSecurityManagerDefault}:
+ * <p><b>Persistence.</b> The entities and tables of the core security model:
  * {@link SubjectIdentifier}, {@link PrincipalIdentifier}, credential rows ({@link CIPassword},
  * {@link SubjectAPIKey}, plus whatever {@link #addCredentialType(Class)} registers), the
  * permission / role / role-group catalog and the three grant tables, all linked by
- * {@code subject_guid}. Compared with the default it adds: a join-or-begin transaction helper so
+ * {@code subject_guid}. Beyond plain persistence it adds: a join-or-begin transaction helper so
  * every multi-row operation is atomic and composes with a caller's transaction; ACTIVE status
  * stamped on new principals and credentials; an ownership check on in-place credential updates;
  * loud failure on unsupported credential types; a row lock that closes the last-principal race;
