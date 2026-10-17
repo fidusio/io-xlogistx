@@ -15,6 +15,7 @@
 | `opsec` | PKI/X509 certificates, Bouncy Castle crypto, key management |
 | `gui-audio` | Swing widgets, SVG icons, Markdown viewer, `MDToPDF` (Markdown → PDF via OpenHTMLtoPDF/PDFBox), `PDFViewerPanel` (PDFBox viewer: search, selection, save, print); see `gui-audio/CLAUDE.md` |
 | `no-sneak` | **ACTIVE** - SSL/TLS & PQC security scanner, NMap network scanner |
+| `apps` | Standalone apps: hex editor (`io.xlogistx.editor.hex`: `HexEditor` model, `HexPanel`, `HexEditorPane`, `HexEditorFrame`, `HexEditorConsole`) and PDF editor (`io.xlogistx.editor.pdf`: undoable page insert/delete/rotate/move, in-place rewriting of page text (same font, or another font / face / size / colour, underline / strikethrough / highlight), AcroForm filling, highlight/underline/strikeout, notes, ink, shapes, lines, text boxes with a chosen embedded font (bundled Roboto or any installed TrueType family, bold / italic / underline / strikethrough / text highlight / alignment), image stamps with quarter-turn rotation, annotation select/move/resize/restyle/delete, Help menu with the user guide `how-to.md` (F1) and version, over `PDFViewerPanel` via `PDFEditModel` + `PDFEditorPane`/`PDFEditorFrame`, entry point `PDFMain` (`Main.VERSION`); design `gui-audio/PDF-EDIT-DESIGN.md`); depends on `gui-audio`; see `apps/CLAUDE.md` |
 
 ## Current Focus: no-sneak Module
 

@@ -13,6 +13,7 @@ import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.interactive.action.PDAction;
 import org.apache.pdfbox.pdmodel.interactive.action.PDActionGoTo;
 import org.apache.pdfbox.pdmodel.interactive.action.PDActionURI;
+import org.apache.pdfbox.pdmodel.interactive.annotation.AnnotationFilter;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDDestination;
@@ -25,6 +26,7 @@ import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
+import io.xlogistx.gui.pdf.PageTransform;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.util.SUS;
 
@@ -35,6 +37,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.print.Pageable;
 import java.awt.print.PrinterJob;
@@ -94,8 +97,8 @@ import java.util.function.Consumer;
  * {@link #search(String)} returns {@link Match}es with glyph rectangles;
  * {@link #setHighlights(List)} paints them over the pages (current match in a
  * stronger color) and {@link #nextMatch()}/{@link #previousMatch()} step through
- * them. {@link #highlightAsync(String, Consumer)} does search + highlight off the
- * EDT, which is what the toolbar search field uses. {@link #openFile()} shows a
+ * them (toolbar arrow buttons, F3 / Shift+F3). {@link #highlightAsync(String, Consumer)}
+ * does search + highlight off the EDT, which is what the toolbar search field uses. {@link #openFile()} shows a
  * PDF file chooser (toolbar "Open" button); {@link #saveAs()} / {@link #save(File)}
  * write the current document out (toolbar "Save" button); {@link #print()} shows
  * the system print dialog and prints off the EDT (toolbar "Print" button).
@@ -124,8 +127,21 @@ import java.util.function.Consumer;
  * — {@code current}, {@code 3}, {@code 5-8}, or a comma / space separated list of
  * those — through {@link #parsePageSelection(String, int, int)}; {@link #deleteDialog()}
  * asks for that selection (toolbar "Delete" button). Deleting every page is
- * refused, deleting marks the document {@linkplain #isModified() modified}, and
- * there is no undo: reopen the file, or don't save.
+ * refused and deleting marks the document {@linkplain #isModified() modified}.
+ * The panel itself has no undo; a host that wants one installs an
+ * {@link EditDelegate}.
+ *
+ * <h2>Editing hooks</h2>
+ * An {@link EditDelegate} (see {@link #setEditDelegate(EditDelegate)}) is asked
+ * first for every insert and delete, owns the modified flag and hears about
+ * document replacement and saving, so a host can record edits as undoable
+ * commands. The commands act through the direct primitives
+ * {@link #insertPagesDirect(PDDocument, int)}, {@link #insertPagesDirect(List, int[], int)},
+ * {@link #removePagesDirect(List, int)} and {@link #pagesChanged(int)}, which
+ * never ask the delegate. A page whose content changed in place (annotations)
+ * is re-rendered with {@link #invalidatePage(int)}. Tools are
+ * {@link PDFToolHandler} strategies: the built-in ones are fixed, a host adds
+ * its own with {@link #setCustomTool(PDFToolHandler)}.
  *
  * <h2>Threading</h2>
  * Like any Swing component the public API must be called on the EDT, except
@@ -159,7 +175,9 @@ public class PDFViewerPanel extends JPanel {
         /** Drag selects text; Ctrl+C / right click copies it. */
         SELECT_TEXT,
         /** Drag a rectangle to zoom so it fills the viewport. */
-        ZOOM_TO_SELECTION
+        ZOOM_TO_SELECTION,
+        /** The handler installed with {@link PDFViewerPanel#setCustomTool(PDFToolHandler)} decides. */
+        CUSTOM
     }
 
     /** Fill color of the text selection. */
@@ -173,6 +191,42 @@ public class PDFViewerPanel extends JPanel {
          * @param pageCount number of pages, 0 when no document is loaded
          */
         void pageChanged(int page, int pageCount);
+    }
+
+    /**
+     * A host's hook into page editing: asked before the panel inserts or deletes
+     * pages (so the host can record the change as an undoable command and apply
+     * it through the direct primitives), owner of the modified flag, and told when
+     * the document is replaced or saved. All methods are called on the EDT.
+     */
+    public interface EditDelegate {
+        /**
+         * Insert requested (toolbar, {@link PDFViewerPanel#insertPDF(File, int)} or
+         * {@link PDFViewerPanel#insertDocument(PDDocument, int)}).
+         *
+         * @param source the document whose pages are inserted
+         * @param at     zero-based index the first page lands at, already clamped
+         * @return true when handled (the delegate inserted the pages itself), false to let the panel do it
+         * @throws IOException if the merge fails
+         */
+        boolean insertDocument(PDDocument source, int at) throws IOException;
+
+        /**
+         * Delete requested, after validation.
+         *
+         * @param pages zero-based indexes, sorted, distinct, never the whole document
+         * @return true when handled, false to let the panel do it
+         */
+        boolean deletePages(int[] pages);
+
+        /** A document was installed or the panel was closed: any edit history is void. */
+        void documentReplaced();
+
+        /** The document was written to a file without being reloaded. */
+        void documentSaved();
+
+        /** @return whether the document has unsaved changes; {@link PDFViewerPanel#isModified()} defers here */
+        boolean isModified();
     }
 
     /**
@@ -314,6 +368,8 @@ public class PDFViewerPanel extends JPanel {
     private JComboBox<String> zoomCombo;
     private JTextField searchField;
     private JLabel matchLabel;
+    private JButton prevMatchButton;
+    private JButton nextMatchButton;
     private JButton saveButton;
     private JButton printButton;
     private JButton insertButton;
@@ -327,10 +383,20 @@ public class PDFViewerPanel extends JPanel {
     private JButton copyButton;
     private JPopupMenu selectionMenu;
     private Tool tool = Tool.PAN;
+    private final PDFToolHandlers.PanHandler panHandler = new PDFToolHandlers.PanHandler();
+    private final PDFToolHandlers.SelectTextHandler selectTextHandler = new PDFToolHandlers.SelectTextHandler();
+    private final PDFToolHandlers.ZoomSelectionHandler zoomSelectionHandler = new PDFToolHandlers.ZoomSelectionHandler();
+    /** The handler of {@link Tool#CUSTOM}; null until {@link #setCustomTool(PDFToolHandler)}. */
+    private PDFToolHandler customHandler;
+    /** The handler of the active tool, never null. */
+    private PDFToolHandler handler = panHandler;
+    private final PDFToolContext toolContext = new ToolContextImpl();
+    private ButtonGroup toolGroup;
+    private EditDelegate editDelegate;
+    /** Annotations the renderer draws; null = all. Re-applied to every new renderer. */
+    private AnnotationFilter annotationFilter;
     /** Text selection, normalized (start before end); start page -1 when empty. Indexes are clamped on use. EDT only. */
     private int selStartPage = -1, selStartIdx, selEndPage = -1, selEndIdx;
-    /** Selection anchor while dragging: {page, index}; null when idle. */
-    private int[] selAnchor;
     /** Rubber band being dragged, in pages panel coordinates; null when idle. */
     private Rectangle marquee;
     /** Link under the pointer (hand cursor + tooltip shown); null when none. */
@@ -437,17 +503,21 @@ public class PDFViewerPanel extends JPanel {
 
     /** Installs {@code doc}, remembering {@code file} as its origin (null when not file-backed). */
     private PDFViewerPanel install(PDDocument doc, boolean ownsDocument, File file) {
-        close();
+        releaseDocument();
         currentFile = file;
         modified = false;
-        if (doc == null)
+        if (doc == null) {
+            notifyDocumentReplaced();
             return this;
+        }
 
         synchronized (docLock) {
             document = doc;
             this.ownsDocument = ownsDocument;
             renderer = new PDFRenderer(doc);
             renderer.setSubsamplingAllowed(true);
+            if (annotationFilter != null)
+                renderer.setAnnotationsFilter(annotationFilter);
             pageTexts = new PageText[doc.getNumberOfPages()];
             for (int i = 0; i < doc.getNumberOfPages(); i++)
                 pages.add(new PageView(i, doc.getPage(i)));
@@ -462,6 +532,7 @@ public class PDFViewerPanel extends JPanel {
         updateToolbar();
         firePageChanged();
         updateVisiblePages();
+        notifyDocumentReplaced();
         return this;
     }
 
@@ -471,6 +542,17 @@ public class PDFViewerPanel extends JPanel {
      * document afterwards.
      */
     public void close() {
+        releaseDocument();
+        notifyDocumentReplaced();
+    }
+
+    private void notifyDocumentReplaced() {
+        if (editDelegate != null)
+            editDelegate.documentReplaced();
+    }
+
+    /** {@link #close()} without telling the edit delegate: {@link #install} tells it once, after the new document is in. */
+    private void releaseDocument() {
         generation.incrementAndGet();
         synchronized (docLock) {
             if (document != null && ownsDocument) {
@@ -494,7 +576,7 @@ public class PDFViewerPanel extends JPanel {
         currentMatch = -1;
         lastQuery = null;
         selStartPage = selEndPage = -1;
-        selAnchor = null;
+        handler.cancel(toolContext);
         hoverLink = null;
         pagesPanel.setToolTipText(null);
         updateToolbar();
@@ -502,10 +584,30 @@ public class PDFViewerPanel extends JPanel {
     }
 
     /**
-     * @return true if the document has unsaved changes (pages were inserted)
+     * @return true if the document has unsaved changes (pages were inserted or
+     *         deleted); with an {@link EditDelegate} installed, its answer
      */
     public boolean isModified() {
-        return modified;
+        return editDelegate != null ? editDelegate.isModified() : modified;
+    }
+
+    /**
+     * Installs the host's editing hook (see {@link EditDelegate}); null removes it.
+     *
+     * @param delegate the delegate, may be null
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setEditDelegate(EditDelegate delegate) {
+        editDelegate = delegate;
+        updateToolbar();
+        return this;
+    }
+
+    /**
+     * @return the installed edit delegate, null when none
+     */
+    public EditDelegate getEditDelegate() {
+        return editDelegate;
     }
 
     /**
@@ -514,7 +616,7 @@ public class PDFViewerPanel extends JPanel {
      * @return true if there is nothing to lose or the user chose to discard
      */
     public boolean confirmDiscard() {
-        if (!modified)
+        if (!isModified())
             return true;
         int choice = JOptionPane.showConfirmDialog(this,
                 "The document has unsaved changes. Discard them?", "Unsaved changes",
@@ -565,9 +667,12 @@ public class PDFViewerPanel extends JPanel {
         if (getDocument() == null)
             return 0;
         int at = Math.max(0, Math.min(pages.size(), index));
-        int added = mergeInto(source, at);
-        refreshPages(at, added);
-        return added;
+        if (editDelegate != null) {
+            int before = pages.size();
+            if (editDelegate.insertDocument(source, at))
+                return pages.size() - before;
+        }
+        return insertPagesDirect(source, at);
     }
 
     // ------------------------------------------------------------------ deleting pages
@@ -596,6 +701,14 @@ public class PDFViewerPanel extends JPanel {
         }
         if (set.size() >= count)
             throw new IllegalArgumentException("That would delete every page; a PDF needs at least one.");
+        if (editDelegate != null) {
+            int[] sorted = new int[set.size()];
+            int k = 0;
+            for (Integer p : set)
+                sorted[k++] = p;
+            if (editDelegate.deletePages(sorted))
+                return sorted.length;
+        }
         synchronized (docLock) {
             if (document == null)
                 return 0;
@@ -838,6 +951,246 @@ public class PDFViewerPanel extends JPanel {
         }
     }
 
+    // ---------------------------------------------------------- edit primitives
+
+    /**
+     * Inserts the pages of {@code source} at {@code index} without asking the
+     * {@link EditDelegate}: the primitive an undoable insert command calls.
+     * Synchronous, on the EDT; the view is refreshed showing the first new page.
+     *
+     * @param source the document whose pages are inserted (deep-copied, may be closed afterwards), never null
+     * @param index  zero-based index the first page lands at, clamped to the page count
+     * @return number of pages inserted, 0 if nothing is loaded
+     * @throws IOException if the merge fails
+     */
+    public int insertPagesDirect(PDDocument source, int index) throws IOException {
+        SUS.checkIfNull("source null", source);
+        if (getDocument() == null)
+            return 0;
+        int at = Math.max(0, Math.min(pages.size(), index));
+        int added = mergeInto(source, at);
+        refreshPages(at, added);
+        return added;
+    }
+
+    /**
+     * Puts page objects that belong to this document (typically ones removed by
+     * {@link #removePagesDirect(List, int)}) back into the page tree, each at its
+     * index, in list order, without asking the {@link EditDelegate}. Give the
+     * indexes ascending with the pages they held before removal and the original
+     * order is restored exactly. Synchronous, on the EDT.
+     *
+     * @param pagesToInsert the pages, never null
+     * @param indexes       one zero-based target index per page, each valid at the moment that page is inserted
+     * @param showPage      the page to show afterwards
+     * @throws IllegalArgumentException if the sizes differ or an index is out of range
+     */
+    public void insertPagesDirect(List<PDPage> pagesToInsert, int[] indexes, int showPage) {
+        SUS.checkIfNull("pages null", pagesToInsert);
+        SUS.checkIfNull("indexes null", indexes);
+        if (indexes.length != pagesToInsert.size())
+            throw new IllegalArgumentException("one index per page expected");
+        if (pagesToInsert.isEmpty())
+            return;
+        synchronized (docLock) {
+            if (document == null)
+                return;
+            PDPageTree tree = document.getPages();
+            for (int i = 0; i < indexes.length; i++) {
+                int at = indexes[i];
+                int count = tree.getCount();
+                if (at < 0 || at > count)
+                    throw new IllegalArgumentException("Page index " + at + " is out of range (0-" + count + ").");
+                PDPage p = pagesToInsert.get(i);
+                if (at < count)
+                    tree.insertBefore(p, tree.get(at));
+                else
+                    tree.add(p);
+            }
+        }
+        refreshPages(showPage, pagesToInsert.size());
+    }
+
+    /**
+     * Removes page objects from the page tree without asking the
+     * {@link EditDelegate}: the primitive an undoable delete command calls. The
+     * pages stay valid objects of this document and can be put back with
+     * {@link #insertPagesDirect(List, int[], int)}. Synchronous, on the EDT.
+     *
+     * @param pagesToRemove the pages, never null
+     * @param showPage      the page to show afterwards (clamped)
+     * @throws IllegalArgumentException if the removal would leave no page
+     */
+    public void removePagesDirect(List<PDPage> pagesToRemove, int showPage) {
+        SUS.checkIfNull("pages null", pagesToRemove);
+        if (pagesToRemove.isEmpty())
+            return;
+        synchronized (docLock) {
+            if (document == null)
+                return;
+            PDPageTree tree = document.getPages();
+            if (tree.getCount() - pagesToRemove.size() < 1)
+                throw new IllegalArgumentException("That would delete every page; a PDF needs at least one.");
+            for (PDPage p : pagesToRemove)
+                tree.remove(p);
+        }
+        refreshPages(showPage, pagesToRemove.size());
+    }
+
+    /**
+     * Rebuilds the view after a caller changed the page tree itself (page order,
+     * rotation, count) under {@link #getDocumentLock()}.
+     *
+     * @param showPage the page to show afterwards (clamped)
+     */
+    public void pagesChanged(int showPage) {
+        refreshPages(showPage, 1);
+    }
+
+    /**
+     * @return the lock every access to {@link #getDocument()} must hold
+     */
+    public Object getDocumentLock() {
+        return docLock;
+    }
+
+    /**
+     * Moves page objects of this document to new indexes without asking the
+     * {@link EditDelegate}: the pages are taken out of the tree, then each is
+     * put back at its target index in list order (same contract as
+     * {@link #insertPagesDirect(List, int[], int)}), under one lock and one view
+     * refresh. Synchronous, on the EDT.
+     *
+     * @param pagesToMove   the pages, never null
+     * @param targetIndexes one zero-based target index per page, valid at the moment that page is inserted
+     * @param showPage      the page to show afterwards (clamped)
+     * @throws IllegalArgumentException if the sizes differ or an index is out of range
+     */
+    public void movePagesDirect(List<PDPage> pagesToMove, int[] targetIndexes, int showPage) {
+        SUS.checkIfNull("pages null", pagesToMove);
+        SUS.checkIfNull("indexes null", targetIndexes);
+        if (targetIndexes.length != pagesToMove.size())
+            throw new IllegalArgumentException("one index per page expected");
+        if (pagesToMove.isEmpty())
+            return;
+        synchronized (docLock) {
+            if (document == null)
+                return;
+            PDPageTree tree = document.getPages();
+            for (PDPage p : pagesToMove)
+                tree.remove(p);
+            for (int i = 0; i < targetIndexes.length; i++) {
+                int at = targetIndexes[i];
+                int count = tree.getCount();
+                if (at < 0 || at > count)
+                    throw new IllegalArgumentException("Page index " + at + " is out of range (0-" + count + ").");
+                PDPage p = pagesToMove.get(i);
+                if (at < count)
+                    tree.insertBefore(p, tree.get(at));
+                else
+                    tree.add(p);
+            }
+        }
+        refreshPages(showPage, pagesToMove.size());
+    }
+
+    /**
+     * Sets page rotations without asking the {@link EditDelegate}, then rebuilds
+     * the view (page sizes change). Synchronous, on the EDT.
+     *
+     * @param pageIndexes zero-based pages, never null
+     * @param rotations   one rotation in degrees per page (multiples of 90)
+     * @param showPage    the page to show afterwards (clamped)
+     * @throws IllegalArgumentException if the sizes differ or a page is out of range
+     */
+    public void setRotationsDirect(int[] pageIndexes, int[] rotations, int showPage) {
+        SUS.checkIfNull("pages null", pageIndexes);
+        SUS.checkIfNull("rotations null", rotations);
+        if (pageIndexes.length != rotations.length)
+            throw new IllegalArgumentException("one rotation per page expected");
+        if (pageIndexes.length == 0)
+            return;
+        synchronized (docLock) {
+            if (document == null)
+                return;
+            int count = document.getNumberOfPages();
+            for (int p : pageIndexes)
+                if (p < 0 || p >= count)
+                    throw new IllegalArgumentException("Page " + (p + 1) + " is out of range (1-" + count + ").");
+            for (int i = 0; i < pageIndexes.length; i++)
+                document.getPage(pageIndexes[i]).setRotation(((rotations[i] % 360) + 360) % 360);
+        }
+        refreshPages(showPage, pageIndexes.length);
+    }
+
+    /**
+     * The selected text's glyph rectangles on one page, one per text line, in PDF
+     * points from the displayed page's top-left corner (the geometry a text markup
+     * annotation needs). Extracts the page text if needed, so this may block briefly.
+     *
+     * @param page zero-based page index
+     * @return the rectangles, empty when the page holds no selection
+     */
+    public List<Rectangle2D.Float> getSelectionRects(int page) {
+        if (!hasSelection() || page < selStartPage || page > selEndPage)
+            return Collections.emptyList();
+        PageText pt = ensurePageText(page);
+        if (pt == null)
+            return Collections.emptyList();
+        int len = pt.text.length();
+        int s = Math.min(len, page == selStartPage ? selStartIdx : 0);
+        int e = Math.min(len, page == selEndPage ? selEndIdx : len);
+        return e <= s ? Collections.<Rectangle2D.Float>emptyList() : pt.rects(s, e);
+    }
+
+    /**
+     * The selected characters' {@link TextPosition}s on one page, in selection
+     * order (separators the extractor inserted are left out): glyph identity for
+     * tools that rewrite page text. Extracts the page text if needed.
+     *
+     * @param page zero-based page index
+     * @return the positions, empty when the page holds no selection
+     */
+    public List<TextPosition> getSelectionTextPositions(int page) {
+        if (!hasSelection() || page < selStartPage || page > selEndPage)
+            return Collections.emptyList();
+        PageText pt = ensurePageText(page);
+        if (pt == null)
+            return Collections.emptyList();
+        int len = pt.text.length();
+        int s = Math.min(len, page == selStartPage ? selStartIdx : 0);
+        int e = Math.min(len, page == selEndPage ? selEndIdx : len);
+        List<TextPosition> ret = new ArrayList<>();
+        for (int i = s; i < e; i++)
+            if (pt.positions[i] != null)
+                ret.add(pt.positions[i]);
+        return ret;
+    }
+
+    /**
+     * Restricts which annotations are rendered, e.g. to hide the one a tool is
+     * dragging. Applies to the current and any later document; the caller
+     * {@linkplain #invalidatePage(int) invalidates} the pages concerned.
+     *
+     * @param filter the filter, null to render every annotation again
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setAnnotationFilter(AnnotationFilter filter) {
+        annotationFilter = filter;
+        synchronized (docLock) {
+            if (renderer != null)
+                renderer.setAnnotationsFilter(filter != null ? filter : a -> true);
+        }
+        return this;
+    }
+
+    /**
+     * @return the installed annotation filter, null when every annotation is rendered
+     */
+    public AnnotationFilter getAnnotationFilter() {
+        return annotationFilter;
+    }
+
     /**
      * Rebuilds the page views after the document's page tree changed, keeping the
      * document, zoom and tool; highlights and selection are cleared.
@@ -853,7 +1206,7 @@ public class PDFViewerPanel extends JPanel {
         currentMatch = -1;
         lastQuery = null;
         selStartPage = selEndPage = -1;
-        selAnchor = null;
+        handler.cancel(toolContext);
         synchronized (docLock) {
             if (document == null)
                 return;
@@ -861,7 +1214,8 @@ public class PDFViewerPanel extends JPanel {
             for (int i = 0; i < document.getNumberOfPages(); i++)
                 pages.add(new PageView(i, document.getPage(i)));
         }
-        modified = true;
+        if (editDelegate == null)
+            modified = true;
         pagesPanel.rebuild();
         for (PageView pv : pages)
             pv.updateSize();
@@ -1012,6 +1366,8 @@ public class PDFViewerPanel extends JPanel {
             if (!overSource) {
                 currentFile = target;
                 modified = false;
+                if (editDelegate != null)
+                    editDelegate.documentSaved();
                 updateToolbar();
                 return;
             }
@@ -1305,12 +1661,60 @@ public class PDFViewerPanel extends JPanel {
      */
     public PDFViewerPanel setTool(Tool tool) {
         SUS.checkIfNull("tool null", tool);
-        this.tool = tool;
-        pagesPanel.setCursor(cursorFor(tool));
-        JToggleButton b = tool == Tool.PAN ? panButton : tool == Tool.SELECT_TEXT ? selectButton : zoomSelectButton;
-        if (b != null && !b.isSelected())
-            b.setSelected(true);
+        if (tool == Tool.CUSTOM && customHandler == null)
+            throw new IllegalStateException("no custom tool installed; call setCustomTool first");
+        PDFToolHandler next = handlerFor(tool);
+        if (next != handler) {
+            handler.deactivated(toolContext);
+            handler = next;
+            this.tool = tool;
+            handler.activated(toolContext);
+        } else
+            this.tool = tool;
+        pagesPanel.setCursor(handler.cursor());
+        JToggleButton b = tool == Tool.PAN ? panButton : tool == Tool.SELECT_TEXT ? selectButton
+                : tool == Tool.ZOOM_TO_SELECTION ? zoomSelectButton : null;
+        if (b != null) {
+            if (!b.isSelected())
+                b.setSelected(true);
+        } else if (toolGroup != null)
+            toolGroup.clearSelection();
+        pagesPanel.repaint();
         return this;
+    }
+
+    /**
+     * Installs a host-defined tool and selects it ({@link Tool#CUSTOM}); the
+     * toolbar toggles show no selection while it is active. Selecting a built-in
+     * tool afterwards keeps the handler installed for a later {@code setTool(CUSTOM)}.
+     *
+     * @param custom the handler, never null
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setCustomTool(PDFToolHandler custom) {
+        SUS.checkIfNull("handler null", custom);
+        if (customHandler != null && handler == customHandler && custom != customHandler) {
+            handler.deactivated(toolContext);
+            handler = panHandler;
+            tool = Tool.PAN;
+        }
+        customHandler = custom;
+        return setTool(Tool.CUSTOM);
+    }
+
+    /**
+     * @return the handler installed with {@link #setCustomTool(PDFToolHandler)}, null when none
+     */
+    public PDFToolHandler getCustomTool() {
+        return customHandler;
+    }
+
+    /**
+     * @return the context the panel hands its tool handlers, so a host can drive a
+     *         handler programmatically (EDT only)
+     */
+    public PDFToolContext getToolContext() {
+        return toolContext;
     }
 
     /**
@@ -1320,14 +1724,16 @@ public class PDFViewerPanel extends JPanel {
         return tool;
     }
 
-    private static Cursor cursorFor(Tool tool) {
+    private PDFToolHandler handlerFor(Tool tool) {
         switch (tool) {
             case SELECT_TEXT:
-                return Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR);
+                return selectTextHandler;
             case ZOOM_TO_SELECTION:
-                return Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
+                return zoomSelectionHandler;
+            case CUSTOM:
+                return customHandler;
             default:
-                return Cursor.getDefaultCursor();
+                return panHandler;
         }
     }
 
@@ -1667,8 +2073,8 @@ public class PDFViewerPanel extends JPanel {
 
     /** Shows the hand cursor and the target as tooltip while the pointer is over a link. */
     private void updateHover(Point p) {
-        Link link = tool == Tool.ZOOM_TO_SELECTION ? null : linkAtView(p);
-        pagesPanel.setCursor(link != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : cursorFor(tool));
+        Link link = handler.followsLinks() ? linkAtView(p) : null;
+        pagesPanel.setCursor(link != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : handler.cursor());
         if (link != hoverLink) {
             hoverLink = link;
             pagesPanel.setToolTipText(link == null ? null : link.uri != null ? link.uri : "Go to page " + (link.targetPage + 1));
@@ -1684,7 +2090,7 @@ public class PDFViewerPanel extends JPanel {
                 PDAnnotationLink la = (PDAnnotationLink) a;
                 if (la.getRectangle() == null)
                     continue;
-                Rectangle2D.Float rect = toViewRect(la.getRectangle(), page.getCropBox(), page.getRotation());
+                Rectangle2D.Float rect = PageTransform.of(page).toViewRect(la.getRectangle());
                 try {
                     PDAction action = la.getAction();
                     if (action instanceof PDActionURI) {
@@ -1719,21 +2125,40 @@ public class PDFViewerPanel extends JPanel {
         return Collections.unmodifiableList(ret);
     }
 
-    /** Converts a rectangle in PDF user space to points from the displayed (rotated) page's top-left corner. */
-    private static Rectangle2D.Float toViewRect(PDRectangle r, PDRectangle box, int rotation) {
-        float x1 = r.getLowerLeftX() - box.getLowerLeftX(), x2 = r.getUpperRightX() - box.getLowerLeftX();
-        float y1 = r.getLowerLeftY() - box.getLowerLeftY(), y2 = r.getUpperRightY() - box.getLowerLeftY();
-        float w = box.getWidth(), h = box.getHeight();
-        switch (((rotation % 360) + 360) % 360) {
-            case 90:
-                return new Rectangle2D.Float(y1, x1, y2 - y1, x2 - x1);
-            case 180:
-                return new Rectangle2D.Float(w - x2, y1, x2 - x1, y2 - y1);
-            case 270:
-                return new Rectangle2D.Float(h - y2, w - x2, y2 - y1, x2 - x1);
-            default:
-                return new Rectangle2D.Float(x1, h - y2, x2 - x1, y2 - y1);
+    /**
+     * Drops one page's raster (and cached links) so it is rendered again: call
+     * after changing the page's content in place, e.g. its annotations. A
+     * render in flight for the old content is discarded. Must be called on the EDT.
+     *
+     * @param page zero-based page index; out of range is ignored
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel invalidatePage(int page) {
+        if (page < 0 || page >= pages.size())
+            return this;
+        PageView pv = pages.get(page);
+        pv.contentVersion++;
+        pv.pendingZoom = -1;
+        pv.links = null;
+        pv.linksRequested = false;
+        pv.textRequested = false;
+        synchronized (docLock) {
+            PageText[] texts = pageTexts;
+            if (texts != null && page < texts.length)
+                texts[page] = null; // the content may have changed: extract again on demand
         }
+        if (hasSelection() && page >= selStartPage && page <= selEndPage)
+            clearSelection();
+        boolean stale = false;
+        for (Match m : matches)
+            if (m.page == page)
+                stale = true;
+        if (stale)
+            clearHighlights();
+        cache.remove(page);
+        pv.repaint();
+        updateVisiblePages(); // re-request the render now if the page is near the viewport
+        return this;
     }
 
     /**
@@ -2095,7 +2520,8 @@ public class PDFViewerPanel extends JPanel {
 
         tb.addSeparator();
 
-        ButtonGroup tools = new ButtonGroup();
+        toolGroup = new ButtonGroup();
+        ButtonGroup tools = toolGroup;
         panButton = new JToggleButton(new IconUtil.PanIcon(16), true);
         panButton.setToolTipText("Pan: drag to scroll");
         panButton.addActionListener(e -> setTool(Tool.PAN));
@@ -2120,7 +2546,7 @@ public class PDFViewerPanel extends JPanel {
         tb.addSeparator();
 
         searchField = new JTextField(12);
-        searchField.setToolTipText("Search (Enter: next, Shift+Enter: previous, Esc: clear)");
+        searchField.setToolTipText("Search (Enter/F3: next, Shift+Enter/Shift+F3: previous, Esc: clear)");
         searchField.setMaximumSize(new Dimension(160, searchField.getPreferredSize().height));
         searchField.addActionListener(e -> runSearch((e.getModifiers() & ActionEvent.SHIFT_MASK) != 0));
         searchField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "clearSearch");
@@ -2133,17 +2559,32 @@ public class PDFViewerPanel extends JPanel {
         });
         tb.add(searchField);
         JButton searchButton = GUIUtil.iconButton(new IconUtil.SearchIcon(16));
-        searchButton.setToolTipText("Find next (Shift+click: previous)");
+        searchButton.setToolTipText("Find (Shift+click: previous)");
         searchButton.addActionListener(e -> runSearch((e.getModifiers() & ActionEvent.SHIFT_MASK) != 0));
         tb.add(searchButton);
+        prevMatchButton = GUIUtil.iconButton(new IconUtil.BackIcon(16));
+        prevMatchButton.setToolTipText("Previous match (Shift+F3)");
+        prevMatchButton.addActionListener(e -> runSearch(true));
+        prevMatchButton.setEnabled(false);
+        tb.add(prevMatchButton);
+        nextMatchButton = GUIUtil.iconButton(new IconUtil.NextIcon(16));
+        nextMatchButton.setToolTipText("Next match (F3)");
+        nextMatchButton.addActionListener(e -> runSearch(false));
+        nextMatchButton.setEnabled(false);
+        tb.add(nextMatchButton);
         matchLabel = new JLabel(" ");
         tb.add(matchLabel);
 
         return tb;
     }
 
-    /** Toolbar search: new query searches, repeated query steps through the matches. */
+    /**
+     * Toolbar search (search field Enter, find/arrow buttons, F3/Shift+F3): a new query
+     * searches, a repeated query steps through the matches.
+     */
     private void runSearch(boolean backwards) {
+        if (searchField == null)
+            return;
         String q = searchField.getText();
         if (q.isEmpty()) {
             clearHighlights();
@@ -2181,6 +2622,10 @@ public class PDFViewerPanel extends JPanel {
                 matchLabel.setText(lastQuery != null && !lastQuery.isEmpty() && !pages.isEmpty() ? " no match " : " ");
             else
                 matchLabel.setText(" " + (currentMatch + 1) + " / " + matches.size() + " ");
+            if (prevMatchButton != null) {
+                prevMatchButton.setEnabled(matches.size() > 1);
+                nextMatchButton.setEnabled(matches.size() > 1);
+            }
             switch (zoomMode) {
                 case FIT_WIDTH:
                     zoomCombo.setSelectedItem(FIT_WIDTH_LABEL);
@@ -2227,9 +2672,11 @@ public class PDFViewerPanel extends JPanel {
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_SUBTRACT, InputEvent.CTRL_DOWN_MASK), "zoomOut", this::zoomOut);
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), "fitWidth", this::fitWidth);
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_NUMPAD0, InputEvent.CTRL_DOWN_MASK), "fitWidth", this::fitWidth);
+        bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0), "nextMatch", () -> runSearch(false));
+        bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK), "prevMatch", () -> runSearch(true));
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "escape", () -> {
             marquee = null;
-            selAnchor = null;
+            handler.cancel(toolContext);
             pagesPanel.repaint();
             if (hasSelection())
                 clearSelection();
@@ -2258,18 +2705,21 @@ public class PDFViewerPanel extends JPanel {
             updateToolbar();
         });
 
-        // plain drag: pan, select text or rubber-band a zoom rectangle depending on the tool;
-        // a click (press and release in place) on a link follows it with the pan and select tools
+        // plain drag: the active tool's handler decides (pan, select text, ...); Shift+drag, or the
+        // zoom tool, rubber-bands a zoom rectangle across pages; a click (press and release in
+        // place) on a link follows it with the tools that follow links
         MouseAdapter drag = new MouseAdapter() {
-            private Point origin;
             private Point marqueeStart;
             private Link pressedLink;
             /** Where pressedLink was pressed, in viewport coordinates (panning moves the pages under the pointer). */
             private Point pressedAt;
+            /** True between handler.pressed and handler.released. */
+            private boolean gesture;
 
             @Override
             public void mouseMoved(MouseEvent e) {
                 updateHover(e.getPoint());
+                handler.moved(toolContext, e);
             }
 
             @Override
@@ -2282,68 +2732,42 @@ public class PDFViewerPanel extends JPanel {
                 }
                 if (!SwingUtilities.isLeftMouseButton(e))
                     return;
-                if (tool == Tool.ZOOM_TO_SELECTION || e.isShiftDown()) {
+                if (handler.marqueeZoom() || e.isShiftDown()) {
                     marqueeStart = e.getPoint();
                     marquee = new Rectangle(marqueeStart);
                     pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
                     return;
                 }
-                pressedLink = linkAtView(e.getPoint());
+                pressedLink = handler.followsLinks() ? linkAtView(e.getPoint()) : null;
                 pressedAt = SwingUtilities.convertPoint(pagesPanel, e.getPoint(), scrollPane.getViewport());
-                if (tool == Tool.SELECT_TEXT) {
-                    int[] hit = hitTest(e.getPoint());
-                    if (hit != null && e.getClickCount() == 2) {
-                        selAnchor = null;
-                        selectWordAt(hit[0], hit[1]);
-                        return;
-                    }
-                    selAnchor = hit;
-                    clearSelection();
-                    return;
-                }
-                origin = pressedAt;
-                if (pressedLink == null)
-                    pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                gesture = true;
+                handler.pressed(toolContext, e);
             }
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (selAnchor != null) {
-                    int[] hit = hitTest(e.getPoint());
-                    if (hit != null)
-                        select(selAnchor[0], selAnchor[1], hit[0], hit[1]);
-                    pagesPanel.scrollRectToVisible(new Rectangle(e.getX(), e.getY(), 1, 1));
-                    return;
-                }
                 if (marqueeStart != null) {
                     Rectangle old = marquee;
                     marquee = new Rectangle(marqueeStart);
                     marquee.add(e.getPoint());
                     pagesPanel.scrollRectToVisible(new Rectangle(e.getX(), e.getY(), 1, 1));
-                    pagesPanel.repaint(old.union(marquee).getBounds());
+                    pagesPanel.repaint(old == null ? marquee : old.union(marquee).getBounds());
                     pagesPanel.repaint(marquee);
                     return;
                 }
-                if (origin == null)
-                    return;
-                pagesPanel.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-                Point now = SwingUtilities.convertPoint(pagesPanel, e.getPoint(), scrollPane.getViewport());
-                JViewport vp = scrollPane.getViewport();
-                Point pos = vp.getViewPosition();
-                int maxX = Math.max(0, pagesPanel.getWidth() - vp.getWidth());
-                int maxY = Math.max(0, pagesPanel.getHeight() - vp.getHeight());
-                pos.x = Math.max(0, Math.min(maxX, pos.x - (now.x - origin.x)));
-                pos.y = Math.max(0, Math.min(maxY, pos.y - (now.y - origin.y)));
-                vp.setViewPosition(pos);
-                origin = now;
+                if (gesture)
+                    handler.dragged(toolContext, e);
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                selAnchor = null;
                 Link clicked = pressedLink;
                 pressedLink = null;
                 if (e.isPopupTrigger()) {
+                    if (gesture) {
+                        gesture = false;
+                        handler.cancel(toolContext);
+                    }
                     showSelectionMenu(e);
                     return;
                 }
@@ -2365,14 +2789,24 @@ public class PDFViewerPanel extends JPanel {
                         updateToolbar();
                     }
                 }
-                origin = null;
-                if (clicked != null && at.distance(pressedAt) <= CLICK_SLOP && clicked == linkAtView(e.getPoint()))
+                if (gesture) {
+                    gesture = false;
+                    handler.released(toolContext, e);
+                }
+                if (clicked != null && pressedAt != null && at.distance(pressedAt) <= CLICK_SLOP
+                        && clicked == linkAtView(e.getPoint()))
                     followLink(clicked);
                 updateHover(SwingUtilities.convertPoint(vp, at, pagesPanel));
             }
         };
         pagesPanel.addMouseListener(drag);
         pagesPanel.addMouseMotionListener(drag);
+        pagesPanel.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                handler.keyPressed(toolContext, e);
+            }
+        });
     }
 
     private static void bind(InputMap im, ActionMap am, KeyStroke key, String name, Runnable action) {
@@ -2525,13 +2959,14 @@ public class PDFViewerPanel extends JPanel {
 
     private void requestRender(PageView pv) {
         PageCache.Entry cached = cache.get(pv.index);
-        if (cached != null && cached.zoom == zoom)
+        if (cached != null && cached.zoom == zoom && cached.version == pv.contentVersion)
             return;
         if (pv.pendingZoom == zoom)
             return;
         pv.pendingZoom = zoom;
 
         int gen = generation.get();
+        int ver = pv.contentVersion;
         float z = zoom;
         float scale = deviceScale();
         int index = pv.index;
@@ -2550,12 +2985,13 @@ public class PDFViewerPanel extends JPanel {
             }
             BufferedImage result = img;
             SwingUtilities.invokeLater(() -> {
-                if (gen != generation.get())
+                // a stale generation or content version: invalidatePage already re-requested
+                if (gen != generation.get() || ver != pv.contentVersion)
                     return;
                 pv.pendingZoom = -1;
                 if (result == null || z != zoom)
                     return;
-                cache.put(index, result, z);
+                cache.put(index, result, z, ver);
                 pv.repaint();
             });
         });
@@ -2638,12 +3074,14 @@ public class PDFViewerPanel extends JPanel {
         }
     }
 
-    /** One page: sized from the media box and zoom, painted from the cache. */
+    /** One page: sized from the displayed page box and zoom, painted from the cache. */
     private final class PageView extends JComponent {
         final int index;
         final float widthPt;
         final float heightPt;
         volatile float pendingZoom = -1;
+        /** Bumped by {@link PDFViewerPanel#invalidatePage(int)}; a cached or in-flight render of an older version is dropped. EDT only. */
+        int contentVersion;
         private boolean textRequested;
         /** Links of this page, null until read (on first paint or by getLinks). EDT only. */
         List<Link> links;
@@ -2685,11 +3123,9 @@ public class PDFViewerPanel extends JPanel {
 
         PageView(int index, PDPage page) {
             this.index = index;
-            PDRectangle box = page.getCropBox() != null ? page.getCropBox() : page.getMediaBox();
-            int rotation = page.getRotation();
-            boolean rotated = rotation == 90 || rotation == 270;
-            widthPt = rotated ? box.getHeight() : box.getWidth();
-            heightPt = rotated ? box.getWidth() : box.getHeight();
+            PageTransform t = PageTransform.of(page);
+            widthPt = t.widthPt();
+            heightPt = t.heightPt();
             setOpaque(true);
             updateSize();
         }
@@ -2713,7 +3149,7 @@ public class PDFViewerPanel extends JPanel {
                 if (entry != null) {
                     g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                     g2.drawImage(entry.image, 0, 0, w, h, null);
-                    if (entry.zoom != zoom)
+                    if (entry.zoom != zoom || entry.version != contentVersion)
                         requestRender(this);
                 } else {
                     g2.setColor(Color.GRAY);
@@ -2725,6 +3161,12 @@ public class PDFViewerPanel extends JPanel {
                 if (links == null)
                     requestLinks();
                 paintHighlights(g2);
+                Graphics2D og = (Graphics2D) g2.create();
+                try {
+                    handler.paintOverlay(toolContext, index, og);
+                } finally {
+                    og.dispose();
+                }
                 g2.setColor(new Color(0, 0, 0, 60));
                 g2.drawRect(0, 0, w - 1, h - 1);
             } finally {
@@ -2926,16 +3368,157 @@ public class PDFViewerPanel extends JPanel {
         }
     }
 
+    /** The panel as seen by its {@link PDFToolHandler}s. */
+    private final class ToolContextImpl implements PDFToolContext {
+        private PageView view(int page) {
+            if (page < 0 || page >= pages.size())
+                throw new IllegalArgumentException("Page " + page + " is out of range (0-" + (pages.size() - 1) + ").");
+            return pages.get(page);
+        }
+
+        @Override
+        public PDFViewerPanel panel() {
+            return PDFViewerPanel.this;
+        }
+
+        @Override
+        public JComponent owner() {
+            return pagesPanel;
+        }
+
+        @Override
+        public JViewport viewport() {
+            return scrollPane.getViewport();
+        }
+
+        @Override
+        public float zoom() {
+            return zoom;
+        }
+
+        @Override
+        public int pageCount() {
+            return pages.size();
+        }
+
+        @Override
+        public int pageAt(Point p) {
+            PageView pv = nearestPage(p.y);
+            return pv == null ? -1 : pv.index;
+        }
+
+        @Override
+        public Point2D.Float toPagePt(int page, Point p) {
+            PageView pv = view(page);
+            return new Point2D.Float((p.x - pv.getX()) / zoom, (p.y - pv.getY()) / zoom);
+        }
+
+        @Override
+        public Point toPanelPoint(int page, Point2D pt) {
+            PageView pv = view(page);
+            return new Point(pv.getX() + Math.round((float) pt.getX() * zoom), pv.getY() + Math.round((float) pt.getY() * zoom));
+        }
+
+        @Override
+        public Rectangle pageBounds(int page) {
+            return page < 0 || page >= pages.size() ? new Rectangle() : pages.get(page).getBounds();
+        }
+
+        @Override
+        public PDDocument document() {
+            return document;
+        }
+
+        @Override
+        public Object docLock() {
+            return docLock;
+        }
+
+        @Override
+        public void repaintPage(int page) {
+            if (page >= 0 && page < pages.size())
+                pages.get(page).repaint();
+        }
+
+        @Override
+        public void invalidatePage(int page) {
+            PDFViewerPanel.this.invalidatePage(page);
+        }
+
+        @Override
+        public int[] hitText(Point p) {
+            return hitTest(p);
+        }
+
+        @Override
+        public void select(int startPage, int startIndex, int endPage, int endIndex) {
+            PDFViewerPanel.this.select(startPage, startIndex, endPage, endIndex);
+        }
+
+        @Override
+        public void selectWordAt(int page, int index) {
+            PDFViewerPanel.this.selectWordAt(page, index);
+        }
+
+        @Override
+        public void clearSelection() {
+            PDFViewerPanel.this.clearSelection();
+        }
+
+        @Override
+        public boolean hasSelection() {
+            return PDFViewerPanel.this.hasSelection();
+        }
+
+        @Override
+        public int[] selectionRange() {
+            return selStartPage < 0 ? null : new int[]{selStartPage, selStartIdx, selEndPage, selEndIdx};
+        }
+
+        @Override
+        public Link linkAt(Point p) {
+            return linkAtView(p);
+        }
+
+        @Override
+        public void setCursor(Cursor cursor) {
+            pagesPanel.setCursor(cursor != null ? cursor : handler.cursor());
+        }
+
+        @Override
+        public void showError(String message) {
+            JOptionPane.showMessageDialog(PDFViewerPanel.this, message, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        @Override
+        public List<Rectangle2D.Float> selectionRects(int page) {
+            return getSelectionRects(page);
+        }
+
+        @Override
+        public List<TextPosition> selectionTextPositions(int page) {
+            return getSelectionTextPositions(page);
+        }
+
+        @Override
+        public void setAnnotationFilter(AnnotationFilter filter) {
+            PDFViewerPanel.this.setAnnotationFilter(filter);
+        }
+    }
+
     /** Byte-bounded LRU of rendered page images. EDT only. */
     private static final class PageCache {
         static final class Entry {
             final BufferedImage image;
             final float zoom;
+            /** The page's content version when rendered, see {@link PageView#contentVersion}. */
+            final int version;
             final long bytes;
 
-            Entry(BufferedImage image, float zoom) {
+            Entry(BufferedImage image, float zoom, int version) {
                 this.image = image;
                 this.zoom = zoom;
+                this.version = version;
                 this.bytes = 4L * image.getWidth() * image.getHeight();
             }
         }
@@ -2957,14 +3540,20 @@ public class PDFViewerPanel extends JPanel {
             return map.get(page);
         }
 
-        void put(int page, BufferedImage image, float zoom) {
+        void put(int page, BufferedImage image, float zoom, int version) {
             Entry old = map.remove(page);
             if (old != null)
                 bytes -= old.bytes;
-            Entry e = new Entry(image, zoom);
+            Entry e = new Entry(image, zoom, version);
             map.put(page, e);
             bytes += e.bytes;
             evict();
+        }
+
+        void remove(int page) {
+            Entry old = map.remove(page);
+            if (old != null)
+                bytes -= old.bytes;
         }
 
         void clear() {

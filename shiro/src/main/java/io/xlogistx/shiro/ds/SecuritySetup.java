@@ -12,7 +12,6 @@ import org.zoxweb.shared.security.PermissionInfo;
 import org.zoxweb.shared.security.RoleGrant;
 import org.zoxweb.shared.security.RoleGroupInfo;
 import org.zoxweb.shared.security.RoleInfo;
-import org.zoxweb.shared.security.SubjectAPIKey;
 import org.zoxweb.shared.security.SubjectIdentifier;
 import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.BaseSubjectID;
@@ -93,9 +92,6 @@ public final class SecuritySetup {
         public boolean wildcardVerified;
         public AppIDDefault app;
         public boolean appCreated;
-        /** The common app's registrar; its key (with the secret) only when it was created by this run. */
-        public SubjectIdentifier registrar;
-        public SubjectAPIKey registrarKey;
 
         @Override
         public String toString() {
@@ -105,7 +101,6 @@ public final class SecuritySetup {
                     + " login=" + (loginVerified ? "verified" : "not checked")
                     + " wildcard=" + (wildcardVerified ? "verified" : "FAILED")
                     + " app=" + (app != null ? app.getDomainAppID() : null) + (appCreated ? " (created)" : " (existing)")
-                    + " registrar=" + (registrar != null ? registrar.getGUID() : null) + (registrarKey != null ? " (created)" : " (existing)")
                     + " catalog{" + catalog + "}";
         }
     }
@@ -312,8 +307,9 @@ public final class SecuritySetup {
 
     /**
      * The setup of a store: the super-admin account (created first — it needs no catalog), the
-     * common app owned by it with the full catalog, the reserved role granted to the account, and
-     * the common app's registrar.
+     * common app owned by it with the full catalog, and the reserved role granted to the account.
+     * The common app gets <b>no registrar</b> (user, 2026-10-12): a deployment's subjects are signed
+     * up through its default app, created by {@code H2PSetup} / {@code create-app}, which has one.
      *
      * @param dsm      the manager (enforcement is expected to be off, or the caller to hold the wildcard)
      * @param password the password for a new account; ignored when the account already exists
@@ -355,10 +351,6 @@ public final class SecuritySetup {
             dsm.addRoleGrant(subject, role); // no domain/app: the wildcard applies in every login
             ret.roleGranted = true;
         }
-
-        ShiroDSDomainSecurityManager.AppCreation registrar = dsm.ensureRegistrar(ret.app);
-        ret.registrar = registrar.registrar;
-        ret.registrarKey = registrar.registrarKey;
 
         if (!SUS.isEmpty(password) && ret.subjectCreated) {
             dsm.login(ret.principalID, password);

@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.xlogistx.gui.hexeditor;
+package io.xlogistx.editor.hex;
 
 import io.xlogistx.gui.IconUtil;
 import io.xlogistx.gui.MDViewerPanel;

@@ -62,7 +62,7 @@ public class Ping
             } catch (Exception e) {
 
             }
-            response.build("subject-id", ShiroUtil.subjectUserID())
+            response.build("principal-id", ShiroUtil.subjectPrincipalID())
                     .build("jdk-version", System.getProperty("java.version"))
                     .build("vm-name", System.getProperty("java.vm.name"))
                     .build("vm-vendor-version", System.getProperty("java.vendor.version"))

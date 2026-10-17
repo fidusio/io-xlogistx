@@ -1,4 +1,4 @@
-package io.xlogistx.gui.hexeditor;
+package io.xlogistx.editor.hex;
 
 import java.io.*;
 import java.util.List;

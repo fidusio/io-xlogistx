@@ -13,7 +13,12 @@ The package has these groups:
      `NextIcon`, `RollbackIcon`, `VisibleIcon`, `InvisibleIcon`, `CopyIcon`, `SearchIcon`,
      `RefreshIcon`, `InfoIcon`, `RunIcon`, `StopIcon`, `PauseIcon`, `CheckIcon`, `AlertIcon`,
      `ErrorIcon`, `QuestionIcon`, `FileIcon`, `FolderIcon`, `UndoIcon`, `RedoIcon`, `PrintIcon`,
-     `PanIcon`, `SelectIcon`, `InsertIcon`, `PDFIcon`,
+     `PanIcon`, `SelectIcon`, `AreaIcon`, `InsertIcon`, `PDFIcon`, `CameraIcon`, and the PDF
+     editor set added 2026-10-15: `HighlightIcon`, `UnderlineIcon`, `StrikeoutIcon`, `NoteIcon`,
+     `PenIcon`, `RectangleIcon`, `EllipseIcon`, `LineIcon`, `ArrowIcon`, `TextBoxIcon`,
+     `RotateLeftIcon`, `RotateRightIcon`, `RotateImageLeftIcon`, `RotateImageRightIcon` (framed picture with a curved arrow, 2026-10-16: rotate an image stamp, not a page), `MoveIcon`, `AnnotSelectIcon`, `FormIcon`,
+     `EditTextIcon` (T with a pencil tip: rewrite page text; `textbox.svg` is a T in a box),
+     `PictureIcon` (framed landscape with a sun: place an image, 2026-10-15);
      generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
      ones share the `SVGIconWidget` base. **SVG icon constructor contract**:
      `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
@@ -71,7 +76,13 @@ The package has these groups:
   `<p class="diagram"><img data:png>` at scale 2, capped at `DIAGRAM_MAX_WIDTH` CSS px;
   unsupported diagrams (sequence, class, ...) stay code blocks. `MDViewerPanel` still shows
   the source (Swing's HTML kit has no data-URI images).
-- `PDFViewerPanel` — PDFBox-backed Swing viewer (details below).
+- `PDFViewerPanel` — PDFBox-backed Swing viewer (details below). Its tool strategy API
+  (`PDFToolHandler`, `PDFToolContext`, built-ins in package-private `PDFToolHandlers`) and
+  edit hooks (`PDFViewerPanel.EditDelegate` + direct page primitives) are what the PDF
+  editor in `apps` (`io.xlogistx.editor.pdf`, design in `PDF-EDIT-DESIGN.md`) builds on.
+- `io.xlogistx.gui.pdf.PageTransform` — pure-Java PDF user space ↔ view space (points,
+  top-left origin of the displayed page: crop box + rotation applied) conversion; the one
+  place that math lives (`PageView` sizes, link rectangles, future annotation geometry).
 - `PDFViewerApp` — standalone application (main class) around `PDFViewerPanel`:
   `PDFViewerApp [file.pdf | file.md | image.png]`, starts empty without an argument; title
   follows file/page/modified state, window close goes through `confirmDiscard()` then exits
@@ -129,7 +140,11 @@ another). Only pages within one viewport height of the view are rasterized
 (`PDFRenderer.renderImageWithDPI`, dpi = 72 × zoom × device scale) on **one shared daemon
 thread** (`RENDER_EXECUTOR`) and kept in a byte-bounded LRU (`DEFAULT_CACHE_BYTES` 64 MB,
 `setCacheBytes`, `getPageImage`). A `generation` counter invalidates in-flight renders on
-zoom change/close. Every `PDDocument` access is under `docLock` (PDFBox documents are not
+zoom change/close; per page, `PageView.contentVersion` (bumped by `invalidatePage(page)`,
+stored in the cache entry and captured by `requestRender`) drops one page's raster and
+cached links after an in-place content change (annotations) without touching the others;
+`invalidatePage` also calls `updateVisiblePages()` so the re-render is requested at once,
+not only on the next paint. Every `PDDocument` access is under `docLock` (PDFBox documents are not
 thread-safe); the only lock-free reader is painting, which peeks at the volatile
 `pageTexts`.
 
@@ -170,7 +185,8 @@ is not extracted yet request extraction on the render thread and repaint.
 `getURI()` or `getTargetPage()`). `extractLinks` (under `docLock`) keeps only URI actions
 with an `http`/`https`/`mailto` scheme (`isOpenable` — never hand launch/file/JavaScript
 targets to the desktop) and GoTo actions / direct or named destinations inside the
-document; `toViewRect` maps the annotation rectangle through crop box + page rotation.
+document; `PageTransform.of(page).toViewRect(...)` maps the annotation rectangle through
+crop box + page rotation.
 Links are cached per `PageView` (`links`, rebuilt with the page views after insert/delete),
 read lazily on the render thread at first paint (`requestLinks`) so hovering never waits
 on `docLock`; `getLinks(page)` / `linkAt(page, xPt, yPt)` read synchronously. Hover
@@ -184,15 +200,24 @@ top (XYZ / FitH, unrotated target pages only). Active with `PAN` and `SELECT_TEX
 still pans/selects), not with `ZOOM_TO_SELECTION`. Plain-text URLs without an annotation
 are not detected.
 
-**Tools/input.** `Tool` (toolbar toggle group) decides what a plain left drag does:
-`PAN` scrolls, `SELECT_TEXT` selects (double click = word, right click = Copy/Select all/
-Clear menu), `ZOOM_TO_SELECTION` rubber-bands a rectangle that is fitted to the viewport
-(`zoomToViewRect`); Shift+drag rubber-bands with any tool, a plain click in that tool
-zooms one step at the pointer. Keys (WHEN_ANCESTOR bindings on the panel, so they also
+**Tools/input.** `Tool` (toolbar toggle group) decides what a plain left drag does, and
+each tool is a `PDFToolHandler` strategy (`pressed`/`dragged`/`released`/`moved` (hover, after
+the panel applied `cursor()` or the link hand, so a tool can show a move / resize cursor)/`keyPressed`/
+`paintOverlay`/`cursor`/`cancel`, fed by the panel's `PDFToolContext` implementation
+`ToolContextImpl`; handlers never touch panel fields): `PAN` scrolls (`PanHandler`),
+`SELECT_TEXT` selects (`SelectTextHandler`: double click = word, right click = Copy/Select
+all/Clear menu), `ZOOM_TO_SELECTION` rubber-bands a rectangle that is fitted to the
+viewport (`zoomToViewRect`; the marquee spans pages, so the panel's dispatcher owns it and
+`ZoomSelectionHandler` only says `marqueeZoom()`), `CUSTOM` = the host handler installed
+with `setCustomTool(handler)` (toggles show no selection). The dispatcher keeps what every
+tool shares: Shift+drag marquee, popup trigger, link click (`followsLinks()`), hover, focus;
+`handler.cancel()` runs on Escape, tool change, document change and page-tree refresh. A
+handler's `paintOverlay` is painted per page after the highlights, before the border. Keys (WHEN_ANCESTOR bindings on the panel, so they also
 work with focus in the toolbar fields): PgUp/PgDn scroll a screen (`scrollBy`),
 Ctrl+PgUp/PgDn jump pages, Ctrl+Home/End first/last page, Ctrl +/−, Ctrl+0 fit width,
-Ctrl+A/Ctrl+C select all/copy, Esc clears the selection else returns to `PAN`; Ctrl+wheel
-zooms around the pointer. The wheel listener sits on the pages panel, and a component with
+Ctrl+A/Ctrl+C select all/copy, F3/Shift+F3 next/previous search match (via `runSearch`, so
+they also run a not-yet-searched query), Esc clears the selection else returns to `PAN`;
+Ctrl+wheel zooms around the pointer. The wheel listener sits on the pages panel, and a component with
 a wheel listener never lets wheel events bubble to the enclosing `JScrollPane`
 (`Component.dispatchMouseWheelToAncestor` runs only for listener-less components), so the
 listener forwards every plain wheel event to `scrollPane.dispatchEvent(...)` itself — remove
@@ -218,7 +243,8 @@ n = after page n. `mergeInto` = `PDFMergerUtility.appendDocument` (deep copy, so
 be closed) then `PDPageTree.remove` + `insertBefore` to move the appended pages into
 place; `refreshPages` rebuilds the page views keeping document/zoom/tool and clears
 highlights + selection). Merging sets `isModified()`; `save` clears it; `openFile()` and
-hosts' window-closing call `confirmDiscard()`. No undo — reopen the file instead.
+hosts' window-closing call `confirmDiscard()`. The panel has no undo of its own: an
+`EditDelegate` provides it (see *Editing hooks*).
 Delete (`deleteDialog()` → one text field, pre-filled with the current page, accepting
 `current` / `cur` / `this`, single pages, ranges `a-b` (`b-a` flipped) and comma / semicolon /
 space separated lists of those, one-based as the toolbar shows pages; an unusable entry is
@@ -229,31 +255,45 @@ reported and the dialog re-shown; `deletePages(String)` parses via the public st
 the first deleted page's slot, or the last page). Out-of-range indexes and a selection that
 would empty the document throw `IllegalArgumentException` with a dialog-ready message and
 change nothing. Deleting sets `isModified()` like Insert; the Delete button is enabled only
-with two or more pages. Same no-undo rule as Insert.
+with two or more pages.
 
-**Toolbar order.** Open, Save, Print, Insert, Delete | Pan, Select text, Zoom to selection, Copy | prev,
-page field / count, next | zoom out, zoom combo (presets + fit modes), zoom in | search
-field, find next, "n / m". Annotations and form editing are intentionally out of scope.
+**Editing hooks.** `setEditDelegate(EditDelegate)`: the delegate is asked first by
+`insertDocument` and `deletePages(int[])` (after validation; `true` = handled), answers
+`isModified()` (so `confirmDiscard` follows it), and hears `documentReplaced()` once per
+`install`/`close` (`install` uses `releaseDocument()`, not `close()`, to avoid a double
+notification) and `documentSaved()` after a save that did not reload. With a delegate
+installed `refreshPages` no longer sets `modified`. The direct primitives
+`insertPagesDirect(PDDocument, int)`, `insertPagesDirect(List<PDPage>, int[] indexes,
+showPage)` (each page at its index, in order; ascending original indexes restore the
+exact order), `removePagesDirect(List<PDPage>, showPage)` (a removed `PDPage` stays a valid
+object of the document, no cloning) and `pagesChanged(showPage)` never ask the delegate and
+all go through `refreshPages` (so `edits`/`generation` bump). `getDocumentLock()` exposes
+`docLock`. PDPage wrappers are recreated per `getPage` call: compare `getCOSObject()`
+(or `PDPage.equals`), never `==`. Also for the editor: `movePagesDirect(pages, targetIndexes,
+showPage)` (remove then re-insert each at its index, one lock, one refresh) and
+`setRotationsDirect(pages, rotations, showPage)`; `getSelectionRects(page)` (the selection's
+glyph rectangles in view space, what a text markup annotation is built from; same source as
+a search `Match`'s rects); `setAnnotationFilter(AnnotationFilter)` (which annotations the
+renderer draws, re-applied to every new renderer in `install`; used to hide the annotation
+being dragged); `getToolContext()` (the `PDFToolContext` the panel hands its handlers, so a
+host can drive a handler without a mouse); `getSelectionTextPositions(page)` (the selected
+characters' `TextPosition`s, separators left out: glyph identity for the in-place text
+editor). `invalidatePage` also drops the page's extracted text (`pageTexts[page]`,
+`textRequested`), clears a selection touching the page and the search highlights on it,
+because the editor may have rewritten the content stream.
 
-### Hex editor (`io.xlogistx.gui.hexeditor`)
+**Toolbar order.** Open, Save, Print, Insert, Delete | prev, page field / count, next |
+zoom out, zoom combo (presets + fit modes), zoom in | Pan, Select text, Zoom to selection,
+Copy | search field, find, previous match, next match (the two arrows are enabled only with
+2+ matches), "n / m". Form editing is out of scope; annotations are the PDF editor's job
+(`apps`, `PDF-EDIT-DESIGN.md` Tiers 2-3, not started).
 
-- `HexEditor` — pure model over zoxweb `UByteArrayOutputStream` (no Swing): file
-  I/O, edits, search/replace, undo/redo (bounded 100). Undo entry types MODIFY /
-  INSERT / DELETE / REPLACE — length-changing replaces MUST use REPLACE (MODIFY
-  undo corrupts the buffer). `reset()` = new-document (non-undoable) vs `clear()`
-  (undoable edit).
-- `HexPanel` — embeddable Swing view (offset/hex/ASCII columns, nibble-level
-  editing, clip-aware painting). Caret blink timer is started/stopped in
-  `addNotify`/`removeNotify`.
-- `HexEditorPane` — **the embeddable component** (JPanel: toolbar of icon-only
-  `IconUtil` buttons with tooltips + view + status
-  bar + all dialogs, parented to the pane). Hosts install `createMenuBar()` in
-  their own window; document state via `getDocumentTitle()`/`isModified()`/
-  change listeners; `confirmDiscard()` before closing. Never exits the JVM.
-- `HexEditorFrame` — thin standalone wrapper; `System.exit` only when
-  `setExitOnClose(true)` (set by its `main`), so opening the frame from a host
-  app is safe.
-- `HexEditorConsole` — interactive CLI over the same model.
+### Hex editor
+
+Moved on 2026-10-15 to the `apps` module, package `io.xlogistx.editor.hex` (`HexEditor`,
+`HexPanel`, `HexEditorPane`, `HexEditorFrame`, `HexEditorConsole`, resources
+`about.md`/`shortcuts.md`). `apps` depends on this module for `IconUtil` and
+`MDViewerPanel`; the design notes are in `apps/CLAUDE.md`.
 
 ## Rules / invariants (do NOT regress)
 
@@ -274,14 +314,25 @@ field, find next, "n / m". Annotations and form editing are intentionally out of
 - SVG resources live in `src/main/resources/io/xlogistx/gui/icons/` (`plus`, `minus`,
   `cancel`, `edit`, `delete`, `back`, `next`, `rollback`, `visible`, `invisible`, `save`,
   `update`, `copy`, `search`, `refresh`, `info`, `run`, `stop`, `pause`, `check`, `alert`,
-  `error`, `question`, `file`, `folder`, `undo`, `redo`, `print`, `pan`, `select`, `insert`). All are Feather-style: 24x24 viewBox,
+  `error`, `question`, `file`, `folder`, `undo`, `redo`, `print`, `pan`, `select`, `area`,
+  `insert`, `pdf`, `camera`, `highlight`, `underline`, `strikeout`, `note`, `pen`, `rectangle`,
+  `ellipse`, `line`, `arrow`, `textbox`, `rotate-left`, `rotate-right`, `rotate-image-left`, `rotate-image-right`, `move`, `annot-select`,
+  `form`, `edit-text`, `picture`). All are Feather-style: 24x24 viewBox,
   `fill="none"`, `stroke="#5A5A5A"`, stroke-width 2, round caps/joins — match this style
   when adding new ones. Each `XxxIcon` class maps to the same-named svg
   (`PlusIcon`→`plus.svg`, ...), except: `EditIcon`→`edit.svg` is a pencil,
   `DeleteIcon`→`delete.svg` is a trash can, `UpdateIcon`→`update.svg` is two chasing
   arrows (sync), `RefreshIcon`→`refresh.svg` is a single clockwise arrow,
   `RollbackIcon`→`rollback.svg` is its counterclockwise mirror, `RunIcon`→`run.svg` is a
-  play triangle, `InfoIcon`→`info.svg` is an "i" in a circle. `UndoIcon`/`RedoIcon` are
+  play triangle, `InfoIcon`→`info.svg` is an "i" in a circle, `AreaIcon`→`area.svg` is four
+  corner brackets (zoom to selection; `rectangle.svg` is a plain closed rectangle, not a
+  duplicate), `PenIcon`→`pen.svg` is a nib with a circle (ink; `edit.svg` is a pencil),
+  `RotateLeftIcon`/`RotateRightIcon` are a page outline with a curved arrow (NOT the bare
+  arrows of `rollback`/`refresh`), `RotateImageLeftIcon`/`RotateImageRightIcon` the same arrow
+  around a framed picture (sun + hills) so the page and image rotate buttons of the PDF editor
+  do not look alike, `AnnotSelectIcon` is a cursor over a dashed rectangle
+  (`select.svg` is a cursor with a line), `TextBoxIcon` is a T in a box, `FormIcon` a field
+  box with a caret. `UndoIcon`/`RedoIcon` are
   hook arrows and are deliberately NOT mirrors of `rollback`/`refresh` (those two are
   already exact mirrors of each other and read as revert/reload, not undo/redo).
   `CheckIcon`/`AlertIcon`/`ErrorIcon`/`QuestionIcon` are the intended status glyphs for
@@ -327,8 +378,11 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 Build: `mvn clean install -pl gui-audio -am` (from repo root).
 
 Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest`,
-`MermaidRendererTest` and `PDFViewerPanelTest` (sets `java.awt.headless=true`, lays the component tree out by hand
-because `validate()` needs a peer, drives the panel through `invokeAndWait`). The other
+`MermaidRendererTest`, `pdf/PageTransformTest` (hand-computed corners for all four
+rotations + offset crop box, and a rendered-pixel check against `PDFRenderer`) and
+`PDFViewerPanelTest` (sets `java.awt.headless=true`, lays the component tree out by hand
+because `validate()` needs a peer, drives the panel through `invokeAndWait`; renders are
+requested by `updateVisiblePages`, nothing paints headless). The other
 Swing classes are verified via the demos only. `mvn test` skips tests in this build (parent
 `skipTests`); see the memory note on the CLI JUnit launcher recipe.
 

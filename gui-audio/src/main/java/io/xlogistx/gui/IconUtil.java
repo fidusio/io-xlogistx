@@ -973,6 +973,483 @@ public class IconUtil {
         }
     }
 
+    /**
+     * Highlight (marker pen over a line) icon (highlight.svg).
+     */
+    public static class HighlightIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square highlight (marker pen over a line) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public HighlightIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/highlight.svg");
+        }
+
+        /**
+         * Creates a square highlight (marker pen over a line) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public HighlightIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/highlight.svg");
+        }
+    }
+
+    /**
+     * Underline (U over a bar) icon (underline.svg).
+     */
+    public static class UnderlineIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square underline (U over a bar) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public UnderlineIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/underline.svg");
+        }
+
+        /**
+         * Creates a square underline (U over a bar) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public UnderlineIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/underline.svg");
+        }
+    }
+
+    /**
+     * Strikeout (S crossed by a bar) icon (strikeout.svg).
+     */
+    public static class StrikeoutIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square strikeout (S crossed by a bar) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public StrikeoutIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/strikeout.svg");
+        }
+
+        /**
+         * Creates a square strikeout (S crossed by a bar) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public StrikeoutIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/strikeout.svg");
+        }
+    }
+
+    /**
+     * Note (speech bubble) icon (note.svg).
+     */
+    public static class NoteIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square note (speech bubble) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public NoteIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/note.svg");
+        }
+
+        /**
+         * Creates a square note (speech bubble) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public NoteIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/note.svg");
+        }
+    }
+
+    /**
+     * Pen (nib, freehand drawing) icon (pen.svg).
+     */
+    public static class PenIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square pen (nib, freehand drawing) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public PenIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/pen.svg");
+        }
+
+        /**
+         * Creates a square pen (nib, freehand drawing) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public PenIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/pen.svg");
+        }
+    }
+
+    /**
+     * Rectangle icon (rectangle.svg).
+     */
+    public static class RectangleIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square rectangle icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RectangleIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/rectangle.svg");
+        }
+
+        /**
+         * Creates a square rectangle icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public RectangleIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/rectangle.svg");
+        }
+    }
+
+    /**
+     * Ellipse icon (ellipse.svg).
+     */
+    public static class EllipseIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square ellipse icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public EllipseIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/ellipse.svg");
+        }
+
+        /**
+         * Creates a square ellipse icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public EllipseIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/ellipse.svg");
+        }
+    }
+
+    /**
+     * Line icon (line.svg).
+     */
+    public static class LineIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square line icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public LineIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/line.svg");
+        }
+
+        /**
+         * Creates a square line icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public LineIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/line.svg");
+        }
+    }
+
+    /**
+     * Arrow icon (arrow.svg).
+     */
+    public static class ArrowIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square arrow icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public ArrowIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/arrow.svg");
+        }
+
+        /**
+         * Creates a square arrow icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public ArrowIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/arrow.svg");
+        }
+    }
+
+    /**
+     * Text box (T in a box) icon (textbox.svg).
+     */
+    public static class TextBoxIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square text box (T in a box) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public TextBoxIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/textbox.svg");
+        }
+
+        /**
+         * Creates a square text box (T in a box) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public TextBoxIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/textbox.svg");
+        }
+    }
+
+    /**
+     * Rotate page counter-clockwise (page with a curved arrow) icon (rotate-left.svg).
+     */
+    public static class RotateLeftIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square rotate page counter-clockwise (page with a curved arrow) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RotateLeftIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/rotate-left.svg");
+        }
+
+        /**
+         * Creates a square rotate page counter-clockwise (page with a curved arrow) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public RotateLeftIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/rotate-left.svg");
+        }
+    }
+
+    /**
+     * Rotate page clockwise (page with a curved arrow) icon (rotate-right.svg).
+     */
+    public static class RotateRightIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square rotate page clockwise (page with a curved arrow) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RotateRightIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/rotate-right.svg");
+        }
+
+        /**
+         * Creates a square rotate page clockwise (page with a curved arrow) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public RotateRightIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/rotate-right.svg");
+        }
+    }
+
+    /**
+     * Rotate image counter-clockwise (framed picture with a curved arrow) icon (rotate-image-left.svg);
+     * distinct from {@link RotateLeftIcon}, which rotates a page.
+     */
+    public static class RotateImageLeftIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square rotate image counter-clockwise (framed picture with a curved arrow) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RotateImageLeftIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/rotate-image-left.svg");
+        }
+
+        /**
+         * Creates a square rotate image counter-clockwise (framed picture with a curved arrow) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public RotateImageLeftIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/rotate-image-left.svg");
+        }
+    }
+
+    /**
+     * Rotate image clockwise (framed picture with a curved arrow) icon (rotate-image-right.svg);
+     * distinct from {@link RotateRightIcon}, which rotates a page.
+     */
+    public static class RotateImageRightIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square rotate image clockwise (framed picture with a curved arrow) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public RotateImageRightIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/rotate-image-right.svg");
+        }
+
+        /**
+         * Creates a square rotate image clockwise (framed picture with a curved arrow) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public RotateImageRightIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/rotate-image-right.svg");
+        }
+    }
+
+    /**
+     * Move pages (page with up/down arrows) icon (move.svg).
+     */
+    public static class MoveIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square move pages (page with up/down arrows) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public MoveIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/move.svg");
+        }
+
+        /**
+         * Creates a square move pages (page with up/down arrows) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public MoveIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/move.svg");
+        }
+    }
+
+    /**
+     * Annotation select (cursor over a dashed rectangle) icon (annot-select.svg).
+     */
+    public static class AnnotSelectIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square annotation select (cursor over a dashed rectangle) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public AnnotSelectIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/annot-select.svg");
+        }
+
+        /**
+         * Creates a square annotation select (cursor over a dashed rectangle) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public AnnotSelectIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/annot-select.svg");
+        }
+    }
+
+    /**
+     * Form field (field box with a caret) icon (form.svg).
+     */
+    public static class FormIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square form field (field box with a caret) icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public FormIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/form.svg");
+        }
+
+        /**
+         * Creates a square form field (field box with a caret) icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public FormIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/form.svg");
+        }
+    }
+
+    /**
+     * Edit text icon (edit-text.svg): a T with a pencil tip, for rewriting page text.
+     */
+    public static class EditTextIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square edit text icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public EditTextIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/edit-text.svg");
+        }
+
+        /**
+         * Creates a square edit text icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public EditTextIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/edit-text.svg");
+        }
+    }
+
+    /**
+     * Picture icon (picture.svg): a framed landscape with a sun, for placing an image.
+     */
+    public static class PictureIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square picture icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public PictureIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/picture.svg");
+        }
+
+        /**
+         * Creates a square picture icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public PictureIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/picture.svg");
+        }
+    }
+
 
     /**
      * Icon rendered from an SVG document via JSVG, scaled to the requested size.

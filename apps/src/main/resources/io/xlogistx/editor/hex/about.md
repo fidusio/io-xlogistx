@@ -14,4 +14,4 @@ A hexadecimal editor using `UByteArrayOutputStream` from zoxweb-core as its data
 
 ---
 
-Built with Java Swing — package `io.xlogistx.gui.hexeditor`.
+Built with Java Swing — package `io.xlogistx.editor.hex`.

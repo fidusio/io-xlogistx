@@ -402,7 +402,7 @@ public class DSAuthorizingRealm
             return null;
         }
         if (principals instanceof DomainPrincipalCollection) {
-            String gid = ((DomainPrincipalCollection) principals).getSubjectGID();
+            String gid = ((DomainPrincipalCollection) principals).getSubjectGUID();
             if (!SUS.isEmpty(gid)) {
                 return gid;
             }

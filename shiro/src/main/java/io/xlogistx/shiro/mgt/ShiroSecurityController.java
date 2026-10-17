@@ -35,15 +35,15 @@ public class ShiroSecurityController
 
     public static final LogWrapper log = new LogWrapper(ShiroSecurityController.class).setEnabled(false);
 
-    @Override
-    public void validateCredential(CredentialInfo ci, String input) throws AccessSecurityException {
-
-    }
-
-    @Override
-    public void validateCredential(CredentialInfo ci, byte[] input) throws AccessSecurityException {
-
-    }
+//    @Override
+//    public void validateCredential(CredentialInfo ci, String input) throws AccessSecurityException {
+//
+//    }
+//
+//    @Override
+//    public void validateCredential(CredentialInfo ci, byte[] input) throws AccessSecurityException {
+//
+//    }
 
     @Override
     public final Object encryptValue(APIDataStore<?, ?> dataStore, NVEntity container, NVConfig nvc, NVBase<?> nvb, byte[] msKey)
@@ -256,7 +256,7 @@ public class ShiroSecurityController
     }
 
     @Override
-    public void associateNVEntityToSubjectGUID(NVEntity nve, String subjectGUID) {
+    public void associateResourceToSubject(NVEntity nve, String subjectGUID) {
 
         if (nve.getGUID() == null) {
             if (nve.getSubjectGUID() == null) {
@@ -271,14 +271,14 @@ public class ShiroSecurityController
                     if (nvb instanceof NVEntityReference) {
                         NVEntity temp = (NVEntity) nvb.getValue();
                         if (temp != null) {
-                            associateNVEntityToSubjectGUID(temp, subjectGUID);
+                            associateResourceToSubject(temp, subjectGUID);
                         }
                     } else if (nvb instanceof NVEntityReferenceList || nvb instanceof NVEntityReferenceIDMap || nvb instanceof NVEntityGetNameMap) {
                         @SuppressWarnings("unchecked")
                         ArrayValues<NVEntity> arrayValues = (ArrayValues<NVEntity>) nvb;
                         for (NVEntity nveTemp : arrayValues.values()) {
                             if (nveTemp != null) {
-                                associateNVEntityToSubjectGUID(nveTemp, subjectGUID);
+                                associateResourceToSubject(nveTemp, subjectGUID);
                             }
                         }
                     }
@@ -288,7 +288,7 @@ public class ShiroSecurityController
     }
 
     @Override
-    public String currentSubjectID() throws AccessSecurityException {
+    public String currentPrincipalID() throws AccessSecurityException {
         try {
             Object principal = SecurityUtils.getSubject().getPrincipal();
             return principal != null ? principal.toString() : null;
@@ -310,13 +310,13 @@ public class ShiroSecurityController
     }
 
 
-    public final boolean isNVEntityAccessible(NVEntity nve, CRUD... permissions)
+    public final boolean isResourceAccessible(NVEntity nve, CRUD... permissions)
             throws NullPointerException, IllegalArgumentException {
-        return isNVEntityAccessible(Const.LogicalOperator.AND, nve, permissions);
+        return isResourceAccessible(Const.LogicalOperator.AND, nve, permissions);
     }
 
 
-    public final boolean isNVEntityAccessible(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
+    public final boolean isResourceAccessible(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
             throws NullPointerException, IllegalArgumentException {
         try {
             checkNVEntityAccess(lo, nve, permissions);
@@ -397,7 +397,7 @@ public class ShiroSecurityController
      * or no verb is requested. Never throws.
      */
     @Override
-    public final boolean isNVEntityAccessible(String nveRefID, String nveUserID, CRUD... permissions) {
+    public final boolean isResourceAccessible(String nveRefID, String nveUserID, CRUD... permissions) {
         if (nveRefID == null || permissions == null || permissions.length == 0) {
             return false;
         }

@@ -310,9 +310,6 @@ public class SecurityAdminTool {
                         out.println("initial password: the secret store's " + SUPER_ADMIN_PASSWORD
                                 + " entry; change it with reset-super-admin-password");
                     }
-                    if (result.registrarKey != null) {
-                        printRegistrarKey(out, result.app, result.registrarKey);
-                    }
                     return result.wildcardVerified ? EXIT_OK : EXIT_FAILURE;
                 }
                 case RESET_SUPER_ADMIN_PASSWORD: {

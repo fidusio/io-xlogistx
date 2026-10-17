@@ -16,95 +16,97 @@
 package io.xlogistx.shiro.authc;
 
 import org.apache.shiro.authc.UsernamePasswordToken;
+import org.zoxweb.shared.security.PrincipalID;
 import org.zoxweb.shared.util.AppID;
 import org.zoxweb.shared.util.SUS;
-import org.zoxweb.shared.util.SubjectID;
 
 @SuppressWarnings("serial")
 public class DomainUsernamePasswordToken
-    extends UsernamePasswordToken
-    implements AppID<String>, SubjectID<String>
-{
+        extends UsernamePasswordToken
+        implements AppID<String>, PrincipalID<String> {
 
-	private String domain_id;
-	private String app_id;
-	private String subject_guid;
-	private boolean autoAuthenticationEnabled = false;
+    private String domain_id;
+    private String app_id;
+    private String subject_guid;
+    private boolean autoAuthenticationEnabled = false;
 
-	public DomainUsernamePasswordToken()
-    {
-		
-	}
-	
-	public DomainUsernamePasswordToken(final String username, final String password,
-                                       final boolean rememberMe, final String host, final String domainID)
-    {
-		this(username, password, rememberMe, host, domainID, null);
-	}
-	
-	public DomainUsernamePasswordToken(final String username, final String password,
-                                       final boolean rememberMe, final String host, final String domainID, String applicationID)
-    {
-		super(SUS.toLowerCase(username), password, rememberMe, host);
-		setDomainID(domainID);
-		setAppID(applicationID);
-		//setUserID(realmID);
-	}
+    public DomainUsernamePasswordToken() {
 
-	public String getDomainID()
-    {
-		return domain_id;
-	}
+    }
+	@Deprecated
+    public DomainUsernamePasswordToken(final String principalID, final String password,
+                                       final boolean rememberMe, final String host, final String domainID) {
+        this(principalID, password, rememberMe, host, domainID, null);
+    }
 
-	public void setDomainID(String domainID)
-    {
-		this.domain_id = SUS.trimOrEmpty(SUS.toLowerCase(domainID));
-	}
-	
-	public String getAppID()
-    {
-		return app_id;
-	}
 
-	public void setAppID(String applicationID)
-    {
-		this.app_id = SUS.trimOrEmpty(SUS.toLowerCase(applicationID));
-	}
+    @Deprecated
+    public DomainUsernamePasswordToken(final String principalID, final String password,
+                                       final boolean rememberMe, final String host, final String domainID, String applicationID) {
+        super(SUS.toLowerCase(principalID), password, rememberMe, host);
+        setDomainID(domainID);
+        setAppID(applicationID);
+        //setUserID(realmID);
+    }
 
-	public String getSubjectGUID()
-    {
-		return subject_guid;
-	}
-	
-	public void setSubjectGUID(String subject_guid)
-    {
-		this.subject_guid = subject_guid;
-	}
-	
-	
-	
-	public boolean isAutoAuthenticationEnabled()
-    {
-		return autoAuthenticationEnabled;
-	}
 
-	public void setAutoAuthenticationEnabled(boolean autoAuthenticationEnabled)
-    {
-		this.autoAuthenticationEnabled = autoAuthenticationEnabled;
-	}
+    public DomainUsernamePasswordToken(final String principalID, final char[] password,
+                                       final boolean rememberMe, final String host, final String domainID) {
+        this(principalID, password, rememberMe, host, domainID, null);
+    }
 
-	@Override
-	public String getSubjectID() {
-		// TODO Auto-generated method stub
-		return getUsername();
-	}
+    public DomainUsernamePasswordToken(final String principalID, final char[] password,
+                                       final boolean rememberMe, final String host, final String domainID, String applicationID) {
+        super(SUS.toLowerCase(principalID), password, rememberMe, host);
+        setDomainID(domainID);
+        setAppID(applicationID);
+        //setUserID(realmID);
+    }
 
-	@Override
-	public void setSubjectID(String subjectID) {
-		// TODO Auto-generated method stub
-		setUsername(subjectID);
-	}
+    public String getDomainID() {
+        return domain_id;
+    }
 
-	
+    public void setDomainID(String domainID) {
+        this.domain_id = SUS.trimOrEmpty(SUS.toLowerCase(domainID));
+    }
+
+    public String getAppID() {
+        return app_id;
+    }
+
+    public void setAppID(String applicationID) {
+        this.app_id = SUS.trimOrEmpty(SUS.toLowerCase(applicationID));
+    }
+
+    public String getSubjectGUID() {
+        return subject_guid;
+    }
+
+    public void setSubjectGUID(String subject_guid) {
+        this.subject_guid = subject_guid;
+    }
+
+
+    public boolean isAutoAuthenticationEnabled() {
+        return autoAuthenticationEnabled;
+    }
+
+    public void setAutoAuthenticationEnabled(boolean autoAuthenticationEnabled) {
+        this.autoAuthenticationEnabled = autoAuthenticationEnabled;
+    }
+
+    @Override
+    public String getPrincipalID() {
+        // TODO Auto-generated method stub
+        return getUsername();
+    }
+
+    @Override
+    public void setPrincipalID(String subjectID) {
+        // TODO Auto-generated method stub
+        setUsername(subjectID);
+    }
+
 
 }

@@ -35,6 +35,7 @@
         <module>opsec</module>
         <module>gui-audio</module>
         <module>ffm</module>
+        <module>apps</module>
     </modules>
 
     <dependencyManagement>

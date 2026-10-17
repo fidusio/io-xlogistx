@@ -13,15 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.xlogistx.gui.hexeditor;
+package io.xlogistx.editor.hex;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Standalone window wrapper around {@link HexEditorPane}.
@@ -131,35 +129,5 @@ public class HexEditorFrame extends JFrame {
         HexEditorPane.showMarkdownDialog(this, "about.md", "About Hex Editor", new Dimension(420, 380));
     }
 
-    /**
-     * Main entry point for standalone use.
-     *
-     * @param args command line arguments (optional file to open)
-     */
-    public static void main(String[] args) {
-        // Set look and feel
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            // Use default
-        }
 
-        SwingUtilities.invokeLater(() -> {
-            HexEditorFrame frame = new HexEditorFrame();
-            frame.setExitOnClose(true);
-
-            // If file argument provided, open it
-            if (args.length > 0) {
-                try {
-                    frame.getEditorPane().open(new File(args[0]));
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(frame, "Failed to open file: " + e.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-
-            frame.setVisible(true);
-            frame.getEditorPane().getHexPanel().requestFocusInWindow();
-        });
-    }
 }

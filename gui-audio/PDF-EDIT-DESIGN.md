@@ -1,11 +1,77 @@
 # PDFViewerPanel Editing — Design
 
-Status: **approved scope, not started** (2026-09-25).
-Scope decision: Tiers 1–3 below. **Forms (AcroForm filling) are out.** In-place editing of
-existing page text and true redaction are out (see *Non-goals*).
+Status: **Phase 0, Tiers 1–3 and AcroForm filling landed 2026-10-15.**
+Scope decision (revised 2026-10-15): Tiers 1–3 below **plus form filling** (the 2026-09-25
+exclusion of AcroForm filling was reopened by the user: an editor that cannot edit is
+pointless). In-place editing of existing page text and true redaction stay out (see
+*Non-goals*).
 
-Companion docs: `gui-audio/CLAUDE.md` (current viewer internals), this file (the editing
-design). When implementation starts, keep the *Progress* section at the bottom current.
+Companion docs: `gui-audio/CLAUDE.md` (current viewer internals), `apps/CLAUDE.md` (the
+editor classes), this file (the editing design). Keep the *Progress* section at the bottom
+current.
+
+## Decisions 2026-10-15 (supersede the matching parts of section 4)
+
+- **Location.** The editing code lives in the `apps` module, package
+  `io.xlogistx.editor.pdf` (`PDFEdit`, `PDFEditModel`, `InsertPagesEdit`, `DeletePagesEdit`,
+  `PDFEditorPane`, `PDFEditorFrame`), beside the hex editor. `PDFViewerPanel` stays in
+  `gui-audio` and only gained hooks: `io.xlogistx.gui.pdf.PageTransform` (4.2, used by the
+  panel itself for page sizes and link rectangles), `invalidatePage` + per-page content
+  versions (4.5), the public `PDFToolHandler` / `PDFToolContext` strategy with
+  `Tool.CUSTOM` + `setCustomTool` (4.4), and the `EditDelegate` below.
+- **`EditDelegate` replaces "the panel owns the model" (4.1).** `gui-audio` cannot depend
+  on `apps`, so the panel asks `PDFViewerPanel.EditDelegate` first for every insert and
+  delete, defers `isModified()` to it and tells it `documentReplaced()` / `documentSaved()`.
+  The edits act through the direct primitives `insertPagesDirect(PDDocument, int)`,
+  `insertPagesDirect(List<PDPage>, int[] indexes, int showPage)`,
+  `removePagesDirect(List<PDPage>, int showPage)` and `pagesChanged(int)`, which never ask
+  the delegate. `PDFEditorPane` installs the delegate and owns the `PDFEditModel`.
+- **Edits take the panel, not a `PDDocument`**: `PDFEdit.apply()` / `revert()` are no-arg
+  and refresh the view themselves through the primitives.
+- **Modified flag is positional**: `PDFEditModel` remembers the undo depth at the last save,
+  so undoing back to the saved state clears the mark (saving keeps the history; only a
+  reload, e.g. saving over the open file, resets it).
+- **`AnnotationStyle` / `AnnotationFactory` move to Phase 2**, where they get their first
+  consumer; Phase 0 shipped without them.
+- **Edits are recorded whether or not the Edit toggle is on**; the toggle only gates the
+  Undo/Redo buttons and shortcuts and the edit tools (picking a tool or calling an editing
+  API turns editing on).
+- **PDFBox 3.0.8 API corrections** (verified against the jar): `PDAnnotationHighlight` /
+  `PDAnnotationUnderline` / `PDAnnotationStrikeout` are separate classes with public
+  constructors (`PDAnnotationTextMarkup` has none); `setConstantOpacity`, `setPopup`,
+  `setBorderStyle` live on `PDAnnotationMarkup`; the `FLAG_*` constants are private, use
+  `setPrinted(true)`; `PDAnnotationFreeText` has no interior colour (its `C` is the
+  background, the text colour sits in `DA`); `PDComboBox.isEdit()`; appearance streams are
+  drawn with `new PDPageContentStream(doc, PDAppearanceStream)`.
+- **Appearance handlers change `Rect`**: the highlight handler grows it by a quarter line
+  height per side, the square/circle handlers by half the border width, the note handler
+  fixes the icon size. Tests compare enclosure / centres, not exact rectangles.
+- **Tool strategy over `Tool.CUSTOM`**: the editor's tools (`io.xlogistx.editor.pdf.tools`)
+  are installed with `PDFViewerPanel.setCustomTool`; one is active at a time, and the pane
+  learns it was replaced through `EditorHost.toolDeactivated`. Right clicks never reach a
+  tool (the viewer's dispatcher shows the Copy menu), so annotation Delete / Properties sit
+  in the edit row and the Edit menu instead of a context menu.
+- **Selection-rectangle and annotation-filter hooks** were added to the panel for Tier 2/3:
+  `getSelectionRects(page)` / `PDFToolContext.selectionRects` (text markup geometry) and
+  `setAnnotationFilter` (hide the annotation being dragged), plus `movePagesDirect`,
+  `setRotationsDirect` and `getToolContext()`.
+- **Flatten export** (4.8) stays unimplemented.
+- **In-place text editing (2026-10-15, user decision: "rewrite the text in place")**:
+  `TextEditor.glyphs(page)` walks the page stream with a `PDFStreamEngine` subclass that
+  counts top-level operators (`'` and `"` re-enter `processOperator`, so a depth guard keeps
+  the count aligned with `PDFStreamParser.parse()`), skips form XObjects, and records every
+  glyph as (operator index, string index within a `TJ`, code index, unicode, font, origin,
+  advance). `match` ties the viewer's selected `TextPosition`s (`getXDirAdj`/`getYDirAdj`
+  are exactly `PageTransform.toView` of the glyph origin) to those glyphs by unicode and
+  position within 0.75 pt. `replace` re-splits the string operand into per-code byte runs
+  with `font.readCode`, drops the selected codes, inserts `font.encode(replacement)` at the
+  first one, wrapped in `TJ` adjustments that align it (left / centre / right, user choice in
+  the dialog) inside the old text's room and keep the rest of the string in place, and writes
+  the tokens back with `ContentStreamWriter` into one FLATE stream.
+  `ReplaceTextEdit` swaps the whole content stream (before/after bytes) and
+  `invalidatePage` now also drops the page's extracted text, selection and stale search
+  highlights. Viewer hooks added: `getSelectionTextPositions(page)` /
+  `PDFToolContext.selectionTextPositions`.
 
 ---
 
@@ -24,9 +90,9 @@ design). When implementation starts, keep the *Progress* section at the bottom c
 
 | Excluded | Why | Offer instead |
 |---|---|---|
-| Editing existing body text in place | PDF has no text model: subset fonts lack glyphs, kerned arrays, no reflow. Every attempt ends as a half-broken feature. | Free-text annotation (Tier 3); for `.md`-origin files edit the Markdown and regenerate (`MDViewerDemo` already does this live). |
+| Editing existing body text in place | **Back in, with limits (2026-10-15)**: `TextEditor` + `EditTextTool` rewrite the selected glyphs in the page's content stream with the **same font**. No reflow (a longer replacement runs on), characters the (subset) font has no glyph for are refused by name, text drawn by form XObjects is not editable. For `.md`-origin files editing the Markdown and regenerating is still the better path. | Free-text annotation (Tier 3) for anything the font cannot show. |
 | Redaction | A covering rectangle is **not** removal; the text stays extractable. Shipping it would mislead users. | Nothing. State it in the UI if asked. |
-| AcroForm field filling | Out by decision (2026-09-25). | — |
+| AcroForm field filling | **Back in (2026-10-15)**: `FormFillTool` + `SetFieldValueEdit` fill text, check box, radio and choice fields; push buttons, signatures and read-only fields are shown but not editable. | — |
 | Digital signatures | Different problem (incremental save, certificates). | `opsec` module if ever needed. |
 
 ## 3. Feature tiers
@@ -51,10 +117,18 @@ design). When implementation starts, keep the *Progress* section at the bottom c
 ### Tier 3 — drawing
 - **Ink** (freehand polyline, `PDAnnotationInk`), **Rectangle** (`PDAnnotationSquare`),
   **Ellipse** (`PDAnnotationCircle`), **Line / Arrow** (`PDAnnotationLine`, ending style
-  `OpenArrow` for arrows), **Free text** box (`PDAnnotationFreeText`).
+  `OpenArrow` for arrows), **Free text** box (`PDAnnotationFreeText`), **Image** (added
+  2026-10-15: a picture file placed as a `PDAnnotationRubberStamp` whose own appearance
+  stream draws the image XObject; moved / resized (corner handles keep the aspect ratio) /
+  rotated in quarter turns (2026-10-16: two buttons, Annotate menu, Ctrl+Shift+L / R; the
+  angle is drawn into the appearance, the box turns about its centre) / deleted / undone
+  like any annotation, shown by every viewer).
 - **Select** tool for annotations: click selects, drag moves, eight handles resize (ink:
   move only; line: move plus two endpoint handles), Delete removes, a properties popup
-  edits stroke colour, fill colour, opacity, stroke width, font size, note text.
+  edits stroke colour, fill colour, opacity, stroke width, font family / bold / italic /
+  underline / strikethrough / text highlight colour / size / left-centre-right alignment
+  (2026-10-16: any installed TrueType family through `EditorFonts`, kept in the
+  annotation's `DS`; the alignment in `Q`), note text.
 
 ---
 
@@ -169,7 +243,11 @@ remembered per session.
 - `ink(List<List<Point2D>> strokes)` — one `InkList` array per stroke, `Rect` = bounds + width.
 - `square(rect)`, `circle(rect)` — with `BS` width, `C` stroke, `IC` fill.
 - `line(p1, p2, arrow)` — `L`; `LE = [None OpenArrow]` when `arrow`.
-- `freeText(rect, text)` — **custom appearance** (see 4.9), `DA` kept for other viewers.
+- `freeText(rect, text)` — **custom appearance** (see 4.9), `DA` kept for other viewers,
+  `DS` (`font-family`, `font-weight`, `font-style`) for the chosen font.
+- `image(rect, PDImageXObject)` — `/Stamp`, `Name = Image`, appearance built by `ImageStamp`
+  (image in the AP resources as `Im0`, opacity via an ExtGState; PDFBox has no stamp
+  handler, `rebuildAppearance` redraws from the kept XObject).
 
 All set `M` (modified date), `T` (author), `CA` (opacity), `P` (page), and `F = Print`.
 
@@ -290,7 +368,7 @@ existing `getToolbar()` keeps returning the view row; new `getEditToolbar()`):
 
 ```
 view row: Open, Save, Print, Insert, Delete | Pan, Select text, Zoom to selection, Copy | prev, page / n, next | zoom out, combo, zoom in | search, next, n/m   (unchanged)
-edit row: [Edit] | Undo, Redo | Rotate CCW, Rotate CW, Move pages | Highlight, Underline, Strikeout, Note | Ink, Rect, Ellipse, Line, Arrow, Text box | Select annot. | stroke, fill, opacity, width, size
+edit row: [Edit] | Undo, Redo | Rotate CCW, Rotate CW (the current page, or the selected image stamp: icon and tooltip switch with the selection), Move pages | Highlight, Underline, Strikeout, Note | Ink, Rect, Ellipse, Line, Arrow, Text box, Image | Select annot., Delete, Properties | stroke, fill, opacity, width, size, font, B, I, U, S, highlight, align
 ```
 
 `[Edit]` is a toggle that calls `setEditable`; the rest of the row is disabled when off. The
@@ -300,7 +378,9 @@ New SVGs (Feather style, 24x24, stroke `#5A5A5A`, width 2; **no glyph may duplic
 existing one**, cf. the rule in `gui-audio/CLAUDE.md`): `highlight` (marker pen),
 `underline`, `strikeout`, `note` (speech bubble), `pen` (ink nib), `rectangle`,
 `ellipse`, `line`, `arrow`, `textbox` (T in a box), `rotate-left` / `rotate-right` (page
-outline with a curved arrow — must **not** read as `refresh`/`rollback`), `move` (page
+outline with a curved arrow — must **not** read as `refresh`/`rollback`), `rotate-image-left` /
+`rotate-image-right` (the same arrow around a framed picture, 2026-10-16: the image rotate
+buttons must not share the page rotate glyphs), `move` (page
 with up/down arrows), `annot-select` (cursor over a rectangle; distinct from `select`).
 Each gets a `XxxIcon` class in `IconUtil`'s pattern. Reuse `EditIcon`, `UndoIcon`,
 `RedoIcon`, `DeleteIcon`.
@@ -406,7 +486,42 @@ renders non-blank pixels; flattened export has zero annotations and identical re
 
 ## 8. Progress
 
-- [ ] Phase 0 foundation
-- [ ] Phase 1 Tier 1 page operations
-- [ ] Phase 2 Tier 2 markup + notes
-- [ ] Phase 3 Tier 3 drawing
+- [x] Phase 0 foundation (2026-10-15: `apps/io.xlogistx.editor.pdf` + panel hooks; tests
+  `PageTransformTest`, `PDFViewerPanelTest` (+2), `PDFEditModelTest`, `PDFEditorPaneTest`)
+- [x] Phase 1 Tier 1 page operations (2026-10-15: `RotatePagesEdit`, `MovePagesEdit`, rotate
+  buttons + dialogs, `PageOpsEditTest`)
+- [x] Forms (2026-10-15: `FormFields`, `SetFieldValueEdit`, `FormFillTool`, `FormFillTest`)
+- [x] Phase 2 Tier 2 markup + notes (2026-10-15: `AnnotationStyle`, `AnnotationFactory`,
+  `AddAnnotationEdit`, `RemoveAnnotationEdit`, `TextMarkupTool`, `NoteTool`,
+  `SelectAnnotationTool`, `AnnotationEditTest`)
+- [x] Phase 3 Tier 3 drawing (2026-10-15: `InkTool`, `ShapeTool`, `LineTool`, `FreeTextTool`,
+  `FreeTextAppearance` (embedded Roboto), `ModifyAnnotationEdit`, resize handles, properties
+  dialog and property strip; `exportFlattened` not done)
+- [x] In-place text editing (2026-10-15: `TextEditor`, `ReplaceTextEdit`, `EditTextTool`,
+  Ctrl+E, `TextEditTest`)
+- [x] Image stamps (2026-10-15: `ImageStamp`, `ImageTool`, `AnnotationFactory.image`,
+  aspect-locked corner resize in `SelectAnnotationTool`, `ImageStampTest`)
+- [x] Image rotation in quarter turns (2026-10-16: `ImageStamp.rotate`, `/Rotate` key,
+  `SelectAnnotationTool.rotateSelected`, pane buttons / menu / keys; since later on 2026-10-16 the
+  toolbar has one rotate pair that rotates the selected image stamp, with the framed-picture
+  icons `rotate-image-left` / `rotate-image-right`, or else the current page: `rotateInContext`,
+  tested by `ImageStampTest.toolbarRotateButtonsFollowTheSelection`)
+- [x] Fonts, sizes and colours for text (2026-10-16: `EditorFonts` (bundled Roboto + installed
+  TrueType families), text boxes with family / bold / italic in `DS` and the strip / dialogs,
+  in-place page text rewritten in another font, size or colour (`TextEditor.Format`,
+  the edit-text dialog), `TextFontTest`)
+- [x] Bold / italic / underline / strikethrough for text (2026-10-16: text boxes get `underline`
+  and `strikethrough` in the style, the strip (B / I / U / S) and the dialogs; page text gets
+  another face of its own family (`EditorFonts.familyOf` / `styleOf`), a stroked
+  underline / strikethrough after the text object and a highlight band before it;
+  fonts are sealed per use (`EditorFonts.seal`) so subset fonts render right before a save)
+- [x] Text highlight colour and alignment (2026-10-16: `highlightColor` and `alignment` in
+  `AnnotationStyle`, a highlight swatch and Left / Centre / Right combo in the strip and the
+  dialogs; text boxes keep both in `DS` / `Q`, page text gets a band before its text object)
+- [x] `PDFMain` application class and Help menu (2026-10-16: `Main.VERSION` =
+  `AppVersionDAO("PDFEditor::0.1.0")`, `Main.main` replaces the frame's; Help ▸ "How to use the
+  PDF editor…" (F1) shows `apps/src/main/resources/io/xlogistx/editor/pdf/how-to.md`, the
+  user guide, in a modeless `MDViewerPanel` window; Help ▸ "Version…" shows name, version,
+  PDFBox and Java; `HelpMenuTest`. **Keep `how-to.md` in step with every tool change.**)
+- [ ] `exportFlattened` (flatten export); thumbnail drag-reorder, redaction, signatures stay
+  out of scope

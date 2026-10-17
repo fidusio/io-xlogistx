@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -809,6 +811,212 @@ public class PDFViewerPanelTest {
         assertEquals(1, onEDT(panel::getCurrentPage));
         assertFalse(onEDT(() -> panel.followLink(external)), "no desktop in a headless run");
         assertThrows(NullPointerException.class, () -> panel.followLink(null));
+    }
+
+    @Test
+    void invalidatePageRerendersOnlyThatPage() throws Exception {
+        load(threePagePDF);
+        waitFor(() -> panel.getPageImage(0) != null, 10000);
+        BufferedImage before = onEDT(() -> panel.getPageImage(0));
+        BufferedImage other = onEDT(() -> panel.getPageImage(1));
+        onEDT(() -> panel.invalidatePage(0));
+        assertNull(onEDT(() -> panel.getPageImage(0)), "the raster is dropped at once");
+        if (other != null)
+            assertSame(other, onEDT(() -> panel.getPageImage(1)), "other pages keep their raster");
+        waitFor(() -> panel.getPageImage(0) != null, 10000);
+        assertNotSame(before, onEDT(() -> panel.getPageImage(0)), "the page was rendered again");
+        onEDT(() -> panel.invalidatePage(99)); // out of range is ignored
+    }
+
+    @Test
+    void editDelegateInterceptsInsertAndDelete() throws Exception {
+        load(threePagePDF);
+        List<String> calls = new java.util.ArrayList<>();
+        boolean[] handle = {true};
+        boolean[] modified = {false};
+        PDFViewerPanel.EditDelegate delegate = new PDFViewerPanel.EditDelegate() {
+            @Override
+            public boolean insertDocument(PDDocument source, int at) {
+                calls.add("insert@" + at);
+                return handle[0];
+            }
+
+            @Override
+            public boolean deletePages(int[] pages) {
+                calls.add("delete" + java.util.Arrays.toString(pages));
+                return handle[0];
+            }
+
+            @Override
+            public void documentReplaced() {
+                calls.add("replaced");
+            }
+
+            @Override
+            public void documentSaved() {
+                calls.add("saved");
+            }
+
+            @Override
+            public boolean isModified() {
+                return modified[0];
+            }
+        };
+        onEDT(() -> panel.setEditDelegate(delegate));
+        assertSame(delegate, panel.getEditDelegate());
+
+        PDDocument extra = Loader.loadPDF(MDToPDF.mdToPDF("# Extra").toByteArray());
+        // handled by the delegate: the panel changes nothing itself
+        assertEquals(0, (int) onEDT(() -> panel.insertDocument(extra, 7)));
+        assertEquals(3, panel.getPageCount());
+        assertEquals(2, (int) onEDT(() -> panel.deletePages(new int[]{2, 0, 2})));
+        assertEquals(3, panel.getPageCount());
+        assertEquals(Arrays.asList("insert@3", "delete[0, 2]"), calls);
+        assertFalse(onEDT(() -> panel.isModified()), "modified comes from the delegate");
+        modified[0] = true;
+        assertTrue(onEDT(() -> panel.isModified()));
+
+        // not handled: the direct path runs and does not mark modified (the delegate owns the flag)
+        handle[0] = false;
+        calls.clear();
+        assertEquals(1, (int) onEDT(() -> panel.insertDocument(extra, 1)));
+        assertEquals(4, panel.getPageCount());
+        assertEquals(1, (int) onEDT(() -> panel.deletePages(new int[]{1})));
+        assertEquals(3, panel.getPageCount());
+        assertEquals(Arrays.asList("insert@1", "delete[1]"), calls);
+
+        // the direct primitives never ask the delegate
+        calls.clear();
+        assertEquals(1, (int) onEDT(() -> panel.insertPagesDirect(extra, 0)));
+        assertEquals(4, panel.getPageCount());
+        List<org.apache.pdfbox.pdmodel.PDPage> first = onEDT(() -> {
+            synchronized (panel.getDocumentLock()) {
+                return Arrays.asList(panel.getDocument().getPage(0));
+            }
+        });
+        onEDT(() -> {
+            panel.removePagesDirect(first, 0);
+            return null;
+        });
+        assertEquals(3, panel.getPageCount());
+        onEDT(() -> {
+            panel.insertPagesDirect(first, new int[]{3}, 3);
+            return null;
+        });
+        assertEquals(4, panel.getPageCount());
+        assertSame(first.get(0).getCOSObject(), onEDT(() -> {
+            synchronized (panel.getDocumentLock()) {
+                return panel.getDocument().getPage(3).getCOSObject();
+            }
+        }), "the same page object (PDPage wrappers are recreated per call)");
+        assertTrue(calls.isEmpty());
+
+        // replacing the document tells the delegate once
+        load(threePagePDF);
+        assertEquals(Arrays.asList("replaced"), calls);
+        calls.clear();
+        onEDT(() -> {
+            panel.close();
+            return null;
+        });
+        assertEquals(Arrays.asList("replaced"), calls);
+        extra.close();
+    }
+
+    @Test
+    void selectionRectsFollowTheSelection() throws Exception {
+        load(threePagePDF);
+        assertTrue(onEDT(() -> panel.getSelectionRects(0)).isEmpty());
+        onEDT(() -> panel.select(0, 0, 1, 5));
+        List<Rectangle2D.Float> first = onEDT(() -> panel.getSelectionRects(0));
+        List<Rectangle2D.Float> second = onEDT(() -> panel.getSelectionRects(1));
+        assertFalse(first.isEmpty());
+        assertFalse(second.isEmpty());
+        assertTrue(onEDT(() -> panel.getSelectionRects(2)).isEmpty(), "page 2 is outside the selection");
+        for (Rectangle2D.Float r : first)
+            assertTrue(r.x >= 0 && r.y >= 0 && r.width > 0 && r.height > 0, "inside the page: " + r);
+        // the same range selected by hand reports the rectangles a search match carries
+        PDFViewerPanel.Match m = panel.search("needle-two").get(0);
+        onEDT(() -> panel.select(m.getPage(), m.getStart(), m.getPage(), m.getEnd()));
+        assertEquals(m.getRects(), onEDT(() -> panel.getSelectionRects(m.getPage())));
+        onEDT(panel::clearSelection);
+        assertTrue(onEDT(() -> panel.getSelectionRects(1)).isEmpty());
+        assertTrue(onEDT(() -> panel.getSelectionRects(99)).isEmpty());
+    }
+
+    @Test
+    void movePagesDirectReorders() throws Exception {
+        load(threePagePDF);
+        List<org.apache.pdfbox.cos.COSDictionary> before = pageDicts();
+        List<org.apache.pdfbox.pdmodel.PDPage> last = onEDT(() -> {
+            synchronized (panel.getDocumentLock()) {
+                return Arrays.asList(panel.getDocument().getPage(2));
+            }
+        });
+        onEDT(() -> {
+            panel.movePagesDirect(last, new int[]{0}, 0);
+            return null;
+        });
+        assertEquals(Arrays.asList(before.get(2), before.get(0), before.get(1)), pageDicts());
+        assertEquals(Arrays.asList(1), panel.find("first page text"), "page views were rebuilt");
+        onEDT(() -> {
+            panel.movePagesDirect(last, new int[]{2}, 2);
+            return null;
+        });
+        assertEquals(before, pageDicts(), "moved back");
+        assertThrows(IllegalArgumentException.class, () -> onEDT(() -> {
+            panel.movePagesDirect(last, new int[]{0, 1}, 0);
+            return null;
+        }));
+    }
+
+    @Test
+    void setRotationsDirectResizesTheView() throws Exception {
+        load(threePagePDF);
+        waitFor(() -> panel.getPageImage(0) != null, 10_000);
+        BufferedImage portrait = onEDT(() -> panel.getPageImage(0));
+        assertTrue(portrait.getHeight() > portrait.getWidth());
+        onEDT(() -> {
+            panel.setRotationsDirect(new int[]{0}, new int[]{90}, 0);
+            return null;
+        });
+        assertEquals(90, onEDT(() -> {
+            synchronized (panel.getDocumentLock()) {
+                return panel.getDocument().getPage(0).getRotation();
+            }
+        }).intValue());
+        waitFor(() -> panel.getPageImage(0) != null, 10_000);
+        BufferedImage landscape = onEDT(() -> panel.getPageImage(0));
+        assertTrue(landscape.getWidth() > landscape.getHeight(), "rendered rotated");
+        assertTrue(onEDT(panel::isModified));
+        assertThrows(IllegalArgumentException.class, () -> onEDT(() -> {
+            panel.setRotationsDirect(new int[]{7}, new int[]{90}, 0);
+            return null;
+        }));
+    }
+
+    @Test
+    void annotationFilterHidesAnnotationsFromTheRaster() throws Exception {
+        load(threePagePDF);
+        assertNull(panel.getAnnotationFilter());
+        org.apache.pdfbox.pdmodel.interactive.annotation.AnnotationFilter none = a -> false;
+        onEDT(() -> panel.setAnnotationFilter(none));
+        assertSame(none, panel.getAnnotationFilter());
+        onEDT(() -> panel.setAnnotationFilter(null));
+        assertNull(panel.getAnnotationFilter());
+        load(threePagePDF); // a new renderer keeps working without a filter
+        waitFor(() -> panel.getPageImage(0) != null, 10_000);
+    }
+
+    private List<org.apache.pdfbox.cos.COSDictionary> pageDicts() throws Exception {
+        return onEDT(() -> {
+            synchronized (panel.getDocumentLock()) {
+                List<org.apache.pdfbox.cos.COSDictionary> ret = new java.util.ArrayList<>();
+                for (org.apache.pdfbox.pdmodel.PDPage p : panel.getDocument().getPages())
+                    ret.add(p.getCOSObject());
+                return ret;
+            }
+        });
     }
 
     // ---------------------------------------------------------------- helpers

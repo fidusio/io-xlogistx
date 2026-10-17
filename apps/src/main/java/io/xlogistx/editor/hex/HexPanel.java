@@ -1,5 +1,5 @@
 
-package io.xlogistx.gui.hexeditor;
+package io.xlogistx.editor.hex;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;

@@ -16,12 +16,15 @@
 package io.xlogistx.shiro;
 
 import org.apache.shiro.subject.SimplePrincipalCollection;
-import org.zoxweb.shared.util.*;
+import org.zoxweb.shared.security.PrincipalIDBase;
+import org.zoxweb.shared.util.AppID;
+import org.zoxweb.shared.util.SUS;
+import org.zoxweb.shared.util.SubjectGUIDBase;
 
 @SuppressWarnings("serial")
 public class DomainPrincipalCollection
     extends SimplePrincipalCollection
-    implements AppID<String>, SubjectID<String>
+    implements AppID<String>, SubjectGUIDBase<String>, PrincipalIDBase<String>
 {
 
 	protected String domain_id;
@@ -83,10 +86,10 @@ public class DomainPrincipalCollection
 	 *
 	 * @return user id
 	 */
-	public String getUserID()
-    {
-		return subject_guid;
-	}
+//	public String getUserID()
+//    {
+//		return subject_guid;
+//	}
 
 	@Override
 	public void setDomainID(String domainID) {
@@ -95,18 +98,13 @@ public class DomainPrincipalCollection
 	}
 
 	@Override
-	public String getSubjectID() {
+	public String getPrincipalID() {
 		// TODO Auto-generated method stub
 		return (String) getPrimaryPrincipal();
 	}
 
-	@Override
-	public void setSubjectID(String id) {
-		// TODO Auto-generated method stub
-		
-	}
 
-	public String getSubjectGID()
+	public String getSubjectGUID()
 	{
 		return subject_guid;
 	}
