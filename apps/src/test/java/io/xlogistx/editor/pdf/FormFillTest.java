@@ -28,7 +28,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -82,6 +86,78 @@ public class FormFillTest {
             viewer.close();
             return null;
         });
+    }
+
+    /** Typed text is kept however the editor closes, unless Escape closed it. */
+    @Test
+    void typedTextIsKeptWithoutEnter() throws Exception {
+        FormFillTool tool = (FormFillTool) pane.getTool(PDFEditorPane.EditTool.FORM);
+        onEDT(() -> pane.setActiveTool(PDFEditorPane.EditTool.FORM));
+        FormFields.Widget name = onEDT(() -> tool.widgetsOn(viewer.getToolContext(), 0)).get(0);
+
+        // a click on empty page space closes the editor and keeps the text
+        JTextComponent tc = onEDT(() -> tool.textEditorFor(viewer.getToolContext(), name));
+        assertEquals("", tc.getText());
+        assertSame(name, tool.getEditing());
+        onEDT(() -> {
+            tc.setText("typed, no Enter");
+            Point p = viewer.getToolContext().toPanelPoint(0, new Point2D.Float(400, 400));
+            tool.pressed(viewer.getToolContext(), new MouseEvent(viewer.getToolContext().owner(), MouseEvent.MOUSE_PRESSED,
+                    System.currentTimeMillis(), 0, p.x, p.y, 1, false, MouseEvent.BUTTON1));
+            return null;
+        });
+        assertNull(tool.getEditing());
+        assertEquals("typed, no Enter", valueOf("name"));
+        assertEquals("Fill field \"name\"", pane.getEditModel().peekUndo().name());
+
+        // the focus moving to another control keeps the text too
+        JTextComponent tc2 = onEDT(() -> tool.textEditorFor(viewer.getToolContext(), name));
+        assertEquals("typed, no Enter", tc2.getText(), "the editor starts from the current value");
+        onEDT(() -> {
+            tc2.setText("focus moved");
+            for (FocusListener l : tc2.getFocusListeners())
+                l.focusLost(new FocusEvent(tc2, FocusEvent.FOCUS_LOST, false));
+            return null;
+        });
+        assertEquals("focus moved", valueOf("name"));
+
+        // undo, redo and save go through the pane's commit first
+        JTextComponent tc3 = onEDT(() -> tool.textEditorFor(viewer.getToolContext(), name));
+        onEDT(() -> {
+            tc3.setText("before save");
+            return null;
+        });
+        assertTrue(onEDT(pane::commitInPlaceEdit));
+        assertEquals("before save", valueOf("name"));
+        assertFalse(onEDT(pane::commitInPlaceEdit), "nothing open any more");
+
+        // a tool switch keeps the text
+        JTextComponent tc4 = onEDT(() -> tool.textEditorFor(viewer.getToolContext(), name));
+        onEDT(() -> {
+            tc4.setText("tool switched");
+            pane.setActiveTool(PDFEditorPane.EditTool.SELECT);
+            return null;
+        });
+        assertEquals("tool switched", valueOf("name"));
+
+        // Escape drops it, and the same text again is no edit
+        onEDT(() -> pane.setActiveTool(PDFEditorPane.EditTool.FORM));
+        JTextComponent tc5 = onEDT(() -> tool.textEditorFor(viewer.getToolContext(), name));
+        int depth = pane.getEditModel().getUndoDepth();
+        onEDT(() -> {
+            tc5.setText("dropped");
+            tool.cancel(viewer.getToolContext());
+            return null;
+        });
+        assertEquals("tool switched", valueOf("name"));
+        assertNull(tool.getEditing());
+        JTextComponent tc6 = onEDT(() -> tool.textEditorFor(viewer.getToolContext(), name));
+        onEDT(() -> {
+            tc6.setText("tool switched");
+            return null;
+        });
+        assertTrue(onEDT(tool::commitPending));
+        assertEquals(depth, pane.getEditModel().getUndoDepth(), "an unchanged value records no edit");
     }
 
     @Test

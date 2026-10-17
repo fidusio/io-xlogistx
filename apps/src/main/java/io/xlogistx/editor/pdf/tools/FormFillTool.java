@@ -31,10 +31,12 @@ import java.util.Map;
 /**
  * Fills AcroForm fields: fillable widgets are outlined while the tool is
  * active; a click toggles a check box, selects a radio button, opens an inline
- * editor over a text field (Enter or focus loss commits, Escape cancels; a
- * multi-line field gets a text area, Ctrl+Enter commits) or a list over a
- * combo / list box. Every change is one {@link SetFieldValueEdit}. Read-only,
- * push-button and signature fields are shown but ignored.
+ * editor over a text field or a list over a combo / list box. The text editor
+ * keeps what was typed whenever it closes (Enter, a click elsewhere, a tool
+ * switch, undo, save, {@link #commitPending()}) except on Escape; a multi-line
+ * field gets a text area where Ctrl+Enter commits. Every change is one
+ * {@link SetFieldValueEdit}. Read-only, push-button and signature fields are
+ * shown but ignored.
  */
 public final class FormFillTool extends EditorTool {
 
@@ -44,6 +46,8 @@ public final class FormFillTool extends EditorTool {
     private final Map<Integer, List<Widget>> cache = new HashMap<>();
     private Popup popup;
     private Widget editing;
+    /** Commits the text being typed in the open editor; null when none is open or it is a choice. */
+    private Runnable pending;
 
     public FormFillTool(EditorHost host) {
         super(host);
@@ -72,7 +76,25 @@ public final class FormFillTool extends EditorTool {
 
     @Override
     public void cancel(PDFToolContext c) {
+        discardPopup();
+    }
+
+    /**
+     * Ends the open text edit keeping the typed text (undo, redo and save call
+     * this first).
+     *
+     * @return true when a text editor was open
+     */
+    public boolean commitPending() {
+        if (pending == null)
+            return false;
         closePopup();
+        return true;
+    }
+
+    /** @return the widget whose editor is open, null when none */
+    public Widget getEditing() {
+        return editing;
     }
 
     /** Forgets cached widget positions (after a page-tree change). */
@@ -143,29 +165,41 @@ public final class FormFillTool extends EditorTool {
     }
 
     private void editText(PDFToolContext c, Widget w) {
+        JTextComponent tc = textEditorFor(c, w);
+        show(c, w, tc instanceof JTextArea ? new JScrollPane(tc) : tc, tc);
+    }
+
+    /**
+     * Builds the editor for a text field and registers it as the open edit, so
+     * that closing it in any way but Escape writes the text into the field:
+     * Enter (Ctrl+Enter in a multi-line field), the focus moving elsewhere, a
+     * press on the page, a tool switch or {@link #commitPending()}. A press on
+     * the page shows it over the widget; public so the commit can be driven
+     * without a screen.
+     *
+     * @param w a fillable text field widget
+     * @return the text component, holding the field's current value
+     */
+    public JTextComponent textEditorFor(PDFToolContext c, Widget w) {
+        closePopup();
         PDTextField f = (PDTextField) w.getField();
         String current = f.getValueAsString();
         JTextComponent tc;
-        JComponent shown;
         if (f.isMultiline()) {
             JTextArea area = new JTextArea(current);
             area.setLineWrap(true);
             area.setWrapStyleWord(true);
             tc = area;
-            shown = new JScrollPane(area);
-        } else {
-            JTextField tf = new JTextField(current);
-            tc = tf;
-            shown = tf;
-        }
+        } else
+            tc = new JTextField(current);
         tc.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    closePopup();
+                    discardPopup();
                     e.consume();
                 } else if (e.getKeyCode() == KeyEvent.VK_ENTER && (!f.isMultiline() || e.isControlDown())) {
-                    commitText(c, f, tc.getText());
+                    closePopup();
                     e.consume();
                 }
             }
@@ -173,15 +207,19 @@ public final class FormFillTool extends EditorTool {
         tc.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                if (popup != null && editing != null && editing.getField() == f)
-                    commitText(c, f, tc.getText());
+                // the focus went elsewhere (another control, another window) while this editor is
+                // still the open edit: keep the text. Closing the editor itself clears `editing`
+                // before the component goes away, so that focus loss is ignored.
+                if (!e.isTemporary() && editing == w)
+                    closePopup();
             }
         });
-        show(c, w, shown, tc);
+        editing = w;
+        pending = () -> commitText(c, f, tc.getText());
+        return tc;
     }
 
     private void commitText(PDFToolContext c, PDTextField f, String text) {
-        closePopup();
         if (!text.equals(f.getValueAsString()))
             setValue(c, f, text);
     }
@@ -220,7 +258,7 @@ public final class FormFillTool extends EditorTool {
         else if (combo.isEditable())
             combo.setSelectedItem(current);
         combo.addActionListener(e -> {
-            if (popup == null)
+            if (editing != w)
                 return;
             int i = combo.getSelectedIndex();
             String value = i >= 0 && i < export.size() ? export.get(i) : String.valueOf(combo.getSelectedItem());
@@ -240,8 +278,10 @@ public final class FormFillTool extends EditorTool {
 
     /** Shows an editor over the widget's rectangle (or in a dialog when the pages are not on screen). */
     private void show(PDFToolContext c, Widget w, JComponent editor, JComponent focus) {
-        closePopup();
-        editing = w;
+        if (editing != w) { // a choice editor; a text editor registered itself in textEditorFor
+            closePopup();
+            editing = w;
+        }
         Rectangle2D.Float r = w.getViewRect();
         float z = c.zoom();
         Point topLeft = c.toPanelPoint(w.getPage(), new Point2D.Float(r.x, r.y));
@@ -251,9 +291,10 @@ public final class FormFillTool extends EditorTool {
         if (!c.owner().isShowing()) {
             // no screen: fall back to a dialog
             int res = JOptionPane.showConfirmDialog(host.dialogParent(), editor, w.getField().getPartialName(), JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-            editing = null;
-            if (res == JOptionPane.OK_OPTION && focus instanceof JTextComponent)
-                commitText(c, (PDTextField) w.getField(), ((JTextComponent) focus).getText());
+            if (res == JOptionPane.OK_OPTION)
+                closePopup();
+            else
+                discardPopup();
             return;
         }
         Point screen = new Point(topLeft);
@@ -267,13 +308,23 @@ public final class FormFillTool extends EditorTool {
             ((JComboBox<?>) focus).showPopup();
     }
 
+    /** Closes the open editor keeping what was typed in it. */
     private void closePopup() {
+        Runnable commit = pending;
+        discardPopup();
+        if (commit != null)
+            commit.run();
+    }
+
+    /** Closes the open editor and drops what was typed in it. */
+    private void discardPopup() {
+        pending = null;
+        editing = null;
         if (popup != null) {
             Popup p = popup;
             popup = null;
             p.hide();
         }
-        editing = null;
     }
 
     @Override

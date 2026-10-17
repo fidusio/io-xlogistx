@@ -1326,6 +1326,31 @@ public class IconUtil {
     }
 
     /**
+     * Page thumbnails sidebar (a window with a narrow list strip on the left) icon (thumbnails.svg).
+     */
+    public static class ThumbnailsIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square thumbnails sidebar icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public ThumbnailsIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/thumbnails.svg");
+        }
+
+        /**
+         * Creates a square thumbnails sidebar icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph color
+         */
+        public ThumbnailsIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/thumbnails.svg");
+        }
+    }
+
+    /**
      * Move pages (page with up/down arrows) icon (move.svg).
      */
     public static class MoveIcon extends SVGIconWidget {

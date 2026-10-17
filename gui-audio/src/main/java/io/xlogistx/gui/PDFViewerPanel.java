@@ -35,6 +35,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
@@ -219,6 +221,17 @@ public class PDFViewerPanel extends JPanel {
          */
         boolean deletePages(int[] pages);
 
+        /**
+         * Move requested (a thumbnail drag, {@link PDFViewerPanel#movePages}).
+         *
+         * @param pages  zero-based indexes, sorted, distinct, in range
+         * @param target zero-based index (before the move) the block lands in front of, clamped; the page count = the end
+         * @return true when handled, false to let the panel do it
+         */
+        default boolean movePages(int[] pages, int target) {
+            return false;
+        }
+
         /** A document was installed or the panel was closed: any edit history is void. */
         void documentReplaced();
 
@@ -393,6 +406,8 @@ public class PDFViewerPanel extends JPanel {
     private final PDFToolContext toolContext = new ToolContextImpl();
     private ButtonGroup toolGroup;
     private EditDelegate editDelegate;
+    /** Adds host items to the pages' right-click menu, see {@link #setContextMenuCustomizer}. */
+    private java.util.function.BiConsumer<JPopupMenu, MouseEvent> contextMenuCustomizer;
     /** Annotations the renderer draws; null = all. Re-applied to every new renderer. */
     private AnnotationFilter annotationFilter;
     /** Text selection, normalized (start before end); start page -1 when empty. Indexes are clamped on use. EDT only. */
@@ -404,6 +419,16 @@ public class PDFViewerPanel extends JPanel {
     private boolean updatingToolbar;
     private JFileChooser fileChooser;
     private File currentFile;
+    /** The pages' scroll pane in the middle, the thumbnail sidebar on the left when shown. */
+    private final JPanel centre = new JPanel(new BorderLayout());
+    private PDFThumbnailPanel thumbnails;
+    private JScrollPane thumbnailScroll;
+    private JToggleButton thumbnailsButton;
+    private FontSizeWidget fontSizeWidget;
+    /** Takes dropped files before the panel does, see {@link #setDropInterceptor}. */
+    private java.util.function.BiPredicate<List<File>, Point> dropInterceptor;
+    /** Where the file choosers start without a current file, see {@link #setDefaultDirectory}. */
+    private File defaultDirectory;
 
     /** Highlighted matches, EDT only. */
     private List<Match> matches = new ArrayList<>();
@@ -439,13 +464,15 @@ public class PDFViewerPanel extends JPanel {
                     applyZoomMode();
             }
         });
-        add(scrollPane, BorderLayout.CENTER);
+        centre.add(scrollPane, BorderLayout.CENTER);
+        add(centre, BorderLayout.CENTER);
 
         toolbar = buildToolbar();
         add(toolbar, BorderLayout.NORTH);
         toolbar.setVisible(toolbarVisible);
 
         installInputHandlers();
+        setTransferHandler(new FileDropHandler());
         applyTheme();
         updateToolbar();
     }
@@ -600,6 +627,22 @@ public class PDFViewerPanel extends JPanel {
     public PDFViewerPanel setEditDelegate(EditDelegate delegate) {
         editDelegate = delegate;
         updateToolbar();
+        return this;
+    }
+
+    /**
+     * Installs a hook that adds items to the right-click menu over the pages
+     * before the viewer's own Copy / Select all / Clear selection entries (a
+     * separator is inserted when it added any). The event is in pages-panel
+     * coordinates, like the ones a {@link PDFToolHandler} receives, so
+     * {@link PDFToolContext#pageAt} and {@link PDFToolContext#toPagePt} locate
+     * what was clicked. Null removes the hook.
+     *
+     * @param customizer the hook, may be null
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setContextMenuCustomizer(java.util.function.BiConsumer<JPopupMenu, MouseEvent> customizer) {
+        contextMenuCustomizer = customizer;
         return this;
     }
 
@@ -840,7 +883,8 @@ public class PDFViewerPanel extends JPanel {
             return Loader.loadPDF(markdownToPDF(f));
         if (isImage(f))
             return imageToPDF(f);
-        return Loader.loadPDF(f);
+        // read fully: a document that no longer refers to its file can be saved over it without a reload
+        return Loader.loadPDF(Files.readAllBytes(f.toPath()));
     }
 
     /** Converts a Markdown file with {@link MDToPDF}, resolving relative images against its directory. */
@@ -1330,10 +1374,12 @@ public class PDFViewerPanel extends JPanel {
 
     /**
      * Writes the current document to {@code target} off the EDT (error dialog on
-     * failure). Saving over the file the document was loaded from is supported:
-     * the document is written to a temporary file first, then closed, the file
-     * replaced and reloaded, so the page is kept but highlights are cleared.
-     * Must be called on the EDT.
+     * failure): to a temporary file next to it first, then moved into place.
+     * Saving over the file the document was loaded from works the same way,
+     * because files are read fully into memory on load, so the document, the
+     * page, the selection and a host's undo history all stay as they are (until
+     * 2026-10-17 the document was closed and reloaded instead). The
+     * {@link EditDelegate} hears {@code documentSaved()}. Must be called on the EDT.
      *
      * @param target the file to write, never null
      */
@@ -1341,9 +1387,6 @@ public class PDFViewerPanel extends JPanel {
         SUS.checkIfNull("target null", target);
         if (getDocument() == null)
             return;
-        final boolean overSource = currentFile != null && !isConverted(currentFile)
-                && target.getAbsoluteFile().equals(currentFile.getAbsoluteFile());
-        final int page = currentPage;
         BackgroundTask.run(this, saveButton, () -> {
             File dir = target.getAbsoluteFile().getParentFile();
             File tmp = File.createTempFile("pdfviewer", ".pdf", dir != null && dir.isDirectory() ? dir : null);
@@ -1354,36 +1397,19 @@ public class PDFViewerPanel extends JPanel {
                         throw new IOException("no document loaded");
                     document.save(tmp);
                 }
-                if (!overSource)
-                    Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 ok = true;
             } finally {
-                if (!ok || !overSource)
+                if (!ok)
                     tmp.delete();
             }
-            return tmp;
-        }, tmp -> {
-            if (!overSource) {
-                currentFile = target;
-                modified = false;
-                if (editDelegate != null)
-                    editDelegate.documentSaved();
-                updateToolbar();
-                return;
-            }
-            // release the source before replacing it, then reload from the new content
-            close();
-            try {
-                Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                tmp.delete();
-                JOptionPane.showMessageDialog(this, "Unexpected error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            BackgroundTask.run(this, saveButton, () -> Loader.loadPDF(target), doc -> {
-                install(doc, true, target);
-                gotoPage(page);
-            });
+            return target;
+        }, saved -> {
+            currentFile = saved;
+            modified = false;
+            if (editDelegate != null)
+                editDelegate.documentSaved();
+            updateToolbar();
         });
     }
 
@@ -1482,6 +1508,8 @@ public class PDFViewerPanel extends JPanel {
         fileChooser.setFileFilter(allSources ? sourceFilter : pdfFilter);
         if (currentFile != null)
             fileChooser.setCurrentDirectory(currentFile.getAbsoluteFile().getParentFile());
+        else if (defaultDirectory != null && defaultDirectory.isDirectory())
+            fileChooser.setCurrentDirectory(defaultDirectory);
         return fileChooser;
     }
 
@@ -1851,11 +1879,30 @@ public class PDFViewerPanel extends JPanel {
      * @return true if something was copied
      */
     public boolean copySelection() {
+        if (copyInterceptor != null && copyInterceptor.getAsBoolean())
+            return true;
         String text = getSelectedText();
         if (text.isEmpty())
             return false;
         GUIUtil.copyToClipboard(text);
         return true;
+    }
+
+    private java.util.function.BooleanSupplier copyInterceptor;
+
+    /**
+     * Lets a host take over a copy before the viewer copies its text selection
+     * (Ctrl+C, the Copy button and the Copy menu entry all go through
+     * {@link #copySelection()}): the interceptor returns true when it handled
+     * the copy (an editor copies its selected annotation, say), false to let
+     * the text be copied.
+     *
+     * @param interceptor the interceptor, null for none
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setCopyInterceptor(java.util.function.BooleanSupplier interceptor) {
+        copyInterceptor = interceptor;
+        return this;
     }
 
     /**
@@ -1921,22 +1968,38 @@ public class PDFViewerPanel extends JPanel {
     }
 
     private void showSelectionMenu(MouseEvent e) {
-        if (selectionMenu == null) {
-            selectionMenu = new JPopupMenu();
-            JMenuItem copy = new JMenuItem("Copy");
-            copy.addActionListener(a -> copySelection());
-            selectionMenu.add(copy);
-            JMenuItem all = new JMenuItem("Select all");
-            all.addActionListener(a -> selectAll());
-            selectionMenu.add(all);
-            JMenuItem clear = new JMenuItem("Clear selection");
-            clear.addActionListener(a -> clearSelection());
-            selectionMenu.add(clear);
-        }
-        selectionMenu.getComponent(0).setEnabled(hasSelection());
-        selectionMenu.getComponent(2).setEnabled(hasSelection());
-        selectionMenu.getComponent(1).setEnabled(!pages.isEmpty());
+        selectionMenu = buildContextMenu(e);
         selectionMenu.show(pagesPanel, e.getX(), e.getY());
+    }
+
+    /**
+     * Builds the right-click menu for a point over the pages: the host's items
+     * (see {@link #setContextMenuCustomizer}) first, then Copy / Select all /
+     * Clear selection. Nothing is shown.
+     *
+     * @param e the event, in pages-panel coordinates
+     * @return a new menu
+     */
+    public JPopupMenu buildContextMenu(MouseEvent e) {
+        JPopupMenu menu = new JPopupMenu();
+        if (contextMenuCustomizer != null) {
+            contextMenuCustomizer.accept(menu, e);
+            if (menu.getComponentCount() > 0)
+                menu.addSeparator();
+        }
+        JMenuItem copy = new JMenuItem("Copy");
+        copy.addActionListener(a -> copySelection());
+        copy.setEnabled(hasSelection());
+        menu.add(copy);
+        JMenuItem all = new JMenuItem("Select all");
+        all.addActionListener(a -> selectAll());
+        all.setEnabled(!pages.isEmpty());
+        menu.add(all);
+        JMenuItem clear = new JMenuItem("Clear selection");
+        clear.addActionListener(a -> clearSelection());
+        clear.setEnabled(hasSelection());
+        menu.add(clear);
+        return menu;
     }
 
     /**
@@ -2156,6 +2219,8 @@ public class PDFViewerPanel extends JPanel {
         if (stale)
             clearHighlights();
         cache.remove(page);
+        if (thumbnails != null)
+            thumbnails.invalidateThumbnail(page);
         pv.repaint();
         updateVisiblePages(); // re-request the render now if the page is near the viewport
         return this;
@@ -2400,7 +2465,7 @@ public class PDFViewerPanel extends JPanel {
      */
     public PDFViewerPanel overrideScrollPane(JScrollPane external) {
         SUS.checkIfNull("scrollPane null", external);
-        remove(scrollPane);
+        centre.remove(scrollPane);
         scrollPane = external;
         scrollPane.setViewportView(pagesPanel);
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
@@ -2413,10 +2478,399 @@ public class PDFViewerPanel extends JPanel {
                     applyZoomMode();
             }
         });
-        add(scrollPane, BorderLayout.CENTER);
+        centre.add(scrollPane, BorderLayout.CENTER);
         revalidate();
         repaint();
         return this;
+    }
+
+    // ------------------------------------------------------------------ drag and drop
+
+    /** What dropped files do to an open document. */
+    public enum DropAction {
+        /** Replace the document (after {@link PDFViewerPanel#confirmDiscard()}). */
+        OPEN,
+        /** Insert the pages after the current page. */
+        INSERT_AFTER_CURRENT,
+        /** Insert the pages at the end. */
+        INSERT_AT_END
+    }
+
+    /**
+     * Lets a host take dropped files before the panel does: the interceptor
+     * gets every dropped file and the drop point in pages-panel coordinates
+     * (null when the drop was not over the pages) and returns true when it
+     * handled the drop (an editor places a dropped picture on the page, say).
+     *
+     * @param interceptor the interceptor, null for none
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setDropInterceptor(java.util.function.BiPredicate<List<File>, Point> interceptor) {
+        dropInterceptor = interceptor;
+        return this;
+    }
+
+    /**
+     * Where the open / insert / save dialogs start while no file is open
+     * (afterwards they start in the open file's directory).
+     *
+     * @param dir the directory, null for the chooser's default
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setDefaultDirectory(File dir) {
+        defaultDirectory = dir;
+        return this;
+    }
+
+    /** @return the directory set with {@link #setDefaultDirectory}, null when none */
+    public File getDefaultDirectory() {
+        return defaultDirectory;
+    }
+
+    /** @return true for a file the panel can open or insert: a PDF, a Markdown file or an image */
+    public static boolean acceptsFile(File f) {
+        if (f == null)
+            return false;
+        return f.getName().toLowerCase().endsWith(".pdf") || isMarkdown(f) || isImage(f);
+    }
+
+    private static List<File> accepted(List<File> files) {
+        List<File> r = new ArrayList<>();
+        for (File f : files)
+            if (acceptsFile(f))
+                r.add(f);
+        return r;
+    }
+
+    /**
+     * Handles files dropped on the panel (what the drop target does): the
+     * {@linkplain #setDropInterceptor interceptor} first; then, with nothing
+     * loaded, the files are opened; with a document, the user is asked whether
+     * to open them instead, insert them after the current page or at the end.
+     * Must be called on the EDT.
+     *
+     * @param files      the dropped files, never null; files that are neither
+     *                   PDF, Markdown nor image are ignored
+     * @param panelPoint the drop point in pages-panel coordinates, null when not over the pages
+     * @return true when something was done or started
+     */
+    public boolean dropFiles(List<File> files, Point panelPoint) {
+        SUS.checkIfNull("files null", files);
+        if (dropInterceptor != null && dropInterceptor.test(files, panelPoint))
+            return true;
+        List<File> sources = accepted(files);
+        if (sources.isEmpty())
+            return false;
+        if (getDocument() == null) {
+            openFiles(sources);
+            return true;
+        }
+        DropAction action = askDropAction(sources);
+        if (action == null)
+            return false;
+        dropFiles(sources, action);
+        return true;
+    }
+
+    /**
+     * Handles dropped files with a chosen outcome (the dialog-free form of
+     * {@link #dropFiles(List, Point)}). Must be called on the EDT.
+     *
+     * @param files  the files, never null; unsupported ones are ignored
+     * @param action what to do with them, never null
+     */
+    public void dropFiles(List<File> files, DropAction action) {
+        SUS.checkIfNull("files null", files);
+        SUS.checkIfNull("action null", action);
+        List<File> sources = accepted(files);
+        if (sources.isEmpty())
+            return;
+        switch (action) {
+            case OPEN:
+                if (confirmDiscard())
+                    openFiles(sources);
+                break;
+            case INSERT_AFTER_CURRENT:
+                insertFiles(sources, currentPage + 1);
+                break;
+            case INSERT_AT_END:
+            default:
+                insertFiles(sources, pages.size());
+                break;
+        }
+    }
+
+    private DropAction askDropAction(List<File> sources) {
+        String what = sources.size() == 1 ? sources.get(0).getName() : sources.size() + " files";
+        String[] options = {"Open", "Insert after page " + (currentPage + 1), "Insert at the end", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "What should happen with " + what + "?\nOpen replaces the current document; Insert adds the pages to it.",
+                "Dropped " + (sources.size() == 1 ? "file" : "files"), JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, options, options[1]);
+        switch (choice) {
+            case 0:
+                return DropAction.OPEN;
+            case 1:
+                return DropAction.INSERT_AFTER_CURRENT;
+            case 2:
+                return DropAction.INSERT_AT_END;
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Opens one or more files as one document, off the EDT: a single file as
+     * {@link #setPDF(File)} does; several files are converted as needed and
+     * their pages joined in the given order into a new, unsaved document
+     * without a file (Save asks where). Unsupported files are ignored.
+     *
+     * @param files the files, never null
+     */
+    public void openFiles(List<File> files) {
+        SUS.checkIfNull("files null", files);
+        List<File> sources = accepted(files);
+        if (sources.isEmpty())
+            return;
+        if (sources.size() == 1) {
+            setPDF(sources.get(0));
+            return;
+        }
+        BackgroundTask.run(this, null, () -> {
+            PDDocument doc = loadSource(sources.get(0));
+            try {
+                for (int i = 1; i < sources.size(); i++)
+                    try (PDDocument src = loadSource(sources.get(i))) {
+                        new PDFMergerUtility().appendDocument(doc, src);
+                    }
+            } catch (IOException | RuntimeException e) {
+                doc.close();
+                throw e;
+            }
+            return doc;
+        }, doc -> {
+            setDocument(doc, true);
+            modified = true;
+        });
+    }
+
+    /**
+     * Inserts the pages of one or more files (converted as needed, loaded off
+     * the EDT) starting at an index, each file through
+     * {@link #insertDocument(PDDocument, int)} so an {@link EditDelegate}
+     * records one undoable insert per file. With nothing loaded the files are
+     * {@linkplain #openFiles opened} instead.
+     *
+     * @param files the files, never null; unsupported ones are ignored
+     * @param index 0 = at the beginning, {@link #getPageCount()} = at the end, n = after page n; clamped
+     */
+    public void insertFiles(List<File> files, int index) {
+        SUS.checkIfNull("files null", files);
+        List<File> sources = accepted(files);
+        if (sources.isEmpty())
+            return;
+        if (getDocument() == null) {
+            openFiles(sources);
+            return;
+        }
+        final int at = Math.max(0, Math.min(pages.size(), index));
+        BackgroundTask.run(this, insertButton, () -> {
+            List<PDDocument> loaded = new ArrayList<>();
+            try {
+                for (File f : sources)
+                    loaded.add(loadSource(f));
+            } catch (IOException | RuntimeException e) {
+                for (PDDocument d : loaded)
+                    d.close();
+                throw e;
+            }
+            return loaded;
+        }, loaded -> {
+            int next = at;
+            try {
+                for (PDDocument src : loaded) {
+                    try {
+                        next += insertDocument(src, next);
+                    } finally {
+                        src.close();
+                    }
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Cannot insert the pages: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+
+    /** Accepts file lists dropped anywhere on the panel and hands them to {@link #dropFiles(List, Point)}. */
+    private final class FileDropHandler extends TransferHandler {
+        @Override
+        public boolean canImport(TransferSupport s) {
+            if (!s.isDataFlavorSupported(DataFlavor.javaFileListFlavor))
+                return false;
+            if (s.isDrop())
+                s.setDropAction(COPY);
+            List<File> files = filesOf(s);
+            return files == null || !accepted(files).isEmpty();
+        }
+
+        @Override
+        public boolean importData(TransferSupport s) {
+            if (!s.isDataFlavorSupported(DataFlavor.javaFileListFlavor))
+                return false;
+            List<File> files = filesOf(s);
+            if (files == null || files.isEmpty())
+                return false;
+            Point panelPoint = null;
+            if (s.isDrop()) {
+                Point p = SwingUtilities.convertPoint(s.getComponent(), s.getDropLocation().getDropPoint(), pagesPanel);
+                if (pagesPanel.contains(p))
+                    panelPoint = p;
+            }
+            return dropFiles(files, panelPoint);
+        }
+
+        /** @return the dropped files, null when the data is not readable yet (some platforms during drag-over) */
+        private List<File> filesOf(TransferSupport s) {
+            try {
+                Object o = s.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                if (!(o instanceof List))
+                    return null;
+                List<File> files = new ArrayList<>();
+                for (Object f : (List<?>) o)
+                    if (f instanceof File)
+                        files.add((File) f);
+                return files;
+            } catch (UnsupportedFlavorException | IOException | RuntimeException e) {
+                return null;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ thumbnails
+
+    /**
+     * Shows or hides the page thumbnails in a column left of the pages (see
+     * {@link PDFThumbnailPanel}: click to show a page, drag to move one). Fires
+     * the {@code thumbnailsVisible} property change.
+     *
+     * @param visible whether the sidebar is shown
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setThumbnailsVisible(boolean visible) {
+        if (visible == isThumbnailsVisible()) {
+            if (thumbnailsButton != null && thumbnailsButton.isSelected() != visible)
+                thumbnailsButton.setSelected(visible);
+            return this;
+        }
+        if (visible) {
+            PDFThumbnailPanel tp = getThumbnailPanel();
+            centre.add(thumbnailScroll, BorderLayout.WEST);
+            tp.reload();
+        } else
+            centre.remove(thumbnailScroll);
+        centre.revalidate();
+        centre.repaint();
+        if (thumbnailsButton != null && thumbnailsButton.isSelected() != visible)
+            thumbnailsButton.setSelected(visible);
+        firePropertyChange("thumbnailsVisible", !visible, visible);
+        return this;
+    }
+
+    /** @return whether the thumbnail sidebar is shown */
+    public boolean isThumbnailsVisible() {
+        return thumbnailScroll != null && thumbnailScroll.getParent() == centre;
+    }
+
+    /** @return the thumbnail sidebar (created on first use, shown by {@link #setThumbnailsVisible}) */
+    public PDFThumbnailPanel getThumbnailPanel() {
+        if (thumbnails == null) {
+            thumbnails = new PDFThumbnailPanel(this);
+            thumbnailScroll = new JScrollPane(thumbnails, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            thumbnailScroll.getVerticalScrollBar().setUnitIncrement(20);
+            Color rule = UIManager.getColor("Separator.foreground");
+            thumbnailScroll.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, rule == null ? Color.LIGHT_GRAY : rule));
+            int w = PDFThumbnailPanel.THUMB_WIDTH + 2 * PDFThumbnailPanel.GAP + 2 * PDFThumbnailPanel.PAD + 22;
+            thumbnailScroll.setPreferredSize(new Dimension(w, 10));
+            thumbnails.reload();
+        }
+        return thumbnails;
+    }
+
+    /**
+     * Moves pages so that the block lands in front of {@code target}, an index
+     * as counted before the move ({@link #getPageCount()} = the end): the
+     * thumbnail drag, and the API form of the editor's Move. An
+     * {@link EditDelegate} is asked first, so a host can record the move as an
+     * undoable edit; otherwise the pages are moved directly and the document
+     * is marked modified.
+     *
+     * @param pageIndexes zero-based pages, any order, duplicates ignored; never null
+     * @param target      zero-based index the block lands in front of, clamped
+     * @return true when moved (or handled by the delegate)
+     * @throws IllegalArgumentException if a page is out of range
+     */
+    public boolean movePages(int[] pageIndexes, int target) {
+        SUS.checkIfNull("pages null", pageIndexes);
+        int[] sorted = java.util.Arrays.stream(pageIndexes).distinct().sorted().toArray();
+        if (sorted.length == 0 || pages.isEmpty())
+            return false;
+        int count = pages.size();
+        for (int p : sorted)
+            if (p < 0 || p >= count)
+                throw new IllegalArgumentException("Page " + (p + 1) + " is out of range (1-" + count + ").");
+        int t = Math.max(0, Math.min(count, target));
+        if (editDelegate != null && editDelegate.movePages(sorted, t))
+            return true;
+        List<PDPage> moved = new ArrayList<>(sorted.length);
+        int shift = 0;
+        synchronized (docLock) {
+            if (document == null)
+                return false;
+            for (int p : sorted) {
+                moved.add(document.getPage(p));
+                if (p < t)
+                    shift++;
+            }
+        }
+        int[] landing = new int[sorted.length];
+        for (int i = 0; i < sorted.length; i++)
+            landing[i] = t - shift + i;
+        movePagesDirect(moved, landing, landing[0]);
+        return true;
+    }
+
+    /** @return {@code {width, height}} of a page as displayed, in points */
+    float[] pageSizePt(int index) {
+        PageView pv = pages.get(index);
+        return new float[]{pv.widthPt, pv.heightPt};
+    }
+
+    /** @return the shared render thread, for the thumbnails */
+    static ExecutorService renderExecutor() {
+        return RENDER_EXECUTOR;
+    }
+
+    /** @return the render generation; a render started under an older one is dropped */
+    int renderGeneration() {
+        return generation.get();
+    }
+
+    /**
+     * Renders a page at a given pixel width (render thread).
+     *
+     * @return the image, null when there is no document, the generation moved on or rendering failed
+     */
+    BufferedImage renderThumbnail(int index, int widthPx, int gen) {
+        try {
+            synchronized (docLock) {
+                if (renderer == null || document == null || gen != generation.get() || index < 0 || index >= document.getNumberOfPages())
+                    return null;
+                float widthPt = PageTransform.of(document.getPage(index)).widthPt();
+                return renderer.renderImageWithDPI(index, 72f * widthPx / Math.max(1f, widthPt), ImageType.RGB);
+            }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override
@@ -2452,6 +2906,10 @@ public class PDFViewerPanel extends JPanel {
         deleteButton.setToolTipText("Delete pages: the current one, a list or a range");
         deleteButton.addActionListener(e -> deleteDialog());
         tb.add(deleteButton);
+        thumbnailsButton = new JToggleButton(new IconUtil.ThumbnailsIcon(16));
+        thumbnailsButton.setToolTipText("Page thumbnails: click one to show the page, drag one to move the page");
+        thumbnailsButton.addActionListener(e -> setThumbnailsVisible(thumbnailsButton.isSelected()));
+        tb.add(thumbnailsButton);
         tb.addSeparator();
 
         JButton prev = GUIUtil.iconButton(new IconUtil.BackIcon(16));
@@ -2575,7 +3033,16 @@ public class PDFViewerPanel extends JPanel {
         matchLabel = new JLabel(" ");
         tb.add(matchLabel);
 
+        tb.add(Box.createHorizontalGlue());
+        fontSizeWidget = new FontSizeWidget();
+        tb.add(fontSizeWidget);
+
         return tb;
+    }
+
+    /** @return the control text size spinner at the end of the toolbar (see {@link UIFontSize}) */
+    public FontSizeWidget getFontSizeWidget() {
+        return fontSizeWidget;
     }
 
     /**
@@ -3044,6 +3511,8 @@ public class PDFViewerPanel extends JPanel {
             }
             revalidate();
             repaint();
+            if (thumbnails != null)
+                thumbnails.reload(); // install, close and every page-tree refresh come through here
         }
 
         @Override
@@ -3136,6 +3605,20 @@ public class PDFViewerPanel extends JPanel {
             setMinimumSize(d);
             setMaximumSize(d);
             setSize(d);
+            positionOverlay();
+        }
+
+        /** Places the overlay component (if it is this page's child) over its area at the current zoom. */
+        void positionOverlay() {
+            if (overlay == null || overlayRect == null || overlay.getParent() != this)
+                return;
+            overlay.setBounds(Math.round(overlayRect.x * zoom), Math.round(overlayRect.y * zoom),
+                    Math.max(1, Math.round(overlayRect.width * zoom)), Math.max(1, Math.round(overlayRect.height * zoom)));
+        }
+
+        @Override
+        public void doLayout() {
+            positionOverlay();
         }
 
         @Override
@@ -3504,6 +3987,55 @@ public class PDFViewerPanel extends JPanel {
         public void setAnnotationFilter(AnnotationFilter filter) {
             PDFViewerPanel.this.setAnnotationFilter(filter);
         }
+
+        @Override
+        public void showOverlay(JComponent comp, int page, Rectangle2D viewRect) {
+            PDFViewerPanel.this.showOverlay(comp, page, viewRect);
+        }
+
+        @Override
+        public void hideOverlay() {
+            PDFViewerPanel.this.hideOverlay();
+        }
+
+        @Override
+        public JComponent overlay() {
+            return overlay;
+        }
+    }
+
+    // ------------------------------------------------------------------ overlay (in-place editors)
+
+    /** The component a tool shows over a page area, see {@link PDFToolContext#showOverlay}; a child of that page's view. */
+    private JComponent overlay;
+    private Rectangle2D.Float overlayRect;
+
+    private void showOverlay(JComponent comp, int page, Rectangle2D viewRect) {
+        SUS.checkIfNull("component null", comp);
+        SUS.checkIfNull("rect null", viewRect);
+        hideOverlay();
+        if (page < 0 || page >= pages.size())
+            return;
+        overlay = comp;
+        overlayRect = new Rectangle2D.Float((float) viewRect.getX(), (float) viewRect.getY(), (float) viewRect.getWidth(), (float) viewRect.getHeight());
+        PageView pv = pages.get(page);
+        pv.add(comp);
+        pv.positionOverlay();
+        pv.revalidate();
+        pv.repaint();
+    }
+
+    private void hideOverlay() {
+        if (overlay == null)
+            return;
+        Container parent = overlay.getParent();
+        if (parent != null) {
+            parent.remove(overlay);
+            parent.revalidate();
+            parent.repaint();
+        }
+        overlay = null;
+        overlayRect = null;
     }
 
     /** Byte-bounded LRU of rendered page images. EDT only. */

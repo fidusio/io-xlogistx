@@ -36,7 +36,7 @@ import org.zoxweb.server.security.SecUtil;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.shared.annotation.SecurityProp;
-import org.zoxweb.shared.app.AppVersionDAO;
+import org.zoxweb.shared.app.AppVersion;
 import org.zoxweb.shared.crypto.CryptoConst;
 import org.zoxweb.shared.data.SimpleMessage;
 import org.zoxweb.shared.filters.MatchPatternFilter;
@@ -103,7 +103,7 @@ import static org.zoxweb.server.net.ssl.SSLContextInfo.Param.*;
 public class NIOHTTPServer
         implements DaemonController, GetNamedVersion, CanonicalID {
     /** Application version information containing name and version string. */
-    public final static AppVersionDAO VERSION = new AppVersionDAO("NOYFB::2.7.1");
+    public final static AppVersion VERSION = new AppVersion("NOYFB::2.7.1");
     /** Logger instance for debug output (disabled by default). */
     public final static LogWrapper logger = new LogWrapper(NIOHTTPServer.class).setEnabled(false);
     /**

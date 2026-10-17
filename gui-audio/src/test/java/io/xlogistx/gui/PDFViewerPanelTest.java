@@ -220,21 +220,50 @@ public class PDFViewerPanelTest {
         }
         assertEquals(3, onEDT(panel::getPageCount), "viewer keeps showing the document");
 
-        // save over the source file: document is written, closed, replaced and reloaded
+        // save over the source file: written next to it and moved into place; document, page and view stay
         onEDT(() -> panel.gotoPage(2));
         PDDocument before = onEDT(panel::getDocument);
+        boolean[] saved = new boolean[1];
+        onEDT(() -> panel.setEditDelegate(new PDFViewerPanel.EditDelegate() {
+            @Override
+            public boolean insertDocument(PDDocument source, int at) {
+                return false;
+            }
+
+            @Override
+            public boolean deletePages(int[] pages) {
+                return false;
+            }
+
+            @Override
+            public void documentReplaced() {
+            }
+
+            @Override
+            public void documentSaved() {
+                saved[0] = true;
+            }
+
+            @Override
+            public boolean isModified() {
+                return true;
+            }
+        }));
         onEDT(() -> {
+            panel.deletePages(new int[]{0});
             panel.save(out);
             return null;
         });
-        waitFor(() -> panel.getDocument() != null && panel.getDocument() != before
-                && panel.getPageCount() == 3 && panel.getCurrentPage() == 2, 10_000);
-        assertTrue(before.getDocument().isClosed(), "source document released before the file was replaced");
+        waitFor(() -> saved[0], 10_000);
+        assertSame(before, onEDT(panel::getDocument), "no reload");
+        assertFalse(before.getDocument().isClosed());
+        assertEquals(2, onEDT(panel::getPageCount));
         try (PDDocument doc = Loader.loadPDF(out)) {
-            assertEquals(3, doc.getNumberOfPages());
+            assertEquals(2, doc.getNumberOfPages(), "the file holds the edited document");
         }
         assertEquals(out, onEDT(panel::getFile));
         assertEquals(1, dir.listFiles().length, "no temp file left behind");
+        onEDT(() -> panel.setEditDelegate(null));
 
         // nothing loaded: save is a no-op
         onEDT(() -> {
@@ -1038,10 +1067,24 @@ public class PDFViewerPanelTest {
     }
 
     private JViewport viewport() {
-        for (Component c : panel.getComponents())
-            if (c instanceof JScrollPane)
-                return ((JScrollPane) c).getViewport();
+        JScrollPane sp = pagesScrollPane(panel);
+        if (sp != null)
+            return sp.getViewport();
         throw new IllegalStateException("no scroll pane");
+    }
+
+    /** The scroll pane holding the pages (not the thumbnail sidebar's), anywhere below a container. */
+    private static JScrollPane pagesScrollPane(Container in) {
+        for (Component c : in.getComponents()) {
+            if (c instanceof JScrollPane && !(((JScrollPane) c).getViewport().getView() instanceof PDFThumbnailPanel))
+                return (JScrollPane) c;
+            if (c instanceof Container) {
+                JScrollPane found = pagesScrollPane((Container) c);
+                if (found != null)
+                    return found;
+            }
+        }
+        return null;
     }
 
     /** Sizes and lays out an undisplayed component tree (validate() needs a peer). */

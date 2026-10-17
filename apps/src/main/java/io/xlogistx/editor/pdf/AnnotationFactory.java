@@ -116,14 +116,32 @@ public final class AnnotationFactory {
         a.setOpen(false);
         float x = (float) viewPt.getX(), y = (float) viewPt.getY();
         a.setRectangle(t.toPdfRect(new Rectangle2D.Float(x, y, NOTE_SIZE, NOTE_SIZE)));
-        PDAnnotationPopup popup = new PDAnnotationPopup();
-        popup.setParent(a);
-        popup.setOpen(false);
-        popup.setPage(page);
-        popup.setRectangle(t.toPdfRect(new Rectangle2D.Float(x + NOTE_SIZE + 4, y, POPUP_WIDTH, POPUP_HEIGHT)));
-        a.setPopup(popup);
+        a.setPopup(popupFor(a, page));
         a.constructAppearances(doc);
         return a;
+    }
+
+    /**
+     * A closed popup for a note (or any markup annotation): {@link #POPUP_WIDTH}
+     * x {@link #POPUP_HEIGHT} points, just right of the annotation's box and
+     * top-aligned with it.
+     *
+     * @param owner the annotation, with a rectangle; never null
+     * @param page  the page, never null
+     * @return the popup, parented to the owner (the caller sets it on the owner)
+     */
+    public static PDAnnotationPopup popupFor(PDAnnotationMarkup owner, PDPage page) {
+        SUS.checkIfNull("owner null", owner);
+        SUS.checkIfNull("page null", page);
+        PDRectangle r = owner.getRectangle();
+        if (r == null)
+            r = new PDRectangle();
+        PDAnnotationPopup popup = new PDAnnotationPopup();
+        popup.setParent(owner);
+        popup.setOpen(false);
+        popup.setPage(page);
+        popup.setRectangle(new PDRectangle(r.getUpperRightX() + 4, r.getUpperRightY() - POPUP_HEIGHT, POPUP_WIDTH, POPUP_HEIGHT));
+        return popup;
     }
 
     /**

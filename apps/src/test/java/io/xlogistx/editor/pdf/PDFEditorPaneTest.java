@@ -238,13 +238,14 @@ public class PDFEditorPaneTest {
     @Test
     void menuBarAndFrameAreBuildable() throws Exception {
         JMenuBar bar = onEDT(pane::createMenuBar);
-        assertEquals(6, bar.getMenuCount());
+        assertEquals(7, bar.getMenuCount());
         assertEquals("File", bar.getMenu(0).getText());
         assertEquals("Edit", bar.getMenu(1).getText());
-        assertEquals("Page", bar.getMenu(2).getText());
-        assertEquals("Annotate", bar.getMenu(3).getText());
-        assertEquals("Form", bar.getMenu(4).getText());
-        assertEquals("Help", bar.getMenu(5).getText());
+        assertEquals("View", bar.getMenu(2).getText());
+        assertEquals("Page", bar.getMenu(3).getText());
+        assertEquals("Annotate", bar.getMenu(4).getText());
+        assertEquals("Form", bar.getMenu(5).getText());
+        assertEquals("Help", bar.getMenu(6).getText());
         assertThrows(NullPointerException.class, () -> new PDFEditorPane(null));
         assertThrows(NullPointerException.class, () -> pane.open(null));
         assertThrows(NullPointerException.class, () -> pane.addChangeListener(null));

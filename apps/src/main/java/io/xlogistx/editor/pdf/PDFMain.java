@@ -1,6 +1,6 @@
 package io.xlogistx.editor.pdf;
 
-import org.zoxweb.shared.app.AppVersionDAO;
+import org.zoxweb.shared.app.AppVersion;
 
 import javax.swing.*;
 import java.io.File;
@@ -9,7 +9,7 @@ import java.io.File;
 public class PDFMain {
 
     /** The application name and version. */
-    public static final AppVersionDAO VERSION = new AppVersionDAO("PDFEditor::0.1.0");
+    public static final AppVersion VERSION = new AppVersion("PDFEditor::0.1.0");
 
     /**
      * Standalone entry point: {@code Main [file.pdf | file.md | image.png]}.
@@ -25,6 +25,7 @@ public class PDFMain {
         SwingUtilities.invokeLater(() -> {
             PDFEditorFrame frame = new PDFEditorFrame();
             frame.setExitOnClose(true);
+            frame.applySettings(EditorSettings.user());
             frame.getEditorPane().setEditable(true);
             if (args.length > 0)
                 frame.getEditorPane().open(new File(args[0]));

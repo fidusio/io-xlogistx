@@ -34,7 +34,7 @@ public final class ModifyAnnotationEdit implements PDFEdit {
     private final int page;
     private final PDAnnotation annotation;
     private final COSDictionary before;
-    private final COSDictionary after;
+    private COSDictionary after;
     private final String name;
 
     /**
@@ -95,6 +95,18 @@ public final class ModifyAnnotationEdit implements PDFEdit {
                 return true;
         }
         return false;
+    }
+
+    /**
+     * Replaces the "after" state, so a burst of small changes (keyboard nudges)
+     * stays one undo step: the edit must be the top of the undo stack and the
+     * annotation must already carry the new state.
+     *
+     * @param after a fresh {@link #snapshot(PDAnnotation)}, never null
+     */
+    public void amend(COSDictionary after) {
+        SUS.checkIfNull("after null", after);
+        this.after = after;
     }
 
     @Override

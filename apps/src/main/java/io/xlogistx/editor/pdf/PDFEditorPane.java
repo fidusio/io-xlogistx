@@ -17,7 +17,12 @@ import io.xlogistx.gui.IconUtil;
 import io.xlogistx.gui.PDFToolContext;
 import io.xlogistx.gui.PDFToolHandler;
 import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.UIFontSize;
+import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationRubberStamp;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
@@ -27,6 +32,8 @@ import org.zoxweb.shared.util.SUS;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -98,11 +105,19 @@ public class PDFEditorPane extends JPanel implements EditorHost {
     private final JToggleButton boldToggle, italicToggle, underlineToggle, strikeToggle;
     private final JButton highlightButton;
     private final JComboBox<String> alignCombo;
+    /** The sub-toolbar new controls are added to while the edit row is built. */
+    private JToolBar target;
+    private final JToolBar selectionGroup, styleStrip;
+    private final JPanel statusBar;
+    private final JLabel hintLabel, detailLabel;
     private boolean updatingStrip;
     private boolean editable;
     private EditTool activeTool;
     private PDAnnotation selectedAnnotation;
     private int selectedPage = -1;
+    private EditorSettings settings;
+    /** The Open Recent submenu of the last menu bar built, refilled from the settings. */
+    private JMenu recentMenu;
 
     /** Creates a pane around a new, empty viewer. */
     public PDFEditorPane() {
@@ -156,17 +171,21 @@ public class PDFEditorPane extends JPanel implements EditorHost {
 
         editToolbar = new JToolBar();
         editToolbar.setFloatable(false);
+        target = editToolbar;
         editToolbar.add(editToggle);
         editToolbar.addSeparator();
         editToolbar.add(undoButton);
         editToolbar.add(redoButton);
         editToolbar.addSeparator();
 
+        // page group
         rotateLeftButton = control(GUIUtil.iconButton(rotatePageLeftIcon), ROTATE_PAGE_LEFT_TIP, e -> rotateInContext(-90));
         rotateRightButton = control(GUIUtil.iconButton(rotatePageRightIcon), ROTATE_PAGE_RIGHT_TIP, e -> rotateInContext(90));
         moveButton = control(GUIUtil.iconButton(new IconUtil.MoveIcon(16)), "Move pages to another position...", e -> movePagesDialog());
         editToolbar.addSeparator();
+        // tools
         toolGroup.add(noTool);
+        toolButton(EditTool.SELECT, new IconUtil.AnnotSelectIcon(16), "Select annotation: click an annotation or image to select it, drag it to move, drag a handle to resize, arrow keys nudge, Delete removes it, double click edits text; a drag on empty space pans");
         toolButton(EditTool.EDIT_TEXT, new IconUtil.EditTextIcon(16), "Edit text: double click a word or select text and press Enter (Ctrl+E), then type the replacement (same font)");
         toolButton(EditTool.FORM, new IconUtil.FormIcon(16), "Fill form fields: click a field to edit it");
         editToolbar.addSeparator();
@@ -182,11 +201,12 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         toolButton(EditTool.ARROW, new IconUtil.ArrowIcon(16), "Arrow: drag from start to the arrow head");
         toolButton(EditTool.TEXT_BOX, new IconUtil.TextBoxIcon(16), "Text box: drag a box (or click) and type");
         toolButton(EditTool.IMAGE, new IconUtil.PictureIcon(16), "Image: drag a box (or click) and pick a picture file; move, resize and rotate it with the Select tool");
-        editToolbar.addSeparator();
-        toolButton(EditTool.SELECT, new IconUtil.AnnotSelectIcon(16), "Select annotation: click an annotation or image to select it, drag it to move, drag a handle to resize, Delete removes it, double click edits text; a drag on empty space pans");
+        // selection group: shown only while an annotation is selected
+        selectionGroup = group("selection-group");
         deleteAnnotationButton = control(GUIUtil.iconButton(new IconUtil.DeleteIcon(16)), "Delete the selected annotation (Delete)", e -> deleteSelectedAnnotation());
         propertiesButton = control(GUIUtil.iconButton(new IconUtil.InfoIcon(16)), "Properties of the selected annotation...", e -> editSelectedProperties());
-        editToolbar.addSeparator();
+        // style strip: shown only while a tool that has a style is active, or a styled annotation is selected
+        styleStrip = group("style-strip");
         strokeButton = control(new JButton(), STROKE_TIP, e -> pickColor(false));
         fillButton = control(new JButton(), "Fill / background colour (none = transparent)", e -> pickColor(true));
         opacitySpinner = spinner(1.0, 0.0, 1.0, 0.1, "Opacity (0-1)");
@@ -196,7 +216,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         fontCombo.setToolTipText("Font of text boxes: the bundled Roboto or any installed TrueType font");
         fontCombo.setMaximumSize(new Dimension(190, 28));
         fontCombo.addActionListener(e -> stripChanged());
-        editToolbar.add(fontCombo);
+        target.add(fontCombo);
         editControls.add(fontCombo);
         boldToggle = face("B", Font.BOLD, "Bold text");
         italicToggle = face("I", Font.ITALIC, "Italic text");
@@ -207,8 +227,9 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         alignCombo.setToolTipText("Text alignment in the box");
         alignCombo.setMaximumSize(new Dimension(90, 28));
         alignCombo.addActionListener(e -> stripChanged());
-        editToolbar.add(alignCombo);
+        target.add(alignCombo);
         editControls.add(alignCombo);
+        target = editToolbar;
         editToolbar.add(new JLabel(" "));
 
         JPanel toolbars = new JPanel();
@@ -222,7 +243,32 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         add(toolbars, BorderLayout.NORTH);
         add(viewer, BorderLayout.CENTER);
 
+        // status line: what the active tool does on the left, what is selected on the right
+        statusBar = new JPanel(new BorderLayout(12, 0));
+        statusBar.setName("status-bar");
+        Color rule = UIManager.getColor("Separator.foreground");
+        statusBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, rule == null ? Color.LIGHT_GRAY : rule),
+                BorderFactory.createEmptyBorder(2, 8, 2, 8)));
+        hintLabel = new JLabel(" ");
+        hintLabel.setName("status-hint");
+        detailLabel = new JLabel("");
+        detailLabel.setName("status-detail");
+        detailLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        restyleStatus();
+        UIFontSize.addListener(size -> restyleStatus()); // the status line derives its font, so it follows the control text size by hand
+        statusBar.add(hintLabel, BorderLayout.CENTER);
+        statusBar.add(detailLabel, BorderLayout.EAST);
+        add(statusBar, BorderLayout.SOUTH);
+
         viewer.setEditDelegate(new Delegate());
+        viewer.setContextMenuCustomizer((menu, e) -> populateContextMenu(menu, e.getPoint()));
+        viewer.setCopyInterceptor(this::copySelectedAnnotation); // Ctrl+C copies the selected annotation before any text
+        viewer.setDropInterceptor(this::dropOnPage); // a picture dropped on a page while editing becomes an image stamp
+        viewer.addPropertyChangeListener("thumbnailsVisible", e -> {
+            if (settings != null)
+                settings.setThumbnailsVisible(viewer.isThumbnailsVisible());
+        });
         model.addListener((m, edit, undo) -> {
             if (edit.structural())
                 formTool().refresh(viewer.getToolContext());
@@ -241,26 +287,112 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "rotateImageLeft", e -> rotateSelectedImage(-90));
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "rotateImageRight", e -> rotateSelectedImage(90));
         bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0), "howTo", e -> showHowTo());
+        // Ctrl+C is the viewer's binding, routed here through setCopyInterceptor
+        bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), "cutAnnotation", e -> {
+            if (!typingInTextField())
+                cutSelectedAnnotation();
+        });
+        bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), "paste", e -> {
+            if (!typingInTextField())
+                pasteAnnotation(null);
+        });
+        bind(im, am, KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), "duplicateAnnotation", e -> {
+            if (!typingInTextField())
+                duplicateSelectedAnnotation();
+        });
+        // one plain letter per tool, ignored while a text field has the focus
+        for (Map.Entry<EditTool, Character> k : TOOL_KEYS.entrySet())
+            bind(im, am, KeyStroke.getKeyStroke(k.getValue().charValue(), 0), "tool." + k.getKey().name(), e -> {
+                if (!typingInTextField())
+                    setActiveTool(k.getKey());
+            });
 
         updateStrip();
         updateButtons();
     }
 
+    /**
+     * The plain-letter shortcut of each tool (pressed while the pages have the
+     * focus; typing in a text field never switches tools).
+     */
+    public static final Map<EditTool, Character> TOOL_KEYS;
+
+    static {
+        Map<EditTool, Character> m = new EnumMap<>(EditTool.class);
+        m.put(EditTool.SELECT, 'V');
+        m.put(EditTool.EDIT_TEXT, 'E');
+        m.put(EditTool.FORM, 'F');
+        m.put(EditTool.HIGHLIGHT, 'H');
+        m.put(EditTool.UNDERLINE, 'U');
+        m.put(EditTool.STRIKEOUT, 'S');
+        m.put(EditTool.NOTE, 'N');
+        m.put(EditTool.INK, 'P');
+        m.put(EditTool.RECTANGLE, 'R');
+        m.put(EditTool.ELLIPSE, 'O');
+        m.put(EditTool.LINE, 'L');
+        m.put(EditTool.ARROW, 'A');
+        m.put(EditTool.TEXT_BOX, 'T');
+        m.put(EditTool.IMAGE, 'I');
+        TOOL_KEYS = Collections.unmodifiableMap(m);
+    }
+
+    /** What each tool does, one line for the status bar. */
+    private static final Map<EditTool, String> TOOL_HINTS;
+
+    static {
+        Map<EditTool, String> m = new EnumMap<>(EditTool.class);
+        m.put(EditTool.SELECT, "Select: click an annotation or picture; drag to move, drag a handle to resize, arrow keys nudge (Shift: 10 pt), Delete removes, double click edits text. Drag empty space to scroll.");
+        m.put(EditTool.EDIT_TEXT, "Edit text: double click a word, or select text and press Enter, then type the replacement.");
+        m.put(EditTool.FORM, "Fill form: click a field to type into it, toggle it or pick a value; Enter commits, Esc cancels.");
+        m.put(EditTool.HIGHLIGHT, "Highlight: drag over the text to mark. The colour swatch sets the marker colour.");
+        m.put(EditTool.UNDERLINE, "Underline: drag over the text to mark.");
+        m.put(EditTool.STRIKEOUT, "Strikeout: drag over the text to mark.");
+        m.put(EditTool.NOTE, "Note: click where the note icon should go, then type the text.");
+        m.put(EditTool.INK, "Ink: draw freehand; one stroke per drag. Set colour, width and opacity first.");
+        m.put(EditTool.RECTANGLE, "Rectangle: drag a box. Colour is the border, fill the inside (none = transparent).");
+        m.put(EditTool.ELLIPSE, "Ellipse: drag a box. Colour is the border, fill the inside (none = transparent).");
+        m.put(EditTool.LINE, "Line: drag from the start to the end.");
+        m.put(EditTool.ARROW, "Arrow: drag from the start to the arrow head.");
+        m.put(EditTool.TEXT_BOX, "Text box: drag a box (or click for a small one) and type. Font, size, colour and alignment are on the right.");
+        m.put(EditTool.IMAGE, "Image: drag a box (or click) and pick a picture file. The picture is then selected: move, resize or rotate it.");
+        TOOL_HINTS = Collections.unmodifiableMap(m);
+    }
+
+    /** @return true when the keyboard focus is in a text field, so plain letters must type, not switch tools */
+    private static boolean typingInTextField() {
+        Component focus = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        return focus instanceof javax.swing.text.JTextComponent
+                || (focus != null && SwingUtilities.getAncestorOfClass(JComboBox.class, focus) != null);
+    }
+
+    /** A sub-toolbar of the edit row that can be hidden as a whole; new controls go into it until the next group. */
+    private JToolBar group(String name) {
+        JToolBar g = new JToolBar();
+        g.setName(name);
+        g.setFloatable(false);
+        g.setOpaque(false);
+        g.setBorder(null);
+        g.addSeparator();
+        editToolbar.add(g);
+        target = g;
+        return g;
+    }
+
     private <T extends AbstractButton> T control(T b, String tooltip, ActionListener action) {
         b.setToolTipText(tooltip);
         b.addActionListener(action);
-        editToolbar.add(b);
+        target.add(b);
         editControls.add(b);
         return b;
     }
 
     private void toolButton(EditTool tool, Icon icon, String tooltip) {
         JToggleButton b = new JToggleButton(icon);
-        b.setToolTipText(tooltip);
+        b.setToolTipText(tooltip + " [" + TOOL_KEYS.get(tool) + "]");
         b.addActionListener(e -> setActiveTool(b.isSelected() ? tool : null));
         toolGroup.add(b);
         toolButtons.put(tool, b);
-        editToolbar.add(b);
+        target.add(b);
         editControls.add(b);
     }
 
@@ -271,7 +403,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         b.setFocusable(false);
         b.setMargin(new Insets(2, 6, 2, 6));
         b.addActionListener(e -> stripChanged());
-        editToolbar.add(b);
+        target.add(b);
         editControls.add(b);
         return b;
     }
@@ -286,7 +418,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         s.setToolTipText(tooltip);
         s.setMaximumSize(new Dimension(64, 28));
         s.addChangeListener(e -> stripChanged());
-        editToolbar.add(s);
+        target.add(s);
         editControls.add(s);
         return s;
     }
@@ -355,6 +487,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
 
     /** Reverts the most recent edit, if editing is on. @return this pane */
     public PDFEditorPane undo() {
+        commitInPlaceEdit();
         if (!canUndo())
             return this;
         clearAnnotationSelection();
@@ -368,6 +501,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
 
     /** Re-applies the most recently undone edit, if editing is on. @return this pane */
     public PDFEditorPane redo() {
+        commitInPlaceEdit();
         if (!canRedo())
             return this;
         clearAnnotationSelection();
@@ -739,6 +873,181 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         return editable && selectedAnnotation != null && selectTool().rotateSelected(ctx(), delta);
     }
 
+    /**
+     * Moves the selected annotation by a small view-space step, as the arrow
+     * keys do (undoable; a quick burst of nudges is one undo step).
+     *
+     * @param dxPt points to the right
+     * @param dyPt points down
+     * @return true when moved, false when nothing is selected
+     */
+    public boolean nudgeSelectedAnnotation(float dxPt, float dyPt) {
+        return editable && selectedAnnotation != null && selectTool().nudgeSelected(ctx(), dxPt, dyPt);
+    }
+
+    // ------------------------------------------------------------------ clipboard
+
+    /**
+     * Copies the selected annotation to the clipboard (see
+     * {@link AnnotationClipboard}; other programs get the text of a note or
+     * text box and the picture of an image stamp). This runs before the
+     * viewer's own copy, so Ctrl+C copies the annotation whenever one is
+     * selected and the page text otherwise.
+     *
+     * @return true when copied, false when nothing is selected or editing is off
+     */
+    public boolean copySelectedAnnotation() {
+        if (!editable || selectedAnnotation == null)
+            return false;
+        AnnotationClipboard.Clip clip = selectTool().copySelected(ctx());
+        if (clip == null)
+            return false;
+        AnnotationClipboard.write(AnnotationClipboard.clipboard(), clip);
+        return true;
+    }
+
+    /**
+     * Copies the selected annotation to the clipboard and removes it from the
+     * page (undoable as "Cut ...").
+     *
+     * @return true when cut
+     */
+    public boolean cutSelectedAnnotation() {
+        return copySelectedAnnotation() && selectTool().deleteSelected(ctx(), "Cut");
+    }
+
+    /** @return true when the clipboard holds an annotation, a picture or text that {@link #pasteAnnotation} can place */
+    public boolean canPaste() {
+        return AnnotationClipboard.hasContent(AnnotationClipboard.clipboard());
+    }
+
+    /**
+     * Pastes what the clipboard holds as a new annotation (undoable), centred
+     * on a point, and selects it: a copied annotation as it was (on any page,
+     * in any document), a picture from another program as an image stamp,
+     * plain text as a text box in the current text style. Turns editing on.
+     *
+     * @param panelPoint where, in pages-panel coordinates; null = under the
+     *                   mouse pointer when it is over the pages, else the
+     *                   middle of the view
+     * @return the new annotation, null when there is nothing to paste or no document
+     */
+    public PDAnnotation pasteAnnotation(Point panelPoint) {
+        if (viewer.getDocument() == null)
+            return null;
+        Object content = AnnotationClipboard.read(AnnotationClipboard.clipboard());
+        if (content == null)
+            return null;
+        Point at = panelPoint != null ? panelPoint : pointerOrCentre();
+        int page = ctx().pageAt(at);
+        if (page < 0)
+            return null;
+        if (!editable)
+            setEditable(true);
+        Point2D.Float centre = cascaded(page, ctx().toPagePt(page, at));
+        if (content instanceof AnnotationClipboard.Clip)
+            return selectTool().paste(ctx(), (AnnotationClipboard.Clip) content, page, centre, "Paste");
+        PDAnnotation a;
+        String name;
+        synchronized (viewer.getDocumentLock()) {
+            PDDocument doc = viewer.getDocument();
+            if (doc == null || page >= doc.getNumberOfPages())
+                return null;
+            PDPage pg = doc.getPage(page);
+            PageTransform t = PageTransform.of(pg);
+            try {
+                if (content instanceof BufferedImage) {
+                    BufferedImage picture = (BufferedImage) content;
+                    PDImageXObject image = LosslessFactory.createFromImage(doc, picture);
+                    Rectangle2D.Float size = ImageTool.placement(picture.getWidth(), picture.getHeight(), new Rectangle2D.Float(centre.x, centre.y, 0, 0), t.widthPt(), t.heightPt());
+                    Rectangle2D.Float box = ImageTool.placement(picture.getWidth(), picture.getHeight(),
+                            new Rectangle2D.Float(centre.x - size.width / 2, centre.y - size.height / 2, 0, 0), t.widthPt(), t.heightPt());
+                    a = AnnotationFactory.image(doc, pg, t, box, image, style(StyleKey.IMAGE));
+                    name = "Paste image";
+                } else {
+                    String text = (String) content;
+                    AnnotationStyle s = style(StyleKey.TEXT);
+                    Rectangle2D.Float box = textBoxFor(text, s.getFontSize(), centre, t.widthPt(), t.heightPt());
+                    a = AnnotationFactory.freeText(doc, pg, t, box, text, s);
+                    name = "Paste text box";
+                }
+            } catch (IOException | RuntimeException e) {
+                showError("Cannot paste: " + e.getMessage());
+                return null;
+            }
+        }
+        if (!applyEdit(new AddAnnotationEdit(viewer, page, a, name)))
+            return null;
+        selectAnnotation(page, a);
+        return a;
+    }
+
+    /**
+     * Adds a copy of the selected annotation 10 pt right and below it
+     * (undoable) and selects the copy; the clipboard is left alone.
+     *
+     * @return the copy, null when nothing is selected or editing is off
+     */
+    public PDAnnotation duplicateSelectedAnnotation() {
+        return editable && selectedAnnotation != null ? selectTool().duplicateSelected(ctx()) : null;
+    }
+
+    private int lastPastePage = -1;
+    private Point2D.Float lastPasteCentre;
+    private int cascade;
+
+    /**
+     * Repeated pastes at the same spot (the pointer did not move) fan out: each
+     * lands {@link SelectAnnotationTool#DUPLICATE_OFFSET_PT} right and below
+     * the previous one instead of on top of it. A paste anywhere else, or on
+     * another page, starts over.
+     */
+    private Point2D.Float cascaded(int page, Point2D.Float centre) {
+        boolean same = page == lastPastePage && lastPasteCentre != null && lastPasteCentre.distance(centre) < 1f;
+        cascade = same ? cascade + 1 : 0;
+        lastPastePage = page;
+        lastPasteCentre = new Point2D.Float(centre.x, centre.y);
+        float off = cascade * SelectAnnotationTool.DUPLICATE_OFFSET_PT;
+        return new Point2D.Float(centre.x + off, centre.y + off);
+    }
+
+    /** The pointer's position over the pages, else the middle of the visible part of the pages. */
+    private Point pointerOrCentre() {
+        if (!GraphicsEnvironment.isHeadless()) {
+            try {
+                Point p = ctx().owner().getMousePosition();
+                if (p != null)
+                    return p;
+            } catch (HeadlessException ignored) {
+                // no pointer to ask
+            }
+        }
+        Rectangle vr = ctx().viewport().getViewRect();
+        return new Point(vr.x + vr.width / 2, vr.y + vr.height / 2);
+    }
+
+    /**
+     * A box for pasted text, centred on a point: wide enough for the longest
+     * line (up to 60% of the page) and tall enough for the lines after
+     * wrapping, never smaller than a clicked text box, kept on the page.
+     */
+    static Rectangle2D.Float textBoxFor(String text, float fontSize, Point2D centre, float pageW, float pageH) {
+        float charW = fontSize * 0.55f, lineH = fontSize * 1.25f, pad = 8f;
+        String[] lines = text.split("\r?\n", -1);
+        int longest = 0;
+        for (String l : lines)
+            longest = Math.max(longest, l.length());
+        float w = Math.min(Math.max(FreeTextTool.DEFAULT_WIDTH, longest * charW + pad), Math.max(FreeTextTool.DEFAULT_WIDTH, pageW * 0.6f));
+        int rows = 0;
+        for (String l : lines)
+            rows += Math.max(1, (int) Math.ceil(l.length() * charW / (w - pad)));
+        float h = Math.max(FreeTextTool.DEFAULT_HEIGHT, rows * lineH + pad);
+        h = Math.min(h, pageH);
+        float x = Math.max(0f, Math.min((float) centre.getX() - w / 2, pageW - w));
+        float y = Math.max(0f, Math.min((float) centre.getY() - h / 2, pageH - h));
+        return new Rectangle2D.Float(x, y, w, h);
+    }
+
     /** Applies a style to the selected annotation (undoable). @return true when applied */
     public boolean applyStyleToSelection(AnnotationStyle style) {
         return editable && selectedAnnotation != null && selectTool().applyStyle(ctx(), style);
@@ -819,21 +1128,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         updatingStrip = true;
         try {
             AnnotationStyle s = stripStyle();
-            boolean on = editable && s != null;
-            boolean image = imageStrip();
-            strokeButton.setEnabled(on && !image);
-            fillButton.setEnabled(on && !image);
-            opacitySpinner.setEnabled(on);
-            widthSpinner.setEnabled(on && !image);
-            sizeSpinner.setEnabled(on && textStrip());
-            fontCombo.setEnabled(on && textStrip());
-            boldToggle.setEnabled(on && textStrip());
-            italicToggle.setEnabled(on && textStrip());
-            underlineToggle.setEnabled(on && textStrip());
-            strikeToggle.setEnabled(on && textStrip());
-            highlightButton.setEnabled(on && textStrip());
-            alignCombo.setEnabled(on && textStrip());
-            strokeButton.setToolTipText(textStrip() ? FONT_TIP : STROKE_TIP);
+            layoutStrip(editable && viewer.getDocument() != null && s != null);
             paintSwatch(strokeButton, s == null ? null : s.getStrokeColor(), false);
             paintSwatch(fillButton, s == null ? null : s.getFillColor(), true);
             paintSwatch(highlightButton, s == null ? null : s.getHighlightColor(), true);
@@ -851,6 +1146,45 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         } finally {
             updatingStrip = false;
         }
+    }
+
+    /**
+     * Shows the style strip and, inside it, only the controls that apply: the
+     * whole strip goes when nothing styled is active or selected, colour /
+     * fill / width go for images, the text controls appear for text boxes.
+     * Hidden rather than greyed, so the row only ever shows what can be used.
+     */
+    private void layoutStrip(boolean on) {
+        boolean image = imageStrip(), text = textStrip();
+        boolean wasVisible = styleStrip.isVisible();
+        styleStrip.setVisible(on);
+        strokeButton.setVisible(!image);
+        fillButton.setVisible(!image);
+        widthSpinner.setVisible(!image);
+        sizeSpinner.setVisible(text);
+        fontCombo.setVisible(text);
+        boldToggle.setVisible(text);
+        italicToggle.setVisible(text);
+        underlineToggle.setVisible(text);
+        strikeToggle.setVisible(text);
+        highlightButton.setVisible(text);
+        alignCombo.setVisible(text);
+        for (JComponent c : editControls)
+            if (SwingUtilities.isDescendingFrom(c, styleStrip))
+                c.setEnabled(on);
+        strokeButton.setToolTipText(text ? FONT_TIP : STROKE_TIP);
+        if (wasVisible != on)
+            editToolbar.revalidate();
+    }
+
+    /** @return the style strip of the edit row (hidden while nothing styled is active or selected) */
+    public JToolBar getStyleStrip() {
+        return styleStrip;
+    }
+
+    /** @return the Delete / Properties group of the edit row (hidden while nothing is selected) */
+    public JToolBar getSelectionGroup() {
+        return selectionGroup;
     }
 
     /** @return true when the strip edits an image stamp's style (opacity only) */
@@ -970,6 +1304,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
      * @return this pane
      */
     public PDFEditorPane save() {
+        commitInPlaceEdit();
         File f = viewer.getFile();
         if (f != null && f.getName().toLowerCase().endsWith(".pdf"))
             viewer.save(f);
@@ -980,7 +1315,186 @@ public class PDFEditorPane extends JPanel implements EditorHost {
 
     /** Asks for a file and saves. @return the file written, null when cancelled or nothing is loaded */
     public File saveAs() {
-        return viewer.saveAs();
+        commitInPlaceEdit();
+        File f = viewer.saveAs();
+        if (f != null)
+            remember(f);
+        return f;
+    }
+
+    /**
+     * Ends any in-place text box edit (see
+     * {@link io.xlogistx.editor.pdf.tools.InPlaceTextEditor}) or open form
+     * field editor, keeping the typed text: undo, redo, save and a tool switch
+     * do this first.
+     *
+     * @return true when an edit was committed
+     */
+    public boolean commitInPlaceEdit() {
+        boolean a = selectTool().commitInPlace();
+        boolean b = ((FreeTextTool) tools.get(EditTool.TEXT_BOX)).commitInPlace();
+        boolean f = formTool().commitPending();
+        return a || b || f;
+    }
+
+    /** @return the in-place text editor open on a page (new box or existing one), null when none */
+    public io.xlogistx.editor.pdf.tools.InPlaceTextEditor getInPlaceEditor() {
+        io.xlogistx.editor.pdf.tools.InPlaceTextEditor e = selectTool().getInPlaceEditor();
+        return e != null ? e : ((FreeTextTool) tools.get(EditTool.TEXT_BOX)).getInPlaceEditor();
+    }
+
+    // ------------------------------------------------------------------ settings
+
+    /**
+     * Installs the settings the pane reads and keeps up to date: the thumbnail
+     * sidebar and zoom are applied now, the file dialogs start in the last
+     * directory, the Open Recent menu lists the recent files, and every file
+     * opened or saved from now on is recorded. {@link #saveSettings()} writes
+     * the state that is only read at the end (zoom).
+     *
+     * @param settings the settings, null for none
+     * @return this pane
+     */
+    public PDFEditorPane setSettings(EditorSettings settings) {
+        this.settings = settings;
+        if (settings == null)
+            return this;
+        viewer.setDefaultDirectory(settings.getLastDirectory());
+        viewer.setThumbnailsVisible(settings.isThumbnailsVisible());
+        float textSize = settings.getUIFontSize(-1f);
+        if (textSize > 0 && Math.abs(textSize - UIFontSize.get()) > 0.01f) {
+            UIFontSize.apply(textSize);
+            UIFontSize.refresh(this); // the pane may not be in a window yet
+        }
+        String mode = settings.getZoomMode();
+        if (mode != null) {
+            try {
+                PDFViewerPanel.ZoomMode m = PDFViewerPanel.ZoomMode.valueOf(mode);
+                if (m == PDFViewerPanel.ZoomMode.CUSTOM)
+                    viewer.setZoom(settings.getZoom(viewer.getZoom()));
+                else
+                    viewer.setZoomMode(m);
+            } catch (IllegalArgumentException e) {
+                // an unknown mode name: keep the viewer's default
+            }
+        }
+        refreshRecentMenu();
+        return this;
+    }
+
+    /** @return the settings installed with {@link #setSettings}, null when none */
+    public EditorSettings getSettings() {
+        return settings;
+    }
+
+    /** Writes the state read only at start-up (zoom, thumbnails) to the settings and flushes them; a host calls this on close. */
+    public void saveSettings() {
+        if (settings == null)
+            return;
+        settings.setThumbnailsVisible(viewer.isThumbnailsVisible());
+        settings.setZoomMode(viewer.getZoomMode().name());
+        settings.setZoom(viewer.getZoom());
+        settings.setUIFontSize(UIFontSize.get());
+        settings.flush();
+    }
+
+    /** Records a file that was opened or saved: recent list, last directory, the viewer's default directory. */
+    private void remember(File f) {
+        if (settings == null || f == null)
+            return;
+        settings.addRecentFile(f);
+        File dir = f.getAbsoluteFile().getParentFile();
+        if (dir != null) {
+            settings.setLastDirectory(dir);
+            viewer.setDefaultDirectory(dir);
+        }
+        refreshRecentMenu();
+    }
+
+    /** @return the Open Recent submenu of the last menu bar built, null before {@link #createMenuBar()} */
+    public JMenu getRecentMenu() {
+        return recentMenu;
+    }
+
+    private void refreshRecentMenu() {
+        if (recentMenu == null)
+            return;
+        recentMenu.removeAll();
+        List<File> recent = settings == null ? Collections.<File>emptyList() : settings.getRecentFiles();
+        if (recent.isEmpty()) {
+            JMenuItem none = new JMenuItem("No recent files");
+            none.setEnabled(false);
+            recentMenu.add(none);
+            return;
+        }
+        int i = 1;
+        for (File f : recent) {
+            JMenuItem mi = new JMenuItem((i < 10 ? i + "  " : "") + f.getName());
+            if (i < 10)
+                mi.setMnemonic(KeyEvent.VK_0 + i);
+            mi.setToolTipText(f.getAbsolutePath());
+            mi.addActionListener(e -> openRecent(f));
+            recentMenu.add(mi);
+            i++;
+        }
+        recentMenu.addSeparator();
+        recentMenu.add(item("Clear list", KeyEvent.VK_C, null, e -> {
+            if (settings != null)
+                settings.clearRecentFiles();
+            refreshRecentMenu();
+        }));
+    }
+
+    /**
+     * Opens a file from the recent list after asking about unsaved changes; a
+     * file that no longer exists is dropped from the list with a message.
+     *
+     * @return true when the file is being opened
+     */
+    public boolean openRecent(File f) {
+        SUS.checkIfNull("file null", f);
+        if (!f.isFile()) {
+            if (settings != null)
+                settings.removeRecentFile(f);
+            refreshRecentMenu();
+            showError("The file no longer exists:\n" + f.getAbsolutePath());
+            return false;
+        }
+        if (!viewer.confirmDiscard())
+            return false;
+        open(f);
+        return true;
+    }
+
+    // ------------------------------------------------------------------ drag and drop
+
+    /**
+     * A single picture dropped on a page while editing becomes an image stamp
+     * at the drop point (its own size, kept on the page) and is selected;
+     * anything else is left to the viewer (open, or insert as pages).
+     */
+    private boolean dropOnPage(List<File> files, Point panelPoint) {
+        if (!editable || panelPoint == null || viewer.getDocument() == null || files.size() != 1)
+            return false;
+        File f = files.get(0);
+        if (!isImageFile(f))
+            return false;
+        int page = ctx().pageAt(panelPoint);
+        if (page < 0)
+            return false;
+        Point2D.Float pt = ctx().toPagePt(page, panelPoint);
+        PDAnnotation a = addImage(page, new Rectangle2D.Float(pt.x, pt.y, 0, 0), f);
+        if (a != null)
+            selectAnnotation(page, a);
+        return a != null;
+    }
+
+    private static boolean isImageFile(File f) {
+        String n = f.getName().toLowerCase();
+        for (String ext : ImageTool.EXTENSIONS)
+            if (n.endsWith("." + ext))
+                return true;
+        return false;
     }
 
     /**
@@ -994,6 +1508,10 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         JMenu file = new JMenu("File");
         file.setMnemonic(KeyEvent.VK_F);
         file.add(item("Open...", KeyEvent.VK_O, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), e -> viewer.openFile()));
+        recentMenu = new JMenu("Open Recent");
+        recentMenu.setMnemonic(KeyEvent.VK_R);
+        file.add(recentMenu);
+        refreshRecentMenu();
         file.addSeparator();
         file.add(item("Save", KeyEvent.VK_S, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), e -> save()));
         file.add(item("Save As...", KeyEvent.VK_A, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), e -> saveAs()));
@@ -1006,6 +1524,33 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         edit.add(item("Undo", KeyEvent.VK_U, KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), e -> undo()));
         edit.add(item("Redo", KeyEvent.VK_R, KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), e -> redo()));
         edit.addSeparator();
+        JMenuItem cut = item("Cut annotation", KeyEvent.VK_A, KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), e -> cutSelectedAnnotation());
+        JMenuItem copy = item("Copy", KeyEvent.VK_C, KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK), e -> viewer.copySelection());
+        JMenuItem paste = item("Paste", KeyEvent.VK_P, KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), e -> pasteAnnotation(null));
+        JMenuItem duplicate = item("Duplicate annotation", KeyEvent.VK_D, KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), e -> duplicateSelectedAnnotation());
+        edit.add(cut);
+        edit.add(copy);
+        edit.add(paste);
+        edit.add(duplicate);
+        edit.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                boolean selection = editable && selectedAnnotation != null;
+                cut.setEnabled(selection);
+                duplicate.setEnabled(selection);
+                copy.setEnabled(selection || viewer.hasSelection());
+                paste.setEnabled(viewer.getDocument() != null && canPaste());
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+            }
+        });
+        edit.addSeparator();
         edit.add(item("Edit selected text...", KeyEvent.VK_T, KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK), e -> editSelectedText()));
         edit.addSeparator();
         JCheckBoxMenuItem editing = new JCheckBoxMenuItem("Editing enabled", editable);
@@ -1013,6 +1558,21 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         addChangeListener(e -> editing.setSelected(editable));
         edit.add(editing);
         bar.add(edit);
+
+        JMenu view = new JMenu("View");
+        view.setMnemonic(KeyEvent.VK_V);
+        JCheckBoxMenuItem thumbnails = new JCheckBoxMenuItem("Page thumbnails", viewer.isThumbnailsVisible());
+        thumbnails.addActionListener(e -> viewer.setThumbnailsVisible(thumbnails.isSelected()));
+        viewer.addPropertyChangeListener("thumbnailsVisible", e -> thumbnails.setSelected(viewer.isThumbnailsVisible()));
+        view.add(thumbnails);
+        view.addSeparator();
+        JMenu textSize = new JMenu("Control text size");
+        textSize.setMnemonic(KeyEvent.VK_T);
+        textSize.add(item("Larger", KeyEvent.VK_L, KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), e -> UIFontSize.larger()));
+        textSize.add(item("Smaller", KeyEvent.VK_S, KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), e -> UIFontSize.smaller()));
+        textSize.add(item("Reset", KeyEvent.VK_R, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), e -> UIFontSize.reset()));
+        view.add(textSize);
+        bar.add(view);
 
         JMenu page = new JMenu("Page");
         page.setMnemonic(KeyEvent.VK_P);
@@ -1029,7 +1589,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         ButtonGroup group = new ButtonGroup();
         Map<EditTool, JRadioButtonMenuItem> items = new EnumMap<>(EditTool.class);
         // the one tool that works on what is already there
-        JRadioButtonMenuItem select = new JRadioButtonMenuItem("Select / move / resize (click an annotation or image; drag empty space to pan)");
+        JRadioButtonMenuItem select = new JRadioButtonMenuItem("Select / move / resize (click an annotation or image; drag empty space to pan)  [" + TOOL_KEYS.get(EditTool.SELECT) + "]");
         select.addActionListener(e -> setActiveTool(EditTool.SELECT));
         group.add(select);
         items.put(EditTool.SELECT, select);
@@ -1060,7 +1620,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         hints.put(EditTool.IMAGE, "Image (drag a box, then pick a picture file)");
         for (EditTool t : new EditTool[]{EditTool.EDIT_TEXT, EditTool.HIGHLIGHT, EditTool.UNDERLINE, EditTool.STRIKEOUT, EditTool.NOTE, EditTool.INK,
                 EditTool.RECTANGLE, EditTool.ELLIPSE, EditTool.LINE, EditTool.ARROW, EditTool.TEXT_BOX, EditTool.IMAGE}) {
-            JRadioButtonMenuItem mi = new JRadioButtonMenuItem(hints.get(t));
+            JRadioButtonMenuItem mi = new JRadioButtonMenuItem(hints.get(t) + "  [" + TOOL_KEYS.get(t) + "]");
             mi.addActionListener(e -> setActiveTool(t));
             group.add(mi);
             items.put(t, mi);
@@ -1075,7 +1635,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
 
         JMenu form = new JMenu("Form");
         form.setMnemonic(KeyEvent.VK_M);
-        JRadioButtonMenuItem fill = new JRadioButtonMenuItem("Fill form fields");
+        JRadioButtonMenuItem fill = new JRadioButtonMenuItem("Fill form fields  [" + TOOL_KEYS.get(EditTool.FORM) + "]");
         fill.addActionListener(e -> setActiveTool(EditTool.FORM));
         group.add(fill);
         items.put(EditTool.FORM, fill);
@@ -1230,36 +1790,128 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         redoButton.setEnabled(canRedo());
         PDFEdit u = model.peekUndo(), r = model.peekRedo();
         undoButton.setToolTipText((u == null ? "Undo" : "Undo: " + u.name())
-                + " (Ctrl+Z). Saving over the open file clears the history.");
+                + " (Ctrl+Z)");
         redoButton.setToolTipText((r == null ? "Redo" : "Redo: " + r.name()) + " (Ctrl+Y)");
         boolean doc = viewer.getDocument() != null;
         for (JComponent c : editControls)
             c.setEnabled(editable && doc);
+        boolean selected = editable && doc && selectedAnnotation != null;
+        if (selectionGroup.isVisible() != selected) {
+            selectionGroup.setVisible(selected);
+            editToolbar.revalidate();
+        }
         if (editable && doc) {
             moveButton.setEnabled(viewer.getPageCount() > 1);
-            deleteAnnotationButton.setEnabled(selectedAnnotation != null);
-            propertiesButton.setEnabled(selectedAnnotation != null);
             boolean picture = selectedAnnotation != null && ImageStamp.isImage(selectedAnnotation);
             rotateLeftButton.setIcon(picture ? rotateImageLeftIcon : rotatePageLeftIcon);
             rotateRightButton.setIcon(picture ? rotateImageRightIcon : rotatePageRightIcon);
             rotateLeftButton.setToolTipText(picture ? ROTATE_IMAGE_LEFT_TIP : ROTATE_PAGE_LEFT_TIP);
             rotateRightButton.setToolTipText(picture ? ROTATE_IMAGE_RIGHT_TIP : ROTATE_PAGE_RIGHT_TIP);
-            AnnotationStyle s = stripStyle();
-            boolean image = imageStrip();
-            strokeButton.setEnabled(s != null && !image);
-            fillButton.setEnabled(s != null && !image);
-            opacitySpinner.setEnabled(s != null);
-            widthSpinner.setEnabled(s != null && !image);
-            sizeSpinner.setEnabled(s != null && textStrip());
-            fontCombo.setEnabled(s != null && textStrip());
-            boldToggle.setEnabled(s != null && textStrip());
-            italicToggle.setEnabled(s != null && textStrip());
-            underlineToggle.setEnabled(s != null && textStrip());
-            strikeToggle.setEnabled(s != null && textStrip());
-            highlightButton.setEnabled(s != null && textStrip());
-            alignCombo.setEnabled(s != null && textStrip());
-            strokeButton.setToolTipText(textStrip() ? FONT_TIP : STROKE_TIP);
         }
+        layoutStrip(editable && doc && stripStyle() != null);
+        hintLabel.setText(statusHint());
+        detailLabel.setText(statusDetail());
+    }
+
+    // ------------------------------------------------------------------ status line
+
+    /** The status line one point smaller than the labels of the look and feel (never under 10). */
+    private void restyleStatus() {
+        Font label = UIManager.getFont("Label.font");
+        if (label == null)
+            label = hintLabel.getFont();
+        Font small = label.deriveFont(Math.max(10f, label.getSize2D() - 1f));
+        hintLabel.setFont(small);
+        detailLabel.setFont(small);
+        statusBar.revalidate();
+    }
+
+    /** @return the status line's hint: what the active tool does, or how to start */
+    public String getStatusHint() {
+        return hintLabel.getText();
+    }
+
+    /** @return the status line's detail: what is selected, empty when nothing is */
+    public String getStatusDetail() {
+        return detailLabel.getText();
+    }
+
+    /** @return the status line (hint on the left, selection on the right), for hosts that want to hide or restyle it */
+    public JComponent getStatusBar() {
+        return statusBar;
+    }
+
+    private String statusHint() {
+        if (viewer.getDocument() == null)
+            return "Open a PDF, a Markdown file or an image (Ctrl+O), or drop one on the window.";
+        if (!editable)
+            return "Viewing. Press the pencil (left of the second row) to edit.";
+        if (activeTool == null)
+            return "Pan: drag to scroll. Pick a tool on the second row, or press its letter (V select, T text box, H highlight, I image...).";
+        return TOOL_HINTS.get(activeTool);
+    }
+
+    private String statusDetail() {
+        if (selectedAnnotation == null || !editable)
+            return "";
+        String what = SelectAnnotationTool.describe(selectedAnnotation);
+        org.apache.pdfbox.pdmodel.common.PDRectangle r = selectedAnnotation.getRectangle();
+        StringBuilder b = new StringBuilder("Selected: ").append(what);
+        if (r != null && AnnotationGeometry.kind(selectedAnnotation) != AnnotationGeometry.Kind.MOVE_ONLY) {
+            float w = r.getWidth(), h = r.getHeight();
+            b.append(String.format(" %.0f × %.0f pt", w, h));
+        }
+        if (ImageStamp.isImage(selectedAnnotation)) {
+            int rot = ImageStamp.rotationOf(selectedAnnotation);
+            if (rot != 0)
+                b.append(", turned ").append(rot).append("°");
+        }
+        b.append(" on page ").append(selectedPage + 1);
+        return b.toString();
+    }
+
+    // ------------------------------------------------------------------ context menu
+
+    /**
+     * Adds the editor's entries for a right click over the pages to a menu (the
+     * viewer appends its Copy / Select all / Clear selection after them): over an
+     * annotation it is selected first and gets Properties, Edit text (notes and
+     * text boxes), Rotate (images) and Delete; over selected page text the
+     * markup and Edit text actions. Nothing is added while editing is off.
+     *
+     * @param menu       the menu to fill
+     * @param panelPoint the click, in pages-panel coordinates
+     */
+    public void populateContextMenu(JPopupMenu menu, Point panelPoint) {
+        if (!editable || viewer.getDocument() == null)
+            return;
+        SelectAnnotationTool.Hit hit = selectTool().annotationAt(ctx(), panelPoint);
+        if (hit != null) {
+            selectAnnotation(hit.page, hit.annotation);
+            String what = SelectAnnotationTool.describe(hit.annotation);
+            if (hit.annotation instanceof org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationText
+                    || hit.annotation instanceof org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFreeText)
+                menu.add(item("Edit the text of this " + what + "...", KeyEvent.VK_E, null, e -> selectTool().editText(ctx())));
+            if (ImageStamp.isImage(hit.annotation)) {
+                menu.add(item("Rotate image clockwise", KeyEvent.VK_R, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), e -> rotateSelectedImage(90)));
+                menu.add(item("Rotate image counter-clockwise", KeyEvent.VK_L, KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), e -> rotateSelectedImage(-90)));
+            }
+            menu.add(item("Cut this " + what, KeyEvent.VK_T, KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK), e -> cutSelectedAnnotation()));
+            menu.add(item("Copy this " + what, KeyEvent.VK_C, KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK), e -> copySelectedAnnotation()));
+            menu.add(item("Duplicate this " + what, KeyEvent.VK_U, KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), e -> duplicateSelectedAnnotation()));
+            menu.add(item("Properties of this " + what + "...", KeyEvent.VK_P, null, e -> editSelectedProperties()));
+            menu.add(item("Delete this " + what, KeyEvent.VK_D, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), e -> deleteSelectedAnnotation()));
+            return;
+        }
+        if (viewer.hasSelection()) {
+            menu.add(item("Edit selected text...", KeyEvent.VK_E, KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK), e -> editSelectedText()));
+            menu.add(item("Highlight selected text", KeyEvent.VK_H, KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), e -> markSelection(MarkupKind.HIGHLIGHT)));
+            menu.add(item("Underline selected text", KeyEvent.VK_U, null, e -> markSelection(MarkupKind.UNDERLINE)));
+            menu.add(item("Strike out selected text", KeyEvent.VK_S, null, e -> markSelection(MarkupKind.STRIKEOUT)));
+        }
+        JMenuItem paste = item("Paste here", KeyEvent.VK_P, KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), e -> pasteAnnotation(panelPoint));
+        paste.setEnabled(canPaste());
+        menu.add(paste);
     }
 
     private void changed() {
@@ -1294,10 +1946,26 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         }
 
         @Override
+        public boolean movePages(int[] pages, int target) {
+            if (!editable)
+                setEditable(true);
+            clearAnnotationSelection();
+            try {
+                model.apply(new MovePagesEdit(viewer, pages, target));
+            } catch (IOException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+            return true;
+        }
+
+        @Override
         public void documentReplaced() {
             model.reset();
             selectedAnnotation = null;
             selectedPage = -1;
+            lastPasteCentre = null;
+            lastPastePage = -1;
+            remember(viewer.getFile()); // a file was opened: recent list, last directory
             formTool().refresh(viewer.getToolContext());
             changed();
         }

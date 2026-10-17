@@ -118,7 +118,10 @@ API use, one page only),
 `TextMarkupTool(kind)` (drag selects, release marks; static `mark`
 for an existing selection), `NoteTool` (click → text dialog), `InkTool` (points ≥ 1.5 pt
 apart, one stroke per drag), `ShapeTool(circle)`, `LineTool(arrow)`, `FreeTextTool` (drag or
-click = 160x40 pt, text dialog), `ImageTool` (drag a box or click, then an image file chooser;
+click = 160x40 pt, then typing on the page: `startTyping` opens an `InPlaceTextEditor` on a
+box that is not on the page yet and adds it as "Add text box" on a non-blank commit, selecting
+it with the Select tool unless the tool was switched meanwhile; `addFreeText` is the dialog-free
+API), `ImageTool` (drag a box or click, then an image file chooser;
 `placement` fits the picture into the box keeping its aspect ratio, a click uses the pixel
 size at 72 dpi capped to half the page and shifted onto it; `addImage(File|BufferedImage)`
 for API use: `createFromFileByContent` keeps JPEG as DCT, everything else goes through
@@ -135,13 +138,85 @@ underline, strikethrough and highlight from DS), `editProperties` (`askImageStyl
 (image stamps only, "Rotate image left/right") for programmatic use),
 `FormFillTool` (outlines widgets; click toggles a check box / selects a radio export value /
 opens a `PopupFactory` editor over a text field (dialog fallback when not on screen) / a
-combo or multi-select list). Right clicks never reach a tool (the viewer's dispatcher shows
-its Copy menu first).
+combo or multi-select list. The text editor is built by `textEditorFor(c, widget)`, which
+registers a `pending` commit: `closePopup()` runs it, so Enter, a non-temporary focus loss, a
+press on the page, `deactivated` and the pane's `commitInPlaceEdit()` → `commitPending()` all
+keep the typed text, and only Escape / `cancel` → `discardPopup()` drops it (2026-10-17 fix: the
+press handler used to clear the popup state before the field's focus-lost ran, so a click
+elsewhere lost the text); `getEditing()` is the open widget). Right clicks never reach a tool: the viewer's dispatcher builds
+its menu (`buildContextMenu`) and the pane's customizer (`populateContextMenu`, 2026-10-17)
+adds the editor entries first. `SelectAnnotationTool` also has `annotationAt(c, panelPoint)`
+(a `Hit` = page + annotation, no selection) for that menu, `describe(a)` (the lower-case kind
+name the edit names use) and `nudgeSelected(c, dx, dy)` / arrow keys in `keyPressed`
+(`NUDGE_PT` 1, Shift `NUDGE_BIG_PT` 10, the event consumed so the scroll pane stays put;
+nudges closer than `NUDGE_BURST_MS` 600 ms on the same annotation with the same edit still on
+top of the undo stack are merged through `ModifyAnnotationEdit.amend(after)` into one step).
+**In-place text (2026-10-17, usability phase C)**: `tools/InPlaceTextEditor` is a `JTextArea` in
+the box's font (AWT font of the DS family / style, size from DA, scaled by the zoom), colours,
+border and `FreeTextAppearance.PADDING`, hosted over the box through
+`PDFToolContext.showOverlay` (a child of the page view, so it scrolls and zooms with the page)
+while the box's own appearance is hidden by the annotation filter. Enter = new line, Ctrl+Enter
+or a non-temporary focus loss = `commit()`, Esc = `cancel()`; `onCommit` gets the text.
+`SelectAnnotationTool.editText` sends a text box to `editInPlace` (a note still gets the dialog):
+a changed text is one "Edit text" `ModifyAnnotationEdit`, the box stays selected; `select()` of
+another annotation, `deactivated` and the pane's `commitInPlaceEdit()` (called by undo, redo,
+save, save as) commit, `cancel()` (Esc, document change, page refresh) drops the typing.
+`getInPlaceEditor()` on both tools and the pane is for tests. **Copy / paste (2026-10-17)**: `AnnotationClipboard` holds a `Clip` = deep copy of the annotation
+dictionary without `AP` / `P` / `Popup` / `Parent` / `IRT` / `NM` (`deepCopy` shares streams), the
+decoded `BufferedImage` of an image stamp plus the source document and `PDImageXObject` (shared
+when pasted back into the same open document, re-embedded losslessly elsewhere), and the kind
+label. `Clip.create(doc, page, llx, lly)` makes a new annotation from it anywhere (translate,
+fresh dates, a new popup via `AnnotationFactory.popupFor`, `ImageStamp.build` or
+`rebuildAppearance`). The clip rides on the system clipboard (`clipboard()`, JVM-local
+fallback when headless) as a `Transferable` with `CLIP_FLAVOR` (JVM-local object) plus
+`stringFlavor` for note / text box contents and `imageFlavor` for pictures; `read()` gives the
+`Clip`, else a `BufferedImage`, else non-blank `String`, so whatever was copied last wins and
+pastes from other programs work. `SelectAnnotationTool.copySelected`, `paste(c, clip, page,
+viewCentre, verb)` (box centred on the point, kept on the page by `placed`, `AddAnnotationEdit`
+named "Paste x" / "Duplicate x", then selected), `duplicateSelected` (+`DUPLICATE_OFFSET_PT` 10),
+`deleteSelected(c, "Cut")` (`RemoveAnnotationEdit` takes the verb).
 
-**`PDFEditorPane`**: edit row `[Edit] | Undo Redo | Rotate CCW, Rotate CW (context: the current page, or the selected image stamp through `rotateInContext`; `updateButtons` swaps the icon to `RotateImageLeftIcon` / `RotateImageRightIcon` and the tooltip while an image is selected), Move… | Edit text, Form |
-Highlight Underline Strikeout Note | Ink Rect Ellipse Line Arrow Text box Image | Select annot.
-Delete Properties | colour, fill, opacity, width, size, font, B, I, U, S,
-highlight swatch` (the colour swatch is the font colour for text boxes, tooltip and chooser title
+**`PDFEditorPane`**: edit row `[Edit] | Undo Redo | Rotate CCW, Rotate CW (context: the current page, or the selected image stamp through `rotateInContext`; `updateButtons` swaps the icon to `RotateImageLeftIcon` / `RotateImageRightIcon` and the tooltip while an image is selected), Move… | Select annot., Edit text, Form |
+Highlight Underline Strikeout Note | Ink Rect Ellipse Line Arrow Text box Image | [selection-group: Delete Properties] [style-strip: colour, fill, opacity, width, size, font, B, I, U, S,
+highlight swatch, align]`. **Contextual row (2026-10-17)**: the last two are nested non-floatable
+`JToolBar`s (`group(name)`, `getSelectionGroup()` / `getStyleStrip()`, controls added through the
+`target` field while building): the selection group is visible only while an annotation is
+selected, the strip only while `stripStyle() != null` with Edit on and a document, and inside it
+`layoutStrip` hides (not greys) colour / fill / width for images and shows the text controls only
+for `textStrip()`; `editToolbar.revalidate()` on a visibility change. **Status line** (`getStatusBar()`,
+SOUTH; `getStatusHint()` = `TOOL_HINTS` of the active tool, or the open / viewing / pan prompts;
+`getStatusDetail()` = "Selected: image 120 × 60 pt, turned 90° on page 1", empty when nothing is
+selected). **Tool keys**: `TOOL_KEYS` (V E F H U S N P R O L A T I) bound WHEN_ANCESTOR on the pane as
+`tool.<NAME>` actions, skipped when `typingInTextField()` (focus in a `JTextComponent` or a combo),
+shown as ` [V]` in the tool tooltips and the Annotate / Form menu items (no menu accelerators on
+purpose: they would fire from the search field). `nudgeSelectedAnnotation(dx, dy)` is the API form
+of the arrow keys. **Clipboard API**: `copySelectedAnnotation()` (installed as the viewer's
+`setCopyInterceptor`, so Ctrl+C / the Copy button / the Copy menu entry take the selected
+annotation first and the page text otherwise), `cutSelectedAnnotation()`, `canPaste()`,
+`pasteAnnotation(panelPoint)` (null = pointer over the pages via `pointerOrCentre`, else the
+viewport centre; a `Clip` goes through the Select tool, a picture becomes an image stamp, text a
+text box sized by `textBoxFor` in the TEXT style; repeated pastes within 1 pt of the last spot on the same page fan out by `cascaded` (+`DUPLICATE_OFFSET_PT` per repeat, reset by another spot, page or document); turns Edit on), `duplicateSelectedAnnotation()`;
+Ctrl+X / Ctrl+V / Ctrl+D bound WHEN_ANCESTOR with the `typingInTextField()` guard; Edit menu
+entries Cut annotation / Copy / Paste / Duplicate annotation enabled on `menuSelected`; the
+right-click menu adds Cut / Copy / Duplicate over an annotation and "Paste here" (enabled by
+`canPaste()`) over empty space. **Workspace (2026-10-17, usability phase B)**: `EditorSettings`
+wraps a `Preferences` node (`user()` = the node of this package; tests pass a throwaway node):
+recent files (`recent.0..9`, most recent first, deduped, `MAX_RECENT` 10), `last.dir`,
+`thumbnails`, `zoom.mode` / `zoom`, `window.x/y/w/h`, `window.max`, `ui.font.size` (the control
+text size, `io.xlogistx.gui.UIFontSize`, applied in `setSettings` with a `refresh(this)` and
+written by `saveSettings`; View ▸ Control text size has Larger / Smaller / Reset with Ctrl+Alt
+accelerators; the status line derives its font from `Label.font` again on every change through
+`restyleStatus`). `setSettings(s)` applies the
+sidebar, zoom and default directory and refills the File ▸ Open Recent submenu (`recentMenu`,
+`refreshRecentMenu`, `openRecent(f)` drops a vanished file with a message, "Clear list");
+`remember(f)` (from `Delegate.documentReplaced` when `viewer.getFile() != null`, and from
+`saveAs()`) records the file and its directory; the `thumbnailsVisible` property listener stores
+the toggle at once; `saveSettings()` (called by the frame on close) writes zoom and sidebar and
+flushes. `Delegate.movePages` turns a thumbnail drag into a `MovePagesEdit` (Edit turned on). The
+View menu has the Page thumbnails checkbox, synced through the viewer's property change.
+`dropOnPage` is the viewer's drop interceptor: one picture dropped on a page while editing becomes
+an image stamp at the drop point (`addImage` with a sizeless rect) and is selected; anything
+else is left to the viewer (open / insert dialog, undoable inserts through `insertDocument`). (the colour swatch is the font colour for text boxes, tooltip and chooser title
 follow `textStrip()`; the strip edits the active tool's style, or the selected annotation's; only
 opacity for images; the font combo (`EditorDialogs.fontCombo`, each family rendered in its own
 face), the B / I / U / S toggles, the highlight swatch (`pickHighlight`, cancel asks to remove)
@@ -166,10 +241,34 @@ File|BufferedImage)` (+ `insertImageDialog`, Annotate menu "Insert image…"), `
 `getFormFields`, `setFieldValue`, `getStyle/setStyle`, `setActiveTool/getTool`. Any editing
 API call turns editing on; undo/redo clear the annotation selection first.
 
-**Tests** (headless, run with the CLI launcher): `PDFEditModelTest`, `PDFEditorPaneTest`,
+**Tests** (headless, run with the CLI launcher): `InPlaceTextTest` (2026-10-17: a drag with the
+Text box tool opens the editor over the box with the style's font at the zoom, commit adds and
+selects, blank / cancelled / Esc add nothing, a tool switch commits without stealing the tool, a
+second box commits the first; an existing box edited in place as one "Edit text" step, same text
+= no step, cancel keeps the text, selecting another annotation commits; the editor follows the
+zoom, `pane.undo()` commits first), `WorkspaceTest` (2026-10-17: the control text size applied from the settings, refreshed on the
+pane and its status line, driven by the View menu and saved; saving over the open file keeps
+the document and the history (`savingOverTheOpenFileKeepsTheUndoHistory`, two saves in a row); a thumbnail move
+goes through the undo model and turns Edit on, the View menu checkbox follows the viewer, a
+dropped picture becomes a selected stamp at the drop point and a dropped PDF an undoable insert,
+the drop target accepts PDF / images and refuses other files, `EditorSettings` ordering / cap /
+window bounds / vanished directory, the pane applying and recording settings with the Open Recent
+menu; on a `Preferences` node under `io/xlogistx/editor/pdf/test/<uuid>` removed afterwards, with
+temp files), `AnnotationClipboardTest` (2026-10-17, two blank
+A4 pages: copy and paste on another spot / page with the box kept on the page, cut, duplicate
+offset, an image keeping its picture (shared XObject) and 90° turn, a note keeping its text and
+getting its own popup, text and pictures from other programs as text box / image stamp, blank
+text pasting nothing, the key bindings, the Edit menu enabling and the right-click entries; the
+clipboard is the JVM-local fallback, reset per test), `UsabilityTest` (2026-10-17: strip and selection
+group visibility per tool / selection / Edit state, status hint and detail, every tool key bound
+and unique and turning Edit on, the right-click menu over a rectangle / empty space / selected text
+/ image / note and with Edit off, arrow nudges merged into one undo step and consumed only with a
+selection; `setEditable(true)` from the API does not pick a tool, so the fixture sets Select
+itself), `PDFEditModelTest`, `PDFEditorPaneTest`,
 `PageOpsEditTest`, `TextEditTest` (glyph location, selection matching, replace / render /
 save / undo, longer and empty replacements, refused characters), `FormFillTest` (builds an AcroForm with text / check box with Yes+Off
-appearance states / combo / read-only field), `AnnotationEditTest` (markup across pages as
+appearance states / combo / read-only field; typed text kept on a press elsewhere, a focus
+loss, the pane's commit, a tool switch, dropped by Escape, unchanged text = no edit), `AnnotationEditTest` (markup across pages as
 one step, rendered yellow pixel, note+popup, free text with non-Latin text, shapes on a 90°
 page, move/resize/restyle/delete with undo), `ImageStampTest` (picture fitted and rendered,
 resize keeps the same XObject and re-renders, opacity, undo, save + reload keeps the stamp
@@ -214,9 +313,11 @@ enclosure and centres.
   `saveAs()`. `getDocumentTitle()`, `confirmDiscard()`, change listeners. Never exits the JVM.
 - `PDFMain` — the application: `VERSION` (`AppVersionDAO("PDFEditor::0.1.0")`, the `name::major.minor.nano`
   form that constructor parses) and `main [file.pdf|file.md|image]` (system look and feel, frame
-  with exit-on-close, editing on, Select tool active, opens the file).
+  with exit-on-close, `applySettings(EditorSettings.user())`, editing on, Select tool active, opens the file).
 - `PDFEditorFrame` — standalone wrapper (`getVersion()` = `Main.VERSION`, `setExitOnClose` like the
-  hex frame); no `main` of its own since 2026-10-16.
+  hex frame); no `main` of its own since 2026-10-16. `applySettings(settings)` (2026-10-17) installs
+  them on the pane and restores the window bounds when `onAScreen` (and the maximized state);
+  `handleClose` saves bounds / maximized and calls `editorPane.saveSettings()` before disposing.
 - Running the tests: the CLI JUnit launcher recipe (surefire is skipped in this build); the
   apps test classpath takes `xlogistx-gui-audio` from `.m2`, so run
   `mvn -o install -pl gui-audio -DskipTests` first after changing the viewer.

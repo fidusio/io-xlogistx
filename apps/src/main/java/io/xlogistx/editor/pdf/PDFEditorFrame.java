@@ -2,7 +2,7 @@ package io.xlogistx.editor.pdf;
 
 import io.xlogistx.common.util.NVColor;
 import io.xlogistx.gui.IconUtil;
-import org.zoxweb.shared.app.AppVersionDAO;
+import org.zoxweb.shared.app.AppVersion;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,6 +23,7 @@ public class PDFEditorFrame extends JFrame {
 
     private final PDFEditorPane editorPane;
     private boolean exitOnClose;
+    private EditorSettings settings;
 
     /** Creates a frame around a new, empty editor pane. */
     public PDFEditorFrame() {
@@ -61,7 +62,7 @@ public class PDFEditorFrame extends JFrame {
     }
 
     /** @return the application version ({@link PDFMain#VERSION}) */
-    public AppVersionDAO getVersion() {
+    public AppVersion getVersion() {
         return PDFMain.VERSION;
     }
 
@@ -79,6 +80,52 @@ public class PDFEditorFrame extends JFrame {
         this.exitOnClose = exitOnClose;
     }
 
+    /**
+     * Installs the settings on the pane (recent files, thumbnails, zoom, last
+     * directory) and restores the window's bounds when they are still on a
+     * screen; closing the window saves everything back.
+     *
+     * @param settings the settings, null for none
+     * @return this frame
+     */
+    public PDFEditorFrame applySettings(EditorSettings settings) {
+        this.settings = settings;
+        editorPane.setSettings(settings);
+        if (settings == null)
+            return this;
+        Rectangle bounds = settings.getWindowBounds();
+        if (bounds != null && onAScreen(bounds))
+            setBounds(bounds);
+        if (settings.isWindowMaximized())
+            setExtendedState(getExtendedState() | MAXIMIZED_BOTH);
+        return this;
+    }
+
+    /** @return true when a meaningful part of the rectangle lies on some screen (or there is no way to tell) */
+    static boolean onAScreen(Rectangle r) {
+        try {
+            for (GraphicsDevice d : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+                Rectangle screen = d.getDefaultConfiguration().getBounds();
+                Rectangle common = screen.intersection(r);
+                if (!common.isEmpty() && common.width >= 100 && common.height >= 60)
+                    return true;
+            }
+            return false;
+        } catch (HeadlessException e) {
+            return true;
+        }
+    }
+
+    private void saveSettings() {
+        if (settings == null)
+            return;
+        boolean maximized = (getExtendedState() & MAXIMIZED_BOTH) != 0;
+        settings.setWindowMaximized(maximized);
+        if (!maximized)
+            settings.setWindowBounds(getBounds());
+        editorPane.saveSettings();
+    }
+
     private void updateTitle() {
         String doc = editorPane.getDocumentTitle();
         setTitle(doc.isEmpty() ? TITLE : TITLE + " - " + doc);
@@ -87,6 +134,7 @@ public class PDFEditorFrame extends JFrame {
     private void handleClose() {
         if (!editorPane.confirmDiscard())
             return;
+        saveSettings();
         editorPane.getViewer().close();
         dispose();
         if (exitOnClose)

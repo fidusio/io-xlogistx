@@ -131,4 +131,22 @@ public interface PDFToolContext {
 
     /** Shows an error dialog parented to the panel. @param message the text */
     void showError(String message);
+
+    /**
+     * Hosts a component over an area of a page (an in-place editor): it becomes
+     * a child of that page's view, placed over the area and resized with the
+     * zoom, so it scrolls with the page. One at a time; {@link #hideOverlay()}
+     * removes it, as does the page's view being rebuilt.
+     *
+     * @param comp     the component, never null
+     * @param page     zero-based page
+     * @param viewRect the area in view space (points, top-left origin of the page)
+     */
+    void showOverlay(JComponent comp, int page, java.awt.geom.Rectangle2D viewRect);
+
+    /** Removes the overlay component, if any. */
+    void hideOverlay();
+
+    /** @return the overlay component, null when none is shown */
+    JComponent overlay();
 }

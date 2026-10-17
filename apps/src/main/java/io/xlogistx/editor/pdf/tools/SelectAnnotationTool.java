@@ -1,5 +1,7 @@
 package io.xlogistx.editor.pdf.tools;
 
+import io.xlogistx.editor.pdf.AddAnnotationEdit;
+import io.xlogistx.editor.pdf.AnnotationClipboard;
 import io.xlogistx.editor.pdf.AnnotationFactory;
 import io.xlogistx.editor.pdf.AnnotationGeometry;
 import io.xlogistx.editor.pdf.AnnotationGeometry.Kind;
@@ -10,10 +12,13 @@ import io.xlogistx.editor.pdf.FreeTextAppearance;
 import io.xlogistx.editor.pdf.ImageStamp;
 import io.xlogistx.editor.pdf.TextEditor;
 import io.xlogistx.editor.pdf.ModifyAnnotationEdit;
+import io.xlogistx.editor.pdf.PDFEdit;
 import io.xlogistx.editor.pdf.RemoveAnnotationEdit;
 import io.xlogistx.gui.PDFToolContext;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFreeText;
@@ -23,6 +28,7 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationRubberStamp;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationSquareCircle;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationText;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary;
+import org.zoxweb.shared.util.SUS;
 
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
@@ -35,6 +41,7 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -93,8 +100,10 @@ public final class SelectAnnotationTool extends EditorTool {
         return selected == null ? -1 : page;
     }
 
-    /** Selects an annotation programmatically (null clears). */
+    /** Selects an annotation programmatically (null clears); a text box being typed into is committed first unless it is the one selected. */
     public void select(PDFToolContext c, int page, PDAnnotation a) {
+        if (getInPlaceEditor() != null && (a == null || a.getCOSObject() != inPlace.getBox().getCOSObject()))
+            commitInPlace();
         int old = this.page;
         this.selected = a;
         this.page = a == null ? -1 : page;
@@ -109,6 +118,11 @@ public final class SelectAnnotationTool extends EditorTool {
 
     @Override
     public void cancel(PDFToolContext c) {
+        if (inPlace != null) {
+            InPlaceTextEditor e = inPlace;
+            inPlace = null;
+            e.cancel(); // Esc, a document change or a page refresh: the typed text is dropped
+        }
         if (dragging) {
             c.setAnnotationFilter(null);
             c.invalidatePage(page);
@@ -124,6 +138,7 @@ public final class SelectAnnotationTool extends EditorTool {
 
     @Override
     public void deactivated(PDFToolContext c) {
+        commitInPlace(); // switching tools keeps what was typed
         super.deactivated(c);
         select(c, -1, null);
     }
@@ -363,29 +378,273 @@ public final class SelectAnnotationTool extends EditorTool {
 
     @Override
     public void keyPressed(PDFToolContext c, KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_DELETE || e.getKeyCode() == KeyEvent.VK_BACK_SPACE)
+        if (e.getKeyCode() == KeyEvent.VK_DELETE || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
             deleteSelected(c);
+            return;
+        }
+        if (selected == null)
+            return; // arrows scroll the view as usual
+        float step = e.isShiftDown() ? NUDGE_BIG_PT : NUDGE_PT;
+        float dx = 0, dy = 0;
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT: dx = -step; break;
+            case KeyEvent.VK_RIGHT: dx = step; break;
+            case KeyEvent.VK_UP: dy = -step; break;
+            case KeyEvent.VK_DOWN: dy = step; break;
+            default: return;
+        }
+        e.consume(); // keeps the scroll pane from scrolling
+        nudgeSelected(c, dx, dy);
+    }
+
+    /** Points an arrow key moves the selection by; with Shift {@link #NUDGE_BIG_PT}. */
+    public static final float NUDGE_PT = 1f, NUDGE_BIG_PT = 10f;
+    /** Nudges closer together than this many ms merge into one undo step. */
+    public static final long NUDGE_BURST_MS = 600;
+    private ModifyAnnotationEdit lastNudge;
+    private long lastNudgeAt;
+
+    /**
+     * Moves the selection by a small view-space delta (arrow keys): a burst of
+     * nudges closer together than {@link #NUDGE_BURST_MS} is one undo step, as
+     * long as nothing else was done in between.
+     *
+     * @param dxPt points to the right
+     * @param dyPt points down
+     * @return true when moved
+     */
+    public boolean nudgeSelected(PDFToolContext c, float dxPt, float dyPt) {
+        if (selected == null)
+            return false;
+        long now = System.currentTimeMillis();
+        boolean merge = lastNudge != null && host.model().peekUndo() == lastNudge && now - lastNudgeAt < NUDGE_BURST_MS
+                && lastNudge.getAnnotation().getCOSObject() == selected.getCOSObject();
+        lastNudgeAt = now;
+        if (!merge) {
+            if (!moveSelected(c, dxPt, dyPt))
+                return false;
+            PDFEdit top = host.model().peekUndo();
+            lastNudge = top instanceof ModifyAnnotationEdit && ((ModifyAnnotationEdit) top).getAnnotation() == selected ? (ModifyAnnotationEdit) top : null;
+            return true;
+        }
+        PageTransform t = transformOf(c, page);
+        if (t == null)
+            return false;
+        synchronized (c.docLock()) {
+            Point2D.Float from = t.toPdf(new Point2D.Float(0, 0)), to = t.toPdf(new Point2D.Float(dxPt, dyPt));
+            AnnotationGeometry.translate(selected, to.x - from.x, to.y - from.y);
+            AnnotationFactory.rebuildAppearance(c.document(), selected);
+            lastNudge.amend(ModifyAnnotationEdit.snapshot(selected));
+        }
+        c.invalidatePage(page);
+        host.annotationSelected(page, selected);
+        return true;
+    }
+
+    /**
+     * The editable annotation under a point of the pages panel (topmost first;
+     * popups, links and widgets are skipped), without selecting it.
+     *
+     * @param panelPoint a point in pages-panel coordinates (a mouse event's point)
+     * @return the page index and the annotation, null when none is there
+     */
+    public Hit annotationAt(PDFToolContext c, Point panelPoint) {
+        int p = c.pageAt(panelPoint);
+        PageTransform t = p < 0 ? null : transformOf(c, p);
+        if (t == null)
+            return null;
+        PDAnnotation a = AnnotationGeometry.hitTest(annotationsOf(c, p), t, c.toPagePt(p, panelPoint), HIT_TOLERANCE_PT);
+        return a == null ? null : new Hit(p, a);
+    }
+
+    /** An annotation found under a point: its page and itself. */
+    public static final class Hit {
+        public final int page;
+        public final PDAnnotation annotation;
+
+        Hit(int page, PDAnnotation annotation) {
+            this.page = page;
+            this.annotation = annotation;
+        }
     }
 
     /** Removes the selected annotation (undoable). @return true when one was removed */
     public boolean deleteSelected(PDFToolContext c) {
+        return deleteSelected(c, "Delete");
+    }
+
+    /**
+     * Removes the selected annotation (undoable).
+     *
+     * @param verb what the undo history calls it: "Delete", "Cut"
+     * @return true when one was removed
+     */
+    public boolean deleteSelected(PDFToolContext c, String verb) {
         if (selected == null)
             return false;
         PDAnnotation a = selected;
         int p = page;
         select(c, -1, null);
-        return apply(c, new RemoveAnnotationEdit(c.panel(), p, a));
+        return apply(c, new RemoveAnnotationEdit(c.panel(), p, a, verb));
     }
 
-    /** Opens the text dialog for the selected note or text box and commits the change. @return true when changed */
+    // ------------------------------------------------------------------ copy / paste
+
+    /** How far a duplicate sits right and below its original, in points. */
+    public static final float DUPLICATE_OFFSET_PT = 10f;
+
+    /** @return a clip of the selection for the clipboard, null when nothing is selected */
+    public AnnotationClipboard.Clip copySelected(PDFToolContext c) {
+        if (selected == null)
+            return null;
+        synchronized (c.docLock()) {
+            PDDocument doc = c.document();
+            return doc == null ? null : AnnotationClipboard.copy(doc, selected);
+        }
+    }
+
+    /**
+     * Pastes a clip on a page as a new annotation (undoable), its box centred
+     * on a point and kept on the page, and selects it.
+     *
+     * @param clip       the clip, never null
+     * @param page       zero-based page
+     * @param viewCentre where the middle of the box goes, in view space (points, top-left origin of the page)
+     * @param verb       what the undo history calls it: "Paste", "Duplicate"
+     * @return the new annotation, null when the page is gone or the clip cannot be rebuilt (an error is shown)
+     */
+    public PDAnnotation paste(PDFToolContext c, AnnotationClipboard.Clip clip, int page, Point2D viewCentre, String verb) {
+        SUS.checkIfNull("clip null", clip);
+        SUS.checkIfNull("centre null", viewCentre);
+        PageTransform t = transformOf(c, page);
+        if (t == null)
+            return null;
+        PDAnnotation a;
+        synchronized (c.docLock()) {
+            PDPage pg = pageOf(c, page);
+            if (pg == null)
+                return null;
+            PDRectangle r = t.toPdfRect(placed(clip.width(), clip.height(), viewCentre, t.widthPt(), t.heightPt()));
+            try {
+                a = clip.create(c.document(), pg, Math.min(r.getLowerLeftX(), r.getUpperRightX()), Math.min(r.getLowerLeftY(), r.getUpperRightY()));
+            } catch (IOException | RuntimeException e) {
+                c.showError("Cannot paste the " + clip.kind() + ": " + e.getMessage());
+                return null;
+            }
+        }
+        if (!apply(c, new AddAnnotationEdit(c.panel(), page, a, (verb == null ? "Paste" : verb) + " " + labelOf(a))))
+            return null;
+        select(c, page, a);
+        return a;
+    }
+
+    /**
+     * Adds a copy of the selection {@link #DUPLICATE_OFFSET_PT} right and below
+     * it (undoable) and selects the copy.
+     *
+     * @return the copy, null when nothing is selected
+     */
+    public PDAnnotation duplicateSelected(PDFToolContext c) {
+        AnnotationClipboard.Clip clip = copySelected(c);
+        if (clip == null)
+            return null;
+        PageTransform t = transformOf(c, page);
+        if (t == null)
+            return null;
+        Rectangle2D.Float b;
+        synchronized (c.docLock()) {
+            b = AnnotationGeometry.bounds(selected, t);
+        }
+        return paste(c, clip, page, new Point2D.Float(b.x + b.width / 2 + DUPLICATE_OFFSET_PT, b.y + b.height / 2 + DUPLICATE_OFFSET_PT), "Duplicate");
+    }
+
+    /** A {@code w} x {@code h} box centred on a point, moved to stay on a {@code pageW} x {@code pageH} page where it fits. */
+    static Rectangle2D.Float placed(float w, float h, Point2D centre, float pageW, float pageH) {
+        float x = (float) centre.getX() - w / 2, y = (float) centre.getY() - h / 2;
+        x = Math.max(0f, Math.min(x, pageW - w));
+        y = Math.max(0f, Math.min(y, pageH - h));
+        return new Rectangle2D.Float(x, y, w, h);
+    }
+
+    /**
+     * Edits the text of the selection: a text box is typed into on the page
+     * ({@link #editInPlace}), a note through the text dialog.
+     *
+     * @return true when the in-place editor opened, or the dialog changed the note
+     */
     public boolean editText(PDFToolContext c) {
-        if (selected == null || !(selected instanceof PDAnnotationText || selected instanceof PDAnnotationFreeText))
+        if (selected instanceof PDAnnotationFreeText)
+            return editInPlace(c);
+        if (!(selected instanceof PDAnnotationText))
             return false;
         String current = selected.getContents();
         String text = EditorDialogs.askText(host.dialogParent(), "Edit text", current == null ? "" : current, true);
         if (text == null || text.equals(current))
             return false;
         return setContents(c, text);
+    }
+
+    // ------------------------------------------------------------------ in-place text
+
+    private InPlaceTextEditor inPlace;
+
+    /**
+     * Starts typing into the selected text box on the page (see
+     * {@link InPlaceTextEditor}); committing with a changed text is one "Edit
+     * text" undo step, the box stays selected.
+     *
+     * @return true when the editor is open (already or now), false when no text box is selected
+     */
+    public boolean editInPlace(PDFToolContext c) {
+        if (!(selected instanceof PDAnnotationFreeText))
+            return false;
+        if (getInPlaceEditor() != null)
+            return true;
+        PageTransform t = transformOf(c, page);
+        if (t == null)
+            return false;
+        final PDAnnotationFreeText box = (PDAnnotationFreeText) selected;
+        final int p = page;
+        Rectangle2D.Float r;
+        String original;
+        synchronized (c.docLock()) {
+            r = AnnotationGeometry.bounds(box, t);
+            original = box.getContents() == null ? "" : box.getContents();
+        }
+        inPlace = new InPlaceTextEditor(c, p, box, r, true, text -> {
+            inPlace = null;
+            if (!text.equals(original))
+                commitText(c, p, box, text);
+        }, () -> inPlace = null);
+        inPlace.show();
+        return true;
+    }
+
+    private void commitText(PDFToolContext c, int p, PDAnnotationFreeText box, String text) {
+        COSDictionary before, after;
+        synchronized (c.docLock()) {
+            before = ModifyAnnotationEdit.snapshot(box);
+            box.setContents(text);
+            AnnotationFactory.rebuildAppearance(c.document(), box);
+            after = ModifyAnnotationEdit.snapshot(box);
+        }
+        apply(c, new ModifyAnnotationEdit(c.panel(), p, box, before, after, "Edit text"));
+        if (selected != null && selected.getCOSObject() == box.getCOSObject())
+            host.annotationSelected(p, box);
+    }
+
+    /** @return the in-place editor while one is open, else null */
+    public InPlaceTextEditor getInPlaceEditor() {
+        return inPlace != null && inPlace.isActive() ? inPlace : null;
+    }
+
+    /** Commits the in-place edit in progress, if any. @return true when one was committed */
+    public boolean commitInPlace() {
+        InPlaceTextEditor e = getInPlaceEditor();
+        if (e == null)
+            return false;
+        e.commit();
+        return true;
     }
 
     /** Sets the selected annotation's text (undoable). */
@@ -622,6 +881,14 @@ public final class SelectAnnotationTool extends EditorTool {
 
     private String label() {
         return selected == null ? "annotation" : labelOf(selected);
+    }
+
+    /**
+     * @return a short lower-case name for an annotation as the editor calls it
+     *         ("text box", "image", "highlight", ...), for edit names and status text
+     */
+    public static String describe(PDAnnotation a) {
+        return labelOf(a);
     }
 
     private static String labelOf(PDAnnotation a) {

@@ -3,7 +3,6 @@ package io.xlogistx.editor.pdf.tools;
 import io.xlogistx.editor.pdf.AddAnnotationEdit;
 import io.xlogistx.editor.pdf.AnnotationFactory;
 import io.xlogistx.editor.pdf.AnnotationStyle;
-import io.xlogistx.editor.pdf.EditorDialogs;
 import io.xlogistx.editor.pdf.EditorHost;
 import io.xlogistx.gui.PDFToolContext;
 import io.xlogistx.gui.pdf.PageTransform;
@@ -18,8 +17,9 @@ import java.awt.geom.Rectangle2D;
 
 /**
  * Text boxes: drag a box (or click for a default {@value #DEFAULT_WIDTH} x
- * {@value #DEFAULT_HEIGHT} pt box), type the text in a dialog, and a free text
- * annotation with an embedded-font appearance is added.
+ * {@value #DEFAULT_HEIGHT} pt box) and type into it on the page (see
+ * {@link InPlaceTextEditor}); on commit a free text annotation with an
+ * embedded-font appearance is added and selected.
  */
 public final class FreeTextTool extends EditorTool {
 
@@ -28,6 +28,8 @@ public final class FreeTextTool extends EditorTool {
     private int page = -1;
     private Point2D.Float start;
     private Rectangle2D.Float band;
+    private InPlaceTextEditor inPlace;
+    private boolean active;
 
     public FreeTextTool(EditorHost host) {
         super(host);
@@ -39,7 +41,29 @@ public final class FreeTextTool extends EditorTool {
     }
 
     @Override
+    public void activated(PDFToolContext c) {
+        super.activated(c);
+        active = true;
+    }
+
+    @Override
+    public void deactivated(PDFToolContext c) {
+        active = false;
+        commitInPlace(); // switching tools keeps what was typed (the box is added, not selected)
+        super.deactivated(c);
+    }
+
+    @Override
     public void cancel(PDFToolContext c) {
+        if (inPlace != null) {
+            InPlaceTextEditor e = inPlace;
+            inPlace = null;
+            e.cancel(); // Esc, a document change or a page refresh: the new box is dropped
+        }
+        resetBand(c);
+    }
+
+    private void resetBand(PDFToolContext c) {
         int p = page;
         page = -1;
         start = null;
@@ -68,15 +92,63 @@ public final class FreeTextTool extends EditorTool {
         int p = page;
         Point2D.Float s = start;
         Rectangle2D.Float r = band;
-        cancel(c);
+        resetBand(c);
         if (p < 0 || s == null)
             return;
         if (r == null || r.width < ShapeTool.MIN_SIZE_PT || r.height < ShapeTool.MIN_SIZE_PT)
             r = new Rectangle2D.Float(s.x, s.y, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-        String text = EditorDialogs.askText(host.dialogParent(), "New text box", "", true);
-        if (text == null || text.trim().isEmpty())
-            return;
-        addFreeText(c, p, r, text);
+        startTyping(c, p, r);
+    }
+
+    /**
+     * Opens an in-place editor for a new box (see {@link InPlaceTextEditor}):
+     * the box is added, as one "Add text box" undo step, when the typed text
+     * is committed and not blank; it is then selected with the Select tool
+     * (unless this tool was switched away meanwhile).
+     *
+     * @param page     zero-based page
+     * @param viewRect the box in view space
+     * @return the editor, null when the page is gone
+     */
+    public InPlaceTextEditor startTyping(PDFToolContext c, int page, Rectangle2D.Float viewRect) {
+        commitInPlace();
+        final PDAnnotationFreeText a;
+        synchronized (c.docLock()) {
+            PDPage pg = pageOf(c, page);
+            if (pg == null)
+                return null;
+            a = AnnotationFactory.freeText(c.document(), pg, PageTransform.of(pg), viewRect, "", host.style(EditorHost.StyleKey.TEXT));
+        }
+        final int p = page;
+        inPlace = new InPlaceTextEditor(c, p, a, viewRect, false, text -> {
+            inPlace = null;
+            if (text.trim().isEmpty()) {
+                c.repaintPage(p);
+                return;
+            }
+            synchronized (c.docLock()) {
+                a.setContents(text);
+                AnnotationFactory.rebuildAppearance(c.document(), a);
+            }
+            if (apply(c, new AddAnnotationEdit(c.panel(), p, a)) && active)
+                host.selectWithTool(p, a);
+        }, () -> inPlace = null);
+        inPlace.show();
+        return inPlace;
+    }
+
+    /** @return the in-place editor of a new box while one is open, else null */
+    public InPlaceTextEditor getInPlaceEditor() {
+        return inPlace != null && inPlace.isActive() ? inPlace : null;
+    }
+
+    /** Commits the in-place edit in progress, if any. @return true when one was committed */
+    public boolean commitInPlace() {
+        InPlaceTextEditor e = getInPlaceEditor();
+        if (e == null)
+            return false;
+        e.commit();
+        return true;
     }
 
     /**

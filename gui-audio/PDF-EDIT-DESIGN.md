@@ -523,5 +523,29 @@ renders non-blank pixels; flattened export has zero annotations and identical re
   PDF editor…" (F1) shows `apps/src/main/resources/io/xlogistx/editor/pdf/how-to.md`, the
   user guide, in a modeless `MDViewerPanel` window; Help ▸ "Version…" shows name, version,
   PDFBox and Java; `HelpMenuTest`. **Keep `how-to.md` in step with every tool change.**)
-- [ ] `exportFlattened` (flatten export); thumbnail drag-reorder, redaction, signatures stay
-  out of scope
+- [x] Usability phase A (2026-10-17): contextual edit row (Delete / Properties only with a
+  selection, the style strip only with a styled tool or annotation and only its applicable
+  controls, as nested sub-toolbars), a status line (tool hint + selection detail), one-letter
+  tool keys (`TOOL_KEYS`, guarded against text fields), a right-click menu over annotations and
+  selected text (`PDFViewerPanel.setContextMenuCustomizer` + `PDFEditorPane.populateContextMenu`),
+  arrow-key nudging with bursts merged into one undo step (`ModifyAnnotationEdit.amend`);
+  `UsabilityTest`. Phases B and C below: the plan is complete.
+- [x] Cut / copy / paste / duplicate of annotations (2026-10-17, pulled forward from phase C on
+  request): `AnnotationClipboard` (document-independent `Clip` on the system clipboard, with
+  text / image flavours for other programs and paste of their text / pictures),
+  `SelectAnnotationTool.copySelected` / `paste` / `duplicateSelected`, `PDFEditorPane`
+  Ctrl+X / C / V / D (Ctrl+C through `PDFViewerPanel.setCopyInterceptor`), Edit menu and
+  right-click entries; `AnnotationClipboardTest`.
+- [x] Usability phase B (2026-10-17): thumbnail sidebar (`PDFThumbnailPanel` in gui-audio, toolbar
+  toggle and View menu, click to jump, drag to reorder through `PDFViewerPanel.movePages` →
+  `EditDelegate.movePages` → `MovePagesEdit`), files dropped on the window (`FileDropHandler`,
+  open / insert dialog, undoable inserts, a picture dropped on a page while editing = image
+  stamp through the pane's drop interceptor), remembered settings and recent files
+  (`EditorSettings` on `Preferences`: window bounds, sidebar, zoom, last directory, File ▸ Open
+  Recent); `PDFThumbnailPanelTest`, `WorkspaceTest`.
+- [x] Usability phase C (2026-10-17): saving over the open file keeps the document and the undo
+  history (`PDFViewerPanel.loadSource` reads PDFs fully, `save` = temp file + move, no reload);
+  typing into text boxes on the page (`InPlaceTextEditor` over `PDFToolContext.showOverlay`,
+  `FreeTextTool.startTyping` for new boxes, `SelectAnnotationTool.editInPlace` for existing
+  ones, `PDFEditorPane.commitInPlaceEdit` before undo / redo / save); `InPlaceTextTest`.
+- [ ] `exportFlattened` (flatten export); redaction, signatures stay out of scope

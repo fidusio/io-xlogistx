@@ -19,6 +19,7 @@ public final class RemoveAnnotationEdit implements PDFEdit {
     private final PDFViewerPanel panel;
     private final int page;
     private final PDAnnotation annotation;
+    private final String name;
     private int index = -1;
     private int popupIndex = -1;
 
@@ -28,16 +29,24 @@ public final class RemoveAnnotationEdit implements PDFEdit {
      * @param annotation the annotation to remove, never null
      */
     public RemoveAnnotationEdit(PDFViewerPanel panel, int page, PDAnnotation annotation) {
+        this(panel, page, annotation, "Delete");
+    }
+
+    /**
+     * @param verb what the undo history calls the removal: "Delete", "Cut"
+     */
+    public RemoveAnnotationEdit(PDFViewerPanel panel, int page, PDAnnotation annotation, String verb) {
         SUS.checkIfNull("panel null", panel);
         SUS.checkIfNull("annotation null", annotation);
         this.panel = panel;
         this.page = page;
         this.annotation = annotation;
+        this.name = (verb == null ? "Delete" : verb) + " " + AddAnnotationEdit.label(annotation);
     }
 
     @Override
     public String name() {
-        return "Delete " + AddAnnotationEdit.label(annotation);
+        return name;
     }
 
     @Override

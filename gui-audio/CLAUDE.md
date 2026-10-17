@@ -16,7 +16,7 @@ The package has these groups:
      `PanIcon`, `SelectIcon`, `AreaIcon`, `InsertIcon`, `PDFIcon`, `CameraIcon`, and the PDF
      editor set added 2026-10-15: `HighlightIcon`, `UnderlineIcon`, `StrikeoutIcon`, `NoteIcon`,
      `PenIcon`, `RectangleIcon`, `EllipseIcon`, `LineIcon`, `ArrowIcon`, `TextBoxIcon`,
-     `RotateLeftIcon`, `RotateRightIcon`, `RotateImageLeftIcon`, `RotateImageRightIcon` (framed picture with a curved arrow, 2026-10-16: rotate an image stamp, not a page), `MoveIcon`, `AnnotSelectIcon`, `FormIcon`,
+     `RotateLeftIcon`, `RotateRightIcon`, `RotateImageLeftIcon`, `RotateImageRightIcon` (framed picture with a curved arrow, 2026-10-16: rotate an image stamp, not a page), `ThumbnailsIcon` (a window with a list strip on the left: the thumbnail sidebar toggle, 2026-10-17), `MoveIcon`, `AnnotSelectIcon`, `FormIcon`,
      `EditTextIcon` (T with a pencil tip: rewrite page text; `textbox.svg` is a T in a box),
      `PictureIcon` (framed landscape with a sun: place an image, 2026-10-15);
      generic `SVGIcon` + `svgIcon(...)` factories). All extend `IconWidget`; the SVG-based
@@ -24,6 +24,14 @@ The package has these groups:
      `XxxIcon(int size)` renders the svg with its own colors and does NOT touch the host
      component's background; `XxxIcon(int size, Color color)` tints the glyph and paints
      the icon's background color on the host component.
+   - `UIFontSize` (2026-10-17) — the control text size as one setting: `apply(size)` scales
+     every font the look and feel defines by `size / base` (base = the label size, read on first
+     use; originals are kept so `reset()` restores them exactly), refreshes every open window
+     (`refresh(root)` for a tree outside a window) and tells `addListener` consumers (components
+     that derive their own font re-derive it); `larger()` / `smaller()` step by `STEP`, clamped to
+     `MIN`..`MAX`. `FontSizeWidget` is the toolbar control ("Aa" + spinner) that drives and follows
+     it; `PDFViewerPanel` puts one at the right end of its toolbar (`getFontSizeWidget()`), the PDF
+     editor adds View ▸ Control text size and remembers the value in its settings.
    - `GUIUtil` — static helpers only: `iconButton(...)` factories, screen capture
      (`captureSelectedArea()`), clipboard, panels/scroll panes, color interpolation
      (`colorToRatio`, `interpolateColors`).
@@ -156,7 +164,8 @@ the fixed gaps between pages do not scale. Zoom modes `CUSTOM`/`FIT_WIDTH`/`FIT_
 (e.g. a search `Match`).
 
 **Lifecycle.** `setPDF(bytes|File|InputStream)` parses off the EDT via `BackgroundTask`; a
-`File` goes through `loadSource`: a `.md`/`.markdown` is converted with `MDToPDF` first
+`File` goes through `loadSource` (which reads a PDF fully into memory since 2026-10-17, so the
+document never refers to its file and can be saved over it): a `.md`/`.markdown` is converted with `MDToPDF` first
 (`markdownToPDF`, images relative to the file), an image (`IMAGE_EXTENSIONS`: png, jpg,
 jpeg, gif, bmp) becomes a one-page document via the public static `imageToPDF(File)` (A4,
 portrait if taller than wide else landscape, image centered inside `IMAGE_MARGIN` = 36 pt,
@@ -210,7 +219,12 @@ all/Clear menu), `ZOOM_TO_SELECTION` rubber-bands a rectangle that is fitted to 
 viewport (`zoomToViewRect`; the marquee spans pages, so the panel's dispatcher owns it and
 `ZoomSelectionHandler` only says `marqueeZoom()`), `CUSTOM` = the host handler installed
 with `setCustomTool(handler)` (toggles show no selection). The dispatcher keeps what every
-tool shares: Shift+drag marquee, popup trigger, link click (`followsLinks()`), hover, focus;
+tool shares: Shift+drag marquee, popup trigger (`buildContextMenu(e)`: the host's
+`setContextMenuCustomizer(BiConsumer<JPopupMenu, MouseEvent>)` adds its items first, then a
+separator and Copy / Select all / Clear selection; public so hosts can test the menu without
+showing it, 2026-10-17), link click (`followsLinks()`), hover, focus; `copySelection()` first
+asks the host's `setCopyInterceptor(BooleanSupplier)` (true = handled: the PDF editor copies its
+selected annotation), so Ctrl+C, the Copy button and the Copy menu entry all share that rule;
 `handler.cancel()` runs on Escape, tool change, document change and page-tree refresh. A
 handler's `paintOverlay` is painted per page after the highlights, before the border. Keys (WHEN_ANCESTOR bindings on the panel, so they also
 work with focus in the toolbar fields): PgUp/PgDn scroll a screen (`scrollBy`),
@@ -229,9 +243,10 @@ PDF-only filter for saving, or the PDF+Markdown+images `sourceFilter` for openin
 inserting; read the selection before switching filters, a filter change clears it) →
 `setPDF(File)`;
 `getFile()` remembers the origin, null for byte/stream documents). Save (`saveAs()`,
-`save(File)`: `PDDocument.save` to a temp file off the EDT, then moved into place; saving
-**over the source file** closes, replaces and reloads the document because PDFBox reads
-lazily from the source — never `save` straight onto it). Print (`print()`: `PrinterJob`
+`save(File)`: `PDDocument.save` to a temp file next to the target off the EDT, then moved into
+place, for the source file like any other since 2026-10-17: no close, no reload, the document,
+page, selection and a host's undo history stay, the delegate hears `documentSaved()`; never
+`save` straight onto the target). Print (`print()`: `PrinterJob`
 dialog on the EDT, `job.print()` off the EDT; `createPageable()` wraps PDFBox
 `PDFPageable` so every page prints under `docLock`; it is a snapshot guarded by the
 `edits` counter, so after `close()` or any insert/delete it reports `NO_SUCH_PAGE` — hosts
@@ -273,7 +288,11 @@ all go through `refreshPages` (so `edits`/`generation` bump). `getDocumentLock()
 showPage)` (remove then re-insert each at its index, one lock, one refresh) and
 `setRotationsDirect(pages, rotations, showPage)`; `getSelectionRects(page)` (the selection's
 glyph rectangles in view space, what a text markup annotation is built from; same source as
-a search `Match`'s rects); `setAnnotationFilter(AnnotationFilter)` (which annotations the
+a search `Match`'s rects); `showOverlay(comp, page, viewRect)` / `hideOverlay()` / `overlay()` on the tool context
+(2026-10-17: a component, the editor's in-place text editor, becomes a child of that page's
+`PageView`, placed over the area by `positionOverlay()` from `updateSize` / `doLayout`, so it
+scrolls and zooms with the page; one at a time, gone with the page views on a rebuild);
+`setAnnotationFilter(AnnotationFilter)` (which annotations the
 renderer draws, re-applied to every new renderer in `install`; used to hide the annotation
 being dragged); `getToolContext()` (the `PDFToolContext` the panel hands its handlers, so a
 host can drive a handler without a mouse); `getSelectionTextPositions(page)` (the selected
@@ -281,11 +300,41 @@ characters' `TextPosition`s, separators left out: glyph identity for the in-plac
 editor). `invalidatePage` also drops the page's extracted text (`pageTexts[page]`,
 `textRequested`), clears a selection touching the page and the search highlights on it,
 because the editor may have rewritten the content stream.
+`movePages(pageIndexes, target)` (2026-10-17, what a thumbnail drag calls; target = the index
+before the move the block lands in front of, page count = the end) asks
+`EditDelegate.movePages(pages, target)` (a `default` method returning false) first, else computes
+the landing indexes like the editor's `MovePagesEdit` and calls `movePagesDirect`.
 
-**Toolbar order.** Open, Save, Print, Insert, Delete | prev, page field / count, next |
+**Thumbnails (2026-10-17).** `PDFThumbnailPanel` is the sidebar: one `Thumb` per page
+(`THUMB_WIDTH` 100 px wide, height in page proportions, number underneath, the current page
+framed in blue), lazily rendered on first paint through `PDFViewerPanel.renderThumbnail(index,
+widthPx, generation)` on the shared render thread (`renderExecutor()`), a per-thumb `version`
+dropping stale results. The viewer owns it: `setThumbnailsVisible` / `isThumbnailsVisible` /
+`getThumbnailPanel()` put its scroll pane WEST of the pages inside the `centre` panel (the pages'
+scroll pane is no longer a direct child of the viewer), the toolbar toggle and the
+`thumbnailsVisible` property change follow; `PagesPanel.rebuild()` (install, close, every
+page-tree refresh) calls `reload()`, `invalidatePage` calls `invalidateThumbnail(page)`, and the
+page-change listener frames the current page and scrolls it into view. A click goes to the page;
+a drag beyond `DRAG_SLOP` shows a blue insertion line (`dropIndexAt`: upper half = before that
+thumbnail, below the last = the end) and the release calls `movePages`. `indexAt`,
+`getThumbnailBounds`, `getThumbnailImage`, `requestThumbnail`, `isDragging` are for tests.
+
+**Drag and drop (2026-10-17).** `FileDropHandler` (the panel's `TransferHandler`, so a drop
+anywhere on the viewer counts) accepts `javaFileListFlavor` lists with at least one
+`acceptsFile` (PDF, Markdown, image) entry and calls `dropFiles(files, panelPoint)` (the point in
+pages-panel coordinates, null when not over the pages): the host's
+`setDropInterceptor(BiPredicate<List<File>, Point>)` first; with nothing loaded `openFiles`
+(one file = `setPDF`, several = converted and joined off the EDT into one unsaved, file-less
+document); with a document a dialog asks Open / Insert after page n / Insert at the end, the
+dialog-free form being `dropFiles(files, DropAction)`. `insertFiles(files, index)` loads every
+source off the EDT, then inserts each through `insertDocument` on the EDT (so an `EditDelegate`
+gets one undoable insert per file). `setDefaultDirectory(dir)` is where the choosers start while
+no file is open.
+
+**Toolbar order.** Open, Save, Print, Insert, Delete, Thumbnails toggle | prev, page field / count, next |
 zoom out, zoom combo (presets + fit modes), zoom in | Pan, Select text, Zoom to selection,
 Copy | search field, find, previous match, next match (the two arrows are enabled only with
-2+ matches), "n / m". Form editing is out of scope; annotations are the PDF editor's job
+2+ matches), "n / m" | glue, `FontSizeWidget` (control text size). Form editing is out of scope; annotations are the PDF editor's job
 (`apps`, `PDF-EDIT-DESIGN.md` Tiers 2-3, not started).
 
 ### Hex editor
@@ -316,7 +365,7 @@ Moved on 2026-10-15 to the `apps` module, package `io.xlogistx.editor.hex` (`Hex
   `update`, `copy`, `search`, `refresh`, `info`, `run`, `stop`, `pause`, `check`, `alert`,
   `error`, `question`, `file`, `folder`, `undo`, `redo`, `print`, `pan`, `select`, `area`,
   `insert`, `pdf`, `camera`, `highlight`, `underline`, `strikeout`, `note`, `pen`, `rectangle`,
-  `ellipse`, `line`, `arrow`, `textbox`, `rotate-left`, `rotate-right`, `rotate-image-left`, `rotate-image-right`, `move`, `annot-select`,
+  `ellipse`, `line`, `arrow`, `textbox`, `rotate-left`, `rotate-right`, `rotate-image-left`, `rotate-image-right`, `thumbnails`, `move`, `annot-select`,
   `form`, `edit-text`, `picture`). All are Feather-style: 24x24 viewBox,
   `fill="none"`, `stroke="#5A5A5A"`, stroke-width 2, round caps/joins — match this style
   when adding new ones. Each `XxxIcon` class maps to the same-named svg
@@ -380,7 +429,14 @@ Build: `mvn clean install -pl gui-audio -am` (from repo root).
 Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest`,
 `MermaidRendererTest`, `pdf/PageTransformTest` (hand-computed corners for all four
 rotations + offset crop box, and a rendered-pixel check against `PDFRenderer`) and
-`PDFViewerPanelTest` (sets `java.awt.headless=true`, lays the component tree out by hand
+`UIFontSizeTest` (2026-10-17: every look-and-feel font scales in proportion, new components get
+the size, a tree is refreshed on request, listeners and the widget follow, steps, clamping and
+an exact reset), `PDFThumbnailPanelTest` (2026-10-17: one thumbnail per page in page proportions, the current
+page framed, a click jumps, a drag moves a page directly or through the delegate, the drop
+index, pictures rendered off the EDT and dropped by `invalidatePage`; the launcher classpath for
+this module is the `-X` `testPath` of `test-compile -pl gui-audio` plus the junit launcher /
+engine jars), `PDFViewerPanelTest` (its `viewport()` helper finds the pages' scroll pane
+recursively, skipping the sidebar's; sets `java.awt.headless=true`, lays the component tree out by hand
 because `validate()` needs a peer, drives the panel through `invokeAndWait`; renders are
 requested by `updateVisiblePages`, nothing paints headless). The other
 Swing classes are verified via the demos only. `mvn test` skips tests in this build (parent

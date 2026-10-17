@@ -42,7 +42,8 @@ public final class FreeTextAppearance {
     private static final Pattern DA_SIZE = Pattern.compile("([0-9.]+)\\s+Tf");
     private static final Pattern DA_RGB = Pattern.compile("([0-9.]+)\\s+([0-9.]+)\\s+([0-9.]+)\\s+rg");
     private static final Pattern DA_GRAY = Pattern.compile("([0-9.]+)\\s+g\\b");
-    private static final float PADDING = 3f;
+    /** Space between the border and the text, in points. */
+    public static final float PADDING = 3f;
     private static final float LINE_HEIGHT = 1.2f;
     /** Underline position below the baseline and thickness, as fractions of the font size. */
     public static final float UNDERLINE_DROP = 0.12f, UNDERLINE_THICKNESS = 0.06f;
