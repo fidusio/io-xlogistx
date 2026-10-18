@@ -14,7 +14,7 @@ import org.zoxweb.server.security.JWTProvider;
 import org.zoxweb.server.task.TaskUtil;
 import org.zoxweb.server.util.GSONUtil;
 import org.zoxweb.server.util.GSONWrapper;
-import org.zoxweb.shared.accounting.AmountDAO;
+import org.zoxweb.shared.accounting.AmountInfo;
 import org.zoxweb.shared.accounting.Currency;
 import org.zoxweb.shared.api.APIException;
 import org.zoxweb.shared.app.AppIDDefault;
@@ -137,31 +137,31 @@ public class XXClientAPI {
 
     public static ItemDAO createItemDAO(String appGID, String baseURL) {
         Range<Integer> rangeDAO1 = new Range<Integer>(1, 2);
-        AmountDAO moneyValueDAO1 = new AmountDAO(new BigDecimal("25.00"), Currency.USD);
+        AmountInfo moneyValueDAO1 = new AmountInfo(new BigDecimal("25.00"), Currency.USD);
         PriceDAO priceDAO1 = new PriceDAO(rangeDAO1, moneyValueDAO1);
 
         Range<Integer> rangeDAO2 = new Range<Integer>(3, 5);
-        AmountDAO moneyValueDAO2 = new AmountDAO(new BigDecimal("22.50"), Currency.USD);
+        AmountInfo moneyValueDAO2 = new AmountInfo(new BigDecimal("22.50"), Currency.USD);
         PriceDAO priceDAO2 = new PriceDAO(rangeDAO2, moneyValueDAO2);
 
         Range<Integer> rangeDAO3 = new Range<Integer>(6, 7);
-        AmountDAO moneyValueDAO3 = new AmountDAO(new BigDecimal("20.00"), Currency.USD);
+        AmountInfo moneyValueDAO3 = new AmountInfo(new BigDecimal("20.00"), Currency.USD);
         PriceDAO priceDAO3 = new PriceDAO(rangeDAO3, moneyValueDAO3);
 
         Range<Integer> rangeDAO4 = new Range<Integer>(8, 14);
-        AmountDAO moneyValueDAO4 = new AmountDAO(new BigDecimal("16.00"), Currency.USD);
+        AmountInfo moneyValueDAO4 = new AmountInfo(new BigDecimal("16.00"), Currency.USD);
         PriceDAO priceDAO4 = new PriceDAO(rangeDAO4, moneyValueDAO4);
 
         Range<Integer> rangeDAO5 = new Range<Integer>(15, 20);
-        AmountDAO moneyValueDAO5 = new AmountDAO(new BigDecimal("15.00"), Currency.USD);
+        AmountInfo moneyValueDAO5 = new AmountInfo(new BigDecimal("15.00"), Currency.USD);
         PriceDAO priceDAO5 = new PriceDAO(rangeDAO5, moneyValueDAO5);
 
         Range<Integer> rangeDAO6 = new Range<Integer>(21, 24);
-        AmountDAO moneyValueDAO6 = new AmountDAO(new BigDecimal("14.00"), Currency.USD);
+        AmountInfo moneyValueDAO6 = new AmountInfo(new BigDecimal("14.00"), Currency.USD);
         PriceDAO priceDAO6 = new PriceDAO(rangeDAO6, moneyValueDAO6);
 
         Range<Integer> rangeDAO7 = new Range<Integer>(25, 500);
-        AmountDAO moneyValueDAO7 = new AmountDAO(new BigDecimal("13.00"), Currency.USD);
+        AmountInfo moneyValueDAO7 = new AmountInfo(new BigDecimal("13.00"), Currency.USD);
         PriceDAO priceDAO7 = new PriceDAO(rangeDAO7, moneyValueDAO7);
 
         PriceRangeDAO priceRangeDAO = new PriceRangeDAO();

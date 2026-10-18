@@ -1,6 +1,6 @@
 package io.xlogistx.shared.data;
 
-import org.zoxweb.shared.data.AddressDAO;
+import org.zoxweb.shared.data.AddressInfo;
 import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.util.*;
 
@@ -67,7 +67,7 @@ public class ZipCodeDistanceListDAO
         }
     }
 
-    public boolean isWithinRange(AddressDAO addressToCheck) {
+    public boolean isWithinRange(AddressInfo addressToCheck) {
         if (addressToCheck != null && addressToCheck.getZIPOrPostalCode() != null) {
             return isWithinRange(addressToCheck.getZIPOrPostalCode());
         }

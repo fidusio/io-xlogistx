@@ -15,7 +15,7 @@ import org.zoxweb.shared.annotation.EndPointProp;
 import org.zoxweb.shared.annotation.ParamProp;
 import org.zoxweb.shared.annotation.SecurityProp;
 import org.zoxweb.shared.data.SimpleMessage;
-import org.zoxweb.shared.data.VMInfoDAO;
+import org.zoxweb.shared.data.VMInfo;
 import org.zoxweb.shared.http.HTTPMethod;
 import org.zoxweb.shared.http.HTTPStatusCode;
 import org.zoxweb.shared.security.SecConst;
@@ -94,9 +94,9 @@ public class AppCommand {
     @SecurityProp(authentications = {SecConst.AuthenticationType.ALL}, permissions = "app:invoke:gc")
     public NVGenericMap appInvokeGC() {
         long ts = System.currentTimeMillis();
-        VMInfoDAO beforeGC = RuntimeUtil.vmSnapshot(Const.SizeInBytes.M);
+        VMInfo beforeGC = RuntimeUtil.vmSnapshot(Const.SizeInBytes.M);
         RuntimeUtil.invokeGC();
-        VMInfoDAO afterGC = RuntimeUtil.vmSnapshot(Const.SizeInBytes.M);
+        VMInfo afterGC = RuntimeUtil.vmSnapshot(Const.SizeInBytes.M);
         beforeGC.setName("before-gc");
         afterGC.setName("after-gc");
         ts = System.currentTimeMillis() - ts;

@@ -1,6 +1,6 @@
 package io.xlogistx.shared.data;
 
-import org.zoxweb.shared.accounting.AmountDAO;
+import org.zoxweb.shared.accounting.AmountInfo;
 
 import java.math.BigDecimal;
 
@@ -102,7 +102,7 @@ public final class XXDataUtil {
     return highest;
   }
 
-  public static AmountDAO calculatePrice(PriceRangeDAO priceRangeDAO, int quantity) {
+  public static AmountInfo calculatePrice(PriceRangeDAO priceRangeDAO, int quantity) {
     if (priceRangeDAO != null && priceRangeDAO.getPriceList() != null) {
       for (PriceDAO priceDAO : priceRangeDAO.getPriceList()) {
         if (isWithinPriceRange(priceDAO, quantity)) {
@@ -114,7 +114,7 @@ public final class XXDataUtil {
     return null;
   }
 
-  public static AmountDAO computeTotal(OrderDAO orderDAO) {
+  public static AmountInfo computeTotal(OrderDAO orderDAO) {
     BigDecimal value = new BigDecimal(0);
 
     if (orderDAO != null && orderDAO.getOrderItems() != null) {
@@ -123,15 +123,15 @@ public final class XXDataUtil {
       }
     }
 
-    return new AmountDAO(value);
+    return new AmountInfo(value);
   }
 
-  public static AmountDAO computeTotal(OrderItemDAO orderItemDAO) {
-    AmountDAO total = new AmountDAO();
+  public static AmountInfo computeTotal(OrderItemDAO orderItemDAO) {
+    AmountInfo total = new AmountInfo();
 
     if (orderItemDAO != null && orderItemDAO.getItem() != null
         && orderItemDAO.getItem().getPriceRange() != null) {
-      AmountDAO itemPrice = calculatePrice(orderItemDAO.getItem().getPriceRange(),
+      AmountInfo itemPrice = calculatePrice(orderItemDAO.getItem().getPriceRange(),
           orderItemDAO.getQuantity());
 
       if (itemPrice != null) {

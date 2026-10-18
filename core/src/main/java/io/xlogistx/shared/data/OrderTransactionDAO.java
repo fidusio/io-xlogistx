@@ -1,7 +1,7 @@
 package io.xlogistx.shared.data;
 
-import org.zoxweb.shared.accounting.AmountDAO;
-import org.zoxweb.shared.accounting.PaymentInfoDAO;
+import org.zoxweb.shared.accounting.AmountInfo;
+import org.zoxweb.shared.accounting.PaymentInfo;
 import org.zoxweb.shared.accounting.TransactionStatus;
 import org.zoxweb.shared.accounting.TransactionType;
 import org.zoxweb.shared.data.AppIDResource;
@@ -18,10 +18,10 @@ public class OrderTransactionDAO
                         NVConfigEntity.ArrayType.NOT_ARRAY)),
         PAYMENT_INFO(NVConfigManager
                 .createNVConfigEntity("payment_info", "Payment info", "PaymentInfo", true, true,
-                        PaymentInfoDAO.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
+                        PaymentInfo.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
         TRANSACTION_AMOUNT(NVConfigManager
                 .createNVConfigEntity("transaction_amount", "Transaction amount", "TransactionAmount", true,
-                        true, AmountDAO.NVC_AMOUNT_DAO)),
+                        true, AmountInfo.NVC_AMOUNT_INFO)),
         TRANSACTION_TYPE(NVConfigManager
                 .createNVConfig("transaction_type", "Type of transaction either credit or debit",
                         "TransactionType", false, true, TransactionType.class)),
@@ -83,28 +83,28 @@ public class OrderTransactionDAO
     /**
      * Returns the payment info.
      */
-    public PaymentInfoDAO getPaymentInfo() {
+    public PaymentInfo getPaymentInfo() {
         return lookupValue(Param.PAYMENT_INFO);
     }
 
     /**
      * Sets the payment info.
      */
-    public void setPaymentInfo(PaymentInfoDAO paymentInfo) {
+    public void setPaymentInfo(PaymentInfo paymentInfo) {
         setValue(Param.PAYMENT_INFO, paymentInfo);
     }
 
     /**
      * Returns the transaction amount.
      */
-    public AmountDAO getTransactionAmount() {
+    public AmountInfo getTransactionAmount() {
         return lookupValue(Param.TRANSACTION_AMOUNT);
     }
 
     /**
      * Sets the transaction amount.
      */
-    public void setTransactionAmount(AmountDAO amount) {
+    public void setTransactionAmount(AmountInfo amount) {
         setValue(Param.TRANSACTION_AMOUNT, amount);
     }
 

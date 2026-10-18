@@ -15,7 +15,7 @@
  */
 package io.xlogistx.shared.data;
 
-import org.zoxweb.shared.accounting.AmountDAO;
+import org.zoxweb.shared.accounting.AmountInfo;
 import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.util.*;
 
@@ -31,7 +31,7 @@ public class OrderItemDAO
         QUANTITY(
                 NVConfigManager.createNVConfig("quantity", "Quantity", "Quantity", true, true, int.class)),
         TOTAL(NVConfigManager
-                .createNVConfigEntity("total", "Total", "Total", true, true, AmountDAO.class,
+                .createNVConfigEntity("total", "Total", "Total", true, true, AmountInfo.class,
                         NVConfigEntity.ArrayType.NOT_ARRAY)),
 
         ;
@@ -98,14 +98,14 @@ public class OrderItemDAO
     /**
      * Returns the total.
      */
-    public AmountDAO getTotal() {
+    public AmountInfo getTotal() {
         return lookupValue(Param.TOTAL);
     }
 
     /**
      * Sets the total.
      */
-    public void setTotal(AmountDAO total) {
+    public void setTotal(AmountInfo total) {
         setValue(Param.TOTAL, total);
     }
 

@@ -7,9 +7,9 @@ import org.zoxweb.server.logging.LogWrapper;
 import org.zoxweb.server.security.CipherCodecs;
 import org.zoxweb.server.security.CryptoUtil;
 import org.zoxweb.server.security.KeyMakerProvider;
-import org.zoxweb.shared.api.APICredentialsDAO;
+import org.zoxweb.shared.api.APICredentials;
 import org.zoxweb.shared.api.APIDataStore;
-import org.zoxweb.shared.api.APITokenDAO;
+import org.zoxweb.shared.api.APIToken;
 import org.zoxweb.shared.crypto.EncryptedData;
 import org.zoxweb.shared.crypto.EncapsulatedKey;
 import org.zoxweb.shared.data.MessageTemplate;
@@ -67,7 +67,7 @@ public class ShiroSecurityController
 
         if (encrypt && nvb.getValue() != null) {
             // CRUD.MOVE was to allow shared with to move the data between folders
-            byte[] dataKey = dataKey(dataStore, msKey, checkNVEntityAccess(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
+            byte[] dataKey = dataKey(dataStore, msKey, resourceAccessor(Const.LogicalOperator.OR, container, CRUD.MOVE, CRUD.UPDATE, CRUD.CREATE), container.getGUID());
             try {
                 // labels are authenticated by the GCM tag: set them BEFORE sealing (META-ENCRYPTED-DATA §2.2)
                 EncryptedData record = new EncryptedData();
@@ -146,7 +146,7 @@ public class ShiroSecurityController
         // the storage form is the packed record (META-ENCRYPTED-DATA §5); anything else is refused here
         EncryptedData ed = CipherCodecs.EDDecoder.decode(value);
 
-        byte[] dataKey = dataKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
+        byte[] dataKey = dataKey(dataStore, msKey, resourceAccessor(container, CRUD.READ), container.getGUID());
         try {
             return SUS.toString(CryptoUtil.decryptEncryptedData(ed, dataKey));
 
@@ -174,7 +174,7 @@ public class ShiroSecurityController
 
         if (value instanceof EncryptedData && (ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT) || ChainedFilter.isFilterSupported(nvc.getValueFilter(), FilterType.ENCRYPT_MASK))) {
 
-            byte[] dataKey = dataKey(dataStore, msKey, checkNVEntityAccess(container, CRUD.READ), container.getGUID());
+            byte[] dataKey = dataKey(dataStore, msKey, resourceAccessor(container, CRUD.READ), container.getGUID());
             try {
 
                 byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
@@ -214,7 +214,7 @@ public class ShiroSecurityController
         if (value instanceof EncryptedData) {
             //if(log.isEnabled()) log.getLogger().info("userID:" + userID);
 
-            byte[] dataKey = dataKey(dataStore, msKey, (userID != null ? userID : checkNVEntityAccess(container, CRUD.READ)), container.getGUID());
+            byte[] dataKey = dataKey(dataStore, msKey, (userID != null ? userID : resourceAccessor(container, CRUD.READ)), container.getGUID());
             try {
 
                 byte[] data = CryptoUtil.decryptEncryptedData((EncryptedData) value, dataKey);
@@ -319,7 +319,7 @@ public class ShiroSecurityController
     public final boolean isResourceAccessible(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
             throws NullPointerException, IllegalArgumentException {
         try {
-            checkNVEntityAccess(lo, nve, permissions);
+            resourceAccessor(lo, nve, permissions);
             return true;
         } catch (AccessSecurityException e) {
             //e.printStackTrace();
@@ -328,9 +328,9 @@ public class ShiroSecurityController
     }
 
 
-    public final String checkNVEntityAccess(NVEntity nve, CRUD... permissions)
+    public final String resourceAccessor(NVEntity nve, CRUD... permissions)
             throws NullPointerException, IllegalArgumentException, AccessSecurityException {
-        return checkNVEntityAccess(Const.LogicalOperator.AND, nve, permissions);
+        return resourceAccessor(Const.LogicalOperator.AND, nve, permissions);
     }
 
 
@@ -345,11 +345,11 @@ public class ShiroSecurityController
      * @return the owner's subject GUID — the root of the resource's key chain
      * @throws AccessSecurityException when denied, unauthenticated, or the entity has no subject GUID
      */
-    public final String checkNVEntityAccess(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
+    public final String resourceAccessor(Const.LogicalOperator lo, NVEntity nve, CRUD... permissions)
             throws NullPointerException, IllegalArgumentException, AccessSecurityException {
         SUS.checkIfNulls("Null NVEntity", lo, nve);
 
-        if (nve instanceof APICredentialsDAO || nve instanceof APITokenDAO) {
+        if (nve instanceof APICredentials || nve instanceof APIToken) {
             return nve.getSubjectGUID();
         }
         if (nve.getGUID() == null || nve.getSubjectGUID() == null) {

@@ -1,8 +1,8 @@
 package io.xlogistx.shared.data;
 
 import io.xlogistx.shared.util.XXStatus;
-import org.zoxweb.shared.accounting.AmountDAO;
-import org.zoxweb.shared.data.AddressDAO;
+import org.zoxweb.shared.accounting.AmountInfo;
+import org.zoxweb.shared.data.AddressInfo;
 import org.zoxweb.shared.data.AppIDResource;
 import org.zoxweb.shared.util.*;
 
@@ -26,14 +26,14 @@ public class OrderDAO
                 .createNVConfigEntity("order_items", "List of order items", "OrderItems", true, true,
                         OrderItemDAO.NVC_ORDER_ITEM_DAO, NVConfigEntity.ArrayType.LIST)),
         TOTAL(NVConfigManager
-                .createNVConfigEntity("total", "Total", "Total", true, true, AmountDAO.class,
+                .createNVConfigEntity("total", "Total", "Total", true, true, AmountInfo.class,
                         NVConfigEntity.ArrayType.NOT_ARRAY)),
         DELIVERY_TIMESTAMP(NVConfigManager
                 .createNVConfig("delivery_timestamp", "Delivery timestamp.", "DeliveryTimestamp", false,
                         true, Date.class)),
         DELIVERY_ADDRESS(NVConfigManager
                 .createNVConfigEntity("delivery_address", "Delivery address", "DeliveryAddress", true, true,
-                        AddressDAO.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
+                        AddressInfo.class, NVConfigEntity.ArrayType.NOT_ARRAY)),
 
         ;
 
@@ -115,14 +115,14 @@ public class OrderDAO
     /**
      * Returns the total.
      */
-    public AmountDAO getTotal() {
+    public AmountInfo getTotal() {
         return lookupValue(Param.TOTAL);
     }
 
     /**
      * Sets the total.
      */
-    public void setTotal(AmountDAO total) {
+    public void setTotal(AmountInfo total) {
         setValue(Param.TOTAL, total);
     }
 
@@ -144,14 +144,14 @@ public class OrderDAO
     /**
      * Returns the delivery address.
      */
-    public AddressDAO getDeliveryAddress() {
+    public AddressInfo getDeliveryAddress() {
         return lookupValue(Param.DELIVERY_ADDRESS);
     }
 
     /**
      * Sets the delivery address.
      */
-    public void setDeliveryAddress(AddressDAO address) {
+    public void setDeliveryAddress(AddressInfo address) {
         setValue(Param.DELIVERY_ADDRESS, address);
     }
 

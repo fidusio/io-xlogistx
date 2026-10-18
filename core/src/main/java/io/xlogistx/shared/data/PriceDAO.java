@@ -15,7 +15,7 @@
  */
 package io.xlogistx.shared.data;
 
-import org.zoxweb.shared.accounting.AmountDAO;
+import org.zoxweb.shared.accounting.AmountInfo;
 import org.zoxweb.shared.data.Range;
 import org.zoxweb.shared.data.SetNameDescriptionDAO;
 import org.zoxweb.shared.util.*;
@@ -30,7 +30,7 @@ public class PriceDAO
                 .createNVConfigEntity("range", "Range", "Range", true, true, Range.class,
                         NVConfigEntity.ArrayType.NOT_ARRAY)),
         PRICE(NVConfigManager
-                .createNVConfigEntity("price", "Price", "Price", true, true, AmountDAO.class,
+                .createNVConfigEntity("price", "Price", "Price", true, true, AmountInfo.class,
                         NVConfigEntity.ArrayType.NOT_ARRAY)),
 
         ;
@@ -67,7 +67,7 @@ public class PriceDAO
         super(NVC_PRICE_DAO);
     }
 
-    public PriceDAO(Range range, AmountDAO price) {
+    public PriceDAO(Range range, AmountInfo price) {
         this();
         setRange(range);
         setPrice(price);
@@ -90,14 +90,14 @@ public class PriceDAO
     /**
      * Returns the price
      */
-    public AmountDAO getPrice() {
+    public AmountInfo getPrice() {
         return lookupValue(Param.PRICE);
     }
 
     /**
      * Sets the price.
      */
-    public void setPrice(AmountDAO price) {
+    public void setPrice(AmountInfo price) {
         setValue(Param.PRICE, price);
     }
 
