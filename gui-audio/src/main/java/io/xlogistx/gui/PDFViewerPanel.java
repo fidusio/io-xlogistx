@@ -8,6 +8,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.JPEGFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.interactive.action.PDAction;
@@ -44,6 +45,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.print.Pageable;
 import java.awt.print.PrinterJob;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -229,6 +231,17 @@ public class PDFViewerPanel extends JPanel {
          * @return true when handled, false to let the panel do it
          */
         default boolean movePages(int[] pages, int target) {
+            return false;
+        }
+
+        /**
+         * A change of the document's password protection was requested
+         * ({@link PDFViewerPanel#setSecurity}).
+         *
+         * @param security the protection wanted, never null
+         * @return true when handled (the host called {@link PDFViewerPanel#setSecurityDirect}), false to let the panel do it
+         */
+        default boolean setSecurity(PDFSecurity security) {
             return false;
         }
 
@@ -419,6 +432,10 @@ public class PDFViewerPanel extends JPanel {
     private boolean updatingToolbar;
     private JFileChooser fileChooser;
     private File currentFile;
+    /** The open document's password protection, applied for its next save; {@link PDFSecurity#NONE} without a document. */
+    private PDFSecurity security = PDFSecurity.NONE;
+    /** Asked for the password of an encrypted file while loading (off the EDT). */
+    private PasswordPrompt passwordPrompt = this::askPasswordDialog;
     /** The pages' scroll pane in the middle, the thumbnail sidebar on the left when shown. */
     private final JPanel centre = new JPanel(new BorderLayout());
     private PDFThumbnailPanel thumbnails;
@@ -486,7 +503,10 @@ public class PDFViewerPanel extends JPanel {
      */
     public void setPDF(byte[] pdf) {
         SUS.checkIfNull("pdf null", pdf);
-        BackgroundTask.run(this, null, () -> Loader.loadPDF(pdf), doc -> setDocument(doc, true));
+        BackgroundTask.run(this, null, () -> loadPDF(pdf, "the document"), src -> {
+            if (src != null)
+                install(src.doc, true, null, src.security);
+        });
     }
 
     /**
@@ -499,7 +519,10 @@ public class PDFViewerPanel extends JPanel {
      */
     public void setPDF(File pdf) {
         SUS.checkIfNull("pdf null", pdf);
-        BackgroundTask.run(this, null, () -> loadSource(pdf), doc -> install(doc, true, pdf));
+        BackgroundTask.run(this, null, () -> loadSource(pdf), src -> {
+            if (src != null)
+                install(src.doc, true, pdf, src.security);
+        });
     }
 
     /**
@@ -511,13 +534,18 @@ public class PDFViewerPanel extends JPanel {
     public void setPDF(InputStream pdf) {
         SUS.checkIfNull("pdf null", pdf);
         BackgroundTask.run(this, null,
-                () -> Loader.loadPDF(IOUtil.inputStreamToByteArray(pdf, true).toByteArray()),
-                doc -> setDocument(doc, true));
+                () -> loadPDF(IOUtil.inputStreamToByteArray(pdf, true).toByteArray(), "the document"),
+                src -> {
+                    if (src != null)
+                        install(src.doc, true, null, src.security);
+                });
     }
 
     /**
      * Installs an already parsed document, replacing (and closing, if owned) the
-     * current one. Must be called on the EDT.
+     * current one. Must be called on the EDT. An encrypted document the host
+     * parsed itself keeps its permissions but, its password being unknown here,
+     * is saved without one unless {@link #setSecurity} is called.
      *
      * @param doc          the document, null clears the viewer
      * @param ownsDocument if true the viewer closes {@code doc} when it is replaced or
@@ -525,11 +553,15 @@ public class PDFViewerPanel extends JPanel {
      * @return this panel, for chaining
      */
     public PDFViewerPanel setDocument(PDDocument doc, boolean ownsDocument) {
-        return install(doc, ownsDocument, null);
+        return install(doc, ownsDocument, null, doc == null ? PDFSecurity.NONE : PDFSecurity.loaded(doc, ""));
     }
 
-    /** Installs {@code doc}, remembering {@code file} as its origin (null when not file-backed). */
-    private PDFViewerPanel install(PDDocument doc, boolean ownsDocument, File file) {
+    /**
+     * Installs {@code doc}, remembering {@code file} as its origin (null when not
+     * file-backed) and {@code security} as its protection, which is applied to
+     * the document at once when it is encrypted or asks for encryption.
+     */
+    private PDFViewerPanel install(PDDocument doc, boolean ownsDocument, File file, PDFSecurity security) {
         releaseDocument();
         currentFile = file;
         modified = false;
@@ -541,6 +573,7 @@ public class PDFViewerPanel extends JPanel {
         synchronized (docLock) {
             document = doc;
             this.ownsDocument = ownsDocument;
+            this.security = security == null ? PDFSecurity.NONE : security;
             renderer = new PDFRenderer(doc);
             renderer.setSubsamplingAllowed(true);
             if (annotationFilter != null)
@@ -599,6 +632,7 @@ public class PDFViewerPanel extends JPanel {
         currentPage = -1;
         currentFile = null;
         modified = false;
+        security = PDFSecurity.NONE;
         matches = new ArrayList<>();
         currentMatch = -1;
         lastQuery = null;
@@ -688,7 +722,10 @@ public class PDFViewerPanel extends JPanel {
         }
         final int at = Math.max(0, Math.min(pages.size(), index));
         BackgroundTask.run(this, insertButton, () -> {
-            try (PDDocument src = loadSource(source)) {
+            Source s = loadSource(source);
+            if (s == null)
+                return 0; // the password prompt was cancelled
+            try (PDDocument src = s.doc) {
                 return mergeInto(src, at);
             }
         }, added -> refreshPages(at, added));
@@ -878,13 +915,169 @@ public class PDFViewerPanel extends JPanel {
      * {@link #markdownToPDF(File)}, an image through {@link #imageToPDF(File)}.
      * Off the EDT.
      */
-    private static PDDocument loadSource(File f) throws IOException {
+    private Source loadSource(File f) throws IOException {
         if (isMarkdown(f))
-            return Loader.loadPDF(markdownToPDF(f));
+            return new Source(Loader.loadPDF(markdownToPDF(f)), PDFSecurity.NONE);
         if (isImage(f))
-            return imageToPDF(f);
+            return new Source(imageToPDF(f), PDFSecurity.NONE);
         // read fully: a document that no longer refers to its file can be saved over it without a reload
-        return Loader.loadPDF(Files.readAllBytes(f.toPath()));
+        return loadPDF(Files.readAllBytes(f.toPath()), f.getName());
+    }
+
+    /** A parsed source and the protection it was opened with. */
+    private static final class Source {
+        final PDDocument doc;
+        final PDFSecurity security;
+
+        Source(PDDocument doc, PDFSecurity security) {
+            this.doc = doc;
+            this.security = security;
+        }
+    }
+
+    /**
+     * Parses PDF bytes, asking the {@link PasswordPrompt} for the password as
+     * long as the file refuses the ones given. Off the EDT.
+     *
+     * @param name what the prompt calls the document
+     * @return the document and its protection, null when the prompt was cancelled
+     */
+    private Source loadPDF(byte[] bytes, String name) throws IOException {
+        try {
+            PDDocument doc = Loader.loadPDF(bytes);
+            return new Source(doc, PDFSecurity.loaded(doc, ""));
+        } catch (InvalidPasswordException e) {
+            // a password is needed: ask below
+        }
+        for (int attempt = 0; ; attempt++) {
+            String password = passwordPrompt.ask(name, attempt);
+            if (password == null)
+                return null;
+            try {
+                PDDocument doc = Loader.loadPDF(bytes, password);
+                return new Source(doc, PDFSecurity.loaded(doc, password));
+            } catch (InvalidPasswordException e) {
+                // wrong: ask again
+            }
+        }
+    }
+
+    /**
+     * Asked for the password of an encrypted document while it is loaded, off
+     * the EDT; the default shows {@link GUIUtil#askPassword} on the EDT.
+     */
+    public interface PasswordPrompt {
+        /**
+         * @param documentName the file name, or "the document"
+         * @param attempt      0 the first time, then the number of passwords refused so far
+         * @return the password to try, null to give up (the document is then not opened, without an error)
+         */
+        String ask(String documentName, int attempt);
+    }
+
+    /** The default prompt: a modal password dialog on the EDT, cancelled at once when headless. */
+    private String askPasswordDialog(String documentName, int attempt) {
+        if (GraphicsEnvironment.isHeadless())
+            return null;
+        String message = (attempt == 0 ? "" : "That password was not accepted.\n")
+                + documentName + " is protected by a password.\nPassword to open it:";
+        String[] result = new String[1];
+        Runnable ask = () -> result[0] = GUIUtil.askPassword(this, "Password", message);
+        if (SwingUtilities.isEventDispatchThread())
+            ask.run();
+        else {
+            try {
+                SwingUtilities.invokeAndWait(ask);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                return null;
+            }
+        }
+        return result[0];
+    }
+
+    /**
+     * @param prompt what to ask for a password while loading, null restores the dialog
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setPasswordPrompt(PasswordPrompt prompt) {
+        passwordPrompt = prompt != null ? prompt : this::askPasswordDialog;
+        return this;
+    }
+
+    /** @return the open document's password protection, {@link PDFSecurity#NONE} when none or no document */
+    public PDFSecurity getSecurity() {
+        return security;
+    }
+
+    /**
+     * Changes the open document's password protection for its next save: an
+     * {@link EditDelegate} is asked first (so a host can make it undoable),
+     * else {@link #setSecurityDirect}. Must be called on the EDT.
+     *
+     * @param s the protection, null = {@link PDFSecurity#NONE}
+     * @return true when applied
+     */
+    public boolean setSecurity(PDFSecurity s) {
+        if (getDocument() == null)
+            return false;
+        PDFSecurity next = s == null ? PDFSecurity.NONE : s;
+        if (editDelegate != null && editDelegate.setSecurity(next))
+            return true;
+        return setSecurityDirect(next);
+    }
+
+    /**
+     * Records the protection the document is saved with (encrypted, or plain
+     * for {@link PDFSecurity#NONE} even when the file was encrypted) without
+     * asking the delegate, marks the document modified and fires the
+     * {@code security} property change. The document in memory is never
+     * encrypted: {@link #save(File)} protects a copy. Must be called on the EDT.
+     *
+     * @return true when recorded, false without a document
+     */
+    public boolean setSecurityDirect(PDFSecurity s) {
+        PDFSecurity next = s == null ? PDFSecurity.NONE : s;
+        PDFSecurity old;
+        synchronized (docLock) {
+            if (document == null)
+                return false;
+            old = security;
+            security = next;
+        }
+        modified = true;
+        updateToolbar();
+        firePropertyChange("security", old, next);
+        return true;
+    }
+
+    /**
+     * Writes the document to a file under the lock. A protected document is
+     * saved plain into memory, loaded again as a copy, protected and written
+     * from there, because PDFBox encrypts a document's streams in place while
+     * saving it: the document on screen stays plain and usable. One loaded
+     * from an encrypted file has that encryption removed first for the same
+     * reason (its content is decrypted in memory).
+     */
+    private void writeDocument(File target) throws IOException {
+        synchronized (docLock) {
+            if (document == null)
+                throw new IOException("no document loaded");
+            if (document.isEncrypted())
+                document.setAllSecurityToBeRemoved(true);
+            if (!security.isProtected()) {
+                document.save(target);
+                return;
+            }
+            ByteArrayOutputStream plain = new ByteArrayOutputStream();
+            document.save(plain);
+            try (PDDocument copy = Loader.loadPDF(plain.toByteArray())) {
+                security.applyTo(copy);
+                copy.save(target);
+            }
+        }
     }
 
     /** Converts a Markdown file with {@link MDToPDF}, resolving relative images against its directory. */
@@ -1392,11 +1585,7 @@ public class PDFViewerPanel extends JPanel {
             File tmp = File.createTempFile("pdfviewer", ".pdf", dir != null && dir.isDirectory() ? dir : null);
             boolean ok = false;
             try {
-                synchronized (docLock) {
-                    if (document == null)
-                        throw new IOException("no document loaded");
-                    document.save(tmp);
-                }
+                writeDocument(tmp);
                 Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 ok = true;
             } finally {
@@ -2637,19 +2826,28 @@ public class PDFViewerPanel extends JPanel {
             return;
         }
         BackgroundTask.run(this, null, () -> {
-            PDDocument doc = loadSource(sources.get(0));
+            Source first = loadSource(sources.get(0));
+            if (first == null)
+                return null; // the password prompt was cancelled
+            PDDocument doc = first.doc;
             try {
-                for (int i = 1; i < sources.size(); i++)
-                    try (PDDocument src = loadSource(sources.get(i))) {
+                for (int i = 1; i < sources.size(); i++) {
+                    Source s = loadSource(sources.get(i));
+                    if (s == null)
+                        continue; // cancelled: that file is left out
+                    try (PDDocument src = s.doc) {
                         new PDFMergerUtility().appendDocument(doc, src);
                     }
+                }
             } catch (IOException | RuntimeException e) {
                 doc.close();
                 throw e;
             }
-            return doc;
-        }, doc -> {
-            setDocument(doc, true);
+            return first;
+        }, src -> {
+            if (src == null)
+                return;
+            install(src.doc, true, null, src.security);
             modified = true;
         });
     }
@@ -2677,8 +2875,11 @@ public class PDFViewerPanel extends JPanel {
         BackgroundTask.run(this, insertButton, () -> {
             List<PDDocument> loaded = new ArrayList<>();
             try {
-                for (File f : sources)
-                    loaded.add(loadSource(f));
+                for (File f : sources) {
+                    Source s = loadSource(f);
+                    if (s != null) // null: the password prompt was cancelled, that file is left out
+                        loaded.add(s.doc);
+                }
             } catch (IOException | RuntimeException e) {
                 for (PDDocument d : loaded)
                     d.close();

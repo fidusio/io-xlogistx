@@ -32,9 +32,17 @@ The package has these groups:
      `MIN`..`MAX`. `FontSizeWidget` is the toolbar control ("Aa" + spinner) that drives and follows
      it; `PDFViewerPanel` puts one at the right end of its toolbar (`getFontSizeWidget()`), the PDF
      editor adds View ▸ Control text size and remembers the value in its settings.
+   - `PDFSecurity` (2026-10-17) — a PDF's password protection as one immutable value: open
+     (user) password, owner password (empty = the open one), permission bits (`of(...)`, `NONE`,
+     `loaded(doc, password)` reads a just-opened document's permissions, `describe()` for status
+     text, `applyTo(doc)` = `protect` with AES-256 or `setAllSecurityToBeRemoved`). **PDFBox
+     encrypts streams and strings in memory while it saves**, so `applyTo` goes on a throwaway
+     copy, never on the document being shown (see `PDFViewerPanel.writeDocument`).
    - `GUIUtil` — static helpers only: `iconButton(...)` factories, screen capture
      (`captureSelectedArea()`), clipboard, panels/scroll panes, color interpolation
-     (`colorToRatio`, `interpolateColors`).
+     (`colorToRatio`, `interpolateColors`), `askPassword(parent, title, message)` (2026-10-17: a
+     modal `JPasswordField` dialog with the FlatLaf reveal button, null when cancelled or
+     headless).
    - `SelectionWindow` — translucent drag-selection overlay covering one monitor;
      `GUIUtil.captureSelectedArea()` shows one per monitor (Lock/Condition handshake,
      predicate-loop over all overlays). Per-display windows, NOT one spanning window:
@@ -243,10 +251,24 @@ PDF-only filter for saving, or the PDF+Markdown+images `sourceFilter` for openin
 inserting; read the selection before switching filters, a filter change clears it) →
 `setPDF(File)`;
 `getFile()` remembers the origin, null for byte/stream documents). Save (`saveAs()`,
-`save(File)`: `PDDocument.save` to a temp file next to the target off the EDT, then moved into
+`save(File)`: `writeDocument` to a temp file next to the target off the EDT, then moved into
 place, for the source file like any other since 2026-10-17: no close, no reload, the document,
 page, selection and a host's undo history stay, the delegate hears `documentSaved()`; never
-`save` straight onto the target). Print (`print()`: `PrinterJob`
+`save` straight onto the target). **Passwords (2026-10-17).** `loadPDF(bytes, name)` (behind
+`setPDF` and `loadSource`, so inserts, drops and joined opens too) catches
+`InvalidPasswordException` and asks the `PasswordPrompt` (`setPasswordPrompt`; the default is
+`GUIUtil.askPassword` on the EDT via `invokeAndWait`, cancelled at once when headless) until a
+password is accepted or it returns null, in which case nothing is opened / that file is left out,
+without an error. The panel keeps the result as `getSecurity()` (`PDFSecurity.loaded`: the typed
+password stands in for the owner password too); `setDocument(doc, owns)` of a host-parsed
+encrypted document keeps the permissions but no password. `setSecurity(s)` asks
+`EditDelegate.setSecurity` (default false; the editor makes it undoable) else
+`setSecurityDirect(s)` (records the value, `modified`, the `security` property change). The
+document in memory is **never encrypted**: `writeDocument` removes a loaded encryption
+(`setAllSecurityToBeRemoved`, the content is plain in memory) and, for a protected value, saves
+plain into memory, loads a copy, `applyTo` on it and writes that, because PDFBox encrypts the
+streams in place while saving (the first attempt that protected the live document broke every
+later save). Print (`print()`: `PrinterJob`
 dialog on the EDT, `job.print()` off the EDT; `createPageable()` wraps PDFBox
 `PDFPageable` so every page prints under `docLock`; it is a snapshot guarded by the
 `edits` counter, so after `close()` or any insert/delete it reports `NO_SUCH_PAGE` — hosts
@@ -428,7 +450,11 @@ Build: `mvn clean install -pl gui-audio -am` (from repo root).
 
 Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest`,
 `MermaidRendererTest`, `pdf/PageTransformTest` (hand-computed corners for all four
-rotations + offset crop box, and a rendered-pixel check against `PDFRenderer`) and
+rotations + offset crop box, and a rendered-pixel check against `PDFRenderer`),
+`PDFSecurityTest` (2026-10-17: the value class, a protected file opened through the prompt with a
+refused first try and saved still protected then plain after `NONE`, a plain file protected with
+separate owner password and restricted permissions and saved twice, a cancelled prompt opening or
+inserting nothing, a host-parsed encrypted document keeping its permissions) and
 `UIFontSizeTest` (2026-10-17: every look-and-feel font scales in proportion, new components get
 the size, a tree is refreshed on request, listeners and the widget follow, steps, clamping and
 an exact reset), `PDFThumbnailPanelTest` (2026-10-17: one thumbnail per page in page proportions, the current

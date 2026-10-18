@@ -1322,6 +1322,43 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         return f;
     }
 
+    /** @return the protection the document is saved with (see {@link io.xlogistx.gui.PDFSecurity}), NONE without a document */
+    public io.xlogistx.gui.PDFSecurity getDocumentSecurity() {
+        return viewer.getSecurity();
+    }
+
+    /**
+     * Sets the password protection the document is saved with, as one
+     * undoable step ({@link SetSecurityEdit}); turns editing on. The document
+     * itself is untouched until it is saved.
+     *
+     * @param security the protection, null = {@link io.xlogistx.gui.PDFSecurity#NONE}
+     * @return true when recorded, false without a document or when nothing changes
+     */
+    public boolean setDocumentSecurity(io.xlogistx.gui.PDFSecurity security) {
+        if (viewer.getDocument() == null)
+            return false;
+        io.xlogistx.gui.PDFSecurity next = security == null ? io.xlogistx.gui.PDFSecurity.NONE : security;
+        io.xlogistx.gui.PDFSecurity now = viewer.getSecurity();
+        if (next.equals(now))
+            return false;
+        commitInPlaceEdit();
+        return applyEdit(new SetSecurityEdit(viewer, now, next));
+    }
+
+    /**
+     * File ▸ Document password…: the {@link EditorDialogs#askSecurity} dialog,
+     * then {@link #setDocumentSecurity}.
+     *
+     * @return true when the protection was changed
+     */
+    public boolean documentPasswordDialog() {
+        if (viewer.getDocument() == null)
+            return false;
+        io.xlogistx.gui.PDFSecurity s = EditorDialogs.askSecurity(dialogParent(), viewer.getSecurity());
+        return s != null && setDocumentSecurity(s);
+    }
+
     /**
      * Ends any in-place text box edit (see
      * {@link io.xlogistx.editor.pdf.tools.InPlaceTextEditor}) or open form
@@ -1515,6 +1552,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         file.addSeparator();
         file.add(item("Save", KeyEvent.VK_S, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), e -> save()));
         file.add(item("Save As...", KeyEvent.VK_A, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), e -> saveAs()));
+        file.add(item("Document password...", KeyEvent.VK_W, null, e -> documentPasswordDialog()));
         file.addSeparator();
         file.add(item("Print...", KeyEvent.VK_P, KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.CTRL_DOWN_MASK), e -> viewer.print()));
         bar.add(file);
@@ -1852,8 +1890,10 @@ public class PDFEditorPane extends JPanel implements EditorHost {
     }
 
     private String statusDetail() {
-        if (selectedAnnotation == null || !editable)
-            return "";
+        if (selectedAnnotation == null || !editable) {
+            io.xlogistx.gui.PDFSecurity s = viewer.getSecurity();
+            return viewer.getDocument() != null && s.isProtected() ? "Protected: " + s.describe() : "";
+        }
         String what = SelectAnnotationTool.describe(selectedAnnotation);
         org.apache.pdfbox.pdmodel.common.PDRectangle r = selectedAnnotation.getRectangle();
         StringBuilder b = new StringBuilder("Selected: ").append(what);
@@ -1956,6 +1996,11 @@ public class PDFEditorPane extends JPanel implements EditorHost {
                 throw new IllegalStateException(e.getMessage(), e);
             }
             return true;
+        }
+
+        @Override
+        public boolean setSecurity(io.xlogistx.gui.PDFSecurity security) {
+            return setDocumentSecurity(security);
         }
 
         @Override

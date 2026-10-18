@@ -398,6 +398,78 @@ public final class EditorDialogs {
         return style.withOpacity(opacity.getValue() / 100f);
     }
 
+    /**
+     * Asks for the document's password protection: the password that opens it
+     * (typed twice), an optional owner password and the three permissions.
+     * Both passwords empty with everything allowed means no protection. A
+     * mismatch between the two copies of the open password is reported and the
+     * dialog shown again.
+     *
+     * @param parent  the dialog parent
+     * @param current the protection now, shown as the starting values (the
+     *                passwords are not shown, only whether they are set)
+     * @return the protection wanted, null when cancelled
+     */
+    public static io.xlogistx.gui.PDFSecurity askSecurity(Component parent, io.xlogistx.gui.PDFSecurity current) {
+        io.xlogistx.gui.PDFSecurity cur = current == null ? io.xlogistx.gui.PDFSecurity.NONE : current;
+        JPasswordField open = new JPasswordField(cur.getOpenPassword(), 20);
+        JPasswordField confirm = new JPasswordField(cur.getOpenPassword(), 20);
+        JPasswordField owner = new JPasswordField(cur.getOwnerPassword(), 20);
+        org.apache.pdfbox.pdmodel.encryption.AccessPermission ap = cur.getPermissions();
+        JCheckBox print = new JCheckBox("Allow printing", ap.canPrint());
+        JCheckBox copy = new JCheckBox("Allow copying text and pictures", ap.canExtractContent());
+        JCheckBox change = new JCheckBox("Allow changes (annotations, form filling, page edits)", ap.canModify());
+        JLabel state = new JLabel("Now: " + cur.describe());
+        state.setFont(state.getFont().deriveFont(Font.ITALIC));
+        JPanel form = new JPanel(new GridBagLayout());
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.insets = new Insets(3, 4, 3, 4);
+        gc.anchor = GridBagConstraints.WEST;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.gridwidth = 2;
+        gc.gridx = 0;
+        gc.gridy = 0;
+        form.add(state, gc);
+        gc.gridwidth = 1;
+        int row = 1;
+        row = addRow(form, gc, row, "Password to open:", io.xlogistx.gui.PanelBuilder.passwordField(open));
+        row = addRow(form, gc, row, "Confirm:", io.xlogistx.gui.PanelBuilder.passwordField(confirm));
+        row = addRow(form, gc, row, "Owner password:", io.xlogistx.gui.PanelBuilder.passwordField(owner));
+        JLabel hint = new JLabel("<html>The owner password changes the protection later; leave it empty to use the open password.<br>"
+                + "Leave both empty and allow everything to remove the protection.</html>");
+        hint.setFont(hint.getFont().deriveFont(hint.getFont().getSize2D() - 1));
+        gc.gridwidth = 2;
+        gc.gridx = 0;
+        gc.gridy = row++;
+        form.add(hint, gc);
+        gc.gridy = row++;
+        form.add(print, gc);
+        gc.gridy = row++;
+        form.add(copy, gc);
+        gc.gridy = row;
+        form.add(change, gc);
+        while (true) {
+            int r = JOptionPane.showConfirmDialog(parent, form, "Document password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (r != JOptionPane.OK_OPTION)
+                return null;
+            String p = new String(open.getPassword()), c = new String(confirm.getPassword());
+            if (!p.equals(c)) {
+                JOptionPane.showMessageDialog(parent, "The two copies of the password to open differ.", "Document password", JOptionPane.WARNING_MESSAGE);
+                continue;
+            }
+            org.apache.pdfbox.pdmodel.encryption.AccessPermission perm = new org.apache.pdfbox.pdmodel.encryption.AccessPermission();
+            perm.setCanPrint(print.isSelected());
+            perm.setCanPrintFaithful(print.isSelected());
+            perm.setCanExtractContent(copy.isSelected());
+            perm.setCanExtractForAccessibility(true);
+            perm.setCanModify(change.isSelected());
+            perm.setCanModifyAnnotations(change.isSelected());
+            perm.setCanFillInForm(change.isSelected());
+            perm.setCanAssembleDocument(change.isSelected());
+            return io.xlogistx.gui.PDFSecurity.of(p, new String(owner.getPassword()), perm);
+        }
+    }
+
     private static int addRow(JPanel form, GridBagConstraints gc, int row, String label, JComponent c) {
         gc.gridx = 0;
         gc.gridy = row;

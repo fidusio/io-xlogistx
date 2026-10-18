@@ -491,6 +491,7 @@ renders non-blank pixels; flattened export has zero annotations and identical re
 - [x] Phase 1 Tier 1 page operations (2026-10-15: `RotatePagesEdit`, `MovePagesEdit`, rotate
   buttons + dialogs, `PageOpsEditTest`)
 - [x] Forms (2026-10-15: `FormFields`, `SetFieldValueEdit`, `FormFillTool`, `FormFillTest`)
+- [x] Document passwords (2026-10-17: `io.xlogistx.gui.PDFSecurity` + viewer prompt and copy-based encrypted save, `SetSecurityEdit`, File ▸ Document password…, `DocumentPasswordTest`, `PDFSecurityTest`)
 - [x] Phase 2 Tier 2 markup + notes (2026-10-15: `AnnotationStyle`, `AnnotationFactory`,
   `AddAnnotationEdit`, `RemoveAnnotationEdit`, `TextMarkupTool`, `NoteTool`,
   `SelectAnnotationTool`, `AnnotationEditTest`)

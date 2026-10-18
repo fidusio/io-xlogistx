@@ -155,8 +155,8 @@ of the selected shape afterwards. Very small drags (under 3 pt) are ignored.
 
 ## 3. Menus
 
-- **File**: Open, Open Recent (the last ten files, Clear list), Save, Save As…, Print…, Exit
-  (standalone window).
+- **File**: Open, Open Recent (the last ten files, Clear list), Save, Save As…, Document
+  password…, Print…, Exit (standalone window).
 - **Edit**: Undo, Redo, Cut annotation, Copy, Paste, Duplicate annotation, Edit selected
   text…, Editing enabled.
 - **View**: Page thumbnails; Control text size ▸ Larger (Ctrl+Alt+=), Smaller (Ctrl+Alt+-),
@@ -203,6 +203,22 @@ Saving, **over the file you opened** or with **Save As…** to a new file, keeps
 it is: the page, the selection and the undo history. The file is written next to its final
 place first and then moved over it, so an interrupted save never leaves a half-written PDF.
 
+### Passwords
+
+- **Opening a protected file** asks for its password (as many times as it takes; Cancel leaves
+  the file closed). The same goes for a protected file you insert or drop. Once open, the file
+  behaves like any other, and saving it keeps its password and its permissions, so it stays
+  protected on disk. The status line shows "Protected: …" on the right while nothing is
+  selected.
+- **File ▸ Document password…** sets, changes or removes the protection of the open document:
+  the **password to open** (typed twice), an optional **owner password** (the one that lets
+  someone change the protection later; empty = the open password) and what a reader may do:
+  **print**, **copy** text and pictures, **make changes**. Leave both passwords empty and
+  allow everything to remove the protection. The change is an undo step like any other and
+  takes effect when you save; the pages on screen are not touched.
+- Files are encrypted with AES-256. Other readers ask for the open password and respect the
+  permissions; the editor itself shows a protected file in full once it is open.
+
 ## 6. Drag and drop, recent files, what is remembered
 
 - **Drop files on the window.** With nothing open, a dropped PDF, Markdown file or image is
@@ -225,3 +241,6 @@ place first and then moved over it, so an interrupted save never leaves a half-w
   deleted, not cropped or edited.
 - Page content inside embedded forms (and scanned pages without a text layer) has no
   editable text; add a text box over it instead.
+- A protected file opened with its open password is saved with that password as its owner
+  password too: the original owner password is not in the file in a recoverable form. Open the
+  file with the owner password to keep it.

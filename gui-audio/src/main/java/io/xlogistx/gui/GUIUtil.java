@@ -535,6 +535,43 @@ public class GUIUtil {
         return ret.toByteArrayInputStream();
     }
 
-
-
+    /**
+     * Asks for a password in a modal dialog (a {@link JPasswordField} with the
+     * look and feel's reveal button). Must be called on the EDT; returns null
+     * at once when the JVM is headless.
+     *
+     * @param parent  the component the dialog is centred on, may be null
+     * @param title   the dialog title
+     * @param message the prompt shown above the field, may hold several lines
+     * @return the password typed (possibly empty), null when cancelled or headless
+     */
+    public static String askPassword(Component parent, String title, String message) {
+        if (GraphicsEnvironment.isHeadless())
+            return null;
+        JPasswordField field = new JPasswordField(24);
+        JPanel form = new JPanel(new BorderLayout(0, 6));
+        JTextArea text = new JTextArea(message);
+        text.setEditable(false);
+        text.setFocusable(false);
+        text.setOpaque(false);
+        text.setBorder(null);
+        text.setFont(UIManager.getFont("Label.font"));
+        form.add(text, BorderLayout.NORTH);
+        form.add(PanelBuilder.passwordField(field), BorderLayout.CENTER);
+        JOptionPane pane = new JOptionPane(form, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+        JDialog dialog = pane.createDialog(parent, title);
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowOpened(java.awt.event.WindowEvent e) {
+                field.requestFocusInWindow();
+            }
+        });
+        field.addActionListener(e -> pane.setValue(JOptionPane.OK_OPTION));
+        dialog.setVisible(true);
+        dialog.dispose();
+        Object v = pane.getValue();
+        if (!(v instanceof Integer) || (Integer) v != JOptionPane.OK_OPTION)
+            return null;
+        return new String(field.getPassword());
+    }
 }

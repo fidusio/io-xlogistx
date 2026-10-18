@@ -22,7 +22,10 @@ snapshot, move the popup, `AnnotationFactory.rebuildAppearance`, `invalidatePage
 gesture), `SetFieldValueEdit` (String, or `List<String>` for multi-select; check box via
 `check()/unCheck()`, choice cleared with `setValue((String) null)`; `refreshAppearances`
 when `NeedAppearances`; invalidates every page with a widget), `CompoundEdit` (one step for
-several, e.g. a highlight spanning pages).
+several, e.g. a highlight spanning pages), `SetSecurityEdit` (2026-10-17: the document's
+password protection, a `io.xlogistx.gui.PDFSecurity` value before / after handed to
+`PDFViewerPanel.setSecurityDirect`; names "Set / Change / Remove document password", "Change
+document permissions"; no page changes, it only decides how the next save encrypts).
 
 **Annotations**: `AnnotationStyle` (immutable: stroke, fill (nullable), opacity, width, font
 size, font family + `java.awt.Font` style bits (bold / italic; 2026-10-16), author; defaults
@@ -238,10 +241,22 @@ is the user's only manual. API: `editSelectedText`, `replaceSelectedText(text[, 
 Format]])`, `rotateSelectedImage`, `rotatePages`, `movePages`, `markSelection`, `addNote`, `addImage(page, viewRect,
 File|BufferedImage)` (+ `insertImageDialog`, Annotate menu "Insert image…"), `addAnnotation`, `removeAnnotation`,
 `getAnnotations`, `selectAnnotation`, `deleteSelectedAnnotation`, `applyStyleToSelection`,
-`getFormFields`, `setFieldValue`, `getStyle/setStyle`, `setActiveTool/getTool`. Any editing
+`getFormFields`, `setFieldValue`, `getStyle/setStyle`, `setActiveTool/getTool`,
+`getDocumentSecurity` / `setDocumentSecurity(PDFSecurity)` (2026-10-17: one `SetSecurityEdit`,
+the same value = no edit; `Delegate.setSecurity` routes the viewer's `setSecurity` here) and
+`documentPasswordDialog()` (File ▸ Document password…: `EditorDialogs.askSecurity` = open
+password twice + owner password + Allow printing / copying / changes check boxes, a mismatch
+re-asks; the status detail reads "Protected: …" while nothing is selected). The viewer asks for
+the password of a protected file through its default prompt; tests install
+`viewer.setPasswordPrompt`. Any editing
 API call turns editing on; undo/redo clear the annotation selection first.
 
-**Tests** (headless, run with the CLI launcher): `InPlaceTextTest` (2026-10-17: a drag with the
+**Tests** (headless, run with the CLI launcher): `DocumentPasswordTest` (2026-10-17: a protected
+file opened through the prompt, its permissions read back, saved over itself still protected with
+the edit inside and the history kept; set / change permissions / change password / remove as four
+named undo steps, undone back to the clean state, the viewer's `setSecurity` routed through the
+delegate, the saved file needing the new password and the owner password separate, a plain file
+after removal; the File menu entry, nothing loaded refused), `InPlaceTextTest` (2026-10-17: a drag with the
 Text box tool opens the editor over the box with the style's font at the zoom, commit adds and
 selects, blank / cancelled / Esc add nothing, a tool switch commits without stealing the tool, a
 second box commits the first; an existing box edited in place as one "Edit text" step, same text
