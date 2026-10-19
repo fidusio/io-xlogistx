@@ -1,6 +1,6 @@
 package io.xlogistx.common.smtp;
 
-import org.zoxweb.shared.data.SetNameDescriptionDAO;
+import org.zoxweb.shared.data.SetNameDescriptionImpl;
 import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.util.*;
 
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 public class EmailRecipient
-        extends SetNameDescriptionDAO {
+        extends SetNameDescriptionImpl {
     public enum Type
             implements GetName {
         // Destination recipient
@@ -65,7 +65,7 @@ public class EmailRecipient
             SUS.extractNVConfigs(Param.values()),
             null,
             false,
-            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+            SetNameDescriptionImpl.NVC_NAME_DESCRIPTION_IMPL
     );
 
 

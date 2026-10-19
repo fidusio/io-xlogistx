@@ -1,6 +1,6 @@
 package io.xlogistx.shared.data;
 
-import org.zoxweb.shared.data.SetNameDescriptionDAO;
+import org.zoxweb.shared.data.SetNameDescriptionImpl;
 import org.zoxweb.shared.util.*;
 
 /**
@@ -8,7 +8,7 @@ import org.zoxweb.shared.util.*;
  */
 @SuppressWarnings("serial")
 public class ZipCodeDistanceDAO
-    extends SetNameDescriptionDAO {
+    extends SetNameDescriptionImpl {
 
   public enum Param
       implements GetNVConfig {
@@ -46,7 +46,7 @@ public class ZipCodeDistanceDAO
       SUS.extractNVConfigs(Param.values()),
       null,
       false,
-      SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+      SetNameDescriptionImpl.NVC_NAME_DESCRIPTION_IMPL
   );
 
 

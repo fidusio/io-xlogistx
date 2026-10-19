@@ -1,12 +1,12 @@
 package io.xlogistx.common.cron;
 
-import org.zoxweb.shared.data.SetNameDescriptionDAO;
+import org.zoxweb.shared.data.SetNameDescriptionImpl;
 import org.zoxweb.shared.util.*;
 
 import java.util.Date;
 
 public class CronConfig
-        extends SetNameDescriptionDAO {
+        extends SetNameDescriptionImpl {
     public enum Param
             implements GetNVConfig {
         SCHEDULES(NVConfigManager.createNVConfigEntity("schedules", "Cron Schedules", "Schedules", false, true, CronSchedulerConfig.NVC_CRON_SCHEDULER_CONFIG, NVConfigEntity.ArrayType.LIST)),
@@ -39,7 +39,7 @@ public class CronConfig
             SUS.extractNVConfigs(Param.values()),
             null,
             false,
-            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO);
+            SetNameDescriptionImpl.NVC_NAME_DESCRIPTION_IMPL);
 
     public CronConfig() {
         super(NVC_CRON_CONFIG);

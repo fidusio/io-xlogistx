@@ -1,13 +1,13 @@
 package io.xlogistx.shared.data;
 
 
-import org.zoxweb.shared.data.SetNameDescriptionDAO;
+import org.zoxweb.shared.data.SetNameDescriptionImpl;
 import org.zoxweb.shared.filters.FilterType;
 //import org.zoxweb.shared.filters.ValueFilter;
 import org.zoxweb.shared.util.*;
 
 public class SMTPConfig
-        extends SetNameDescriptionDAO {
+        extends SetNameDescriptionImpl {
 
     public enum Param
             implements GetNVConfig {
@@ -51,7 +51,7 @@ public class SMTPConfig
             SUS.extractNVConfigs(Param.values()),
             null,
             false,
-            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+            SetNameDescriptionImpl.NVC_NAME_DESCRIPTION_IMPL
     );
 
     public SMTPConfig() {

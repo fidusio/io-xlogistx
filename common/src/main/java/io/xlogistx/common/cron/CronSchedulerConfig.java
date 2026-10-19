@@ -1,11 +1,11 @@
 package io.xlogistx.common.cron;
 
-import org.zoxweb.shared.data.PropertyDAO;
+import org.zoxweb.shared.data.PropertyImpl;
 import org.zoxweb.shared.util.*;
 
 
 public class CronSchedulerConfig
-        extends PropertyDAO {
+        extends PropertyImpl {
     public enum Param
             implements GetNVConfig {
         BEAN(NVConfigManager.createNVConfig("bean", "Bean class name", "Bean", false, true, String.class)),
@@ -37,7 +37,7 @@ public class CronSchedulerConfig
             SUS.extractNVConfigs(Param.values()),
             null,
             false,
-            PropertyDAO.NVC_PROPERTY_DAO);
+            PropertyImpl.NVC_PROPERTY_IMPL);
 
 
     public CronSchedulerConfig() {

@@ -16,12 +16,12 @@
 package io.xlogistx.shared.data;
 
 import org.zoxweb.shared.accounting.AmountInfo;
-import org.zoxweb.shared.data.SetNameDescriptionDAO;
+import org.zoxweb.shared.data.SetNameDescriptionImpl;
 import org.zoxweb.shared.util.*;
 
 @SuppressWarnings("serial")
 public class OrderItemDAO
-        extends SetNameDescriptionDAO {
+        extends SetNameDescriptionImpl {
 
     public enum Param
             implements GetNVConfig {
@@ -60,7 +60,7 @@ public class OrderItemDAO
             SUS.extractNVConfigs(Param.values()),
             null,
             false,
-            SetNameDescriptionDAO.NVC_NAME_DESCRIPTION_DAO
+            SetNameDescriptionImpl.NVC_NAME_DESCRIPTION_IMPL
     );
 
     public OrderItemDAO() {

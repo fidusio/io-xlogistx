@@ -1,6 +1,6 @@
 package io.xlogistx.common.task;
 
-import org.zoxweb.shared.data.PropertyDAO;
+import org.zoxweb.shared.data.PropertyImpl;
 
 public class OnOff
 {
