@@ -12,9 +12,10 @@ public class PDFMain {
     public static final AppVersion VERSION = new AppVersion("PDFEditor::0.1.0");
 
     /**
-     * Standalone entry point: {@code Main [file.pdf | file.md | image.png]}.
+     * Standalone entry point: {@code Main [file.pdf | file.md | image.png ...]};
+     * every file given opens in its own tab.
      *
-     * @param args optional file to open
+     * @param args optional files to open
      */
     public static void main(String[] args) {
         try {
@@ -27,9 +28,10 @@ public class PDFMain {
             frame.setExitOnClose(true);
             frame.applySettings(EditorSettings.user());
             frame.getEditorPane().setEditable(true);
-            if (args.length > 0)
-                frame.getEditorPane().open(new File(args[0]));
             frame.getEditorPane().setActiveTool(PDFEditorPane.EditTool.SELECT);
+            for (String arg : args)
+                frame.open(new File(arg));
+            frame.getTabs().selectTab(frame.getTabs().getPanes().get(0));
             frame.setVisible(true);
         });
     }

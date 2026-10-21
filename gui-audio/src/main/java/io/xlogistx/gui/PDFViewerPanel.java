@@ -444,6 +444,8 @@ public class PDFViewerPanel extends JPanel {
     private FontSizeWidget fontSizeWidget;
     /** Takes dropped files before the panel does, see {@link #setDropInterceptor}. */
     private java.util.function.BiPredicate<List<File>, Point> dropInterceptor;
+    /** Takes files the user wants to open before the panel replaces its document, see {@link #setOpenHandler}. */
+    private java.util.function.Predicate<List<File>> openHandler;
     /** Where the file choosers start without a current file, see {@link #setDefaultDirectory}. */
     private File defaultDirectory;
 
@@ -1519,15 +1521,27 @@ public class PDFViewerPanel extends JPanel {
      * @return the chosen file, or null if the dialog was cancelled
      */
     public File openFile() {
-        if (!confirmDiscard())
-            return null;
         JFileChooser fc = fileChooser(true);
         fc.setDialogTitle("Open PDF, Markdown or image");
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return null;
         File f = fc.getSelectedFile();
+        if (openHandled(Collections.singletonList(f)))
+            return f;
+        if (!confirmDiscard())
+            return null;
         setPDF(f);
         return f;
+    }
+
+    /**
+     * Asks the {@linkplain #setOpenHandler open handler}, when there is one and
+     * a document is loaded, to take files the user wants to open.
+     *
+     * @return true when the handler opened them, so this panel must not
+     */
+    private boolean openHandled(List<File> files) {
+        return openHandler != null && getDocument() != null && openHandler.test(files);
     }
 
     /**
@@ -2700,6 +2714,28 @@ public class PDFViewerPanel extends JPanel {
     }
 
     /**
+     * Lets a host that shows documents in several places (tabs, windows) decide
+     * where files the user opens go. While a document is loaded, the files
+     * chosen in {@link #openFile()} and files dropped with the Open choice are
+     * offered to the handler first; it returns true when it opened them (in a
+     * new tab, say), false to let this panel replace its document as usual. The
+     * handler is not asked while nothing is loaded. The API calls
+     * ({@link #setPDF}, {@link #openFiles}) never go through it.
+     *
+     * @param handler the handler, null for none
+     * @return this panel, for chaining
+     */
+    public PDFViewerPanel setOpenHandler(java.util.function.Predicate<List<File>> handler) {
+        openHandler = handler;
+        return this;
+    }
+
+    /** @return the handler set with {@link #setOpenHandler}, null when none */
+    public java.util.function.Predicate<List<File>> getOpenHandler() {
+        return openHandler;
+    }
+
+    /**
      * Where the open / insert / save dialogs start while no file is open
      * (afterwards they start in the open file's directory).
      *
@@ -2776,6 +2812,8 @@ public class PDFViewerPanel extends JPanel {
             return;
         switch (action) {
             case OPEN:
+                if (openHandled(sources))
+                    break;
                 if (confirmDiscard())
                     openFiles(sources);
                 break;
@@ -2792,8 +2830,9 @@ public class PDFViewerPanel extends JPanel {
     private DropAction askDropAction(List<File> sources) {
         String what = sources.size() == 1 ? sources.get(0).getName() : sources.size() + " files";
         String[] options = {"Open", "Insert after page " + (currentPage + 1), "Insert at the end", "Cancel"};
+        String openMeans = openHandler != null ? "Open shows the file on its own" : "Open replaces the current document";
         int choice = JOptionPane.showOptionDialog(this,
-                "What should happen with " + what + "?\nOpen replaces the current document; Insert adds the pages to it.",
+                "What should happen with " + what + "?\n" + openMeans + "; Insert adds the pages to it.",
                 "Dropped " + (sources.size() == 1 ? "file" : "files"), JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
                 null, options, options[1]);
         switch (choice) {

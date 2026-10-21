@@ -145,7 +145,9 @@ public class SecurityAdminTool {
                     + "  seed-catalog                 create or repair the built-in permissions, roles and role groups\n"
                     + "  bootstrap-super-admin        seed the catalog, create the super-admin account named by the secret store's\n"
                     + "                               " + SecretStore.SUPER_ADMIN_ID + " and grant it the super_admin role; idempotent. Initial password: the\n"
-                    + "                               secret store's " + SUPER_ADMIN_PASSWORD + " entry (mandatory); password= is refused\n"
+                    + "                               secret store's " + SUPER_ADMIN_PASSWORD + " entry (mandatory); password= is refused;\n"
+                    + "                               also gives the common app its registrar (its owner, app_registrar + app_admin) and\n"
+                    + "                               prints that key id and secret ONCE when it creates it\n"
                     + "  reset-super-admin-password   replace the super-admin password (password=<pw> or console prompt)\n"
                     + "  create-subject               principal.id=<principal> [password=<pw> or console prompt] [role=<role name> [app.id=]]:\n"
                     + "                               create an account (e.g. remote-admin / local-admin with role=domain_admin);\n"
@@ -157,7 +159,8 @@ public class SecurityAdminTool {
                     + "  reset-password               principal.id=<principal>: admin reset; prints the one-time token (4 h) to hand out\n"
                     + "  list-catalog                 print permissions, roles and role groups, with the app that owns each row\n"
                     + "  create-app                   domain.id=<domain> app.id=<app> (or app.id=<domain-app>) [principal.id=<first manager>]:\n"
-                    + "                               create an app with its own starter roles and permissions and its registrar;\n"
+                    + "                               create an app with its own starter roles and permissions and its registrar (the app's\n"
+                    + "                               owner and service subject: app_registrar + app_admin; a password can be added later);\n"
                     + "                               prints the registrar key id and secret ONCE (keep them in the app's vault)\n"
                     + "  rotate-registrar-key         app.id=<domain-app>: replace the registrar key; prints the new secret once\n"
                     + "  list-apps                    print every app with its owner and registrar\n"
@@ -304,6 +307,15 @@ public class SecurityAdminTool {
                     // the vault's mandatory entry, used only to create the account
                     SecuritySetup.Result result = SecuritySetup.bootstrapSuperAdmin(dsm, exists ? null : vault.superAdminPassword);
                     out.println(result);
+                    if (result.registrarKey != null) {
+                        printRegistrarKey(out, result.app, result.registrarKey); // the common app's registrar, created by this run
+                    }
+                    for (ShiroDSDomainSecurityManager.AppCreation up : result.registrarsCreated) {
+                        printRegistrarKey(out, up.app, up.registrarKey); // an app that had no registrar: created by this run
+                    }
+                    if (result.appsRepaired > 0) {
+                        out.println("other apps brought to the model (starter catalog + registrar): " + result.appsRepaired);
+                    }
                     if (exists) {
                         out.println("account already existed: password unchanged");
                     } else {

@@ -30,13 +30,22 @@ public class DomainAuthenticationInfo
 
 	public DomainAuthenticationInfo(Object principal, String subjectGUID, Object credentials, String realmName, String domainID, String applicationID, String jwtSubjectID)
     {
+		this(principal, subjectGUID, credentials, realmName, domainID, applicationID, jwtSubjectID, null);
+	}
+
+	/**
+	 * @param appGUID the GUID of the app record of {@code domainID}/{@code applicationID} (dual ownership,
+	 *                2026-10-20), carried by the principal collection; null for a login without app
+	 */
+	public DomainAuthenticationInfo(Object principal, String subjectGUID, Object credentials, String realmName, String domainID, String applicationID, String jwtSubjectID, String appGUID)
+    {
 		Set<Object> principalCollection = new LinkedHashSet<>();
 		principalCollection.add(principal);
 		if (subjectGUID != null)
 			principalCollection.add(UUID.fromString(subjectGUID));
 
-		this.principals = new DomainPrincipalCollection(principalCollection, subjectGUID, realmName, domainID, applicationID, jwtSubjectID);
-		 
+		this.principals = new DomainPrincipalCollection(principalCollection, subjectGUID, realmName, domainID, applicationID, jwtSubjectID, appGUID);
+
 		this.credentials = credentials;
 	}
 

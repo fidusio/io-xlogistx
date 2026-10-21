@@ -9,10 +9,12 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 
 /**
- * Standalone window around {@link PDFEditorPane}: title tracking, the pane's
- * menu bar with an added Exit item, and close handling. The JVM is exited only
+ * Standalone window around {@link PDFEditorTabs}: one tab per open document,
+ * title tracking, the active tab's menu bar with an added Exit item, and close
+ * handling that asks about every tab's unsaved changes. The JVM is exited only
  * when {@link #setExitOnClose(boolean)} is enabled (done by {@link PDFMain#main}), so a
  * host application can open this frame, or embed the pane, without its process
  * being terminated.
@@ -21,33 +23,49 @@ public class PDFEditorFrame extends JFrame {
 
     private static final String TITLE = "PDF Editor";
 
-    private final PDFEditorPane editorPane;
+    private final PDFEditorTabs tabs;
     private boolean exitOnClose;
     private EditorSettings settings;
 
-    /** Creates a frame around a new, empty editor pane. */
+    /** Creates a frame with one empty tab. */
     public PDFEditorFrame() {
         this(new PDFEditorPane());
     }
 
     /**
-     * @param editorPane the pane to host
+     * @param editorPane the pane of the first tab
      */
     public PDFEditorFrame(PDFEditorPane editorPane) {
+        this(new PDFEditorTabs(editorPane));
+    }
+
+    /**
+     * @param tabs the tabbed documents to host
+     */
+    public PDFEditorFrame(PDFEditorTabs tabs) {
         super(TITLE);
-        this.editorPane = editorPane;
+        this.tabs = tabs;
         setLayout(new BorderLayout());
-        add(editorPane, BorderLayout.CENTER);
+        add(tabs, BorderLayout.CENTER);
 
-        JMenuBar menuBar = editorPane.createMenuBar();
-        JMenu fileMenu = menuBar.getMenu(0);
-        fileMenu.addSeparator();
-        JMenuItem exit = new JMenuItem("Exit", KeyEvent.VK_X);
-        exit.addActionListener(e -> handleClose());
-        fileMenu.add(exit);
-        setJMenuBar(menuBar);
+        tabs.setMenuBarCustomizer(menuBar -> {
+            JMenu fileMenu = menuBar.getMenu(0);
+            fileMenu.addSeparator();
+            JMenuItem exit = new JMenuItem("Exit", KeyEvent.VK_X);
+            exit.addActionListener(e -> handleClose());
+            fileMenu.add(exit);
+        });
+        setJMenuBar(tabs.getMenuBar());
 
-        editorPane.addChangeListener(e -> updateTitle());
+        tabs.addChangeListener(e -> {
+            JMenuBar bar = tabs.getMenuBar();
+            if (bar != getJMenuBar()) {
+                setJMenuBar(bar);
+                revalidate();
+                repaint();
+            }
+            updateTitle();
+        });
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -66,9 +84,24 @@ public class PDFEditorFrame extends JFrame {
         return PDFMain.VERSION;
     }
 
-    /** @return the embedded editor pane */
+    /** @return the pane of the active tab */
     public PDFEditorPane getEditorPane() {
-        return editorPane;
+        return tabs.getActivePane();
+    }
+
+    /** @return the tabbed documents */
+    public PDFEditorTabs getTabs() {
+        return tabs;
+    }
+
+    /**
+     * Shows a file in its own tab (the active tab when it is empty).
+     *
+     * @param file a PDF, Markdown file or image
+     * @return the pane showing it
+     */
+    public PDFEditorPane open(File file) {
+        return tabs.openInNewTab(file);
     }
 
     /**
@@ -81,7 +114,7 @@ public class PDFEditorFrame extends JFrame {
     }
 
     /**
-     * Installs the settings on the pane (recent files, thumbnails, zoom, last
+     * Installs the settings on the tabs (recent files, thumbnails, zoom, last
      * directory) and restores the window's bounds when they are still on a
      * screen; closing the window saves everything back.
      *
@@ -90,7 +123,7 @@ public class PDFEditorFrame extends JFrame {
      */
     public PDFEditorFrame applySettings(EditorSettings settings) {
         this.settings = settings;
-        editorPane.setSettings(settings);
+        tabs.setSettings(settings);
         if (settings == null)
             return this;
         Rectangle bounds = settings.getWindowBounds();
@@ -123,19 +156,19 @@ public class PDFEditorFrame extends JFrame {
         settings.setWindowMaximized(maximized);
         if (!maximized)
             settings.setWindowBounds(getBounds());
-        editorPane.saveSettings();
+        tabs.saveSettings();
     }
 
     private void updateTitle() {
-        String doc = editorPane.getDocumentTitle();
+        String doc = tabs.getActivePane().getDocumentTitle();
         setTitle(doc.isEmpty() ? TITLE : TITLE + " - " + doc);
     }
 
     private void handleClose() {
-        if (!editorPane.confirmDiscard())
+        if (!tabs.confirmDiscardAll())
             return;
         saveSettings();
-        editorPane.getViewer().close();
+        tabs.closeAll();
         dispose();
         if (exitOnClose)
             System.exit(0);

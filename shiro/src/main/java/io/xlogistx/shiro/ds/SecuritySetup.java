@@ -51,9 +51,10 @@ import java.util.UUID;
  * logged or kept.
  * <p>
  * <b>Common app</b> ({@link #ensureCommonApp}): the record of the platform's own app,
- * {@value #COMMON_DOMAIN_ID}-{@value #COMMON_APP_ID}, one {@link AppIDDefault} row owned by the
- * super-admin. Created once (by the seeding, as the catalog's owner); the bootstrap hands it to the
- * super-admin and gives it its registrar like any other app.
+ * {@value #COMMON_DOMAIN_ID}-{@value #COMMON_APP_ID}, one {@link AppIDDefault} row. Created once
+ * (by the seeding, as the catalog's owner, handed to the super-admin until it has a registrar); the
+ * bootstrap then gives it its registrar {@code registrar.xlogistx.com-common} like any other app,
+ * which owns the record from then on (user, 2026-10-20: the registrar is the app's owner subject).
  */
 public final class SecuritySetup {
 
@@ -92,6 +93,15 @@ public final class SecuritySetup {
         public boolean wildcardVerified;
         public AppIDDefault app;
         public boolean appCreated;
+        /** The common app's registrar: its owner and service subject ({@code app_registrar} + {@code app_admin}). */
+        public SubjectIdentifier registrar;
+        /** The registrar's signing key, secret included — only when the registrar was created by this run; print it once. */
+        public org.zoxweb.shared.security.SubjectAPIKey registrarKey;
+        public boolean registrarCreated;
+        /** Apps other than the common one whose starter catalog and registrar this run brought to the model (2026-10-20). */
+        public int appsRepaired;
+        /** Registrars this run created for apps that had none, key secrets included; print each once. */
+        public final List<ShiroDSDomainSecurityManager.AppCreation> registrarsCreated = new ArrayList<>();
 
         @Override
         public String toString() {
@@ -101,6 +111,8 @@ public final class SecuritySetup {
                     + " login=" + (loginVerified ? "verified" : "not checked")
                     + " wildcard=" + (wildcardVerified ? "verified" : "FAILED")
                     + " app=" + (app != null ? app.getDomainAppID() : null) + (appCreated ? " (created)" : " (existing)")
+                    + " registrar=" + (registrar != null ? registrar.getGUID() : null) + (registrarCreated ? " (created)" : " (existing)")
+                    + " other apps repaired=" + appsRepaired + (registrarsCreated.isEmpty() ? "" : " registrars created=" + registrarsCreated.size())
                     + " catalog{" + catalog + "}";
         }
     }
@@ -114,7 +126,8 @@ public final class SecuritySetup {
 
     /**
      * Seeds or repairs the full catalog of the common app ({@code xlogistx.com-common}); the app
-     * record is created first when missing, owned by the super-admin when that account exists.
+     * record is created first when missing, owned by the super-admin when that account exists until
+     * the bootstrap gives it its registrar.
      *
      * @param dsm the manager whose store receives the catalog
      * @return counts of what was created, repaired and left alone
@@ -307,9 +320,11 @@ public final class SecuritySetup {
 
     /**
      * The setup of a store: the super-admin account (created first — it needs no catalog), the
-     * common app owned by it with the full catalog, and the reserved role granted to the account.
-     * The common app gets <b>no registrar</b> (user, 2026-10-12): a deployment's subjects are signed
-     * up through its default app, created by {@code H2PSetup} / {@code create-app}, which has one.
+     * common app with the full catalog, the reserved role granted to the account, and the common
+     * app's registrar {@code registrar.xlogistx.com-common} — its owner and service subject
+     * ({@code app_registrar} + {@code app_admin}) with its signing key, whose secret is returned
+     * once in {@link Result#registrarKey} (user, 2026-10-20; this replaces the 2026-10-12 rule that
+     * gave the common app no registrar).
      *
      * @param dsm      the manager (enforcement is expected to be off, or the caller to hold the wildcard)
      * @param password the password for a new account; ignored when the account already exists
@@ -333,8 +348,27 @@ public final class SecuritySetup {
         ret.subject = subject;
 
         ret.appCreated = dsm.commonApp() == null;
-        ret.catalog = dsm.seedCatalog(); // creates the common app (owned by the super-admin) and its catalog
+        ret.catalog = dsm.seedCatalog(); // creates the common app (owned by the super-admin for now) and its catalog
         ret.app = dsm.commonApp();
+        // the common app's registrar: its owner and service subject, made once, repaired on a rerun (user, 2026-10-20)
+        ShiroDSDomainSecurityManager.AppCreation pair = dsm.ensureRegistrar(ret.app);
+        ret.registrar = pair.registrar;
+        ret.registrarKey = pair.registrarKey;
+        ret.registrarCreated = pair.registrarKey != null;
+        ret.app = pair.app;
+        // every other app: its starter catalog is brought to the model (a role seeded before app:login existed gets it,
+        // user rule 2026-10-20) and its registrar to the merged one — the upgrade path of a database set up earlier
+        for (AppIDDefault other : dsm.lookupAllApps()) {
+            if (ret.app.equals(other)) {
+                continue;
+            }
+            seedStarterCatalog(dsm, other);
+            ShiroDSDomainSecurityManager.AppCreation up = dsm.ensureRegistrar(other);
+            ret.appsRepaired++;
+            if (up.registrarKey != null) {
+                ret.registrarsCreated.add(up);
+            }
+        }
 
         RoleInfo role = dsm.lookupRole(null, SecurityModel.Role.SUPER_ADMIN.getName());
         if (role == null) {

@@ -591,6 +591,32 @@ public class ShiroUtil {
     }
 
     /**
+     * The GUID of the app record the subject logged into (dual ownership, 2026-10-20), resolved by
+     * the realm at login from its {@link DomainPrincipalCollection}: the {@code app_guid} of the
+     * rows it creates in the app's registered classes.
+     *
+     * @return the app record GUID, null for a login without app or an app without record
+     * @throws AccessSecurityException if nobody is authenticated, or the principals are not a
+     *                                 {@link DomainPrincipalCollection}
+     */
+    public static String subjectAppGUID()
+            throws AccessSecurityException {
+        try {
+            Subject subject = subject();
+
+            if (subject.isAuthenticated()) {
+                if (subject.getPrincipals() instanceof DomainPrincipalCollection) {
+                    return ((DomainPrincipalCollection) subject.getPrincipals()).getAppGUID();
+                }
+            }
+
+            throw new AccessSecurityException("Subject not authenticated");
+        } catch (ShiroException e) {
+            throw new AccessSecurityException(e.getMessage());
+        }
+    }
+
+    /**
      * Builds a security manager from a {@code shiro.ini}. The manager is only returned, not installed:
      * pass it to {@link #setSecurityManager(SecurityManager)} to make it the global one.
      *
@@ -647,16 +673,13 @@ public class ShiroUtil {
     public static String checkResourcePermission(NVEntity nve, String permission)
             throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("nve, its guid and subject_guid cannot be null", nve, nve.getGUID(), nve.getSubjectGUID());
-        return checkResourcePermission(nve.getGUID(), nve.getSubjectGUID(), permission);
+        return checkResourcePermission(nve.getGUID(), nve.getSubjectGUID(), nve.getAppGUID(), SecurityModel.resourceTypeOf(nve), permission);
     }
 
     /**
-     * Same as {@link #checkResourcePermission(NVEntity, String)} without loading the entity. This is
-     * the check behind the datastore access control: every row read, updated or deleted through a
-     * store configured with the Shiro controller ends here.
-     * <p>In the system context ({@link #runAsSystem(Supplier)}) the check passes without a subject.
-     * A resource without owner ({@code ownerGUID} null) has no owner token: only a grant on the
-     * resource itself — or a wildcard such as {@code resource:*:*:<verb>} or {@code *} — reaches it.
+     * Same as {@link #checkResourcePermission(NVEntity, String)} without loading the entity, for a
+     * row no app owns: {@link #checkResourcePermission(String, String, String, String, String)} with
+     * no app and no type.
      *
      * @param resourceGUID the resource GUID
      * @param ownerGUID    the resource's {@code subject_guid}, null for a resource without owner
@@ -664,6 +687,34 @@ public class ShiroUtil {
      * @return {@code ownerGUID}
      */
     public static String checkResourcePermission(String resourceGUID, String ownerGUID, String permission)
+            throws NullPointerException, AccessSecurityException {
+        return checkResourcePermission(resourceGUID, ownerGUID, null, null, permission);
+    }
+
+    /**
+     * The resource access check behind the datastore access control: every row read, updated or
+     * deleted through a store configured with the Shiro controller ends here. Three tokens, in order:
+     * <ol>
+     * <li>in the system context ({@link #runAsSystem(Supplier)}) the check passes without a subject;</li>
+     * <li>the owner token. A row an app owns ({@code appGUID} and {@code resourceType} both set,
+     * dual ownership 2026-10-20) is judged on the caller's app-resource right for the class in that app,
+     * {@code app_resource:<appGUID>:<resourceType>:<caller>:<verb>} — the subject recorded in
+     * {@code subject_guid} created the row and owns nothing by that fact. A row without app is judged
+     * on {@code resource:<owner>:<caller>:<verb>}, implied by the owner's self permission;</li>
+     * <li>the share token {@code resource:<resource>:<caller>:<verb>}, a grant on the row itself, which
+     * a wildcard such as {@code resource:*:*:<verb>} or {@code *} implies.</li>
+     * </ol>
+     * A resource without owner and without app has no owner token: only a share or a wildcard reaches it.
+     *
+     * @param resourceGUID the resource GUID
+     * @param ownerGUID    the resource's {@code subject_guid}, null for a resource without owner
+     * @param appGUID      the resource's {@code app_guid}, null for a resource no app owns
+     * @param resourceType the resource's class ({@link SecurityModel#resourceTypeOf(NVEntity)}), null when unknown
+     * @param permission   the verb
+     * @return {@code ownerGUID}, the stored {@code subject_guid} (the key chain of an app-owned row is
+     * rooted elsewhere: see {@code ShiroSecurityController.keyOwnerOf})
+     */
+    public static String checkResourcePermission(String resourceGUID, String ownerGUID, String appGUID, String resourceType, String permission)
             throws NullPointerException, AccessSecurityException {
         SUS.checkIfNulls("resourceGUID and permission cannot be null", resourceGUID, permission);
         if (isSystemContext()) {
@@ -677,9 +728,21 @@ public class ShiroUtil {
         if (uuid == null) throw new AccessSecurityException("Subject has no GUID principal");
         String subjectGUID = uuid.toString();
 
-        // 1. owner rights: resource:<owner>:<subject>:<permission> (implied by the self permission)
-        if (ownerGUID != null && isPermitted(subject, SecurityModel.toResourceToken(ownerGUID, subjectGUID, permission)))
+        if (appGUID != null && resourceType != null) {
+            // 1a. the app owns the row: app_resource:<app>:<class>:<subject>:<permission>, flattened from the app's catalog for this login
+            if (isPermitted(subject, SecurityModel.toAppResourceToken(appGUID, resourceType, subjectGUID, permission)))
+                return ownerGUID;
+            // creation is judged on the creating subject (create is no app-resource verb): the recorded creator, logged into
+            // the very app that owns the row, creates it through its self permission — the first sealed write of a new row
+            if (SecurityModel.CREATE.equals(permission) && ownerGUID != null
+                    && subject.getPrincipals() instanceof DomainPrincipalCollection
+                    && appGUID.equalsIgnoreCase(((DomainPrincipalCollection) subject.getPrincipals()).getAppGUID())
+                    && isPermitted(subject, SecurityModel.toResourceToken(ownerGUID, subjectGUID, permission)))
+                return ownerGUID;
+        } else if (ownerGUID != null && isPermitted(subject, SecurityModel.toResourceToken(ownerGUID, subjectGUID, permission))) {
+            // 1b. owner rights: resource:<owner>:<subject>:<permission> (implied by the self permission)
             return ownerGUID;
+        }
 
         // 2. granted rights: resource:<resource>:<subject>:<permission>
         String granted = SecurityModel.toResourceToken(resourceGUID, subjectGUID, permission);
@@ -701,8 +764,16 @@ public class ShiroUtil {
      * @return true when access is allowed
      */
     public static boolean isResourcePermitted(String resourceGUID, String ownerGUID, String permission) {
+        return isResourcePermitted(resourceGUID, ownerGUID, null, null, permission);
+    }
+
+    /**
+     * Non-throwing form of {@link #checkResourcePermission(String, String, String, String, String)}:
+     * the app-aware verdict. Never throws.
+     */
+    public static boolean isResourcePermitted(String resourceGUID, String ownerGUID, String appGUID, String resourceType, String permission) {
         try {
-            checkResourcePermission(resourceGUID, ownerGUID, permission);
+            checkResourcePermission(resourceGUID, ownerGUID, appGUID, resourceType, permission);
             return true;
         } catch (AccessSecurityException | NullPointerException | IllegalArgumentException e) {
             return false;

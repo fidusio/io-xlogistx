@@ -28,9 +28,20 @@ text (notes and text boxes), Rotate (pictures), Cut, Copy, Duplicate, Properties
 on selected page text it offers Edit, Highlight, Underline and Strike out; on empty space
 **Paste here**; Copy, Select all and Clear selection are always there.
 
+**Tabs.** Each document has its own tab above the toolbars, with its own undo history,
+selection and status line. Opening a file while the current tab already shows one (Open, the
+toolbar button, Open Recent or a dropped file with the Open choice) puts it in a **new tab**;
+an empty tab is filled instead. **Ctrl+T** adds an empty tab, **Ctrl+W** (or the x on the tab, or
+a middle click) closes the current one after asking about unsaved changes, **Ctrl+Tab** /
+**Ctrl+Shift+Tab** go to the next / previous tab, **Alt+1** to **Alt+9** jump to a tab, and the
+**Tabs** menu lists every open document. Closing the last tab leaves an empty one; closing the
+window asks about every tab with unsaved changes. Starting the editor with several files opens
+each in its own tab.
+
 **Copy and paste.** Select a picture, text box, note, shape or any other annotation and press
 **Ctrl+C** (or **Ctrl+X** to cut it). **Ctrl+V** puts a copy under the mouse pointer, on any
-page and even in another file opened later; when the pointer is not over the pages it lands in
+page, in **another tab's document** (switch tabs and paste; a picture is copied into that file)
+or in another file opened later; when the pointer is not over the pages it lands in
 the middle of the view. Pasting again without moving the pointer puts each copy 10 pt right
 and below the previous one, so they do not pile up. The copy is selected at once, so the arrow
 keys or a drag place it exactly. **Ctrl+D** duplicates the selection 10 pt right and down without touching the
@@ -167,13 +178,17 @@ of the selected shape afterwards. Very small drags (under 3 pt) are ignored.
   this page…, Highlight selected text.
 - **Right-click menu** over the pages: see the start of this guide.
 - **Form**: Fill form fields.
+- **Tabs**: New tab (Ctrl+T), Close tab (Ctrl+W), Close other tabs, Next / Previous tab
+  (Ctrl+Tab / Ctrl+Shift+Tab), then one entry per open document (Alt+1 to Alt+9).
 - **Help**: this guide and the version.
 
 ## 4. Keyboard
 
 | Keys | Action |
 |------|--------|
-| Ctrl+O / Ctrl+S / Ctrl+Shift+S / Ctrl+P | Open / Save / Save As / Print |
+| Ctrl+O / Ctrl+S / Ctrl+Shift+S / Ctrl+P | Open (in a new tab when this one shows a document) / Save / Save As / Print |
+| Ctrl+T / Ctrl+W | New tab / Close tab |
+| Ctrl+Tab / Ctrl+Shift+Tab, Alt+1 to Alt+9 | Next / previous tab, go to tab n |
 | Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z | Undo / Redo |
 | Delete, Backspace | Delete the selected annotation |
 | Ctrl+X / Ctrl+C / Ctrl+V / Ctrl+D | Cut / copy the selected annotation (else copy the selected text) / paste under the pointer / duplicate |
@@ -221,10 +236,10 @@ place first and then moved over it, so an interrupted save never leaves a half-w
 
 ## 6. Drag and drop, recent files, what is remembered
 
-- **Drop files on the window.** With nothing open, a dropped PDF, Markdown file or image is
-  opened (several files at once are joined into one new document, in the order dropped). With
-  a document open, a dialog asks whether to open the files instead, insert their pages after
-  the current page or at the end; inserted pages are undoable. A single **picture dropped on a
+- **Drop files on the window.** With nothing open in the current tab, a dropped PDF, Markdown
+  file or image is opened there (several files at once are joined into one new document, in the
+  order dropped). With a document open, a dialog asks whether to open the files in a new tab,
+  insert their pages after the current page or at the end; inserted pages are undoable. A single **picture dropped on a
   page while Edit is on** is placed there as an image stamp, selected, ready to move or resize.
 - **Open Recent** in the File menu lists the last ten files opened or saved; a file that has
   gone is dropped from the list when chosen. **Clear list** empties it.

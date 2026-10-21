@@ -34,6 +34,7 @@ import org.zoxweb.shared.db.QueryMatch;
 import org.zoxweb.shared.db.QueryMatchIn;
 import org.zoxweb.shared.security.*;
 import org.zoxweb.shared.security.model.SecurityModel;
+import org.zoxweb.shared.filters.FQCNFilter;
 import org.zoxweb.shared.filters.FilterType;
 import org.zoxweb.shared.util.*;
 import org.zoxweb.shared.util.Const.RelationalOperator;
@@ -128,7 +129,10 @@ public class ShiroDSDomainSecurityManager
     public static final String COMMON_APP_ID = ShiroUtil.COMMON_APP_ID;
     /** Scope label of the common app, the meaning of "no domain/app" everywhere in this manager; defined in {@link ShiroUtil#COMMON_SCOPE}. */
     public static final String COMMON_SCOPE = ShiroUtil.COMMON_SCOPE;
-    /** Prefix of an app's registrar principal: {@code registrar.<domain>-<app>} (never email-shaped). */
+    /**
+     * Prefix of an app's registrar principal: {@code registrar.<domain>-<app>} (never email-shaped).
+     * Since the merge of 2026-10-20 the registrar is also the app's owner subject (see {@link #ensureRegistrar}).
+     */
     public static final String REGISTRAR_PRINCIPAL_PREFIX = "registrar.";
 
     private volatile APIDataStore<?, ?> dataStore;
@@ -1254,6 +1258,7 @@ public class ShiroDSDomainSecurityManager
      *
      * @throws IllegalArgumentException if the domain or the app id is invalid
      */
+    @Override
     public AppIDDefault lookupApp(String domainID, String appID) {
         AppIDDefault probe = new AppIDDefault(domainID, appID);
         requireApp(probe);
@@ -1270,20 +1275,58 @@ public class ShiroDSDomainSecurityManager
         return ret;
     }
 
-    /** What {@link #createApp(String, String, SubjectIdentifier)} made. */
+    /**
+     * {@link #lookupApp(String, String)} by the canonical id {@code <domain>-<app>}, split at the
+     * last separator by {@link AppIDDefault#create(String)} (an app name never contains one, a
+     * domain such as {@code my-site.com} can).
+     *
+     * @throws IllegalArgumentException if the id has no separator or either part is invalid
+     */
+    @Override
+    public AppIDDefault lookupApp(String domainAppID) {
+        AppIDDefault probe = AppIDDefault.create(domainAppID);
+        return lookupApp(probe.getDomainID(), probe.getAppID());
+    }
+
+    /**
+     * Every app record in the store, the common app included, one per {@code <domain>-<app>} (the
+     * earliest row when a database still holds copies written before 2026-10-02); a row that is not
+     * a complete pair is skipped. Read in the system context like every manager read; the setup
+     * walks it to bring every app's starter catalog and registrar to the model.
+     */
+    public List<AppIDDefault> lookupAllApps() {
+        Map<String, AppIDDefault> byLabel = new LinkedHashMap<>();
+        for (AppIDDefault row : ds().<AppIDDefault>search(AppIDDefault.NVC_APP_ID_DEFAULT, null)) {
+            String label;
+            try {
+                label = ShiroUtil.scopeLabel(row);
+            } catch (RuntimeException e) {
+                continue;
+            }
+            AppIDDefault seen = byLabel.get(label);
+            if (seen == null || row.getGUID().compareTo(seen.getGUID()) < 0) {
+                byLabel.put(label, row);
+            }
+        }
+        return new ArrayList<>(byLabel.values());
+    }
+
+    /** What {@link #createApp(String, String, SubjectIdentifier)} made or found. */
     public static final class AppCreation {
         /** The app record. */
         public AppIDDefault app;
-        /** The app's registrar subject. */
+        /** True when the record was created by this call; false when the app already existed and was returned as it is. */
+        public boolean created;
+        /** The app's registrar: its service and owner subject ({@code app_registrar} + {@code app_admin}, owner of the record). */
         public SubjectIdentifier registrar;
-        /** The registrar's API key; its secret is readable here, once, and never again from the store. */
+        /** The registrar's API key; its secret is readable here, once, and never again from the store; null when the registrar already existed. */
         public SubjectAPIKey registrarKey;
         /** The {@code app_admin} grant of the first manager, when one was named. */
         public RoleGrant firstManagerGrant;
 
         @Override
         public String toString() {
-            return "app " + (app != null ? app.getDomainAppID() : null)
+            return "app " + (app != null ? app.getDomainAppID() : null) + (created ? " (created)" : " (existing)")
                     + " registrar=" + (registrar != null ? registrar.getGUID() : null)
                     + " key=" + (registrarKey != null ? registrarKey.getSubjectID() : null)
                     + (firstManagerGrant != null ? " first manager granted " + SecurityModel.Role.APP_ADMIN.getName() : "");
@@ -1291,31 +1334,100 @@ public class ShiroDSDomainSecurityManager
     }
 
     /**
-     * Creates an app: its record (owned by the bound subject, named {@code <domain>-<app>}), its own
-     * starter catalog (every non platform-only {@link SecurityModel.Role} and role group with their
-     * permissions — nothing is shared with other apps), its registrar subject with an API key
-     * scoped to the app, and, when named, the {@code app_admin} grant of its first manager; one
-     * transaction. Under enforcement the caller needs {@code app:create} (plus the catalog and
-     * subject rights the starter set takes, which {@code domain_admin} holds).
+     * Creates an app: its record (named {@code <domain>-<app>}), its own starter catalog (every non
+     * platform-only {@link SecurityModel.Role} and role group with their permissions — nothing is
+     * shared with other apps), its registrar — the app's service and owner subject, which the record
+     * is owned by from then on ({@link #ensureRegistrar}) — and, when named, the {@code app_admin}
+     * grant of its first manager; one transaction. An app that already exists is returned as it is
+     * ({@code created} false, no key secret): its starter catalog is brought back to the model (a role
+     * seeded before {@code app:login} existed gets it) and its registrar is repaired when something is missing, and
+     * the first-manager grant is added when not held (user, 2026-10-20: the interface contract of
+     * {@link #createApp(String, String)}). Under enforcement the caller needs {@code app:create}
+     * (plus the catalog and subject rights the starter set takes, which {@code domain_admin} holds).
      *
-     * @throws IllegalArgumentException if the pair is invalid or the app already exists
+     * @throws IllegalArgumentException if the pair is invalid
      */
     public AppCreation createApp(String domainID, String appID, SubjectIdentifier firstManager) {
         return inTransaction(() -> {
-            AppIDDefault record = createAppRecord(domainID, appID, currentSubjectGUID());
-            SecuritySetup.seedStarterCatalog(this, record);
-            AppCreation ret = ensureRegistrar(record);
+            AppIDDefault existing = lookupApp(domainID, appID);
+            AppCreation ret;
+            if (existing != null) {
+                SecuritySetup.seedStarterCatalog(this, existing); // the starter roles follow the model (app:login, 2026-10-20)
+                ret = ensureRegistrar(existing);
+            } else {
+                AppIDDefault record = createAppRecord(domainID, appID, currentSubjectGUID());
+                SecuritySetup.seedStarterCatalog(this, record);
+                ret = ensureRegistrar(record);
+                ret.created = true;
+            }
             if (firstManager != null) {
-                RoleInfo appAdmin = lookupRole(ShiroUtil.scopeLabel(record), SecurityModel.Role.APP_ADMIN.getName());
-                ret.firstManagerGrant = addRoleGrant(firstManager, appAdmin, record);
+                RoleInfo appAdmin = lookupRole(ShiroUtil.scopeLabel(ret.app), SecurityModel.Role.APP_ADMIN.getName());
+                if (!holdsRoleGrant(firstManager.getGUID(), appAdmin, ret.app)) {
+                    ret.firstManagerGrant = addRoleGrant(firstManager, appAdmin, ret.app);
+                }
             }
             return ret;
         });
     }
 
-    /** {@link #createApp(String, String, SubjectIdentifier)} without a first manager; returns the record. */
+    /**
+     * {@inheritDoc}
+     * <p>{@link #createApp(String, String, SubjectIdentifier)} without a first manager: the app with
+     * its starter catalog and its default registrar {@code registrar.<domain>-<app>}; the record of
+     * an app that already exists is returned as it is.</p>
+     */
+    @Override
     public AppIDDefault createApp(String domainID, String appID) {
         return createApp(domainID, appID, null).app;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>Registers entity classes on the app (user, 2026-10-20: the registration is the app's own
+     * list, {@link AppIDDefault#getResourceTypes()}, not a role's): a row of a registered class
+     * created under a login into the app is the app's. Every name goes through {@link FQCNFilter}
+     * before anything is written, so one bad name fails the whole call; a name already registered
+     * is no error. Under enforcement the caller needs {@code app:update} in a login that may act on
+     * the app: an {@code app_admin} of the app (hence its registrar) or the super-admin. One
+     * transaction; the authorization caches are dropped afterwards.</p>
+     *
+     * @throws IllegalArgumentException if the app is unknown, the id has no separator or a class name is invalid
+     */
+    @Override
+    public void addFQCNToApp(String domainAppID, String... classNames) {
+        changeResourceTypes(domainAppID, true, classNames);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>The reverse of {@link #addFQCNToApp}: a name not registered is no error; the same
+     * validation, enforcement and transaction.</p>
+     *
+     * @throws IllegalArgumentException if the app is unknown, the id has no separator or a class name is invalid
+     */
+    @Override
+    public void removeFQCNFromApp(String domainAppID, String... classNames) {
+        changeResourceTypes(domainAppID, false, classNames);
+    }
+
+    private void changeResourceTypes(String domainAppID, boolean add, String... classNames) {
+        SUS.checkIfNulls("domainAppID and classNames can't be null", domainAppID, classNames);
+        AppIDDefault record = lookupApp(domainAppID);
+        if (record == null) {
+            throw new IllegalArgumentException("unknown app: " + domainAppID);
+        }
+        for (String className : classNames) {
+            FQCNFilter.SINGLETON.validate(className); // all of them before anything is written
+        }
+        enforceScoped(record, SecurityModel.PERM_UPDATE_APP_ID);
+        inTransaction(() -> {
+            int changed = add ? record.addResourceType(classNames) : record.removeResourceType(classNames);
+            if (changed > 0) {
+                ds().update(record);
+            }
+            return changed;
+        });
+        realm.evictAllAuthorization();
     }
 
     /**
@@ -1339,7 +1451,7 @@ public class ShiroDSDomainSecurityManager
         });
     }
 
-    /** Sets the owner of an app record (the setup hands the common app to the super-admin once it exists). */
+    /** Sets the owner of an app record: its registrar ({@link #ensureRegistrar}); the seeding hands an owner-less common app to the super-admin until then. */
     void setAppOwner(AppIDDefault app, String ownerGUID) {
         app.setSubjectGUID(ownerGUID);
         ds().update(app);
@@ -1395,7 +1507,9 @@ public class ShiroDSDomainSecurityManager
     }
 
     // ------------------------------------------------------------------
-    // registrar: the app's service subject for first-time subject creation (user decision 2026-10-02)
+    // registrar: the app's service subject — the sign-up door (user decision 2026-10-02) and, since the
+    // merge of 2026-10-20 (user decision), the app's owner subject holding app_admin, with two logins:
+    // a JWT signed by its symmetric key, or a password a holder of subject:update adds later
     // ------------------------------------------------------------------
 
     /** The registrar principal of an app: {@code registrar.<domain>-<app>} — a handle, not an email, so it has no password-reset channel. */
@@ -1409,31 +1523,46 @@ public class ShiroDSDomainSecurityManager
     }
 
     /**
-     * Makes sure the app has its registrar: a {@code SYSTEM} subject whose only credential is an API
-     * key scoped to the app (so its login is always a login into that app) and whose only grant is
-     * the app's own {@code app_registrar} role ({@code subject:create}, nothing else). Created once;
-     * a later call finds it and returns no secret. Under enforcement the caller needs the subject
+     * Makes sure the app has its registrar, the app's one service subject (user decision 2026-10-20,
+     * merging the sign-up registrar of 2026-10-02 with the app's owner subject): a {@code SYSTEM}
+     * subject with its subject key (the root of the app's key chain), an API key scoped to the app
+     * (so its JWT login is always a login into that app; a password may be added later by a holder
+     * of {@code subject:update}), the app's own {@code app_registrar} and {@code app_admin} roles,
+     * and the ownership of the app record ({@code subject_guid}). Created once; a later call finds
+     * it, returns no secret and repairs what is missing (a registrar made before the merge held
+     * {@code app_registrar} only and owned nothing). Under enforcement the caller needs the subject
      * rights ({@code subject:create}, {@code subject:update}) and {@code permission:assign:role}
      * in a login that may act on the app.
      *
-     * @return the record, the registrar and — only when it was created here — its key with the secret
+     * @return the record (owned by the registrar), the registrar and — only when it was created here —
+     *         its key with the secret
      */
     public AppCreation ensureRegistrar(AppIDDefault app) {
         AppIDDefault record = appRecord(app);
         return inTransaction(() -> {
             AppCreation ret = new AppCreation();
             ret.app = record;
+            String label = ShiroUtil.scopeLabel(record);
+            RoleInfo registrarRole = lookupRole(label, SecurityModel.Role.APP_REGISTRAR.getName());
+            RoleInfo adminRole = lookupRole(label, SecurityModel.Role.APP_ADMIN.getName());
+            if (registrarRole == null || adminRole == null) {
+                throw new IllegalStateException("app " + label + " has no "
+                        + (registrarRole == null ? SecurityModel.Role.APP_REGISTRAR : SecurityModel.Role.APP_ADMIN).getName() + " role");
+            }
             ret.registrar = lookupRegistrar(record);
-            if (ret.registrar != null) {
-                return ret;
+            if (ret.registrar == null) {
+                ret.registrar = createSubjectID(registrarPrincipal(record), null, BaseSubjectID.SubjectType.SYSTEM);
+                ret.registrarKey = newRegistrarKey(ret.registrar, record);
             }
-            RoleInfo registrarRole = lookupRole(ShiroUtil.scopeLabel(record), SecurityModel.Role.APP_REGISTRAR.getName());
-            if (registrarRole == null) {
-                throw new IllegalStateException("app " + ShiroUtil.scopeLabel(record) + " has no " + SecurityModel.Role.APP_REGISTRAR.getName() + " role");
+            if (!holdsRoleGrant(ret.registrar.getGUID(), registrarRole, record)) {
+                addRoleGrant(ret.registrar, registrarRole, record);
             }
-            ret.registrar = createSubjectID(registrarPrincipal(record), null, BaseSubjectID.SubjectType.SYSTEM);
-            ret.registrarKey = newRegistrarKey(ret.registrar, record);
-            addRoleGrant(ret.registrar, registrarRole, record);
+            if (!holdsRoleGrant(ret.registrar.getGUID(), adminRole, record)) {
+                addRoleGrant(ret.registrar, adminRole, record);
+            }
+            if (!ret.registrar.getGUID().equals(record.getSubjectGUID())) {
+                setAppOwner(record, ret.registrar.getGUID()); // the registrar owns the app record and roots its key chain
+            }
             return ret;
         });
     }
@@ -1595,21 +1724,37 @@ public class ShiroDSDomainSecurityManager
         if (ownsResource(resource, verb)) {
             return true;
         }
+        if (resource.getAppGUID() != null
+                && ShiroUtil.isPermitted(subject, SecurityModel.toAppResourceToken(resource.getAppGUID(), SecurityModel.resourceTypeOf(resource), caller, verb))) {
+            return true; // an app-owned row: the verb through a role of the app (app_resource:<class>:<verbs>)
+        }
         return ShiroUtil.isPermitted(subject, SecurityModel.toResourceToken(resource.getGUID(), caller, verb));
     }
 
     /**
-     * The owner half of {@link #holdsResource}: the bound subject holds {@code verb} through the
-     * resource's owner token {@code resource:<owner>:<caller>:<verb>} (the self permission when the
-     * caller is the owner, or a wildcard holder). A grantee's share never satisfies it. Never throws.
+     * The owner half of {@link #holdsResource}: the bound subject holds {@code verb} as the owner of
+     * the resource. A row no app owns: through the owner token {@code resource:<owner>:<caller>:<verb>}
+     * (the self permission when the caller is the owner, or a wildcard holder). A row an app owns
+     * ({@code app_guid} set, dual ownership 2026-10-20): the owner is whoever holds <em>every</em>
+     * verb on the row's class in the app, {@code app_resource:<app>:<class>:<caller>:*} — the app's
+     * {@code app_admin} through {@code app_resource:*:*}, the super-admin through {@code *}; a role
+     * carrying some verbs on the class, or a share, never qualifies, so the owner-only sharing rules
+     * (2026-10-06) fall to the app admin acting for the app (user decision 2026-10-20). Never throws.
      */
     private static boolean ownsResource(NVEntity resource, String verb) {
         Subject subject = boundSubject();
-        if (subject == null || !subject.isAuthenticated() || resource == null || resource.getSubjectGUID() == null) {
+        if (subject == null || !subject.isAuthenticated() || resource == null) {
             return false;
         }
         String caller = DSAuthorizingRealm.subjectGUIDOf(subject.getPrincipals());
-        return caller != null
+        if (caller == null) {
+            return false;
+        }
+        if (resource.getAppGUID() != null) {
+            return ShiroUtil.isPermitted(subject, SecurityModel.toAppResourceToken(resource.getAppGUID(),
+                    SecurityModel.resourceTypeOf(resource), caller, SecurityModel.WILDCARD));
+        }
+        return resource.getSubjectGUID() != null
                 && ShiroUtil.isPermitted(subject, SecurityModel.toResourceToken(resource.getSubjectGUID(), caller, verb));
     }
 
@@ -1780,7 +1925,7 @@ public class ShiroDSDomainSecurityManager
                 createSubjectKey(subject);
 
                 // the principal and the credential are part of the creation: subject:create, checked
-                // above, covers them (a registrar holds nothing else)
+                // above, covers them (the sign-up door needs subject:create only)
                 insertPrincipal(subject, pid);
                 if (credentialInfo != null) {
                     insertCredential(subject.getGUID(), credentialInfo, false);
@@ -2164,7 +2309,30 @@ public class ShiroDSDomainSecurityManager
                         + SecurityModel.Permission.SUPER_ADMIN_ALL.getName());
             }
         }
+        normalizeAppResourceToken(permission);
         return ds().insert(permission);
+    }
+
+    /**
+     * A catalog token in the {@code app_resource} namespace (a right on the rows the app owns, dual
+     * ownership 2026-10-20) must be the catalog form {@code app_resource:<fqcn>:<verbs>}
+     * ({@link SecurityModel.AppResourcePermissionTokenFilter}): the only shape the flattener composes
+     * into {@code app_resource:<app guid>:<fqcn>:<subject guid>:<verbs>}. Stored normalized.
+     */
+    private static void normalizeAppResourceToken(PermissionInfo permission) {
+        String token = permission.getPermissionToken();
+        if (token == null) {
+            return;
+        }
+        String[] parts = token.trim().split(SecurityModel.PART_SEP, -1);
+        if (SecurityModel.APP_RESOURCE.equalsIgnoreCase(parts[0].trim())) {
+            try {
+                permission.setPermissionToken(SecurityModel.AppResourcePermissionTokenFilter.SINGLETON.validate(token));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("permission token must be " + SecurityModel.APP_RESOURCE
+                        + ":<fqcn>:<verbs>: " + token + " (" + e.getMessage() + ")", e);
+            }
+        }
     }
 
     @Override
@@ -2205,6 +2373,7 @@ public class ShiroDSDomainSecurityManager
                 throw new IllegalArgumentException("wildcard permission tokens are reserved for "
                         + SecurityModel.Permission.SUPER_ADMIN_ALL.getName());
             }
+            normalizeAppResourceToken(update);
             ds().update(update);
             realm.evictAllAuthorization();
         }

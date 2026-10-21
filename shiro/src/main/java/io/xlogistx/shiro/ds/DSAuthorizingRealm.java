@@ -16,6 +16,7 @@ import org.zoxweb.shared.api.APIDataStore;
 import org.zoxweb.shared.crypto.CIPassword;
 import org.zoxweb.shared.security.*;
 import org.zoxweb.shared.security.AuthorizationInfoLookup;
+import org.zoxweb.shared.security.model.SecurityModel;
 import org.zoxweb.shared.util.ResourceManager;
 import org.zoxweb.shared.util.SUS;
 
@@ -35,6 +36,12 @@ import java.util.UUID;
  * subject must be ACTIVE; principal and credential must be ACTIVE or unset; an API key must also
  * be unexpired. Each failure raises the specific Shiro exception so a servlet layer can act on it,
  * while {@link ShiroDSDomainSecurityManager#login} collapses all of them to one generic message.
+ * <p>
+ * App login gate (user rule 2026-10-20): a login carrying a domain and an app succeeds only when the
+ * subject's grants in that app imply {@code app:login} ({@link SecurityModel#PERM_APP_LOGIN}),
+ * directly or through a role; the check runs after the credential matched, in
+ * {@link #assertCredentialsMatch}, and fails like a bad credential. A login without domain/app is
+ * not gated. A JWT login with an app-scoped key is a login into that app and is gated too.
  */
 public class DSAuthorizingRealm
         extends AuthorizingRealm
@@ -207,7 +214,29 @@ public class DSAuthorizingRealm
 
         token.setSubjectGUID(subject.getGUID());
         return new DomainAuthenticationInfo(username, subject.getGUID(), password, getName(),
-                token.getDomainID(), token.getAppID(), null);
+                token.getDomainID(), token.getAppID(), null, appGUIDOf(token.getDomainID(), token.getAppID()));
+    }
+
+    /**
+     * The GUID of the stored app record of a login scope (dual ownership, 2026-10-20): resolved once
+     * at login and carried by the principals as {@link DomainPrincipalCollection#getAppGUID()}, it is
+     * the {@code app_guid} the controller stamps on the rows the subject creates in the app's
+     * registered classes. Null when domain or app is empty (a global login), when the pair is
+     * invalid, or when the app has no record — the same tolerance {@link #loginScopeOf} gives a
+     * malformed scope; the login gate then refuses the scope on its own. Safe during authentication:
+     * the manager reads through its system view of the store.
+     */
+    private String appGUIDOf(String domainID, String appID) {
+        if (SUS.isEmpty(domainID) || SUS.isEmpty(appID)) {
+            return null;
+        }
+        try {
+            AppIDDefault record = dsm().lookupApp(domainID, appID);
+            return record != null ? record.getGUID() : null;
+        } catch (RuntimeException e) {
+            log.getLogger().warning("app record of " + domainID + "/" + appID + " not resolved at login: " + e);
+            return null;
+        }
     }
 
     /**
@@ -243,7 +272,7 @@ public class DSAuthorizingRealm
         if (appID == null) appID = token.getAppID();
         token.setSubjectID(subject.getGUID());
         return new DomainAuthenticationInfo(subject.getGUID(), subject.getGUID(), sak, getName(),
-                domainID, appID, keyID);
+                domainID, appID, keyID, appGUIDOf(domainID, appID));
     }
 
     /** Lifecycle / credential status and expiry of an API key, as specific Shiro exceptions. */
@@ -282,14 +311,34 @@ public class DSAuthorizingRealm
     }
 
     /**
-     * After the matcher accepted the credentials, optionally warm the authorization cache. A
-     * failure to load grants is logged and swallowed: the login stands and grants load lazily.
+     * After the matcher accepted the credentials: for a login into an app the gate — the subject's
+     * grants in that scope must imply {@code app:login} (user rule 2026-10-20), else the login
+     * fails like a bad credential; the grants are loaded (and cached) for that. For a global login
+     * the cache is optionally warmed; there a failure to load grants is logged and swallowed: the
+     * login stands and grants load lazily.
      */
     @Override
     protected void assertCredentialsMatch(AuthenticationToken token, AuthenticationInfo info)
             throws AuthenticationException {
         super.assertCredentialsMatch(token, info);
-        if (eagerAuthorization && info != null) {
+        if (info == null) {
+            return;
+        }
+        if (loginScopeOf(info.getPrincipals()) != null) {
+            AuthorizationInfo authz;
+            try {
+                authz = getAuthorizationInfo(info.getPrincipals());
+            } catch (RuntimeException e) {
+                throw new AuthenticationException("Login refused", e);
+            }
+            if (authz == null || !isPermitted(getPermissionResolver().resolvePermission(SecurityModel.PERM_APP_LOGIN), authz)) {
+                if (log.isEnabled()) log.getLogger().info("app login refused for " + subjectGUIDOf(info.getPrincipals())
+                        + " scope=" + ShiroUtil.appScope(loginScopeOf(info.getPrincipals())) + ": no " + SecurityModel.PERM_APP_LOGIN);
+                throw new AuthenticationException("Login refused"); // generic: the app is not enumerated
+            }
+            return;
+        }
+        if (eagerAuthorization) {
             try {
                 getAuthorizationInfo(info.getPrincipals());
             } catch (RuntimeException e) {

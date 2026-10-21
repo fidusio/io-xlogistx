@@ -351,7 +351,12 @@ document); with a document a dialog asks Open / Insert after page n / Insert at 
 dialog-free form being `dropFiles(files, DropAction)`. `insertFiles(files, index)` loads every
 source off the EDT, then inserts each through `insertDocument` on the EDT (so an `EditDelegate`
 gets one undoable insert per file). `setDefaultDirectory(dir)` is where the choosers start while
-no file is open.
+no file is open. **Open handler (2026-10-19).** `setOpenHandler(Predicate<List<File>>)` /
+`getOpenHandler()`: a host with tabs or windows takes the files the user opens while a document is
+loaded; `openFile()` (chooser first, then the handler, then `confirmDiscard` + `setPDF`; the discard
+question used to come before the chooser) and `dropFiles(files, OPEN)` ask it (`openHandled`), the
+drop dialog then says "Open shows the file on its own" instead of "replaces the current document";
+`setPDF` / `openFiles` never ask. The PDF editor's `PDFEditorTabs` opens the files in a new tab.
 
 **Toolbar order.** Open, Save, Print, Insert, Delete, Thumbnails toggle | prev, page field / count, next |
 zoom out, zoom combo (presets + fit modes), zoom in | Pan, Select text, Zoom to selection,

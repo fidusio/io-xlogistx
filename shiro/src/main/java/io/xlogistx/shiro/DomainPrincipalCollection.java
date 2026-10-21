@@ -31,6 +31,8 @@ public class DomainPrincipalCollection
 	protected String application_id;
 	protected String subject_guid;
 	protected String token_subject_id;
+	/** GUID of the app record the subject logged into (dual ownership, 2026-10-20), null for a login without app. */
+	protected String app_guid;
 
 	/**
      *
@@ -42,12 +44,22 @@ public class DomainPrincipalCollection
 	 */
 	public DomainPrincipalCollection(Object principal, String subjectGUID, String realmName, String domainID, String applicationID, String jwtSubjectID)
     {
+		this(principal, subjectGUID, realmName, domainID, applicationID, jwtSubjectID, null);
+	}
+
+	/**
+	 * @param appGUID the GUID of the stored app record of {@code domainID}/{@code applicationID}, resolved
+	 *                by the realm at login; null for a login without app or an app that has no record
+	 */
+	public DomainPrincipalCollection(Object principal, String subjectGUID, String realmName, String domainID, String applicationID, String jwtSubjectID, String appGUID)
+    {
 		super(principal, realmName);
 		SUS.checkIfNulls("Subject GID can't be null", subjectGUID);
 		domain_id = SUS.toLowerCase(domainID);
 		application_id = SUS.toLowerCase(applicationID);
 		this.subject_guid = subjectGUID;
 		token_subject_id = jwtSubjectID;
+		app_guid = SUS.trimOrNull(appGUID);
 		
 		// first on to add for optimization issue
 		if(token_subject_id != null)
@@ -124,6 +136,15 @@ public class DomainPrincipalCollection
 	public String getJWSubjectID()
 	{
 		return token_subject_id;
+	}
+
+	/**
+	 * @return the GUID of the app record the subject logged into — the {@code app_guid} stamped on
+	 * the rows it creates in the app's registered classes — or null for a login without app
+	 */
+	public String getAppGUID()
+	{
+		return app_guid;
 	}
 	
 

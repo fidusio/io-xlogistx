@@ -1453,7 +1453,8 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         return recentMenu;
     }
 
-    private void refreshRecentMenu() {
+    /** Refills the Open Recent submenu from the settings; a host with several panes calls this when another pane changed the list. */
+    public void refreshRecentMenu() {
         if (recentMenu == null)
             return;
         recentMenu.removeAll();
@@ -1497,6 +1498,9 @@ public class PDFEditorPane extends JPanel implements EditorHost {
             showError("The file no longer exists:\n" + f.getAbsolutePath());
             return false;
         }
+        java.util.function.Predicate<List<File>> handler = viewer.getOpenHandler();
+        if (handler != null && viewer.getDocument() != null && handler.test(Collections.singletonList(f)))
+            return true; // the host showed it elsewhere (another tab)
         if (!viewer.confirmDiscard())
             return false;
         open(f);

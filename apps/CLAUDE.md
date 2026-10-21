@@ -251,7 +251,14 @@ the password of a protected file through its default prompt; tests install
 `viewer.setPasswordPrompt`. Any editing
 API call turns editing on; undo/redo clear the annotation selection first.
 
-**Tests** (headless, run with the CLI launcher): `DocumentPasswordTest` (2026-10-17: a protected
+**Tests** (headless, run with the CLI launcher): `PDFEditorTabsTest` (2026-10-19: one empty tab to
+start, new tabs inherit editing + Select, the open handler fills an empty tab / adds one / serves Open
+Recent while the API `open` stays put, close (unmodified without a question, last tab -> empty one,
+others), next / previous wrap, titles with " *" and the shortened long name, the Tabs menu with
+accelerators and the per-tab radio list rebuilt on open, cached menu bars + customizer once each,
+Ctrl+Tab / Alt+n bindings, settings on every tab and the recent menu refreshed on switch, and a
+rectangle + a red/blue picture copied in one document and pasted into another tab's document (own
+XObject, pixels intact, saved with both)), `DocumentPasswordTest` (2026-10-17: a protected
 file opened through the prompt, its permissions read back, saved over itself still protected with
 the edit inside and the history kept; set / change permissions / change password / remove as four
 named undo steps, undone back to the clean state, the viewer's `setSecurity` routed through the
@@ -326,13 +333,45 @@ enclosure and centres.
   `documentSaved` -> `markSaved()`. `createMenuBar()` = File (Open, Save, Save As, Print),
   Edit (Undo, Redo), Page (Insert, Delete); `save()` writes over a `.pdf` origin, else
   `saveAs()`. `getDocumentTitle()`, `confirmDiscard()`, change listeners. Never exits the JVM.
+- `PDFEditorTabs` (2026-10-19) — **several documents in tabs**: a `JPanel` around a `JTabbedPane`
+  (`SCROLL_TAB_LAYOUT`, not focusable) with one `PDFEditorPane` per tab, each keeping its own toolbar
+  rows, undo model, selection and status line; always at least one tab (`EMPTY_TITLE` "New tab").
+  Files go to a new tab through the viewer's **open handler** (`PDFViewerPanel.setOpenHandler(Predicate<List<File>>)`,
+  gui-audio 2026-10-19: asked by `openFile()` after the chooser and by the Open choice of a drop, only
+  while a document is loaded; `PDFEditorPane.openRecent` asks it too; the API `open` / `setPDF` /
+  `openFiles` never do), installed per pane by `addTab`: `openInNewTab(File|List<File>)` fills an
+  empty active tab or adds one and calls `viewer.openFiles`. `newTab()` copies the active pane's
+  editing state (+ Select tool), `closeTab(pane)` shows a modified tab before `confirmDiscard`,
+  closes its viewer and leaves a fresh empty tab when it was the last, `closeActiveTab`,
+  `closeOtherTabs`, `confirmDiscardAll` (window close), `closeAll`, `nextTab` / `previousTab` (wrap),
+  `selectTab`, `getActivePane` / `getPanes` / `indexOf` / `getTabCount`, `setPaneFactory`.
+  Tab header = `TabHeader` (label + `CancelIcon` close button; left click selects, middle click
+  closes, also on the tab strip); title = `tabTitle(pane)` (document title with " *", shortened to
+  `MAX_TAB_TITLE` 32 keeping the extension, tooltip = full path). Keys: Ctrl+Tab / Ctrl+Shift+Tab
+  (`nextTab` / `previousTab`; the component's focus traversal keys drop the Ctrl variants so
+  descendants without their own sets let them through) and Alt+1..9 (`tab<n>`), WHEN_IN_FOCUSED_WINDOW.
+  **Menu bar**: `getMenuBar()` = the active pane's `createMenuBar()` + `createTabsMenu()` (mnemonic T,
+  before Help: New tab Ctrl+T, Close tab Ctrl+W, Close other tabs, Next / Previous tab, then on
+  `menuSelected` one `JRadioButtonMenuItem` per tab with Alt+n) + `setMenuBarCustomizer` (the frame's
+  Exit), **built once per pane and cached** (`createMenuBar` registers listeners on the pane, so no
+  rebuild per switch), dropped on close; a host swaps `setJMenuBar(tabs.getMenuBar())` from its change
+  listener. On a tab switch the shown pane's `refreshRecentMenu()` (public since 2026-10-19) runs,
+  because another tab may have recorded a file. `setSettings` installs the settings on every pane now
+  and on each new tab; `saveSettings` writes the active pane's. Change listeners fire on every pane
+  change and tab change. Copy / paste across tabs needs nothing extra: the clip is on the clipboard
+  and `Clip.create` re-embeds an image in the target document.
 - `PDFMain` — the application: `VERSION` (`AppVersionDAO("PDFEditor::0.1.0")`, the `name::major.minor.nano`
-  form that constructor parses) and `main [file.pdf|file.md|image]` (system look and feel, frame
-  with exit-on-close, `applySettings(EditorSettings.user())`, editing on, Select tool active, opens the file).
-- `PDFEditorFrame` — standalone wrapper (`getVersion()` = `Main.VERSION`, `setExitOnClose` like the
-  hex frame); no `main` of its own since 2026-10-16. `applySettings(settings)` (2026-10-17) installs
-  them on the pane and restores the window bounds when `onAScreen` (and the maximized state);
-  `handleClose` saves bounds / maximized and calls `editorPane.saveSettings()` before disposing.
+  form that constructor parses) and `main [file ...]` (system look and feel, frame with exit-on-close,
+  `applySettings(EditorSettings.user())`, editing on, Select tool active, every argument opened in its
+  own tab through `frame.open`, the first tab shown).
+- `PDFEditorFrame` — standalone wrapper around `PDFEditorTabs` since 2026-10-19 (`getTabs()`,
+  `getEditorPane()` = the active pane, `open(file)` = `openInNewTab`; `getVersion()` = `Main.VERSION`,
+  `setExitOnClose` like the hex frame); constructors take nothing, a first pane or a `PDFEditorTabs`;
+  no `main` of its own since 2026-10-16. The menu bar is `tabs.getMenuBar()` re-set from the tabs'
+  change listener when it differs (the customizer adds Exit to File); the title follows the active
+  tab. `applySettings(settings)` (2026-10-17) installs them on the tabs and restores the window bounds
+  when `onAScreen` (and the maximized state); `handleClose` = `tabs.confirmDiscardAll()`, bounds /
+  maximized saved, `tabs.saveSettings()`, `tabs.closeAll()`, dispose.
 - Running the tests: the CLI JUnit launcher recipe (surefire is skipped in this build); the
   apps test classpath takes `xlogistx-gui-audio` from `.m2`, so run
   `mvn -o install -pl gui-audio -DskipTests` first after changing the viewer.
