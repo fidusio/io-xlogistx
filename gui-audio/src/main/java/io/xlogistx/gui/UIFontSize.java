@@ -1,9 +1,12 @@
 package io.xlogistx.gui;
 
+import javax.swing.JComponent;
+import javax.swing.JMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.plaf.FontUIResource;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Font;
 import java.awt.Window;
 import java.util.ArrayList;
@@ -12,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -119,6 +123,89 @@ public final class UIFontSize {
         root.invalidate();
         root.validate();
         root.repaint();
+    }
+
+    // ------------------------------------------------------------- one tree only
+
+    /**
+     * Client property a {@link JComponent} sets to {@link Boolean#TRUE} to keep
+     * itself and its subtree out of a {@linkplain #apply(Component, float) scoped}
+     * scaling — the {@link FontSizeWidget} does, being the knob and not a sample.
+     */
+    public static final String PINNED = "UIFontSize.pinned";
+
+    private static final Map<Component, Font> ORIGINAL_FONTS = new WeakHashMap<>();
+    private static final Map<Component, Float> SCOPED = new WeakHashMap<>();
+
+    /**
+     * Sets the control text size of <b>one component tree</b> and nothing else:
+     * a viewer embedded in a host application scales its own controls without
+     * touching the host, and the host's {@link #apply(float)} does not touch
+     * the viewer afterwards. Every component under {@code root} gets a plain
+     * (non-{@code UIResource}) font, its original scaled by {@code size / base},
+     * which the look and feel's refresh leaves alone; subtrees marked
+     * {@link #PINNED} are skipped. Setting the base size restores the original
+     * fonts, so the tree follows the look and feel again. Call on the EDT.
+     *
+     * @param root the tree's root, never null
+     * @param size the label size in points, clamped to {@link #MIN}..{@link #MAX}
+     * @return the size in force for that tree afterwards
+     */
+    public static float apply(Component root, float size) {
+        float s = clamp(size);
+        float factor = s / getBase();
+        boolean atBase = Math.abs(factor - 1f) < 0.001f;
+        synchronized (UIFontSize.class) {
+            scale(root, factor, atBase);
+            if (atBase)
+                SCOPED.remove(root);
+            else
+                SCOPED.put(root, s);
+        }
+        if (atBase)
+            refresh(root); // back on UIResource fonts: pick up whatever the look and feel has now
+        else {
+            root.invalidate();
+            root.validate();
+            root.repaint();
+        }
+        return s;
+    }
+
+    /**
+     * @param root a tree's root
+     * @return the size {@link #apply(Component, float)} set on it, else the
+     *         {@linkplain #get() application size} it follows
+     */
+    public static float get(Component root) {
+        synchronized (UIFontSize.class) {
+            Float s = SCOPED.get(root);
+            return s != null ? s : get();
+        }
+    }
+
+    private static void scale(Component c, float factor, boolean atBase) {
+        if (c instanceof JComponent && Boolean.TRUE.equals(((JComponent) c).getClientProperty(PINNED)))
+            return;
+        Font original = ORIGINAL_FONTS.get(c);
+        if (original == null) {
+            original = c.getFont();
+            if (original != null)
+                ORIGINAL_FONTS.put(c, original);
+        }
+        if (original != null) {
+            if (atBase) {
+                c.setFont(original);
+                ORIGINAL_FONTS.remove(c);
+            } else
+                c.setFont(new Font(original.getAttributes()).deriveFont(original.getSize2D() * factor));
+        }
+        if (c instanceof Container)
+            for (Component child : ((Container) c).getComponents())
+                scale(child, factor, atBase);
+        if (c instanceof JMenu)
+            for (Component child : ((JMenu) c).getMenuComponents())
+                scale(child, factor, atBase);
     }
 
     /** @param listener told the new size after each change, on the EDT */

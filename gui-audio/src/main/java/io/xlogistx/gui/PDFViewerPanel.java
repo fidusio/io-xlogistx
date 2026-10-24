@@ -3274,7 +3274,10 @@ public class PDFViewerPanel extends JPanel {
         tb.add(matchLabel);
 
         tb.add(Box.createHorizontalGlue());
-        fontSizeWidget = new FontSizeWidget();
+        // scoped to this viewer: a component embedded in a host application sizes its own
+        // controls, never the host's (an application built around the viewer, like the PDF
+        // editor, re-points it at the application with setFontSizeScope(null))
+        fontSizeWidget = new FontSizeWidget(this);
         tb.add(fontSizeWidget);
 
         return tb;
@@ -3283,6 +3286,21 @@ public class PDFViewerPanel extends JPanel {
     /** @return the control text size spinner at the end of the toolbar (see {@link UIFontSize}) */
     public FontSizeWidget getFontSizeWidget() {
         return fontSizeWidget;
+    }
+
+    /**
+     * What the toolbar's text size spinner sizes: this viewer only (the default — a viewer
+     * embedded in an application must not resize the application, nor be resized by it) or,
+     * with null, the whole application ({@link UIFontSize#apply(float)}), for an application
+     * that is built around the viewer.
+     *
+     * @param scope the tree the spinner sizes, or null for the application
+     * @return this
+     */
+    public PDFViewerPanel setFontSizeScope(Component scope) {
+        if (fontSizeWidget != null)
+            fontSizeWidget.setScope(scope);
+        return this;
     }
 
     /**

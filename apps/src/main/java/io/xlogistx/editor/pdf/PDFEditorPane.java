@@ -133,6 +133,9 @@ public class PDFEditorPane extends JPanel implements EditorHost {
     public PDFEditorPane(PDFViewerPanel viewer) {
         SUS.checkIfNull("viewer null", viewer);
         this.viewer = viewer;
+        // the editor is the application around the viewer: its text size spinner drives the
+        // whole application, like View > Control text size, instead of the viewer alone
+        viewer.setFontSizeScope(null);
         setLayout(new BorderLayout());
         styles.put(StyleKey.HIGHLIGHT, AnnotationStyle.HIGHLIGHT);
         styles.put(StyleKey.UNDERLINE, AnnotationStyle.UNDERLINE);

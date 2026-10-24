@@ -31,7 +31,23 @@ The package has these groups:
      that derive their own font re-derive it); `larger()` / `smaller()` step by `STEP`, clamped to
      `MIN`..`MAX`. `FontSizeWidget` is the toolbar control ("Aa" + spinner) that drives and follows
      it; `PDFViewerPanel` puts one at the right end of its toolbar (`getFontSizeWidget()`), the PDF
-     editor adds View ▸ Control text size and remembers the value in its settings.
+     editor adds View ▸ Control text size and remembers the value in its settings. The widget's own
+     label, spinner and editor field keep the **base** size (2026-10-23, `pinFonts()`: plain
+     non-`UIResource` fonts, which `updateComponentTreeUI` leaves alone, re-pinned after each
+     change), so the knob does not grow or shrink with the setting it changes.
+     **Scoped (2026-10-23):** `apply(root, size)` sizes **one component tree only** — every
+     component under `root` gets a plain non-`UIResource` font, its original scaled by
+     `size / base`, which the host application's `apply(size)` / `updateComponentTreeUI` leaves
+     alone, and nothing outside the tree is touched; the base size restores the originals and
+     refreshes, handing the tree back to the look and feel; subtrees carrying the client
+     property `PINNED` = `TRUE` are skipped (the widget pins itself); `get(root)` reports the
+     scoped size, or the application size the tree follows. `FontSizeWidget(Component scope)` /
+     `setScope(scope)` drives that one tree and then ignores the application size.
+     `PDFViewerPanel`'s widget is **scoped to the viewer by default** — a viewer embedded in an
+     application (no-sneak's PDF dialog) must neither resize the application nor be resized by
+     it, which is what the maintainer saw before — and `setFontSizeScope(null)` re-points it at
+     the application; `PDFEditorPane` does that, because the editor *is* the application around
+     the viewer and its View ▸ Control text size and the spinner must agree.
    - `PDFSecurity` (2026-10-17) — a PDF's password protection as one immutable value: open
      (user) password, owner password (empty = the open one), permission bits (`of(...)`, `NONE`,
      `loaded(doc, password)` reads a just-opened document's permissions, `describe()` for status
@@ -462,7 +478,8 @@ separate owner password and restricted permissions and saved twice, a cancelled 
 inserting nothing, a host-parsed encrypted document keeping its permissions) and
 `UIFontSizeTest` (2026-10-17: every look-and-feel font scales in proportion, new components get
 the size, a tree is refreshed on request, listeners and the widget follow, steps, clamping and
-an exact reset), `PDFThumbnailPanelTest` (2026-10-17: one thumbnail per page in page proportions, the current
+an exact reset; 2026-10-23: a scoped size scales one tree only, skips the pinned widget, is not
+reached by the application size, and the base hands the tree back), `PDFThumbnailPanelTest` (2026-10-17: one thumbnail per page in page proportions, the current
 page framed, a click jumps, a drag moves a page directly or through the delegate, the drop
 index, pictures rendered off the EDT and dropped by `invalidatePage`; the launcher classpath for
 this module is the `-X` `testPath` of `test-compile -pl gui-audio` plus the junit launcher /

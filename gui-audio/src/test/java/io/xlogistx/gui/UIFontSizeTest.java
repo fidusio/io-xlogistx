@@ -82,6 +82,13 @@ public class UIFontSizeTest {
         onEDT(() -> UIFontSize.apply(base + 3));
         assertEquals(Math.round(base + 3), ((Number) w.getSpinner().getValue()).intValue(), "the spinner follows");
         onEDT(() -> {
+            UIFontSize.refresh(w);
+            return null;
+        });
+        assertEquals(base, w.getComponent(0).getFont().getSize2D(), 0.01, "the widget's own label keeps the base size");
+        assertEquals(base, w.getSpinner().getFont().getSize2D(), 0.01, "the spinner keeps the base size");
+        assertEquals(base, ((javax.swing.JSpinner.DefaultEditor) w.getSpinner().getEditor()).getTextField().getFont().getSize2D(), 0.01, "the spinner's field keeps the base size");
+        onEDT(() -> {
             w.getSpinner().setValue(Math.round(base + 6));
             return null;
         });
@@ -89,6 +96,65 @@ public class UIFontSizeTest {
         PDFViewerPanel panel = onEDT(PDFViewerPanel::new);
         assertNotNull(panel.getFontSizeWidget());
         assertTrue(SwingUtilities.isDescendingFrom(panel.getFontSizeWidget(), panel.getToolbar()));
+    }
+
+    @Test
+    void aScopedSizeTouchesOneTreeOnlyAndSurvivesTheApplicationSize() throws Exception {
+        float base = UIFontSize.getBase();
+        JPanel host = onEDT(() -> {
+            JPanel p = new JPanel();
+            p.add(new JLabel("host"));
+            return p;
+        });
+        JPanel viewer = onEDT(() -> {
+            JPanel p = new JPanel();
+            p.add(new JLabel("viewer"));
+            JPanel inner = new JPanel();
+            inner.add(new JButton("inner"));
+            p.add(inner);
+            p.add(new FontSizeWidget(p));
+            return p;
+        });
+        float hostLabel0 = host.getComponent(0).getFont().getSize2D();
+        float viewerLabel0 = viewer.getComponent(0).getFont().getSize2D();
+        float innerButton0 = ((JPanel) viewer.getComponent(1)).getComponent(0).getFont().getSize2D();
+        FontSizeWidget w = (FontSizeWidget) viewer.getComponent(2);
+        assertEquals(Math.round(base), ((Number) w.getSpinner().getValue()).intValue());
+        assertSame(viewer, w.getScope());
+
+        // the viewer scales itself, the host and the application stay
+        onEDT(() -> {
+            w.getSpinner().setValue(Math.round(base + 4));
+            return null;
+        });
+        float factor = (base + 4) / base;
+        assertEquals(viewerLabel0 * factor, viewer.getComponent(0).getFont().getSize2D(), 0.01, "the viewer's label scaled");
+        assertEquals(innerButton0 * factor, ((JPanel) viewer.getComponent(1)).getComponent(0).getFont().getSize2D(), 0.01, "its subtree scaled");
+        assertEquals(base, w.getComponent(0).getFont().getSize2D(), 0.01, "the pinned widget did not");
+        assertEquals(hostLabel0, host.getComponent(0).getFont().getSize2D(), 0.01, "the host did not");
+        assertEquals(base, UIFontSize.get(), 0.01, "the application size is untouched");
+        assertEquals(base + 4, UIFontSize.get(viewer), 0.01);
+        assertEquals(base, UIFontSize.get(host), 0.01, "an unscoped tree reports the application size");
+
+        // the application changing its size does not reach the scoped viewer
+        onEDT(() -> UIFontSize.apply(base + 2));
+        onEDT(() -> {
+            UIFontSize.refresh(viewer);
+            UIFontSize.refresh(host);
+            return null;
+        });
+        assertEquals(hostLabel0 * (base + 2) / base, host.getComponent(0).getFont().getSize2D(), 0.01, "the host followed the application");
+        assertEquals(viewerLabel0 * factor, viewer.getComponent(0).getFont().getSize2D(), 0.01, "the viewer kept its own size");
+        assertEquals(Math.round(base + 4), ((Number) w.getSpinner().getValue()).intValue(), "a scoped spinner does not follow the application");
+
+        // the spinner drives its scope; the base hands the tree back to the look and feel
+        onEDT(() -> {
+            w.getSpinner().setValue(Math.round(base));
+            return null;
+        });
+        assertEquals(base + 2, UIFontSize.get(viewer), 0.01, "back on the application size");
+        assertEquals(viewerLabel0 * (base + 2) / base, viewer.getComponent(0).getFont().getSize2D(), 0.01, "and on the look and feel's current fonts");
+        assertEquals(base + 2, UIFontSize.get(), 0.01, "the application size still untouched by the scoped spinner");
     }
 
     private static <T> T onEDT(Callable<T> call) throws Exception {
