@@ -91,6 +91,97 @@ The package has these groups:
 - Save-side validation throws from `mapToValue` (e.g. NVInt int-range check);
   `NVGenericMapWidget.onSave` catches `Exception` and shows an error dialog.
 
+### Form and shell primitives (2026-10-24)
+
+Added for no-sneak's UI redesign under the rule *generic widgets live here, application screens
+don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles them at once.
+
+- `UITokens` — the semantic palette and type helpers in one place: `accent()`, `accentSoft()`,
+  `accentText()`, `text()`, `muted()`, `border()`, `surface()`, `surfaceAlt()`, `ok()`/`okSoft()`,
+  `warn()`/`warnSoft()`, `danger()`/`dangerSoft()`, `neutral()`/`neutralSoft()`. Each asks
+  `UIManager` first (`xlogistx.<name>` override, then the look-and-feel key such as
+  `Component.accentColor`, `Label.disabledForeground`, `Component.borderColor`) and falls back to
+  the design value. `font(style, delta)`, `mono(delta)`, `baseFont()`. `primary(button)` styles the
+  one accent-filled action of a view (FlatLaf `STYLE` string), `link(button)` an inline link-like
+  button (toolbar type, accent text, hand cursor).
+- `BadgeLabel` — pill label with `Tone {OK, WARN, DANGER, NEUTRAL, ACCENT}`, optional icon; text on
+  a soft tint at 4.5:1 or better.
+- `InlineMessage` — the one-line message under a form: `info` (muted), `ok`, `error` (danger),
+  `clear`; always keeps its line so forms do not jump.
+- `DirectoryField` — read-only path + **Choose…** over a directories-only chooser shown as a *save*
+  dialog (a directory that does not exist yet can be typed). `setDirectory` is silent;
+  `onChange` fires on choices made through the button; `startDirectory(Supplier)` for the chooser's
+  start.
+- `FormPanel` — stacked form (small bold label above the field, optional muted hint below) on
+  MigLayout `wrap 1, hidemode 3`. `field` / `requiredField` (red asterisk) / `row(component)`, and
+  named **groups**: `group(key, adder)` records every row added inside, `showGroup(key, visible)`
+  hides them together without leaving a gap — conditional sections such as first-run rows.
+- `StepperPanel` — numbered steps down the page (1-based): `addStep(title, description, body)`,
+  `activate`, `complete(index, summary, onChange)` collapses a step to a mono summary line with an
+  optional Change button, `reopen`, `setStepEnabled`, `getState` (`TODO`/`ACTIVE`/`DONE`). A rail
+  joins the markers; the done marker is a check.
+- `SplashSidePanel` — the dark brand half of a sign-in screen: brand line, large wrapping title,
+  tagline, check-marked points, muted mono footer. All copy passed in.
+- `WrapLabel` — a label that wraps at an explicit width (`setWrapWidth`), its preferred size
+  computed by sizing its HTML view to that width. **Why it exists:** Swing has no
+  height-for-width, so a wrapping `JTextArea` or a free HTML label in MigLayout reports a height
+  for whatever width it was last laid out at — the first cut of `SplashSidePanel` came out with
+  rows three times too tall. Containers set the width they have from `doLayout()`
+  (`SplashSidePanel`, `StepperPanel` descriptions, `FormPanel` hints do); the width only changes
+  when it really changed, so there is no relayout loop.
+- `ScrollablePanel` — a `JScrollPane` view that tracks the viewport's width always and its height
+  while the content fits, so a layout can centre a card in the free space and the pane scrolls
+  only once the window is shorter than the content.
+- `SideNavPanel` (Phase 2, same day) — the application's one navigation column, 232 px:
+  `section(key, title)` headings, `item(key, icon, label)` flat toggles in one `ButtonGroup`
+  (FlatLaf toolbar-button style, accent-soft selection), `footerAction(icon, label, Runnable)` and
+  `footer(component)`. It selects, it does not navigate: `onSelect(Consumer<String>)` fires on
+  clicks only, `select(key)` highlights without firing, so host navigation and sidebar never loop.
+  `setSectionVisible` / `setItemVisible` hide an admin section for non-admins.
+- `HeaderBar` — brand, a mono status chip (`setStatus(icon, text)`), the subject
+  (`setSubject(name, badge)`: initial avatar, name, optional role badge; `clearSubject()`), and
+  right-aligned `addAction(button)`s.
+- Navigation icons as plain SVGs for `IconUtil.svgIcon(resource, size, color)` (tinted, no
+  class each): `scan`, `clock`, `flask`, `chat`, `list`, `book`, `plug`, `user`, `archive`,
+  `help`, `capture`.
+- Phase 3 (same day): `ChipPanel` — a wrapping row of removable pills (`setChips`, `onRemove` with
+  the chip's key, `addAction` trailing "+ Add …" chip, `setEmptyText`); it shows what it is given
+  and never edits its own list. `WrapLayout` under it — a `FlowLayout` whose preferred height
+  accounts for wrapping (Rob Camick's fix), because a plain FlowLayout reports one row's height and
+  a chip row in a vertical layout gets clipped. `SegmentedControl` — one bar of mutually exclusive
+  options (`select` silent, clicks fire `onChange(int)`, `clearSelection` is a valid "none of
+  these"). `KeyValuePanel` — muted key / wrapping value grid for detail panes (`put`, `putMono`,
+  `clear`). `Tables.style(JTable)` — the house table look (32 px rows, no grid, quiet bold header,
+  accent-soft selection, sorter on) and `Tables.width(table, column, px)`.
+- Icons: `KeyIcon`, `LockIcon`, `LogoutIcon`, `ShieldIcon` (`key.svg`, `lock.svg`, `logout.svg`,
+  `shield.svg`), same two-constructor contract as the rest.
+
+`PagePanel` (Phase 5, same day) is the frame every application page shares: a title and a
+one-line description over `UITokens.ground()`, an optional `action(component)` at the right of
+the title, and white bordered `card(content)`s below (the last one takes the remaining height;
+`row(component)` for a toolbar between). `UITokens.ground()` is the page background token;
+`UITokens.mono(delta)` takes its family from `UIManager "xlogistx.monoFamily"` when an
+application sets one (a bundled JetBrains Mono), else the logical `MONOSPACED`.
+
+`CardStack` (Phase 4, same day) reports the **visible** card's preferred and minimum size, not a
+plain `CardLayout`'s maximum over every card: a stack in a scroll pane used to be as tall as its
+tallest hidden card, so a small placeholder card sat below the fold with a scrollbar beside it. In
+a `BorderLayout` centre nothing changes. A third MigLayout lesson from the same page: a card whose
+preferred height is its tallest content needs `hmin 0` or the page keeps that height and overflows
+the window.
+
+Two MigLayout lessons paid for on 2026-10-24: a grid needs `wrap N` in the layout constraints or
+every `add` lands in one row (the stepper's header and form were side by side, off the card); and
+`hidemode 3` removes a hidden component's *cell* too, so a component that must keep its column
+(the stepper's last rail) stays visible and just paints nothing. A `CardLayout` keeps the tallest
+card's height — the stepper toggles body/summary visibility instead. Before handing a screen
+over, paint it headless to a PNG and look at it: tests do not see layout.
+
+Tests: `FormPanelTest` (headless: a group hides exactly its rows, the required mark and
+`labelFor`, the inline message keeps its line, stepper states through activate / complete /
+reopen, badge tones, token fallbacks). Visual: `test/StepperPanelDemo` puts them together as a
+two-step unlock card beside a splash panel.
+
 ### Viewers and converters
 
 - `MDViewerPanel` — read-only GFM markdown viewer (commonmark → HTML → `JEditorPane`).

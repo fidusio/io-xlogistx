@@ -1709,4 +1709,108 @@ public class IconUtil {
             images.add(badgeImage(factory.apply(size), glyph, background, size));
         return images;
     }
+
+    /**
+     * Key icon rendered from the bundled {@code key.svg} classpath resource: API keys and
+     * credentials.
+     */
+    public static class KeyIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square key icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public KeyIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/key.svg");
+        }
+
+        /**
+         * Creates a square key icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public KeyIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/key.svg");
+        }
+    }
+
+    /**
+     * Padlock icon rendered from the bundled {@code lock.svg} classpath resource: a vault, an
+     * encrypted store, a locked setting.
+     */
+    public static class LockIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square lock icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public LockIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/lock.svg");
+        }
+
+        /**
+         * Creates a square lock icon tinted with the given color on a green background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public LockIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_GREEN.getValue(), "io/xlogistx/gui/icons/lock.svg");
+        }
+    }
+
+    /**
+     * Sign-out icon (arrow leaving a door) rendered from the bundled {@code logout.svg}
+     * classpath resource.
+     */
+    public static class LogoutIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square sign-out icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public LogoutIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/logout.svg");
+        }
+
+        /**
+         * Creates a square sign-out icon tinted with the given color on a red background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public LogoutIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_RED.getValue(), "io/xlogistx/gui/icons/logout.svg");
+        }
+    }
+
+    /**
+     * Shield with a check mark rendered from the bundled {@code shield.svg} classpath resource:
+     * security, access control, a product mark.
+     */
+    public static class ShieldIcon extends SVGIconWidget {
+
+        /**
+         * Creates a square shield icon rendered with the svg's own colors.
+         *
+         * @param size icon width and height in pixels
+         */
+        public ShieldIcon(int size) {
+            super(size, "io/xlogistx/gui/icons/shield.svg");
+        }
+
+        /**
+         * Creates a square shield icon tinted with the given color on a blue background.
+         *
+         * @param size  icon width and height in pixels
+         * @param color glyph tint color
+         */
+        public ShieldIcon(int size, Color color) {
+            super(size, color, NVColor.BOOTSTRAP_BLUE.getValue(), "io/xlogistx/gui/icons/shield.svg");
+        }
+    }
 }
