@@ -1,5 +1,8 @@
 package io.xlogistx.gui;
 
+import org.zoxweb.shared.util.GetDisplayName;
+import org.zoxweb.shared.util.GetName;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -26,8 +29,11 @@ import java.util.function.Consumer;
  */
 public class ChipPanel extends JPanel {
 
-    /** One chip: the key it is removed by, the label shown, an optional small badge after it. */
-    public static final class Chip {
+    /**
+     * One chip: the key it is removed by (its name), the label shown (its display name), an
+     * optional small badge after it. Names itself, so a {@link ComponentRef} over it needs no override.
+     */
+    public static final class Chip implements GetName, GetDisplayName {
         public final String key;
         public final String label;
         public final String badge;
@@ -41,9 +47,21 @@ public class ChipPanel extends JPanel {
             this.label = label;
             this.badge = badge;
         }
+
+        @Override
+        public String getName() {
+            return key;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return label;
+        }
     }
 
     private final List<Chip> chips = new ArrayList<>();
+    /** One ref per chip shown (2026-10-27): the pill is the component, the chip the source. */
+    private final List<ComponentRef<Chip>> chipRefs = new ArrayList<>();
     private final List<Consumer<String>> removeListeners = new ArrayList<>();
     private JComponent addChip;
     private String emptyText;
@@ -62,6 +80,11 @@ public class ChipPanel extends JPanel {
 
     public List<Chip> getChips() {
         return Collections.unmodifiableList(chips);
+    }
+
+    /** The chips shown, as refs: each one's component is its pill, its source the chip. */
+    public List<ComponentRef<Chip>> chipRefs() {
+        return Collections.unmodifiableList(chipRefs);
     }
 
     /** Called with the chip's key when its × is pressed. */
@@ -91,7 +114,12 @@ public class ChipPanel extends JPanel {
 
     private void rebuild() {
         removeAll();
-        for (Chip c : chips) add(new ChipView(c));
+        chipRefs.clear();
+        for (Chip c : chips) {
+            ChipView view = new ChipView(c);
+            chipRefs.add(new ComponentRef<Chip>(view, c));
+            add(view);
+        }
         if (chips.isEmpty() && emptyText != null && !emptyText.isEmpty()) {
             JLabel empty = new JLabel(emptyText);
             empty.setForeground(UITokens.muted());

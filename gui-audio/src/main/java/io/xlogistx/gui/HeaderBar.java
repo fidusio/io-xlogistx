@@ -62,8 +62,14 @@ public class HeaderBar extends JPanel {
 
     /** The status chip; null or empty text hides it. */
     public void setStatus(Icon icon, String text) {
+        setStatus(icon, text, null);
+    }
+
+    /** The status chip with a tooltip (what the chip's words mean, a longer path); null or empty text hides it. */
+    public void setStatus(Icon icon, String text, String tooltip) {
         status.setIcon(icon);
         status.setText(text != null ? text : "");
+        status.setToolTipText(tooltip);
         status.setVisible(text != null && !text.isEmpty());
     }
 

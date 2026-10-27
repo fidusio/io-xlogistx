@@ -5,6 +5,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -51,7 +52,10 @@ public class ListSection<T> extends JPanel {
     private final Function<T, String> sublabelFunction;
     private final List<RowAction<T>> actions;
     private final String emptyText;
+    private final WrapLabel descriptionLabel;
     private final JTextField searchField;
+    /** One ref per row shown (2026-10-27): the row panel, the item, the label and sublabel it was given. */
+    private final List<ComponentRef<T>> rowRefs = new ArrayList<>();
 
     private ListSection(Builder<T> b) {
         this.source = b.source;
@@ -86,8 +90,11 @@ public class ListSection<T> extends JPanel {
         header.add(titleRow);
 
         if (b.description != null && !b.description.isEmpty()) {
+            descriptionLabel = description(b.description);
             header.add(Box.createVerticalStrut(2));
-            header.add(description(b.description));
+            header.add(descriptionLabel);
+        } else {
+            descriptionLabel = null;
         }
 
         if (b.search) {
@@ -149,22 +156,28 @@ public class ListSection<T> extends JPanel {
     }
 
     /**
-     * A muted, word-wrapping line of explanatory text under the title. A JTextArea
-     * rather than a JLabel so long descriptions wrap to the panel width instead of
-     * being clipped; it is styled and disabled down to read as a label.
+     * A muted, word-wrapping line of explanatory text under the title: a {@link WrapLabel}
+     * whose wrap width follows the section's width ({@link #doLayout()}), so its height is right
+     * on first show. (It was a wrapping JTextArea, whose preferred height is one line until it
+     * has been laid out once and whose unbounded maximum let BoxLayout stretch the header.)
      */
-    private static JTextArea description(String text) {
-        JTextArea area = new JTextArea(text);
-        area.setEditable(false);
-        area.setFocusable(false);
-        area.setOpaque(false);
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        area.setBorder(null);
-        area.setFont(area.getFont().deriveFont(area.getFont().getSize2D() - 1f));
-        area.setForeground(UIManager.getColor("Label.disabledForeground"));
-        area.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return area;
+    private static WrapLabel description(String text) {
+        WrapLabel label = new WrapLabel(text);
+        label.setFont(UITokens.font(java.awt.Font.PLAIN, -1f));
+        label.setForeground(UITokens.muted());
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    /** The description wraps at the width the section actually has. */
+    @Override
+    public void doLayout() {
+        if (descriptionLabel != null) {
+            java.awt.Insets in = getInsets();
+            int w = getWidth() - in.left - in.right;
+            if (w >= 40) descriptionLabel.setWrapWidth(w);
+        }
+        super.doLayout();
     }
 
     /**
@@ -202,8 +215,14 @@ public class ListSection<T> extends JPanel {
         return new Builder<>(source);
     }
 
+    /** The rows shown now, as refs: each one's component is its row panel, its source the item. */
+    public List<ComponentRef<T>> rowRefs() {
+        return Collections.unmodifiableList(rowRefs);
+    }
+
     public void refresh() {
         rows.removeAll();
+        rowRefs.clear();
         List<T> items = (source != null) ? source.get() : null;
         boolean noItems = (items == null || items.isEmpty());
 
@@ -235,10 +254,12 @@ public class ListSection<T> extends JPanel {
                 rows.add(separator());
 
             String sublabel = (sublabelFunction != null) ? sublabelFunction.apply(item) : null;
-            JPanel row = PanelBuilder.row(labelFunction.apply(item), sublabel, buttons.toArray(new JButton[0]));
+            String label = labelFunction.apply(item);
+            JPanel row = PanelBuilder.row(label, sublabel, buttons.toArray(new JButton[0]));
             row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
             row.setAlignmentX(Component.LEFT_ALIGNMENT);
             rows.add(row);
+            rowRefs.add(new ComponentRef<T>(row, item, label, sublabel));
         }
         rows.revalidate();
         rows.repaint();

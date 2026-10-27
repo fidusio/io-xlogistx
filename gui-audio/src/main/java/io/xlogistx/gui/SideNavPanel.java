@@ -32,13 +32,16 @@ import java.util.function.Consumer;
  * <pre>
  * SideNavPanel nav = new SideNavPanel();
  * nav.section("scan", "Scan");
- * nav.item("scan.new", scanIcon, "New scan");
- * nav.item("scan.history", clockIcon, "History");
+ * nav.item(Screen.SCAN, scanIcon);            // an enum constant: its name is the key,
+ * nav.item(Screen.SCAN_HISTORY, clockIcon);   // its display name the text, its description the tooltip
  * nav.section("admin", "Admin");
  * nav.item("acl", shieldIcon, "Access control");
  * nav.setSectionVisible("admin", isAdmin);
- * nav.onSelect(key -&gt; navigator.show(key));
+ * nav.onSelect(key -&gt; navigator.show(Screen.valueOf(key)));
+ * nav.select(Screen.SCAN);                    // by the option, or by its key
  * </pre>
+ * Every item is a {@link ComponentRef} over what it was added with (2026-10-27): {@link #ref}
+ * and {@link #refs} hand them back, the key is the ref's name.
  */
 public class SideNavPanel extends JPanel {
 
@@ -47,6 +50,7 @@ public class SideNavPanel extends JPanel {
 
     private final ButtonGroup group = new ButtonGroup();
     private final Map<String, JToggleButton> items = new LinkedHashMap<>();
+    private final Map<String, ComponentRef<Object>> refs = new LinkedHashMap<>();
     private final Map<String, Section> sections = new LinkedHashMap<>();
     private final List<Consumer<String>> listeners = new ArrayList<>();
     private final JPanel body = new JPanel(new MigLayout("insets 10 12 8 12, wrap 1, gapy 2, fillx, hidemode 3", "[grow,fill]"));
@@ -85,9 +89,31 @@ public class SideNavPanel extends JPanel {
         sections.put(key, current);
     }
 
-    /** Adds a page item under the current section. @return the toggle, for tooltips or badges */
+    /** Adds a page item under the current section, keyed and labelled by hand. @return the toggle, for badges */
     public JToggleButton item(String key, Icon icon, String label) {
-        JToggleButton b = new JToggleButton(label, icon);
+        JToggleButton b = new JToggleButton();
+        return add(b, new ComponentRef<Object>(b, key, null, label), icon);
+    }
+
+    /**
+     * Adds a page item for an option (an enum constant that names, labels and describes itself):
+     * the ref's name is the item's key, its display name the text, its description the tooltip.
+     *
+     * @return the item's ref; its component is the toggle
+     */
+    public <S> ComponentRef<S> item(S option, Icon icon) {
+        JToggleButton b = new JToggleButton();
+        ComponentRef<S> ref = new ComponentRef<S>(b, option);
+        add(b, ref, icon);
+        return ref;
+    }
+
+    @SuppressWarnings("unchecked")
+    private JToggleButton add(JToggleButton b, ComponentRef<?> ref, Icon icon) {
+        final String key = ref.getName();
+        b.setText(ref.getDisplayName());
+        b.setIcon(icon);
+        b.setToolTipText(ref.getDescription());
         styleItem(b);
         b.addActionListener(e -> {
             selected = key;
@@ -95,9 +121,32 @@ public class SideNavPanel extends JPanel {
         });
         group.add(b);
         items.put(key, b);
+        refs.put(key, (ComponentRef<Object>) ref);
         body.add(b);
         if (current != null) current.items.add(b);
         return b;
+    }
+
+    /** The item's ref for a key, or null. */
+    @SuppressWarnings("unchecked")
+    public <S> ComponentRef<S> ref(String key) {
+        return (ComponentRef<S>) refs.get(key);
+    }
+
+    /** Every item's ref, in the order added. */
+    public List<ComponentRef<Object>> refs() {
+        return new ArrayList<ComponentRef<Object>>(refs.values());
+    }
+
+    /** Highlights the item added for this option without firing; null or unknown clears the selection. */
+    public void select(Object option) {
+        for (Map.Entry<String, ComponentRef<Object>> e : refs.entrySet()) {
+            if (option != null && option.equals(e.getValue().getSource())) {
+                select(e.getKey());
+                return;
+            }
+        }
+        select((String) null);
     }
 
     /** Adds a footer action: styled like an item but not a page (help, about, sign out). */

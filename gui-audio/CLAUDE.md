@@ -135,22 +135,44 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
 - `SideNavPanel` (Phase 2, same day) — the application's one navigation column, 232 px:
   `section(key, title)` headings, `item(key, icon, label)` flat toggles in one `ButtonGroup`
   (FlatLaf toolbar-button style, accent-soft selection), `footerAction(icon, label, Runnable)` and
-  `footer(component)`. It selects, it does not navigate: `onSelect(Consumer<String>)` fires on
+  `footer(component)`. Since 2026-10-27 every item is a `ComponentRef`: `item(option, icon)` adds
+  one for an enum constant (its name is the key, its display name the text, its description the
+  tooltip) and returns the ref, `ref(key)` / `refs()` hand them back, `select(Object)` highlights
+  by the option. It selects, it does not navigate: `onSelect(Consumer<String>)` fires on
   clicks only, `select(key)` highlights without firing, so host navigation and sidebar never loop.
+  `SideNavPanelTest` covers the ref items.
   `setSectionVisible` / `setItemVisible` hide an admin section for non-admins.
 - `HeaderBar` — brand, a mono status chip (`setStatus(icon, text)`), the subject
   (`setSubject(name, badge)`: initial avatar, name, optional role badge; `clearSubject()`), and
   right-aligned `addAction(button)`s.
 - Navigation icons as plain SVGs for `IconUtil.svgIcon(resource, size, color)` (tinted, no
   class each): `scan`, `clock`, `flask`, `chat`, `list`, `book`, `plug`, `user`, `archive`,
-  `help`, `capture`.
+  `help`, `capture`, and `settings` (a gear, 2026-10-25, for no-sneak's Settings page).
+- `ListSection.rowRefs()` and `ChipPanel.chipRefs()` (2026-10-27): every list row and every chip
+  is a `ComponentRef` over its item (the row's label and sublabel, or the chip's key and label,
+  are the ref's display name and description / name), rebuilt on each refresh; `RowRefsTest`.
 - Phase 3 (same day): `ChipPanel` — a wrapping row of removable pills (`setChips`, `onRemove` with
   the chip's key, `addAction` trailing "+ Add …" chip, `setEmptyText`); it shows what it is given
   and never edits its own list. `WrapLayout` under it — a `FlowLayout` whose preferred height
   accounts for wrapping (Rob Camick's fix), because a plain FlowLayout reports one row's height and
   a chip row in a vertical layout gets clipped. `SegmentedControl` — one bar of mutually exclusive
   options (`select` silent, clicks fire `onChange(int)`, `clearSelection` is a valid "none of
-  these"). `KeyValuePanel` — muted key / wrapping value grid for detail panes (`put`, `putMono`,
+  these"); built from an enum that implements zoxweb's `GetDisplayName`
+  (`new SegmentedControl(Filter.values())`, 2026-10-26) it labels each segment with the
+  constant's display name. Since 2026-10-27 every segment is a `ComponentRef` over its option
+  (`refs()`): the display name is the button's text, the description its tooltip (an enum that
+  implements `GetDescription` explains its own segments), `selectedSource()` returns the chosen
+  option and `select(Object)` selects by it; `selected(values())` is deprecated. A control built
+  from strings has string refs with no tooltip. `SegmentedControlTest` covers it. `ComponentRef<S>`
+  (maintainer, 2026-10-27; reshaped the same day) binds a component to the object it stands for:
+  `getSource()` (the enum constant or `NVEntity` it was built from, null for the string
+  constructor) and zoxweb's `GetName` / `GetDescription` / `GetDisplayName`, read live through
+  the source's own interfaces with fallbacks (an enum's name defaults to `name()`, a string names
+  itself, the display name to the name, so no label is ever blank; the description is the natural
+  tooltip); `ComponentRef(component, source, displayName)` keeps the source but words it
+  differently (a menu's "Assistant chat" for the Chat page). It is
+  the per-option descriptor a control keeps beside each component so neither side maps indexes
+  to constants; `ComponentRefTest` covers the resolution rules. `KeyValuePanel` — muted key / wrapping value grid for detail panes (`put`, `putMono`,
   `clear`). `Tables.style(JTable)` — the house table look (32 px rows, no grid, quiet bold header,
   accent-soft selection, sorter on) and `Tables.width(table, column, px)`.
 - Icons: `KeyIcon`, `LockIcon`, `LogoutIcon`, `ShieldIcon` (`key.svg`, `lock.svg`, `logout.svg`,
