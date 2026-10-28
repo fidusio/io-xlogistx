@@ -1,7 +1,7 @@
 package io.xlogistx.gui.test;
 
 import io.xlogistx.gui.MDToPDF;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 
 import javax.swing.*;
 import java.awt.*;

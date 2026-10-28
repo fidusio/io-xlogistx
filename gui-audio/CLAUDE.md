@@ -1,7 +1,10 @@
 # Claude Code Instructions for gui-audio
 
 Swing GUI widgets and (eventually) audio utilities for the io-xlogistx projects.
-Java package: `io.xlogistx.gui` (see `package-info.java` for the class map).
+Java package: `io.xlogistx.gui` (see `package-info.java` for the class map). The PDF viewer
+lives in the sub-package `io.xlogistx.gui.pdf` (since 2026-10-28: `PDFViewerPanel`,
+`PDFViewerApp`, `PDFThumbnailPanel`, `PDFSecurity`, `PDFToolHandler`, `PDFToolContext`,
+`PDFToolHandlers`, `PageTransform`); its tests stay in `src/test/java/io/xlogistx/gui/`.
 
 ## Architecture
 
@@ -48,14 +51,17 @@ The package has these groups:
      it, which is what the maintainer saw before — and `setFontSizeScope(null)` re-points it at
      the application; `PDFEditorPane` does that, because the editor *is* the application around
      the viewer and its View ▸ Control text size and the spinner must agree.
-   - `PDFSecurity` (2026-10-17) — a PDF's password protection as one immutable value: open
+   - `io.xlogistx.gui.pdf.PDFSecurity` (2026-10-17) — a PDF's password protection as one immutable value: open
      (user) password, owner password (empty = the open one), permission bits (`of(...)`, `NONE`,
      `loaded(doc, password)` reads a just-opened document's permissions, `describe()` for status
      text, `applyTo(doc)` = `protect` with AES-256 or `setAllSecurityToBeRemoved`). **PDFBox
      encrypts streams and strings in memory while it saves**, so `applyTo` goes on a throwaway
      copy, never on the document being shown (see `PDFViewerPanel.writeDocument`).
    - `GUIUtil` — static helpers only: `iconButton(...)` factories, screen capture
-     (`captureSelectedArea()`), clipboard, panels/scroll panes, color interpolation
+     (`captureSelectedArea()`), clipboard — `copyToClipboard(text, clearAfterMillis)` (2026-10-27)
+     copies a secret and wipes it after the delay on a one-shot Swing `Timer`, only while the
+     clipboard still holds exactly that text (`clearClipboardIfHolding`; `GUIUtilClipboardTest`
+     on a private clipboard) —, panels/scroll panes, color interpolation
      (`colorToRatio`, `interpolateColors`), `askPassword(parent, title, message)` (2026-10-17: a
      modal `JPasswordField` dialog with the FlatLaf reveal button, null when cancelled or
      headless).
@@ -77,8 +83,20 @@ The package has these groups:
    `LedWidget` (Color) and `IconStatusWidget` (ImageIcon); `ProgressBarWidget` (percent bar
    colored via `GUIUtil.colorToRatio`).
 3. **Data editors** — per-NV-type widgets (`BooleanWidget`, `LongWidget`, `DecimalWidget`,
-   `EnumWidget`, `StringWidget`) registered in the `MetaToWidget` singleton, composed into
-   forms by `NVGenericMapWidget`; list/tree editors `DynamicComboBox`, `TreeTextWidget`.
+   `EnumWidget`, `TextWidget` (2026-10-28: a single-line field, now the NVPair editor),
+   `StringWidget` (the 4-row area, NVBlob only); they take the look-and-feel font, no fixed
+   Arial since 2026-10-28) registered in the `MetaToWidget` singleton, composed into forms by
+   `NVGenericMapWidget` (redone 2026-10-28 on `FormPanel`: title from the map's name, one
+   stacked field per entry in map order — a boolean's check box carries the name itself,
+   number fields are capped at `NUMBER_FIELD_WIDTH`, a nested `NVGenericMap` is an indented
+   section under its name, recursively, its entries addressed by path
+   (`getEditor("db", "url")`, `getEntryNames()` joins with `PATH_SEPARATOR`) — a 16 px
+   margin, an `InlineMessage`
+   line, **Reset** and a primary
+   **Save**; both enabled only while dirty, i.e. an editor was touched since the last save or
+   reset; `getEditor(name)`, `getEntryNames()`, `isDirty()`, `getMessage()`, the buttons via
+   `getSave()` / `getCancel()`); list/tree editors `DynamicComboBox`, `TreeTextWidget`;
+   `FilterComboBox<T>` (2026-10-28), an editable combo that is its own filter.
 
 ### The MetaToWidget binding pattern (important)
 
@@ -89,7 +107,10 @@ The package has these groups:
 - Unregistered NV types intentionally fall back to a **read-only** text field
   (no exception) so `NVGenericMapWidget` can always render a form.
 - Save-side validation throws from `mapToValue` (e.g. NVInt int-range check);
-  `NVGenericMapWidget.onSave` catches `Exception` and shows an error dialog.
+  `NVGenericMapWidget.onSave` catches `Exception` per entry: the rejected editor gets the
+  FlatLaf error outline, its tooltip and the `NVGenericMapWidget.ERROR_PROPERTY` client
+  property carry the reason, the message line names the entries, focus goes to the first,
+  the other entries are still written and the update consumer is **not** called. No dialogs.
 
 ### Form and shell primitives (2026-10-24)
 
@@ -177,6 +198,24 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
   accent-soft selection, sorter on) and `Tables.width(table, column, px)`.
 - Icons: `KeyIcon`, `LockIcon`, `LogoutIcon`, `ShieldIcon` (`key.svg`, `lock.svg`, `logout.svg`,
   `shield.svg`), same two-constructor contract as the rest.
+- `FilterComboBox<T>` (2026-10-28, for no-sneak's assistant, whose model combo and filter box
+  became one control): an editable `JComboBox<T>` on its own `MutableComboBoxModel` that keeps
+  the full list (`getItems()`) and a visible view (`getItemCount` / `getItemAt`). Typing in the
+  editor narrows the view through a `Matcher<T>` (`setMatcher`; `CONTAINS` by default, a
+  case-insensitive substring test; the matcher also sees blank text so a host can curate the
+  unfiltered list) on the next EDT turn (a document must not be edited from its own
+  notification), restores the typed text if a model event let the L&F rewrite the editor, and
+  reopens the popup sized to the matches when the editor has focus. Enter is bound on the editor
+  (`FilterComboBox.commit`): the highlighted item if the popup shows one, else the typed text
+  resolved by the model — an item it names exactly ignoring case, else the text itself when
+  `setFreeText(true)`, else the previous selection stays. Escape (`popupMenuCanceled`) puts the
+  selected item's text back. The filter (`getFilter()`) is dropped when the popup closes, on a
+  `setSelectedItem` while the popup is closed, and by `removeAllItems` / `setItems`. The L&F's
+  own editor writes go through the overridden `configureEditor` under a `syncing` flag so they
+  never count as typing; `setEditor` / `updateUI` re-install the hooks once per editor
+  (`FilterComboBox.hooked` client property); `setModel` copies a foreign model's items in and
+  keeps the filtering model. `FilterComboBoxTest` (6, headless) pins all of it; the popup itself
+  needs a display.
 
 `PagePanel` (Phase 5, same day) is the frame every application page shares: a title and a
 one-line description over `UITokens.ground()`, an optional `action(component)` at the right of
@@ -221,7 +260,8 @@ two-step unlock card beside a splash panel.
   `<p class="diagram"><img data:png>` at scale 2, capped at `DIAGRAM_MAX_WIDTH` CSS px;
   unsupported diagrams (sequence, class, ...) stay code blocks. `MDViewerPanel` still shows
   the source (Swing's HTML kit has no data-URI images).
-- `PDFViewerPanel` — PDFBox-backed Swing viewer (details below). Its tool strategy API
+- `io.xlogistx.gui.pdf.PDFViewerPanel` — PDFBox-backed Swing viewer (details below; the
+  whole viewer moved to the `pdf` sub-package on 2026-10-28). Its tool strategy API
   (`PDFToolHandler`, `PDFToolContext`, built-ins in package-private `PDFToolHandlers`) and
   edit hooks (`PDFViewerPanel.EditDelegate` + direct page primitives) are what the PDF
   editor in `apps` (`io.xlogistx.editor.pdf`, design in `PDF-EDIT-DESIGN.md`) builds on.
@@ -566,6 +606,8 @@ Moved on 2026-10-15 to the `apps` module, package `io.xlogistx.editor.hex` (`Hex
 
 Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 - `IconWidgetDemo` — all icons as labels and buttons
+- `NVGenericMapWidgetDemo` — an `NVGenericMapWidget` over a sample map of every NV type
+  (FlatLaf set up like the other demos; under Metal the primary button and outlines are plain)
 - `StateIconDemo` — status widgets
 - `CaptureSelectedAreaDemo` — screen-area selection + screenshot (shows the intended
   off-EDT usage of `captureSelectedArea()`)
@@ -582,7 +624,11 @@ Interactive demos (main methods) in `src/test/java/io/xlogistx/gui/test/`:
 
 Build: `mvn clean install -pl gui-audio -am` (from repo root).
 
-Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `MDToPDFTest`,
+Headless-safe JUnit tests (`src/test/java/io/xlogistx/gui/`): `NVGenericMapWidgetTest`
+(2026-10-28: one editor per entry in order, dirty state drives the buttons, save writes the
+model and calls the consumer, a rejected entry is outlined and named while the valid ones are
+written and the consumer stays silent, reset reloads, a nested map as a section with its own
+editors, an empty map), `MDToPDFTest`,
 `MermaidRendererTest`, `pdf/PageTransformTest` (hand-computed corners for all four
 rotations + offset crop box, and a rendered-pixel check against `PDFRenderer`),
 `PDFSecurityTest` (2026-10-17: the value class, a protected file opened through the prompt with a

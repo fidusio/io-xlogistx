@@ -1,7 +1,7 @@
 package io.xlogistx.editor.pdf;
 
-import io.xlogistx.gui.PDFToolHandler;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFToolHandler;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 
 import javax.swing.JComponent;

@@ -7,8 +7,9 @@ import javax.swing.*;
 /**
  * Scrollable multi-line text editor for string and binary values: a {@link JTextArea}
  * (4x32, word-wrapped) wrapped in a scroll pane. Used by {@link MetaToWidget} to edit
- * {@link NVPair} (plain text) and {@link NVBlob} (binary, rendered/parsed through the
- * registered byte[] {@link DataCodec}) entries.
+ * {@link NVBlob} (binary, rendered/parsed through the registered byte[] {@link DataCodec})
+ * entries; the setter also handles plain {@link NVPair} text. Single-line strings use
+ * {@link TextWidget}.
  */
 public class StringWidget extends JScrollPane {
 

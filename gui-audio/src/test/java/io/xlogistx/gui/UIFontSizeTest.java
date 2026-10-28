@@ -1,5 +1,6 @@
 package io.xlogistx.gui;
 
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

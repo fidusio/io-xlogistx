@@ -2,7 +2,7 @@ package io.xlogistx.editor.pdf;
 
 import io.xlogistx.editor.pdf.tools.EditTextTool;
 import io.xlogistx.gui.MDToPDF;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;

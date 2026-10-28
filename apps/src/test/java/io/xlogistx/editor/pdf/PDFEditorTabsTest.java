@@ -1,6 +1,5 @@
 package io.xlogistx.editor.pdf;
 
-import io.xlogistx.gui.PDFViewerPanel;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;

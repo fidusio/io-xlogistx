@@ -14,7 +14,7 @@ import io.xlogistx.editor.pdf.TextEditor;
 import io.xlogistx.editor.pdf.ModifyAnnotationEdit;
 import io.xlogistx.editor.pdf.PDFEdit;
 import io.xlogistx.editor.pdf.RemoveAnnotationEdit;
-import io.xlogistx.gui.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolContext;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.pdmodel.PDDocument;

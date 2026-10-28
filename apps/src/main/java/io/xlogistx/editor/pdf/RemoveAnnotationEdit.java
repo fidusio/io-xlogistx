@@ -1,6 +1,6 @@
 package io.xlogistx.editor.pdf;
 
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;

@@ -23,7 +23,7 @@ gesture), `SetFieldValueEdit` (String, or `List<String>` for multi-select; check
 `check()/unCheck()`, choice cleared with `setValue((String) null)`; `refreshAppearances`
 when `NeedAppearances`; invalidates every page with a widget), `CompoundEdit` (one step for
 several, e.g. a highlight spanning pages), `SetSecurityEdit` (2026-10-17: the document's
-password protection, a `io.xlogistx.gui.PDFSecurity` value before / after handed to
+password protection, a `io.xlogistx.gui.pdf.PDFSecurity` value before / after handed to
 `PDFViewerPanel.setSecurityDirect`; names "Set / Change / Remove document password", "Change
 document permissions"; no page changes, it only decides how the next save encrypts).
 

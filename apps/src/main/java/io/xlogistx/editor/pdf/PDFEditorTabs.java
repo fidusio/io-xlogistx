@@ -1,6 +1,7 @@
 package io.xlogistx.editor.pdf;
 
 import io.xlogistx.gui.IconUtil;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.zoxweb.shared.util.SUS;
 
 import javax.swing.*;
@@ -34,7 +35,7 @@ import java.util.function.Supplier;
  * titled {@value #EMPTY_TITLE}.
  *
  * <p>Files the user opens while the active tab already shows a document go to a
- * new tab, through the viewer's {@linkplain io.xlogistx.gui.PDFViewerPanel#setOpenHandler
+ * new tab, through the viewer's {@linkplain PDFViewerPanel#setOpenHandler
  * open handler}: the File ▸ Open entry, the toolbar Open button, Open Recent and the
  * Open choice of a drop all behave that way; an empty active tab is filled in
  * place. The API calls on a pane ({@code open}, {@code setPDF}) never move to

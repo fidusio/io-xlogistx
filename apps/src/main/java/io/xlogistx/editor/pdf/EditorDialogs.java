@@ -1,5 +1,8 @@
 package io.xlogistx.editor.pdf;
 
+import io.xlogistx.gui.pdf.PDFSecurity;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
+
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
@@ -273,7 +276,7 @@ public final class EditorDialogs {
             if (r != JOptionPane.OK_OPTION)
                 return null;
             try {
-                int[] pages = io.xlogistx.gui.PDFViewerPanel.parsePageSelection(field.getText(), currentPage, pageCount);
+                int[] pages = PDFViewerPanel.parsePageSelection(field.getText(), currentPage, pageCount);
                 int target = begin.isSelected() ? 0 : end.isSelected() ? pageCount : ((Number) spinner.getValue()).intValue();
                 int[] ret = new int[pages.length + (withPosition ? 2 : 1)];
                 System.arraycopy(pages, 0, ret, 0, pages.length);
@@ -410,8 +413,8 @@ public final class EditorDialogs {
      *                passwords are not shown, only whether they are set)
      * @return the protection wanted, null when cancelled
      */
-    public static io.xlogistx.gui.PDFSecurity askSecurity(Component parent, io.xlogistx.gui.PDFSecurity current) {
-        io.xlogistx.gui.PDFSecurity cur = current == null ? io.xlogistx.gui.PDFSecurity.NONE : current;
+    public static PDFSecurity askSecurity(Component parent, PDFSecurity current) {
+        PDFSecurity cur = current == null ? PDFSecurity.NONE : current;
         JPasswordField open = new JPasswordField(cur.getOpenPassword(), 20);
         JPasswordField confirm = new JPasswordField(cur.getOpenPassword(), 20);
         JPasswordField owner = new JPasswordField(cur.getOwnerPassword(), 20);
@@ -466,7 +469,7 @@ public final class EditorDialogs {
             perm.setCanModifyAnnotations(change.isSelected());
             perm.setCanFillInForm(change.isSelected());
             perm.setCanAssembleDocument(change.isSelected());
-            return io.xlogistx.gui.PDFSecurity.of(p, new String(owner.getPassword()), perm);
+            return PDFSecurity.of(p, new String(owner.getPassword()), perm);
         }
     }
 

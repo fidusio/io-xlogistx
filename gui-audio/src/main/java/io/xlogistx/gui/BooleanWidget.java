@@ -34,7 +34,6 @@ public class BooleanWidget extends JCheckBox {
      */
     public BooleanWidget(String label, boolean initialValue) {
         super(label, initialValue);
-        setFont(new Font("Arial", Font.PLAIN, 12));
         setToolTipText(label != null ? "Toggle " + label : null);
     }
 

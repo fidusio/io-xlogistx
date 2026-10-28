@@ -1,5 +1,6 @@
-package io.xlogistx.gui;
+package io.xlogistx.gui.pdf;
 
+import io.xlogistx.gui.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -27,7 +28,6 @@ import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
-import io.xlogistx.gui.pdf.PageTransform;
 import org.zoxweb.server.io.IOUtil;
 import org.zoxweb.shared.util.SUS;
 

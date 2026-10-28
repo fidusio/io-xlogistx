@@ -1,4 +1,4 @@
-package io.xlogistx.gui;
+package io.xlogistx.gui.pdf;
 
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;

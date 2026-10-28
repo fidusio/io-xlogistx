@@ -21,17 +21,17 @@
  *   <li><b>Data editors</b> — per-type editor widgets
  *       ({@link io.xlogistx.gui.BooleanWidget}, {@link io.xlogistx.gui.LongWidget},
  *       {@link io.xlogistx.gui.DecimalWidget}, {@link io.xlogistx.gui.EnumWidget},
- *       {@link io.xlogistx.gui.StringWidget}) wired together by
+ *       {@link io.xlogistx.gui.TextWidget}, {@link io.xlogistx.gui.StringWidget}) wired together by
  *       {@link io.xlogistx.gui.MetaToWidget} and composed into forms by
  *       {@link io.xlogistx.gui.NVGenericMapWidget}; list/tree editors
  *       {@link io.xlogistx.gui.DynamicComboBox} and
  *       {@link io.xlogistx.gui.TreeTextWidget}.</li>
  *   <li><b>Viewers and converters</b> — {@link io.xlogistx.gui.MDViewerPanel}
  *       (read-only GitHub flavored Markdown viewer, commonmark rendered into a
- *       {@code JEditorPane}), {@link io.xlogistx.gui.PDFViewerPanel} (PDFBox
+ *       {@code JEditorPane}), {@link io.xlogistx.gui.pdf.PDFViewerPanel} (PDFBox
  *       based PDF viewer: lazy background page rendering, LRU cache, zoom/fit
  *       modes, text search, selection, clickable links, save/print/merge),
- *       {@link io.xlogistx.gui.PDFViewerApp} (standalone window around it),
+ *       {@link io.xlogistx.gui.pdf.PDFViewerApp} (standalone window around it),
  *       {@link io.xlogistx.gui.MDToPDF} (Markdown to PDF via commonmark,
  *       OpenHTMLtoPDF and PDFBox, embedded Roboto fonts) and
  *       {@link io.xlogistx.gui.MermaidRenderer} (pure Java Mermaid flowchart

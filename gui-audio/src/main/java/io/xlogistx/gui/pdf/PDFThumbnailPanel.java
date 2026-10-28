@@ -1,4 +1,4 @@
-package io.xlogistx.gui;
+package io.xlogistx.gui.pdf;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;

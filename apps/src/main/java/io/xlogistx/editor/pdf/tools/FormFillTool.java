@@ -4,7 +4,7 @@ import io.xlogistx.editor.pdf.EditorHost;
 import io.xlogistx.editor.pdf.FormFields;
 import io.xlogistx.editor.pdf.FormFields.Widget;
 import io.xlogistx.editor.pdf.SetFieldValueEdit;
-import io.xlogistx.gui.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolContext;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.PDCheckBox;
 import org.apache.pdfbox.pdmodel.interactive.form.PDChoice;

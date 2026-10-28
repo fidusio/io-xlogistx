@@ -1,7 +1,7 @@
 package io.xlogistx.editor.pdf;
 
-import io.xlogistx.gui.PDFSecurity;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFSecurity;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.zoxweb.shared.util.SUS;
 
 /**

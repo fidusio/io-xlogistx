@@ -15,7 +15,9 @@ current.
 - **Location.** The editing code lives in the `apps` module, package
   `io.xlogistx.editor.pdf` (`PDFEdit`, `PDFEditModel`, `InsertPagesEdit`, `DeletePagesEdit`,
   `PDFEditorPane`, `PDFEditorFrame`), beside the hex editor. `PDFViewerPanel` stays in
-  `gui-audio` and only gained hooks: `io.xlogistx.gui.pdf.PageTransform` (4.2, used by the
+  `gui-audio` (since 2026-10-28 in `io.xlogistx.gui.pdf` together with `PDFViewerApp`,
+  `PDFThumbnailPanel`, `PDFSecurity`, `PDFToolHandler`, `PDFToolContext`, `PDFToolHandlers`;
+  section 4's diagram still shows the old `io.xlogistx.gui` location) and only gained hooks: `io.xlogistx.gui.pdf.PageTransform` (4.2, used by the
   panel itself for page sizes and link rectangles), `invalidatePage` + per-page content
   versions (4.5), the public `PDFToolHandler` / `PDFToolContext` strategy with
   `Tool.CUSTOM` + `setCustomTool` (4.4), and the `EditDelegate` below.
@@ -491,7 +493,7 @@ renders non-blank pixels; flattened export has zero annotations and identical re
 - [x] Phase 1 Tier 1 page operations (2026-10-15: `RotatePagesEdit`, `MovePagesEdit`, rotate
   buttons + dialogs, `PageOpsEditTest`)
 - [x] Forms (2026-10-15: `FormFields`, `SetFieldValueEdit`, `FormFillTool`, `FormFillTest`)
-- [x] Document passwords (2026-10-17: `io.xlogistx.gui.PDFSecurity` + viewer prompt and copy-based encrypted save, `SetSecurityEdit`, File ▸ Document password…, `DocumentPasswordTest`, `PDFSecurityTest`)
+- [x] Document passwords (2026-10-17: `io.xlogistx.gui.pdf.PDFSecurity` + viewer prompt and copy-based encrypted save, `SetSecurityEdit`, File ▸ Document password…, `DocumentPasswordTest`, `PDFSecurityTest`)
 - [x] Phase 2 Tier 2 markup + notes (2026-10-15: `AnnotationStyle`, `AnnotationFactory`,
   `AddAnnotationEdit`, `RemoveAnnotationEdit`, `TextMarkupTool`, `NoteTool`,
   `SelectAnnotationTool`, `AnnotationEditTest`)

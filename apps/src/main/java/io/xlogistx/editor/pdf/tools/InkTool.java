@@ -4,7 +4,7 @@ import io.xlogistx.editor.pdf.AddAnnotationEdit;
 import io.xlogistx.editor.pdf.AnnotationFactory;
 import io.xlogistx.editor.pdf.AnnotationStyle;
 import io.xlogistx.editor.pdf.EditorHost;
-import io.xlogistx.gui.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolContext;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationInk;

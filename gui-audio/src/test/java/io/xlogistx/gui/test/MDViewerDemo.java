@@ -3,7 +3,7 @@ package io.xlogistx.gui.test;
 import io.xlogistx.gui.BackgroundTask;
 import io.xlogistx.gui.MDToPDF;
 import io.xlogistx.gui.MDViewerPanel;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.apache.pdfbox.Loader;
 import org.zoxweb.server.io.IOUtil;
 

@@ -1,7 +1,7 @@
 package io.xlogistx.editor.pdf;
 
 import io.xlogistx.editor.pdf.tools.FormFillTool;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;

@@ -16,7 +16,8 @@ import static org.zoxweb.shared.util.MappedObject.Setter;
  *   <li>NVFloat / NVDouble → {@link DecimalWidget}</li>
  *   <li>NVInt / NVLong → {@link LongWidget}</li>
  *   <li>NVEnum → {@link EnumWidget}</li>
- *   <li>NVPair / NVBlob → {@link StringWidget}</li>
+ *   <li>NVPair → {@link TextWidget} (single line)</li>
+ *   <li>NVBlob → {@link StringWidget} (multi-line, codec-encoded)</li>
  * </ul>
  * {@link #create(GetNameValue)} bundles the NV instance, a freshly created widget and
  * the matching {@link Setter} into a {@link MappedObject} so callers (e.g.
@@ -42,7 +43,7 @@ public class MetaToWidget {
                 .register(NVInt.class, LongWidget::create)
                 .register(NVLong.class, LongWidget::create)
                 .register(NVEnum.class, EnumWidget::create)
-                .register(NVPair.class, StringWidget::create)
+                .register(NVPair.class, TextWidget::create)
                 .register(NVBlob.class, StringWidget::create);
 
 
@@ -100,7 +101,7 @@ public class MetaToWidget {
                         ((NVLong) nvMap.get()).setValue(nvMap.getMap().getValue());
                     }
                 })
-                .register(NVPair.class, StringWidget.MAPPED_SETTER)
+                .register(NVPair.class, TextWidget.MAPPED_SETTER)
                 .register(NVBlob.class, StringWidget.MAPPED_SETTER)
                 .register(NVEnum.class, EnumWidget.MAPPED_SETTER);
 

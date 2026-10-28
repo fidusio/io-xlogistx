@@ -3,7 +3,7 @@ package io.xlogistx.editor.pdf.tools;
 import io.xlogistx.editor.pdf.AnnotationFactory;
 import io.xlogistx.editor.pdf.EditorFonts;
 import io.xlogistx.editor.pdf.FreeTextAppearance;
-import io.xlogistx.gui.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolContext;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFreeText;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary;

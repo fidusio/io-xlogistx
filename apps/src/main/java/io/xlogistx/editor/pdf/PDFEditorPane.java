@@ -14,10 +14,11 @@ import io.xlogistx.editor.pdf.tools.ShapeTool;
 import io.xlogistx.editor.pdf.tools.TextMarkupTool;
 import io.xlogistx.gui.GUIUtil;
 import io.xlogistx.gui.IconUtil;
-import io.xlogistx.gui.PDFToolContext;
-import io.xlogistx.gui.PDFToolHandler;
-import io.xlogistx.gui.PDFViewerPanel;
+import io.xlogistx.gui.pdf.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolHandler;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import io.xlogistx.gui.UIFontSize;
+import io.xlogistx.gui.pdf.PDFSecurity;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -1325,8 +1326,8 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         return f;
     }
 
-    /** @return the protection the document is saved with (see {@link io.xlogistx.gui.PDFSecurity}), NONE without a document */
-    public io.xlogistx.gui.PDFSecurity getDocumentSecurity() {
+    /** @return the protection the document is saved with (see {@link PDFSecurity}), NONE without a document */
+    public PDFSecurity getDocumentSecurity() {
         return viewer.getSecurity();
     }
 
@@ -1335,14 +1336,14 @@ public class PDFEditorPane extends JPanel implements EditorHost {
      * undoable step ({@link SetSecurityEdit}); turns editing on. The document
      * itself is untouched until it is saved.
      *
-     * @param security the protection, null = {@link io.xlogistx.gui.PDFSecurity#NONE}
+     * @param security the protection, null = {@link PDFSecurity#NONE}
      * @return true when recorded, false without a document or when nothing changes
      */
-    public boolean setDocumentSecurity(io.xlogistx.gui.PDFSecurity security) {
+    public boolean setDocumentSecurity(PDFSecurity security) {
         if (viewer.getDocument() == null)
             return false;
-        io.xlogistx.gui.PDFSecurity next = security == null ? io.xlogistx.gui.PDFSecurity.NONE : security;
-        io.xlogistx.gui.PDFSecurity now = viewer.getSecurity();
+        PDFSecurity next = security == null ? PDFSecurity.NONE : security;
+        PDFSecurity now = viewer.getSecurity();
         if (next.equals(now))
             return false;
         commitInPlaceEdit();
@@ -1358,7 +1359,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
     public boolean documentPasswordDialog() {
         if (viewer.getDocument() == null)
             return false;
-        io.xlogistx.gui.PDFSecurity s = EditorDialogs.askSecurity(dialogParent(), viewer.getSecurity());
+        PDFSecurity s = EditorDialogs.askSecurity(dialogParent(), viewer.getSecurity());
         return s != null && setDocumentSecurity(s);
     }
 
@@ -1898,7 +1899,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
 
     private String statusDetail() {
         if (selectedAnnotation == null || !editable) {
-            io.xlogistx.gui.PDFSecurity s = viewer.getSecurity();
+            PDFSecurity s = viewer.getSecurity();
             return viewer.getDocument() != null && s.isProtected() ? "Protected: " + s.describe() : "";
         }
         String what = SelectAnnotationTool.describe(selectedAnnotation);
@@ -2006,7 +2007,7 @@ public class PDFEditorPane extends JPanel implements EditorHost {
         }
 
         @Override
-        public boolean setSecurity(io.xlogistx.gui.PDFSecurity security) {
+        public boolean setSecurity(PDFSecurity security) {
             return setDocumentSecurity(security);
         }
 

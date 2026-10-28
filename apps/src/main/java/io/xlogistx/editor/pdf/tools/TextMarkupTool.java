@@ -7,7 +7,7 @@ import io.xlogistx.editor.pdf.AnnotationStyle;
 import io.xlogistx.editor.pdf.CompoundEdit;
 import io.xlogistx.editor.pdf.EditorHost;
 import io.xlogistx.editor.pdf.PDFEdit;
-import io.xlogistx.gui.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolContext;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;

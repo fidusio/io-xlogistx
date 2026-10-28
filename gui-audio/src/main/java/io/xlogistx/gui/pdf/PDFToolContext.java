@@ -1,4 +1,4 @@
-package io.xlogistx.gui;
+package io.xlogistx.gui.pdf;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.annotation.AnnotationFilter;

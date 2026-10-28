@@ -1,5 +1,7 @@
 package io.xlogistx.gui;
 
+import io.xlogistx.gui.pdf.PDFThumbnailPanel;
+import io.xlogistx.gui.pdf.PDFViewerPanel;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;

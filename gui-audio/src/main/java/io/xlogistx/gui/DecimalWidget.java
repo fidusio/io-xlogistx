@@ -48,7 +48,6 @@ public class DecimalWidget extends JTextField {
         super(10);
         setValue(initialValue);
         setHorizontalAlignment(JTextField.RIGHT);
-        setFont(new Font("Arial", Font.PLAIN, 12));
         setToolTipText(label);
 
         // Add document filter for decimal validation; insertString and remove are routed

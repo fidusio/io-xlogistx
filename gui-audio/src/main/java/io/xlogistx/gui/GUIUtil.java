@@ -15,6 +15,7 @@ import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -287,6 +288,47 @@ public class GUIUtil {
         StringSelection stringSelection = new StringSelection(text);
         // Set the clipboard contents to the StringSelection
         clipboard.setContents(stringSelection, null); // null for owner means no owner
+    }
+
+    /**
+     * Copies a secret to the system clipboard and wipes it after {@code clearAfterMillis}, but
+     * only when the clipboard still holds exactly that text: a later copy by the user is left
+     * alone. The wipe runs on a one-shot Swing {@link javax.swing.Timer}, so it needs a live
+     * event thread; {@code clearAfterMillis <= 0} copies without a wipe.
+     *
+     * @param text             text to place on the clipboard
+     * @param clearAfterMillis delay before the guarded wipe, in milliseconds
+     */
+    public static void copyToClipboard(final String text, int clearAfterMillis) {
+        final Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        copyToClipboard(clipboard, text);
+        if (text == null || clearAfterMillis <= 0) return;
+        javax.swing.Timer wipe = new javax.swing.Timer(clearAfterMillis, e -> clearClipboardIfHolding(clipboard, text));
+        wipe.setRepeats(false);
+        wipe.start();
+    }
+
+    /**
+     * Replaces the clipboard's content with an empty string when it still holds exactly
+     * {@code text}; anything else (other text, non-text data, a clipboard another application
+     * holds at that moment) is left untouched.
+     *
+     * @param clipboard clipboard to check
+     * @param text      the text that was copied
+     * @return {@code true} when the clipboard was cleared
+     */
+    public static boolean clearClipboardIfHolding(Clipboard clipboard, String text) {
+        if (clipboard == null || text == null) return false;
+        try {
+            if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)
+                    && text.equals(clipboard.getData(DataFlavor.stringFlavor))) {
+                clipboard.setContents(new StringSelection(""), null);
+                return true;
+            }
+        } catch (Exception e) {
+            // held by another application, or its content changed under us: nothing to clear
+        }
+        return false;
     }
 
     /**

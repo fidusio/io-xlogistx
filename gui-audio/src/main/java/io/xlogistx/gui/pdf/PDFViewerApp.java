@@ -1,6 +1,7 @@
-package io.xlogistx.gui;
+package io.xlogistx.gui.pdf;
 
 import io.xlogistx.common.util.NVColor;
+import io.xlogistx.gui.IconUtil;
 
 import javax.swing.*;
 import java.awt.*;

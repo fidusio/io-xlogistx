@@ -5,7 +5,7 @@ import io.xlogistx.editor.pdf.EditorFonts;
 import io.xlogistx.editor.pdf.EditorHost;
 import io.xlogistx.editor.pdf.ReplaceTextEdit;
 import io.xlogistx.editor.pdf.TextEditor;
-import io.xlogistx.gui.PDFToolContext;
+import io.xlogistx.gui.pdf.PDFToolContext;
 import io.xlogistx.gui.pdf.PageTransform;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;

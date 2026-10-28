@@ -1,4 +1,4 @@
-package io.xlogistx.gui;
+package io.xlogistx.gui.pdf;
 
 import java.awt.Cursor;
 import java.awt.Graphics2D;
