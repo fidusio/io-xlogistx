@@ -111,9 +111,8 @@ public class SideNavPanel extends JPanel {
     @SuppressWarnings("unchecked")
     private JToggleButton add(JToggleButton b, ComponentRef<?> ref, Icon icon) {
         final String key = ref.getName();
-        b.setText(ref.getDisplayName());
+        GUIUtil.applyProp(ref); // name, text and tooltip from the ref
         b.setIcon(icon);
-        b.setToolTipText(ref.getDescription());
         styleItem(b);
         b.addActionListener(e -> {
             selected = key;

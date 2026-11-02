@@ -51,9 +51,8 @@ public class SegmentedControl extends JPanel {
         for (int i = 0; i < options.length; i++) {
             final int index = i;
             JToggleButton b = new JToggleButton();
-            ComponentRef<Object> ref = new ComponentRef<Object>(b, options[i]); // a string names itself, with no description
-            b.setText(ref.getDisplayName());
-            b.setToolTipText(ref.getDescription());
+            // a string names itself, with no description; applyProp sets the name, text and tooltip
+            ComponentRef<Object> ref = GUIUtil.applyProp(new ComponentRef<Object>(b, options[i]));
             b.setFocusPainted(false);
             b.setFont(UITokens.font(Font.BOLD, -0.5f));
             b.setMargin(new java.awt.Insets(5, 12, 5, 12));

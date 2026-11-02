@@ -64,7 +64,15 @@ The package has these groups:
      on a private clipboard) —, panels/scroll panes, color interpolation
      (`colorToRatio`, `interpolateColors`), `askPassword(parent, title, message)` (2026-10-17: a
      modal `JPasswordField` dialog with the FlatLaf reveal button, null when cancelled or
-     headless).
+     headless), and `applyProp` (2026-11-01): `applyProp(component, descriptor)` labels a
+     `JComponent` from anything that is a zoxweb `GetName` + `GetDescription` + `GetDisplayName`
+     (the name always, the description as the tooltip when there is one, the display name as the
+     text of a button or label or the placeholder of a text field, skipped when blank) and
+     returns the component; `applyProp(ref)` does the same to the component a `ComponentRef`
+     wraps (a plain AWT component only gets its name) and returns the ref, so a control applies
+     it as it is made: `GUIUtil.applyProp(new ComponentRef<Object>(b, option))`.
+     `SegmentedControl` and `SideNavPanel` label their toggles this way; a hand-set
+     `setText` / `setToolTipText` beside a ref is the old pattern.
    - `SelectionWindow` — translucent drag-selection overlay covering one monitor;
      `GUIUtil.captureSelectedArea()` shows one per monitor (Lock/Condition handshake,
      predicate-loop over all overlays). Per-display windows, NOT one spanning window:
@@ -187,13 +195,15 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
   from strings has string refs with no tooltip. `SegmentedControlTest` covers it. `ComponentRef<S>`
   (maintainer, 2026-10-27; reshaped the same day) binds a component to the object it stands for:
   `getSource()` (the enum constant or `NVEntity` it was built from, null for the string
-  constructor) and zoxweb's `GetName` / `GetDescription` / `GetDisplayName`, read live through
-  the source's own interfaces with fallbacks (an enum's name defaults to `name()`, a string names
+  constructor) and zoxweb's `GetNameDescriptionDisplay` (2026-11-01, the zoxweb-core 2.4.0
+  union of `GetName` / `GetDescription` / `GetDisplayName`), each read live through
+  the source's own single interface with fallbacks (an enum's name defaults to `name()`, a string names
   itself, the display name to the name, so no label is ever blank; the description is the natural
   tooltip); `ComponentRef(component, source, displayName)` keeps the source but words it
   differently (a menu's "Assistant chat" for the Chat page). It is
   the per-option descriptor a control keeps beside each component so neither side maps indexes
-  to constants; `ComponentRefTest` covers the resolution rules. `KeyValuePanel` — muted key / wrapping value grid for detail panes (`put`, `putMono`,
+  to constants, and what `GUIUtil.applyProp(ref)` reads to label the component;
+  `ComponentRefTest` covers the resolution rules. `KeyValuePanel` — muted key / wrapping value grid for detail panes (`put`, `putMono`,
   `clear`). `Tables.style(JTable)` — the house table look (32 px rows, no grid, quiet bold header,
   accent-soft selection, sorter on) and `Tables.width(table, column, px)`.
 - Icons: `KeyIcon`, `LockIcon`, `LogoutIcon`, `ShieldIcon` (`key.svg`, `lock.svg`, `logout.svg`,

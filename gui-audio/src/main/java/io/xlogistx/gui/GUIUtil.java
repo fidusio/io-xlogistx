@@ -4,6 +4,7 @@ import io.xlogistx.common.util.NVColor;
 import org.zoxweb.server.io.UByteArrayInputStream;
 import org.zoxweb.server.io.UByteArrayOutputStream;
 import org.zoxweb.shared.io.SharedIOUtil;
+import org.zoxweb.shared.util.*;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -615,5 +616,37 @@ public class GUIUtil {
         if (!(v instanceof Integer) || (Integer) v != JOptionPane.OK_OPTION)
             return null;
         return new String(field.getPassword());
+    }
+
+    /**
+     * Applies a descriptor to a component: the name always; the tooltip when there is a
+     * description; the display name as the text of a button or label (skipped when blank, for
+     * a label the panel fills at run time) or as the placeholder of a text field.
+     */
+    public static <C extends JComponent, R extends GetName & GetDescription & GetDisplayName> C applyProp(C c, R ref) {
+        c.setName(ref.getName());
+        if (SUS.isNotEmpty(ref.getDescription())) c.setToolTipText(ref.getDescription());
+        String text = ref.getDisplayName();
+        if (SUS.isNotEmpty(text)) {
+            if (c instanceof AbstractButton ) ((AbstractButton) c).setText(text);
+            else if (c instanceof JLabel) ((JLabel) c).setText(text);
+            else if (c instanceof JTextField) c.putClientProperty("JTextField.placeholderText", text);
+        }
+        return c;
+    }
+
+    /**
+     * Applies a {@link ComponentRef} to the component it wraps, as {@link #applyProp(JComponent, GetName & GetDescription & GetDisplayName)}
+     * does: the name always; the tooltip when the ref has a description; the display name as the
+     * text of a button or label or the placeholder of a text field. A ref over a plain AWT
+     * component (not a {@link JComponent}) only gets its name set. Returns the ref, so it can be
+     * applied as it is made: {@code applyProp(new ComponentRef<Page>(button, Page.HISTORY))}.
+     */
+    public static <S, R extends ComponentRef<S>> R applyProp(R ref) {
+        SUS.checkIfNull("ref null", ref);
+        Component c = ref.getComponent();
+        if (c instanceof JComponent) applyProp((JComponent) c, ref);
+        else c.setName(ref.getName());
+        return ref;
     }
 }

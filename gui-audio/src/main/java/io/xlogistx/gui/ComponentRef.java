@@ -3,6 +3,7 @@ package io.xlogistx.gui;
 import org.zoxweb.shared.util.GetDescription;
 import org.zoxweb.shared.util.GetDisplayName;
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.GetNameDescriptionDisplay;
 import org.zoxweb.shared.util.NVEntity;
 import org.zoxweb.shared.util.SUS;
 
@@ -31,7 +32,7 @@ import java.awt.Component;
  *
  * @param <S> the source type: the enum, the entity, or {@link Object} for a ref built from strings
  */
-public class ComponentRef<S> implements GetName, GetDescription, GetDisplayName {
+public class ComponentRef<S> implements GetNameDescriptionDisplay {
 
     private final Component component;
     private final S source;
