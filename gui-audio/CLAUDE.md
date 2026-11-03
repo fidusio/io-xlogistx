@@ -71,8 +71,8 @@ The package has these groups:
      returns the component; `applyProp(ref)` does the same to the component a `ComponentRef`
      wraps (a plain AWT component only gets its name) and returns the ref, so a control applies
      it as it is made: `GUIUtil.applyProp(new ComponentRef<Object>(b, option))`.
-     `SegmentedControl` and `SideNavPanel` label their toggles this way; a hand-set
-     `setText` / `setToolTipText` beside a ref is the old pattern.
+     `SegmentedControl` and `SideNavPanel` label their toggles this way, `ChipPanel` names its
+     chip views this way; a hand-set `setText` / `setToolTipText` beside a ref is the old pattern.
    - `SelectionWindow` — translucent drag-selection overlay covering one monitor;
      `GUIUtil.captureSelectedArea()` shows one per monitor (Lock/Condition handshake,
      predicate-loop over all overlays). Per-display windows, NOT one spanning window:
@@ -177,9 +177,15 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
 - Navigation icons as plain SVGs for `IconUtil.svgIcon(resource, size, color)` (tinted, no
   class each): `scan`, `clock`, `flask`, `chat`, `list`, `book`, `plug`, `user`, `archive`,
   `help`, `capture`, and `settings` (a gear, 2026-10-25, for no-sneak's Settings page).
+- `ListSection`'s frame border (2026-11-02) falls back to `UITokens.border()` when the look and
+  feel defines no `Component.borderColor`, not to light gray, so a dark theme keeps its lines dark.
 - `ListSection.rowRefs()` and `ChipPanel.chipRefs()` (2026-10-27): every list row and every chip
   is a `ComponentRef` over its item (the row's label and sublabel, or the chip's key and label,
   are the ref's display name and description / name), rebuilt on each refresh; `RowRefsTest`.
+  A chip's ref goes through `GUIUtil.applyProp` (2026-11-01), which only names the `ChipView`
+  by the chip key: the view is a panel, so no text, and a chip has no description, so no
+  tooltip. A list row keeps its hand-built labels: the ref wraps the row panel, and applying it
+  would only add a tooltip that repeats the visible sublabel.
 - Phase 3 (same day): `ChipPanel` — a wrapping row of removable pills (`setChips`, `onRemove` with
   the chip's key, `addAction` trailing "+ Add …" chip, `setEmptyText`); it shows what it is given
   and never edits its own list. `WrapLayout` under it — a `FlowLayout` whose preferred height
@@ -313,10 +319,11 @@ parents over children and spreads siblings evenly (one-directional placement dri
 everything right). Work is done on a main/cross axis pair and mapped to x/y at the end
 (`vertical`, `reversed` for BT/RL).
 
-**Painting.** Neutral grey theme like the Claude app's Mermaid output (`NODE_FILL`
-#EDEDEA, `NODE_STROKE` #D2D2CD, `EDGE` #9A9A9A, text #333), not Mermaid's lavender
-default — change these constants for another look (`MermaidRendererTest` counts
-`NODE_FILL` pixels, keep it in sync). Forward edges are cubics from
+**Painting.** The palette is the `UITokens` set, read at render time (2026-11-02): node fill
+`neutralSoft`, stroke `border`, text `text`, edges `muted`, edge-label background `ground`, page
+`surface` — neutral greys under a light theme, like the Claude app's Mermaid output rather than
+Mermaid's lavender default, and a dark card under a dark look-and-feel without a line changed
+(`MermaidRendererTest` counts `neutralSoft` pixels, keep it in sync). Forward edges are cubics from
 `anchorToward` (where the centre-to-centre line crosses the box, so fans leave a node at
 different points) with tangents along the layer axis; same-layer edges are straight; back
 edges leave the near side, enter the far side and loop past the farthest node of the layers

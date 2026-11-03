@@ -2,6 +2,7 @@ package io.xlogistx.gui;
 
 import org.zoxweb.shared.util.GetDisplayName;
 import org.zoxweb.shared.util.GetName;
+import org.zoxweb.shared.util.SUS;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -117,10 +118,10 @@ public class ChipPanel extends JPanel {
         chipRefs.clear();
         for (Chip c : chips) {
             ChipView view = new ChipView(c);
-            chipRefs.add(new ComponentRef<Chip>(view, c));
+            chipRefs.add(GUIUtil.applyProp(new ComponentRef<Chip>(view, c))); // names the view by the chip key
             add(view);
         }
-        if (chips.isEmpty() && emptyText != null && !emptyText.isEmpty()) {
+        if (chips.isEmpty() && SUS.isNotEmpty(emptyText)) {
             JLabel empty = new JLabel(emptyText);
             empty.setForeground(UITokens.muted());
             empty.setFont(UITokens.font(Font.PLAIN, -0.5f));
@@ -141,7 +142,7 @@ public class ChipPanel extends JPanel {
             label.setFont(UITokens.font(Font.BOLD, -0.5f));
             label.setForeground(UITokens.accentText());
             add(label);
-            if (chip.badge != null && !chip.badge.isEmpty()) {
+            if (SUS.isNotEmpty(chip.badge)) {
                 BadgeLabel badge = new BadgeLabel(chip.badge, BadgeLabel.Tone.NEUTRAL);
                 badge.setFont(UITokens.font(Font.PLAIN, -3f));
                 badge.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));

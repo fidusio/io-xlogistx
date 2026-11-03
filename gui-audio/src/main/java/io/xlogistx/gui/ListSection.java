@@ -77,7 +77,7 @@ public class ListSection<T> extends JPanel {
 
         Color borderColor = UIManager.getColor("Component.borderColor");
         setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor != null ? borderColor : Color.LIGHT_GRAY),
+                BorderFactory.createLineBorder(borderColor != null ? borderColor : UITokens.border()),
                 BorderFactory.createEmptyBorder(6, 8, 6, 8)));
 
         if (b.onAdd != null) {

@@ -231,12 +231,28 @@ public final class MermaidRenderer {
 
     private static final Font FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 14);
     private static final Font EDGE_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
-    // neutral grey theme (as the Claude app renders Mermaid), not Mermaid's lavender default
-    private static final Color NODE_FILL = new Color(0xED, 0xED, 0xEA);
-    private static final Color NODE_STROKE = new Color(0xD2, 0xD2, 0xCD);
-    private static final Color TEXT = new Color(0x33, 0x33, 0x33);
-    private static final Color EDGE = new Color(0x9A, 0x9A, 0x9A);
-    private static final Color EDGE_LABEL_BG = new Color(0xF2, 0xF2, 0xEE);
+    // the palette comes from the gui-audio tokens, read at render time, so a diagram follows the
+    // look and feel: neutral greys under a light theme (as the Claude app renders Mermaid, not
+    // Mermaid's lavender default), a dark card under a dark one (2026-11-02)
+    private static Color nodeFill() {
+        return UITokens.neutralSoft();
+    }
+
+    private static Color nodeStroke() {
+        return UITokens.border();
+    }
+
+    private static Color textColor() {
+        return UITokens.text();
+    }
+
+    private static Color edgeColor() {
+        return UITokens.muted();
+    }
+
+    private static Color edgeLabelBg() {
+        return UITokens.ground();
+    }
     private static final float PAD_X = 16, PAD_Y = 12, LAYER_GAP = 52, NODE_GAP = 32, MARGIN = 16;
     /** Labels wider than this are word-wrapped, like Mermaid's default wrapping width. */
     private static final float MAX_LABEL_WIDTH = 220;
@@ -355,7 +371,7 @@ public final class MermaidRenderer {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g2.setColor(Color.WHITE);
+            g2.setColor(UITokens.surface());
             g2.fillRect(0, 0, w, h);
             g2.scale(scale, scale);
             for (Edge e : g.edges)
@@ -887,9 +903,9 @@ public final class MermaidRenderer {
 
     private static void paintNode(Graphics2D g2, Node n) {
         java.awt.Shape shape = shapeOf(n);
-        g2.setColor(NODE_FILL);
+        g2.setColor(nodeFill());
         g2.fill(shape);
-        g2.setColor(NODE_STROKE);
+        g2.setColor(nodeStroke());
         g2.setStroke(new BasicStroke(1.5f));
         g2.draw(shape);
         if (n.shape == Shape.SUBROUTINE) {
@@ -898,7 +914,7 @@ public final class MermaidRenderer {
         } else if (n.shape == Shape.CYLINDER) {
             g2.draw(new java.awt.geom.Arc2D.Float(n.x, n.y, n.w, 16, 180, 180, java.awt.geom.Arc2D.OPEN));
         }
-        g2.setColor(TEXT);
+        g2.setColor(textColor());
         g2.setFont(FONT);
         FontMetrics fm = g2.getFontMetrics();
         String[] lines = n.label.split("\n");
@@ -1012,7 +1028,7 @@ public final class MermaidRenderer {
             }
         }
 
-        g2.setColor(EDGE);
+        g2.setColor(edgeColor());
         float width = e.thick ? 3f : 1.4f;
         g2.setStroke(e.dotted
                 ? new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 10f, new float[]{4f, 4f}, 0f)
@@ -1041,9 +1057,9 @@ public final class MermaidRenderer {
                 tw = Math.max(tw, (float) fm.getStringBounds(line, g2).getWidth());
             float th = lines.length * fm.getHeight();
             float bx = mid.x - tw / 2 - 4, by = mid.y - th / 2 - 2;
-            g2.setColor(EDGE_LABEL_BG);
+            g2.setColor(edgeLabelBg());
             g2.fill(new RoundRectangle2D.Float(bx, by, tw + 8, th + 4, 4, 4));
-            g2.setColor(TEXT);
+            g2.setColor(textColor());
             for (int i = 0; i < lines.length; i++) {
                 float lw = (float) fm.getStringBounds(lines[i], g2).getWidth();
                 g2.drawString(lines[i], mid.x - lw / 2, by + 2 + fm.getAscent() + i * fm.getHeight());

@@ -138,7 +138,7 @@ public class MermaidRendererTest {
         assertFalse(f.intersects(gg));
 
         // something got painted: node fill and text pixels
-        assertTrue(count(img, 0xEDEDEA) > 1000, "node fill pixels");
+        assertTrue(count(img, (UITokens.neutralSoft().getRGB() & 0xFFFFFF)) > 1000, "node fill pixels");
         assertTrue(count(img, 0x333333) > 50, "text/edge pixels");
 
         // scale 2 doubles the pixel size
@@ -152,7 +152,7 @@ public class MermaidRendererTest {
             MermaidRenderer.Graph g = MermaidRenderer.parse("flowchart " + dir + "\n a --> b --> c --> a\n c -->|again| b\n b --> b");
             BufferedImage img = MermaidRenderer.render(g, 1f);
             assertTrue(img.getWidth() > 50 && img.getHeight() > 50, dir);
-            assertTrue(count(img, 0xEDEDEA) > 100, dir);
+            assertTrue(count(img, (UITokens.neutralSoft().getRGB() & 0xFFFFFF)) > 100, dir);
             if (g.isVertical())
                 assertTrue(g.getHeight() > g.getWidth() * 0.8f, dir + " should stack vertically");
             else
