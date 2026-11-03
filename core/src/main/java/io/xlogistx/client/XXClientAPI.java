@@ -1,4 +1,4 @@
-package io.xlogistx.core.client;
+package io.xlogistx.client;
 
 
 import io.xlogistx.shared.data.ItemDAO;

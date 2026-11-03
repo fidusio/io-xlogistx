@@ -34,6 +34,8 @@
         <module>core</module>
         <module>opsec</module>
         <module>gui-audio</module>
+        <module>xlogistx-net</module>
+        <module>xlogistx-scan</module>
 <!--        <module>ffm</module>-->
         <module>apps</module>
     </modules>
