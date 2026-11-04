@@ -1,4 +1,4 @@
-# no-sneak-core
+# xlogistx-scan
 
 The scanning engine behind NoSneak: a **TLS/PQC posture scanner** and a **network scanner**,
 both built on one JSON-declared, non-blocking state machine. Roughly 20k lines across two
@@ -10,6 +10,10 @@ generations of the code — see *Status* below.
 core (`NIOSocket` + trigger `StateMachine`, nothing that blocks a thread on I/O); the rebuild has
 replaced the original packages, which are deleted (the merge analysis and the pre-merge action
 plan were deleted on 2026-10-26 as history; the git log keeps them).
+
+**Moved to io-xlogistx (2026-11-03).** Formerly `no-sneak-core` in the no-sneak repo, base package
+`io.xlogistx.nosneak`; now module `xlogistx-scan`, base package **`io.xlogistx.scan`**. The no-sneak
+desktop app consumes it as a jar. Details: `CLAUDE.md` → *Status (2026-11-03)*.
 
 | Doc | Covers |
 |---|---|
@@ -36,10 +40,10 @@ security-header analysis, and CNSA 2.0 compliance rules. See `CLAUDE.md` → *Vu
 
 ```bash
 # identify the service/TLS posture on a host:port
-java io.xlogistx.nosneak.ProbeChecker <host> <port> [timeoutSec] [--all] [--udp] [probe.json …]
+java io.xlogistx.scan.ProbeChecker <host> <port> [timeoutSec] [--all] [--udp] [probe.json …]
 
 # staged network scan (host discovery -> ports -> service/version/TLS)
-java io.xlogistx.nosneak.nmap.NMap <target…> [-p 22,80,443] [-sV] [-Pn] [-oA base]
+java io.xlogistx.scan.nmap.NMap <target…> [-p 22,80,443] [-sV] [-Pn] [-oA base]
 ```
 
 Embed with `NMapScanner.scan(nioSocket, config, callback)` or `ProbeChecker.check(...)`; the REST
@@ -47,18 +51,18 @@ endpoint is `service/Checker` (`/check-qdz/{domain}/{detailed}`).
 
 ## Dependencies
 
-`xlogistx-common`, `xlogistx-core`, `xlogistx-shiro`, `xlogistx-http`, `xlogistx-opsec`,
-`xlogistx-datastore`, plus zoxweb (`org.zoxweb.*`) and Bouncy Castle. **Bouncy Castle is the only
+`xlogistx-net`, `xlogistx-common`, `xlogistx-core`, `xlogistx-shiro`, `xlogistx-http`,
+`xlogistx-opsec`, plus zoxweb (`org.zoxweb.*`) and Bouncy Castle. **Bouncy Castle is the only
 cryptographic library** and all reusable crypto helpers belong in `opsec/OPSecUtil` — see
 *Non-negotiable rules* in `CLAUDE.md`.
 
 ## Building and testing
 
 ```bash
-mvn clean install -pl no-sneak-core -am
+mvn clean install -pl xlogistx-scan -am      # from the io-xlogistx root
 
 # tests are skipped by the parent pom; override to run them
-mvn -pl no-sneak-core test -DskipTests=false -Dtest='io.xlogistx.nosneak.**'
+mvn -pl xlogistx-scan test -DskipTests=false -Dtest='io.xlogistx.scan.**'
 ```
 
 If a TLS-intercepting proxy is active locally, Maven cannot reach central and every scanned

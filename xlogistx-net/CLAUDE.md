@@ -1,7 +1,8 @@
 # Host Discovery Subsystem — Implementation Spec **v2**
 
 **Maven module:** `xlogistx-net`
-**Root namespace:** `io.xlogistx.nosneak.net` — holds no types itself. Everything lives in a
+**Root namespace:** `io.xlogistx.net` (`io.xlogistx.nosneak.net` until the module moved from no-sneak,
+where it was `no-sneak-net`, to io-xlogistx on 2026-11-03 — A.0) — holds no types itself. Everything lives in a
 named subpackage:
 
 | Package | Contents | Exported |
@@ -186,14 +187,14 @@ Every struct layout in this document is selected on **`os.name` only, never `os.
 
 ## 3. Public API  **[IMPLEMENT]**
 
-All public types live in package `io.xlogistx.nosneak.net.common`. **One public top-level type per file** — the code blocks below group related types for readability only.
+All public types live in package `io.xlogistx.net.common`. **One public top-level type per file** — the code blocks below group related types for readability only.
 
 ### 3.1 `ICMPPing` — L3 liveness, host-scoped
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
-import common.io.xlogistx.net.DiscoveryCapabilities;
+import io.xlogistx.net.common.DiscoveryCapabilities;
 import io.xlogistx.net.common.HostDiscoveryFactory;
 import io.xlogistx.net.common.PingResult;
 
@@ -249,7 +250,7 @@ public interface ICMPPing extends Closeable {
 ### 3.2 `HostDiscovery` — L2 identity, interface-scoped
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import io.xlogistx.net.common.*;
 
@@ -385,10 +386,10 @@ public interface HostDiscovery extends Closeable {
 ### 3.3 Ping result types
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
-import common.io.xlogistx.net.PingError;
-import common.io.xlogistx.net.PingProbe;
+import io.xlogistx.net.common.PingError;
+import io.xlogistx.net.common.PingProbe;
 
 import java.net.InetAddress;
 import java.time.Duration;
@@ -438,15 +439,15 @@ public record PingResult(
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
-import common.io.xlogistx.net.PingError;
+import io.xlogistx.net.common.PingError;
 
 /**
  * One echo request/reply pair.
  *
  * Named PingProbe, not Probe: it belongs to the PingResult/PingError family, and
- * no-sneak-core already owns "probe" for the Tier-1 TCP/UDP service-identification
+ * xlogistx-scan already owns "probe" for the Tier-1 TCP/UDP service-identification
  * engine (ProbeDefinition, ProbeSession, ProbeResult). Different layer, same word —
  * do not reintroduce the bare name.
  */
@@ -462,7 +463,7 @@ public record PingProbe(
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 public enum PingError {
     TIMEOUT,
@@ -479,11 +480,11 @@ public enum PingError {
 ### 3.4 Resolution and record types
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
-import common.io.xlogistx.net.MacAddress;
+import io.xlogistx.net.common.MacAddress;
 import io.xlogistx.net.common.ResolveOutcome;
-import common.io.xlogistx.net.ResolveSource;
+import io.xlogistx.net.common.ResolveSource;
 
 import java.net.InetAddress;
 import java.time.Duration;
@@ -500,7 +501,7 @@ public record ResolveResult(
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 /** WHERE a MAC came from. This is provenance and is what IpMacCache stores. */
 public enum ResolveSource {
@@ -517,17 +518,17 @@ public enum ResolveSource {
 > `LOCAL_INTERFACE` exists because nothing on the segment answers an ARP request for our own address — the only host that owns it is the one asking — so without it `resolve(ownAddress)` burns the full timeout and reports `TIMEOUT` for a MAC held since construction. It is not a wire observation and must not be read as one.
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 /** WHAT HAPPENED. An outcome is not a source — keep these enums separate. */
 public enum ResolveOutcome { RESOLVED, TIMEOUT, UNSUPPORTED, ERROR }
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import io.xlogistx.net.common.MacAddress;
-import common.io.xlogistx.net.ResolveSource;
+import io.xlogistx.net.common.ResolveSource;
 
 /**
  * A discovered host (emitted by sweep, discoverIpv6Segment, and resolve).
@@ -549,7 +550,7 @@ public record HostRecord(
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import io.xlogistx.net.common.MacAddress;
 import io.xlogistx.net.common.ObservationKind;
@@ -564,13 +565,13 @@ public record ObservedNeighbor(
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 public enum ObservationKind { ARP_REQUEST, ARP_REPLY, GRATUITOUS_ARP, NDP_NS, NDP_NA }
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 public record SweepSummary(
         int total,
@@ -584,7 +585,7 @@ public record SweepSummary(
 ### 3.5 Value types
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import java.util.Arrays;
 import java.util.HexFormat;
@@ -610,7 +611,7 @@ public final class MacAddress {
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -633,7 +634,7 @@ public final class CidrRange {
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 public record SweepOptions(
         int maxInFlight,                    // bounded concurrency window, e.g. 256
@@ -656,7 +657,7 @@ public record SweepOptions(
 ### 3.6 NIC binding
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import io.xlogistx.net.common.MacAddress;
 
@@ -727,7 +728,7 @@ public record NicBinding(
 ### 3.7 Capabilities
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 /**
  * What the running backend can actually do. Returned by BOTH interfaces: on an
@@ -766,7 +767,7 @@ public record DiscoveryCapabilities(
 Three separate files. **The factory is the only place that knows how the two interfaces are wired together**, and it is what makes the set-once collaborator safe.
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 import java.net.NetworkInterface;
 import java.util.List;
@@ -775,7 +776,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import io.xlogistx.net.common.DiscoveryException;
 import io.xlogistx.net.common.HostDiscovery;
-import common.io.xlogistx.net.ICMPPing;
+import io.xlogistx.net.common.ICMPPing;
+import org.zoxweb.server.task.TaskUtil;   // the module's ONLY third-party import
 
 public final class HostDiscoveryFactory {
 
@@ -857,7 +859,7 @@ public final class HostDiscoveryFactory {
 > **Why `open()` returns a bundle rather than a bare `HostDiscovery`.** The pinger is shared across every NIC, so somebody has to own its lifetime, and it cannot be any one of the per-NIC backends — closing eth0 would kill ICMP for eth1. `Discovery` is that owner. It also gives the Windows path somewhere to express that `perInterface.get(0)` and `ping` may be **the same object**.
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 public interface Subscription extends java.io.Closeable {
     @Override void close();   // narrowed: does not throw IOException
@@ -865,7 +867,7 @@ public interface Subscription extends java.io.Closeable {
 ```
 
 ```java
-package io.xlogistx.nosneak.net.common;
+package io.xlogistx.net.common;
 
 public final class DiscoveryException extends Exception {
     public DiscoveryException(String msg) { super(msg); }
@@ -1028,7 +1030,7 @@ On the **receive** side (`recvfrom` returning `-1`):
 
 ## 5. Shared packet codecs  **[IMPLEMENT]**
 
-Package `io.xlogistx.nosneak.net.codecs`. Pure Java, no FFM. Operates on `byte[]` / `ByteBuffer`. Big-endian (network order) throughout.
+Package `io.xlogistx.net.codecs`. Pure Java, no FFM. Operates on `byte[]` / `ByteBuffer`. Big-endian (network order) throughout.
 
 ### 5.1 Internet checksum (RFC 1071)
 
@@ -1158,7 +1160,7 @@ Only populate `HostRecord.hopCount` when `capabilities().ttlAvailable()` is true
 
 ## 6. Linux native backend  **[IMPLEMENT]**
 
-Package `io.xlogistx.nosneak.net.platform.linux`. Binds `libc` via `Linker.nativeLinker().defaultLookup()`.
+Package `io.xlogistx.net.platform.linux`. Binds `libc` via `Linker.nativeLinker().defaultLookup()`.
 
 **Privilege model: the host process runs as root on the appliance.** `SOCK_RAW` is therefore unconditionally available. There is no capability grant, no `setcap`, no `net.ipv4.ping_group_range` dependency, and no `AT_SECURE`/`LD_LIBRARY_PATH` interaction to worry about.
 
@@ -1309,7 +1311,7 @@ The **Owner** column is the §2.0 split made concrete: the two ICMP sockets exis
 
 ## 7. macOS native backend  **[IMPLEMENT]**
 
-Package `io.xlogistx.nosneak.net.platform.darwin`. Binds `libc` via `Linker.nativeLinker().defaultLookup()` **for ICMP**, and libpcap for layer 2.
+Package `io.xlogistx.net.platform.darwin`. Binds `libc` via `Linker.nativeLinker().defaultLookup()` **for ICMP**, and libpcap for layer 2.
 
 > **SUPERSEDED IN PART BY §13.14 AND §13.20 — read those before this section.** This section was
 > written for a macOS backend that read the kernel neighbour table via `sysctl` and could not see the
@@ -1409,7 +1411,7 @@ Two-pass call: invoke with `oldp = NULL` to size the buffer, allocate from a con
 
 ## 8. Windows pcap backend  **[IMPLEMENT]**
 
-Package `io.xlogistx.nosneak.net.platform.windows`. Binds Npcap's `wpcap.dll` via FFM. This backend crafts and captures **full L2 frames** — pcap operates below IP.
+Package `io.xlogistx.net.platform.windows`. Binds Npcap's `wpcap.dll` via FFM. This backend crafts and captures **full L2 frames** — pcap operates below IP.
 
 ### 8.1 Library lookup and Npcap detection  **[REFERENCE]**
 
@@ -1417,7 +1419,10 @@ Package `io.xlogistx.nosneak.net.platform.windows`. Binds Npcap's `wpcap.dll` vi
 
 > **Loader hazard:** `wpcap.dll` depends on `Packet.dll` in the same directory. Loading `wpcap.dll` by absolute path without first adding that directory to the DLL search path fails at dependency resolution with an unhelpful error. Either require Npcap's WinPcap-compatibility install mode (which places the DLLs in `System32`), or set the DLL directory before the lookup.
 
-Make the path configurable via the system property `io.xlogistx.nosneak.net.platform.windows.lib`.
+Make the path configurable via a system property. `Pcap` (now shared by Windows and macOS) reads
+`io.xlogistx.nosneak.net.pcap.lib` (`Pcap.LIB_PROPERTY`), then the older
+`io.xlogistx.nosneak.net.platform.windows.lib` (`LEGACY_LIB_PROPERTY`). Both still carry the pre-move
+`nosneak` namespace — they are what the code reads, so do not rename them in docs alone.
 
 **If Npcap is absent, fail at `HostDiscoveryFactory.open()`** with a `DiscoveryException` naming the missing library and the install URL. Do not fail obscurely at first use, and do not bundle the installer.
 
@@ -1582,7 +1587,7 @@ Two details that are easy to get wrong:
 
 ## 9. IpMacCache  **[IMPLEMENT]**
 
-Package `io.xlogistx.nosneak.net.util`. Pure Java. Shared by all three backends.
+Package `io.xlogistx.net.util`. Pure Java. Shared by all three backends.
 
 ### 9.1 Contract
 
@@ -1657,11 +1662,11 @@ public final class IpMacCache {
 **Do not add one.** `platform.*` stays internal by convention, not by compiler enforcement, and the native-access flag is `ALL-UNNAMED` (§10.2). The sketch below is kept only to show what was rejected and why.
 
 ```java
-module io.xlogistx.nosneak.net {
+module io.xlogistx.net {
     requires org.zoxweb.core;             // <-- does not exist; see below
-    exports io.xlogistx.nosneak.net.common;
-    exports io.xlogistx.nosneak.net.util;
-    exports io.xlogistx.nosneak.net.codecs;
+    exports io.xlogistx.net.common;
+    exports io.xlogistx.net.util;
+    exports io.xlogistx.net.codecs;
     // platform.linux / platform.darwin / platform.windows are internal —
     // do not export. All FFM and pcap code lives there and nowhere else.
 }
@@ -1669,7 +1674,7 @@ module io.xlogistx.nosneak.net {
 
 `requires java.base` is implicit; omit it.
 
-> **Two findings that make this unwritable as-is.** First, `zoxweb-core` has **no `module-info.java` and no `Automatic-Module-Name`** in its pom, so `requires` would have to name an automatic module derived from the jar filename — which changes whenever the artifact is renamed or versioned differently. Second, **no other module in no-sneak declares a `module-info.java` at all**; the whole project builds and runs on the classpath. Adding JPMS to exactly this one module gains encapsulation of the `platform.*` packages and costs a fragile `requires` on a filename.
+> **Two findings that make this unwritable as-is.** First, `zoxweb-core` has **no `module-info.java` and no `Automatic-Module-Name`** in its pom, so `requires` would have to name an automatic module derived from the jar filename — which changes whenever the artifact is renamed or versioned differently. Second, **no other module in io-xlogistx or no-sneak declares a `module-info.java` at all**; both reactors build and run on the classpath. Adding JPMS to exactly this one module gains encapsulation of the `platform.*` packages and costs a fragile `requires` on a filename.
 >
 > Both point the same way: **drop `module-info.java`, keep the `platform.*` packages internal by convention**, and use the `ALL-UNNAMED` form of the native-access flag (§10.2). That is a decision for the maintainer, not an assumption — recorded as open decision §12.8.
 
@@ -1678,18 +1683,18 @@ module io.xlogistx.nosneak.net {
 FFM restricted methods require enabling native access at launch:
 
 ```
-java --enable-native-access=io.xlogistx.nosneak.net ...
+java --enable-native-access=io.xlogistx.net ...
 ```
 
 Without it: warnings on JDK 25, hard failure in a future release. This is a **JVM module-access check and is orthogonal to OS privilege** — running as root does not satisfy it.
 
 > **jar-loader interaction:** the flag above only applies if this module is genuinely loaded as a named module. If a custom classloader (jar-loader) ends up placing it on the classpath, the correct flag is `--enable-native-access=ALL-UNNAMED`. **That is the case here, confirmed under jar-loader on both architectures** (§13.6), and it is what the launcher and the Surefire `argLine` both pin.
 >
-> **Current evidence says `ALL-UNNAMED`.** Nothing in no-sneak declares a `module-info.java`, so this module would be loaded from the classpath as an unnamed module and the named form would silently fail to grant access — producing exactly the warning it was meant to suppress. Settle §12.8 before pinning the launcher flag.
+> **Current evidence says `ALL-UNNAMED`.** Nothing in io-xlogistx or no-sneak declares a `module-info.java`, so this module would be loaded from the classpath as an unnamed module and the named form would silently fail to grant access — producing exactly the warning it was meant to suppress. Settle §12.8 before pinning the launcher flag.
 
 ### 10.3 Maven
 
-- Module `xlogistx-net` under the no-sneak reactor (parent `io.xlogistx:no-sneak:1.0.0`); already created.
+- Module `xlogistx-net` in the io-xlogistx reactor (parent `io.xlogistx:xlogistx:1.0.0`, itself under `xlogistx-mvn`). It was `no-sneak-net` under the no-sneak reactor (parent `io.xlogistx:no-sneak:1.0.0`) until 2026-11-03.
 - **The pom is written** — do not re-derive it. Compile dependencies, all version-managed by the parent (never pin a version here):
 
   | Artifact | Why |
@@ -1701,10 +1706,10 @@ Without it: warnings on JDK 25, hard failure in a future release. This is a **JV
 
   Anything beyond these is a design change, not a build tweak. In particular there is **no** Netty, pcap4j, or Guava, and crypto helpers belong in `opsec/OPSecUtil`, not here.
 
-- **Release 25 is already inherited — verified, no action needed.** `xlogistx-mvn` configures `maven-compiler-plugin` with `<release>${jdk.version}</release>` and defaults `jdk.version` to **8**; the no-sneak root pom overrides it to **25**, and `xlogistx-net` has an empty `<properties>` block so it inherits that. Leave it alone: setting `maven.compiler.release` locally would shadow the chain and silently diverge from the rest of the reactor.
-- ~~Still missing: Surefire `argLine`.~~ — **DONE.** `` line 29 sets `<argLine>--enable-native-access=ALL-UNNAMED</argLine>`, the form §12.8 settled on and §13.6 confirmed under jar-loader. Note the grandparent still sets `<skipTests>true</skipTests>`, so tests need `-DskipTests=false` to run at all.
-- Do not attempt native-image; the closed-world incompatibility is documented in ``.
-- The 64-bit-only constraint is documented in `` as a **platform** constraint, not a preference: FFM has no 32-bit linker implementation, and the Windows x86-32 port was removed in JDK 24.
+- **Release 25 is set in this module's own pom.** `xlogistx-mvn` configures `maven-compiler-plugin` with `<release>${jdk.version}</release>` and defaults `jdk.version` to **8**. Under no-sneak the root pom overrode it to 25 and this module inherited that; the io-xlogistx root pom does not, so since 2026-11-03 `xlogistx-net/pom.xml` sets `<jdk.version>25</jdk.version>` in its `<properties>` (as `xlogistx-scan` does). Keep it that way: set `jdk.version`, never `maven.compiler.release`, which would shadow the chain.
+- ~~Still missing: Surefire `argLine`.~~ — **DONE.** `xlogistx-net/pom.xml` (the Surefire `<configuration>`) sets `<argLine>--enable-native-access=ALL-UNNAMED</argLine>`, the form §12.8 settled on and §13.6 confirmed under jar-loader. Note the grandparent still sets `<skipTests>true</skipTests>`, so tests need `-DskipTests=false` to run at all.
+- Do not attempt native-image; the closed-world incompatibility is documented in `xlogistx-net/README.md`.
+- The 64-bit-only constraint is documented in `xlogistx-net/README.md` as a **platform** constraint, not a preference: FFM has no 32-bit linker implementation, and the Windows x86-32 port was removed in JDK 24.
 
 ---
 
@@ -1774,9 +1779,9 @@ gate was retired rather than passed (§13.14). Linux IPv6/NDP (L1) was the last 
 
 **The split also gives a shippable midpoint that the single-interface design did not.** `ICMPPing` on Linux needs no interface, no `AF_PACKET`, no MAC, and no cache — it is two sockets and two reader threads. Land it whole, at step 6, before any L2 work exists.
 
-1. ~~Public API types (§3) + `MacAddress`, `CidrRange`, `NicBinding` (with `LocalAddress` + `onLink`) — compile-only, no native.~~ — **DONE.** 20 types in `io.xlogistx.nosneak.net.common`, one public type per file, compiling at release 25 (bytecode major 69). `MacAddress`, `CidrRange`, `NicBinding`/`LocalAddress` and the `SweepOptions` validation are fully implemented; `PingResult.of` throws pending step 4 and `IpMacCache` throws pending step 3, both naming the step. See §13.2 for what the code added beyond the spec.
-2. ~~Shared codecs (§5) + full unit tests (§11.1) — entirely host-independent, highest confidence per unit of effort.~~ — **DONE.** Six classes in `io.xlogistx.nosneak.net.codecs`, **94 codec tests** (the suite is larger now). `InternetChecksum`, `ArpPacket`, `Icmp4Echo`, `Icmp6`, `TtlDistance` as specced, plus `Ipv6Header` (see §13.3). Run with `mvn -o -pl no-sneak-net test -DskipTests=false`.
-3. ~~`IpMacCache` (§9) + tests (§11.3).~~ — **DONE.** In `io.xlogistx.nosneak.net.util`, **26 tests**, suite now 120 green. Aging driven by an injected `Clock` so transitions are exact rather than sleep-based. See §13.4.
+1. ~~Public API types (§3) + `MacAddress`, `CidrRange`, `NicBinding` (with `LocalAddress` + `onLink`) — compile-only, no native.~~ — **DONE.** 20 types in `io.xlogistx.net.common`, one public type per file, compiling at release 25 (bytecode major 69). `MacAddress`, `CidrRange`, `NicBinding`/`LocalAddress` and the `SweepOptions` validation are fully implemented; `PingResult.of` throws pending step 4 and `IpMacCache` throws pending step 3, both naming the step. See §13.2 for what the code added beyond the spec.
+2. ~~Shared codecs (§5) + full unit tests (§11.1) — entirely host-independent, highest confidence per unit of effort.~~ — **DONE.** Six classes in `io.xlogistx.net.codecs`, **94 codec tests** (the suite is larger now). `InternetChecksum`, `ArpPacket`, `Icmp4Echo`, `Icmp6`, `TtlDistance` as specced, plus `Ipv6Header` (see §13.3). Run with `mvn -o -pl xlogistx-net test -DskipTests=false`.
+3. ~~`IpMacCache` (§9) + tests (§11.3).~~ — **DONE.** In `io.xlogistx.net.util`, **26 tests**, suite now 120 green. Aging driven by an injected `Clock` so transitions are exact rather than sleep-based. See §13.4.
 4. ~~`PingResult.of` aggregation + tests (§11.4) — still no native.~~ — **DONE.** 18 tests, suite now 138 green. **This is the last step before the §13.1 gate.** See §13.5 for the one case §3.3 did not cover.
 5. ~~**aarch64 appliance spike (§13.1).** Gate: do not proceed past this point.~~ — **SUPERSEDED AND DELETED.** The spike existed to answer three questions before the backend was written; all three have since been answered by the backend itself running on real Linux hardware (§13.12): libc downcalls and `captureCallState("errno")` work, `AF_PACKET`/`SOCK_DGRAM` ARP round-trips with the ethertype read from `sll_protocol`, and `SOCK_RAW` delivers the full IPv4 header with a usable TTL. `LinuxSpike` is gone. **The aarch64 appliance run is also done** (§13.6), so §2.3's architecture-independence claim is measured on both architectures rather than argued.
 6. ~~**Linux `ICMPPing`** — raw ICMP/ICMPv6 (§6.5), process-wide identifier allocation (§4.2), `SO_RCVTIMEO` shutdown (§4.4).~~ — **DONE and VERIFIED on live Linux hardware, x86-64 and aarch64.** IPv4 echo returns real RTT and TTL; hop counts derive correctly. See §13.9 and §13.12.
@@ -1854,7 +1859,7 @@ Three decisions worth knowing before writing a backend against these:
 
 ### 13.4 What step 3 settled in `IpMacCache`
 
-Moved to `io.xlogistx.nosneak.net.util`. §9.1 fixed the contract but left the edges open; these are the answers, all covered by tests.
+Moved to `io.xlogistx.net.util`. §9.1 fixed the contract but left the edges open; these are the answers, all covered by tests.
 
 | Question §9.1 left open | Answer |
 |---|---|
@@ -1913,7 +1918,7 @@ That closes the last Linux gate. (The macOS §7.3 ABI probe that was the one rem
 
 Built out of order (before steps 6-12) because the dev box is Windows with Npcap installed, making this the one backend testable during development. **Verified against live hardware**, not merely compiled: ARP resolve, cache hit, a 4-probe pipelined ping with TTL and raw evidence, off-link rejection, and idempotent close.
 
-Classes, all in `io.xlogistx.nosneak.net.platform.windows`:
+Classes, all in `io.xlogistx.net.platform.windows`:
 
 | Class | Role |
 |---|---|
@@ -3555,7 +3560,7 @@ records flagged `icmpAlive`, none of them us. Without root the whole class is sk
 assumption, so the ordinary suite stays pure. Run:
 
 ```
-sudo env PATH=$PATH mvn -o -pl no-sneak-net test -DskipTests=false -Dtest=LinuxLiveTest -Dmaven.repo.local=$HOME/.m2/repository
+sudo env PATH=$PATH mvn -o -pl xlogistx-net test -DskipTests=false -Dtest=LinuxLiveTest -Dmaven.repo.local=$HOME/.m2/repository
 sudo chown -R $USER target        # Maven under sudo writes target/ as root
 ```
 
@@ -3579,8 +3584,8 @@ the two-subnet-NIC check still needs a NIC with two prefixes.
 
 Made after v2 was written, in this order. Anything below in A.1 that contradicts these is superseded.
 
-- **Rehomed into no-sneak.** Root namespace `io.xlogistx.nosneak.net`, Maven module `xlogistx-net`; the public API sits in the `.common` subpackage, matching the house layout. The original `io.xlogistx.mgw.netdiscovery` is dead — it must not reappear in code, `module-info`, launch flags, or the pcap library system property.
-- **`Probe` → `PingProbe`,** joining the `PingResult`/`PingError` family and clearing the collision with no-sneak-core's Tier-1 probe engine vocabulary.
+- **Rehomed into no-sneak.** Root namespace `io.xlogistx.nosneak.net`, Maven module `no-sneak-net`; the public API sits in the `.common` subpackage, matching the house layout. The original `io.xlogistx.mgw.netdiscovery` is dead — it must not reappear in code, `module-info`, launch flags, or the pcap library system property. (Both names changed again on 2026-11-03 — last entry.)
+- **`Probe` → `PingProbe`,** joining the `PingResult`/`PingError` family and clearing the collision with the Tier-1 probe engine's vocabulary (then `no-sneak-core`, now `xlogistx-scan`).
 - **`ReentrantLock` mandate withdrawn** (§4.4). The send-serialization invariant stands; the mechanism is open decision §12.7.
 - **The single `HostDiscovery` interface split into `ICMPPing` + `HostDiscovery`** (§2.0, §3.1, §3.2). ICMP is host-scoped and unbound; ARP/NDP is per-interface. `HostDiscovery` holds the pinger as an optional, set-once, **borrowed** collaborator; `sweep()` degrades cleanly without one. Thread cost on an N-NIC Linux box drops from `4N` to `2 + 2N` (later `2 + 3N`, when §13.13 added the passive-learning socket).
 - **`HostDiscoveryFactory` now returns a `Discovery` bundle** (§3.8) and owns the wiring order — it is the only thing that can make set-once injection safe, and the only owner of the pinger's lifetime. Added `openIcmpOnly()`.
@@ -3592,6 +3597,7 @@ Made after v2 was written, in this order. Anything below in A.1 that contradicts
 - **JPMS resolved** (§12.8): no `module-info.java`; `--enable-native-access=ALL-UNNAMED` everywhere, and the Surefire `argLine` is now set in the pom.
 - **Off-link ICMP on Windows REVERSED and implemented** (§8.7). The v2 draft ruled it out to avoid an `iphlpapi` binding; that binding is one function (`GetBestRoute2`) and one struct field, so §1's non-goal and §12.5's resolution are both superseded. Off-link now works on all three platforms. Verified against a live internet path.
 - **A CLI exists** (§14): `io.xlogistx.net.tools.HostScan`. It is how the Windows and Linux backends were verified, and the fastest way to see the subsystem work. (A `hostscan.cmd` launcher existed briefly and was removed as redundant with IDE run configurations — see §14.)
+- **Moved to io-xlogistx (2026-11-03).** Maven module `no-sneak-net` → **`xlogistx-net`** (parent `io.xlogistx:xlogistx`), root namespace `io.xlogistx.nosneak.net` → **`io.xlogistx.net`**. With no no-sneak root pom above it, the module now sets `jdk.version` 25 itself (§10.3). `xlogistx-scan` (formerly `no-sneak-core`) depends on it, and the no-sneak app takes both as jars. Not renamed: the pcap library system properties still carry `io.xlogistx.nosneak.net.*` names (§8.1) — that is what `Pcap` reads.
 - **Gaps closed:** ICMP identifiers must be unique per socket **process-wide**, not per instance (§4.2); `AF_PACKET` sockets must be scoped to their ifindex or they receive every interface's traffic (§6.4); link-local IPv6 ping needs a scope id (§3.1); sweep pacing is per-sweep, so N concurrent sweeps through one pinger emit N× the cap (§3.2).
 
 ### A.1 Original v1 → v2 changes

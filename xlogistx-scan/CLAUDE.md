@@ -1,8 +1,8 @@
-# NoSneak Core (`xlogistx-scan`)
+# NoSneak scanning engine (`xlogistx-scan`, formerly `no-sneak-core`)
 
 The scanning engine: a **TLS/PQC posture scanner** and a **network scanner**, both driven by one
-JSON-declared, fully non-blocking state machine. Everything else in the repo is a front-end over
-this module.
+JSON-declared, fully non-blocking state machine. The no-sneak repo's desktop app (`no-sneak-app`)
+is the front-end over this module.
 
 > **Status (2026-09-12): merged, one generation.** This module was rebuilt from scratch on a
 > single non-blocking core while the original packages stayed frozen beside it; on 2026-09-12 the
@@ -18,14 +18,14 @@ this module.
 > `--up-only`; `ParallelJoin` is now `CountdownMonitor`; the BCJSSE pin is gone; gated probes run
 > OCSP/CRL again (they silently never had); `postgres-db` no longer claims SSH servers;
 > `https-scan` also reads the `Server:` header. Design: *The scan pipeline* below; open items:
-> repo-root `PENDING-ISSUES.md` → *Status check (2026-09-20)*.
+> no-sneak's repo-root `PENDING-ISSUES.md` → *Status check (2026-09-20)*.
 >
 > **Status (2026-09-22): the `tls-connect` tail no longer reverse-resolves its target.** The
 > 2026-09-20 "TLS-1.2-only host" timeout was a 4.6 s reverse DNS lookup inside the probe's own
 > deadline (zoxweb's `SSLContextInfo.newInstance()` calls `getHostName()` on the connect address);
 > `ProbeSecureCallback.namedAddress` pins the host string on the resolved address so the lookup
 > never happens. `https-scan` on that host 9.4–10.1 s → 4.8–5.3 s; the header `GET` is HTTP/1.1; a banner ends at its first binary byte (dropbear). 403 tests / 36 classes green.
-> Open items: `PENDING-ISSUES.md` → *Status check (2026-09-22)*.
+> Open items: no-sneak's `PENDING-ISSUES.md` → *Status check (2026-09-22)*.
 >
 > **Status (2026-10-26): the probe set was audited for redundancy at the maintainer's request.**
 > `https-classical.json` and `smtp-starttls.json` (unbundled since v1) are deleted — `https-pqc`
@@ -38,6 +38,17 @@ this module.
 > `TlsUpgradeEndToEndTest` drives it against a loopback server that speaks that negotiation. The
 > HTTPS trio (`https-scan` ⊃ `https-pqc`, `https-version`) is overlap by design: a fallback chain
 > for a failed Bouncy Castle handshake, kept.
+>
+> **Status (2026-11-03): moved from no-sneak to io-xlogistx.** The module was `no-sneak-core` in
+> the no-sneak reactor; it is now **`xlogistx-scan`** here (parent `io.xlogistx:xlogistx`, JDK 25
+> set in its own pom) and its base package is **`io.xlogistx.scan`** (was `io.xlogistx.nosneak`).
+> Host discovery came along as **`xlogistx-net`** (`io.xlogistx.net`, was `no-sneak-net` /
+> `io.xlogistx.nosneak.net`), and this module depends on it (`NMapScanner`'s sweep through
+> `HostScanner`, `ScanReport`'s `NSNetUtil.MAC_VENDORS`). The no-sneak app takes both as
+> `io.xlogistx:*:${xlogistx.version}` jars. `DMTool` and `NoSneakUtil` (renamed `NSCoreUtil`) are
+> not engine code and stayed with the app (`io.xlogistx.nosneak.app.tools`), which also drops
+> `xlogistx-datastore` from this module. The `data/` DAOs keep their entity names (`probe_type`,
+> `probe_group`, `report_content`).
 
 ---
 
@@ -48,7 +59,7 @@ needs, and records facts**. It does not exploit what it finds, guess credentials
 evade logging, and the scanner stays rate-limited and bounded because a scan must never become the
 outage it was run to prevent. The *Vulnerability-scanning backlog* below is a *detection*
 backlog — evidence from versions, extensions and negotiated parameters. Full rules: the repo root
-`CLAUDE.md` → *Operating scope*.
+`CLAUDE.md` of the no-sneak repo → *Operating scope*.
 
 ## Where to read next
 
@@ -227,7 +238,7 @@ signature). Pinned by `GradeTest`.
 `maxInFlight` (default 8) are open at once through `Fanout.runBounded`, and on a gated checker
 every child is counted against the scan window through `GatedProbeTransport`.
 
-**CLI.** `java io.xlogistx.nosneak.ProbeChecker <host> <port> [timeoutSec] [--all|--first]
+**CLI.** `java io.xlogistx.scan.ProbeChecker <host> <port> [timeoutSec] [--all|--first]
 [--tcp|--udp] [probe.json …]` — match-first over the bundled probes by default; explicit files run
 those probes only. The nmap CLI is `io.xlogistx.scan.nmap.NMap` (see *The scan pipeline*):
 `-p` optional — with `--probes a,b` and no `-p` the named probes' declared ports are scanned —
@@ -274,7 +285,7 @@ exposing the endpoint**; end-to-end runtime testing of the DM tools.
 ## Layout
 
 ```
-io.xlogistx.nosneak
+io.xlogistx.scan
 ├── ProbeChecker            library API + CLI: two-tier candidate selection, concurrent sweep
 ├── model/                  ProbeDefinition · ProbeState · PatternRule · ProbeDefinitionLoader (validates)
 ├── runtime/                ProbeContext (the engine's config object) · ProbeEngine · Fanout · CountdownMonitor (the countdown barrier, formerly ParallelJoin)
@@ -288,14 +299,15 @@ io.xlogistx.nosneak
 │                           inverse of parseCommand for the app's scan form, 2026-10-24; NMapFormatCommandTest) · PortScanCallback (ms deadline
 │                           + releaseWith) · UdpScanCallback · ReverseDnsCallback · ScanGate (window + per-slot quantum) · output/
 │                           ScanReport's host JSON carries `macVendor` (2026-10-25): the manuf full name from
-│                           NSNetUtil.MAC_VENDORS (no-sneak-net), a table the app fills from its store after a
+│                           NSNetUtil.MAC_VENDORS (xlogistx-net), a table the app fills from its store after a
 │                           login; absent when the table does not know the prefix (ScanReportMacVendorTest)
-├── service/                Checker — REST /check-qdz/{domain}/{detailed}
-└── tools/                  DMTool · NoSneakUtil
+├── data/                   ProbeType · ProbeGroup · ReportContent — the DAOs the desktop app persists per subject
+└── service/                Checker — REST /check-qdz/{domain}/{detailed}
+                            (tools/ — DMTool, NoSneakUtil — moved to no-sneak-app on 2026-11-03)
 
 src/main/resources/probes/   18 bundled probe definitions (the 2 unbundled ones were deleted 2026-10-26); the CLI's catalog, and
                             what the desktop app copies into each subject's own probes at their first login (2026-11-02)
-src/test/java/io/xlogistx/nosneak/   403 tests in 36 classes, all green (2026-09-22); + nmap/ProbePortsTest and two end-to-end cases (2026-10-31) + NoSneakNIOHTTPServer harness. Pure and socket-free except
+src/test/java/io/xlogistx/scan/     403 tests in 36 classes, all green (2026-09-22); + nmap/ProbePortsTest and two end-to-end cases (2026-10-31) + NoSneakNIOHTTPServer harness. Pure and socket-free except
                                     nmap/NMapScannerEndToEndTest (a loopback listener) and nmap/ScanGateThroughputTest
                                     (measures the gate on real pools); model/ProbeDefinitionGuideTest pins
                                     PROBE-DEFINITION.md to the loader
@@ -304,14 +316,14 @@ src/test/java/io/xlogistx/nosneak/   403 tests in 36 classes, all green (2026-09
 ## Build, test, verify
 
 ```bash
-mvn clean install -pl no-sneak-core -am
+mvn clean install -pl xlogistx-scan -am      # from the io-xlogistx root; -am builds xlogistx-net too
 
 # tests are skipped by the parent pom (xlogistx-mvn sets <skipTests>true</skipTests>)
-mvn -pl no-sneak-core test -DskipTests=false -Dtest='io.xlogistx.nosneak.**'
+mvn -pl xlogistx-scan test -DskipTests=false -Dtest='io.xlogistx.scan.**'
 
 # live check against a real endpoint
-mvn -pl no-sneak-core dependency:build-classpath -Dmdep.outputFile=cp.txt -DincludeScope=runtime
-java -cp "target/classes;$(cat cp.txt)" io.xlogistx.nosneak.ProbeChecker example.com 443
+mvn -pl xlogistx-scan dependency:build-classpath -Dmdep.outputFile=cp.txt -DincludeScope=runtime
+java -cp "target/classes;$(cat cp.txt)" io.xlogistx.scan.ProbeChecker example.com 443
 ```
 
 **Environment gotcha that will mislead you:** if a TLS-intercepting proxy is installed locally
@@ -356,7 +368,7 @@ deliberately touch no sockets, save the two named above (loopback and local pool
 > that file (pre-merge history otherwise) was deleted with `V1-V2-MERGE-ANALYSIS.md`. This is
 > the engine's largest remaining gap: nothing on it is implemented. It wants a new action (e.g.
 > `vuln-check`) plus registry, loader and `PROBE-DEFINITION.md` entries. Pinned as P17 in
-> `PENDING-ISSUES.md`: recorded, deliberately not scheduled.
+> no-sneak's `PENDING-ISSUES.md`: recorded, deliberately not scheduled.
 
 Goal: parity with the SSL Labs / `testssl.sh` posture report. All probes must honor the no-sneak
 rules (pure NIO callbacks, BC TLS API, exactly-once completion, soft-fail/bounded, never hang the
@@ -445,7 +457,8 @@ integration tests against real servers.
 4. **Merge chores** — done 2026-09-12 (packages collapsed, `/probes/` bundled, docs at the module
    root, `http_server_config.json` on `service.Checker`).
 5. **Smaller open items** — none left from the old list (C1, the `DMTool` Mongo default, closed
-   2026-09-12: the URL now comes only from `db-url=`, `NOSNEAK_DB_URL` or `-Dnosneak.db.url`). The rest
+   2026-09-12: the URL now comes only from `db-url=`, `NOSNEAK_DB_URL` or `-Dnosneak.db.url`; `DMTool`
+   lives in no-sneak-app since 2026-11-03). The rest
    is done: named-group enumeration, network OCSP + CRL, weak/insecure cipher candidates (now
    per-probe toggles), UDP scan, timing templates, `--top-ports`; `-O` and raw SYN scans are
    rejected by policy, not deferred. **The v1 parity pass is complete (2026-09-12)** — nothing

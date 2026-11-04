@@ -1,4 +1,4 @@
-# no-sneak-net
+# xlogistx-net
 
 Host discovery: **is this host alive, what is its MAC, and how far away is it.** ICMP/ICMPv6 echo
 for liveness, ARP and NDP for layer-2 identity, an aging IP↔MAC cache, and CIDR sweep — on
@@ -104,9 +104,9 @@ answers a ping, so `HostRecord.mac` and `HostRecord.icmpAlive` are independent f
 above, VM options `--enable-native-access=ALL-UNNAMED`, module `xlogistx-net`. From a terminal:
 
 ```bash
-mvn -o -pl no-sneak-net compile
-mvn -o -pl no-sneak-net dependency:copy-dependencies -DoutputDirectory=target/deps
-java --enable-native-access=ALL-UNNAMED      -cp "no-sneak-net/target/classes;no-sneak-net/target/deps/*"      tools.io.xlogistx.net.HostScan <command>
+mvn -o -pl xlogistx-net compile
+mvn -o -pl xlogistx-net dependency:copy-dependencies -DoutputDirectory=target/deps
+java --enable-native-access=ALL-UNNAMED      -cp "xlogistx-net/target/classes;xlogistx-net/target/deps/*"      io.xlogistx.net.tools.HostScan <command>
 ```
 
 ```
@@ -282,8 +282,8 @@ the frame to *that* MAC while the IP header still carries the real destination.
 ## Build and test
 
 ```bash
-mvn -o -pl no-sneak-net compile
-mvn -o -pl no-sneak-net test -DskipTests=false     # the parent pom skips tests by default
+mvn -o -pl xlogistx-net compile
+mvn -o -pl xlogistx-net test -DskipTests=false     # the parent pom skips tests by default
 ```
 
 The suite is host-independent: codecs, cache, aggregation, and the struct-layout assertions for all
@@ -320,4 +320,3 @@ over wired and Wi-Fi, and passive observe all moved packets. The feared BSD read
 appear — one-hop L2 RTTs were sub-millisecond — and Wi-Fi injection was not refused. The two bugs the
 bring-up did find were elsewhere (a dyld-cache libpcap loader and an all-or-nothing factory open),
 both fixed.
-
