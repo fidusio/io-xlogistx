@@ -32,18 +32,44 @@ The package has these groups:
      use; originals are kept so `reset()` restores them exactly), refreshes every open window
      (`refresh(root)` for a tree outside a window) and tells `addListener` consumers (components
      that derive their own font re-derive it); `larger()` / `smaller()` step by `STEP`, clamped to
-     `MIN`..`MAX`. `FontSizeWidget` is the toolbar control ("Aa" + spinner) that drives and follows
+     `MIN`..`MAX`. **Derived fonts follow too (2026-11-06):** `UITokens.font(style, delta)` and
+     `UITokens.mono(delta)` return a private `Font` subclass that implements
+     `UIFontSize.Derived` (it remembers style, delta and mono), and `refresh` walks the tree
+     after `updateComponentTreeUI` and replaces every such font with `derive()` from the look and
+     feel's new base — so a heading built two points bigger, a bold hint, a `UITokens.link`
+     button (no-sneak's *Reset* beside the text size widget, which used to stay the size it was
+     built at) all resize with the controls. A font set by hand or taken through `deriveFont`
+     afterwards is plain and stays as it is; a scoped tree's plain scaled fonts are not touched. `FontSizeWidget` is the toolbar control ("Aa" + spinner) that drives and follows
      it; `PDFViewerPanel` puts one at the right end of its toolbar (`getFontSizeWidget()`), the PDF
      editor adds View ▸ Control text size and remembers the value in its settings. The widget's own
-     label, spinner and editor field keep the **base** size (2026-10-23, `pinFonts()`: plain
-     non-`UIResource` fonts, which `updateComponentTreeUI` leaves alone, re-pinned after each
-     change), so the knob does not grow or shrink with the setting it changes.
+     label, spinner and editor field are always the **application's** size (2026-11-06): they keep
+     the look and feel's `UIResource` fonts, whatever the scope. The 2026-10-23 cut pinned them at
+     the base size (`pinFonts()`), which came out crooked under FlatLaf at every other size:
+     FlatLaf derives its UI scale from the default font, so paddings, the spinner's minimum width
+     and its arrows grew with the application size around digits held at the base (a wide box,
+     the two arrows squeezed into one diamond). **Do not pin the knob's fonts again**: its text
+     must be the size the look and feel draws the chrome for. The label and the number share a
+     baseline (`FlowLayout.setAlignOnBaseline`) and the widget reports it (`getBaseline`), so
+     MigLayout lines it up with the label and the Reset link beside it (no-sneak's Text size
+     rows); `getMaximumSize()` is the preferred size, so a tool bar never stretches it and the
+     limit follows the text size. **A whole settings row, optionally (2026-11-06; the no-sneak
+     maintainer: "do it in gui-audio with the withReset and left side optional label"):**
+     `withLabel()` / `withLabel(text)` puts a caption (`LABEL` = "Text size") on the left of "Aa",
+     labelling the spinner (`setLabelFor`), and `withReset()` / `withReset(text, tooltip)` an
+     inline `UITokens.link` (`RESET` / `RESET_TIP`) on the right that calls `reset()` — the
+     application back to the base, or a scoped widget's tree back to the application size
+     (`UIFontSize.apply(scope, base)`). A second call replaces the text instead of adding a part;
+     `getLabel()` / `getResetButton()` (null when not asked for) let an application name them
+     for its harness. no-sneak's Settings → Appearance row and its unlock screen row are both
+     `new FontSizeWidget().withLabel().withReset()` since that day, which used to be the same
+     label + widget + link triad written twice. A bare widget, as on the viewer toolbar, has neither.
      **Scoped (2026-10-23):** `apply(root, size)` sizes **one component tree only** — every
      component under `root` gets a plain non-`UIResource` font, its original scaled by
      `size / base`, which the host application's `apply(size)` / `updateComponentTreeUI` leaves
      alone, and nothing outside the tree is touched; the base size restores the originals and
      refreshes, handing the tree back to the look and feel; subtrees carrying the client
-     property `PINNED` = `TRUE` are skipped (the widget pins itself); `get(root)` reports the
+     property `PINNED` = `TRUE` are skipped (the widget marks itself, to stay on the application's
+     size); `get(root)` reports the
      scoped size, or the application size the tree follows. `FontSizeWidget(Component scope)` /
      `setScope(scope)` drives that one tree and then ignores the application size.
      `PDFViewerPanel`'s widget is **scoped to the viewer by default** — a viewer embedded in an
@@ -132,7 +158,17 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
   `Component.accentColor`, `Label.disabledForeground`, `Component.borderColor`) and falls back to
   the design value. `font(style, delta)`, `mono(delta)`, `baseFont()`. `primary(button)` styles the
   one accent-filled action of a view (FlatLaf `STYLE` string), `link(button)` an inline link-like
-  button (toolbar type, accent text, hand cursor).
+  button (toolbar type, accent text, hand cursor). **A link keeps its preferred width in a
+  MigLayout (2026-11-06):** FlatLaf puts a one-point `visualPadding` client property on every
+  button (the ring it paints outside a regular button when `Component.focusWidth` is 1, as
+  no-sneak's themes set it) and MigLayout takes that off the bounds it hands out; a toolbar-type
+  button has no ring and only tight margins, so the two points came out of the text and *Reset*
+  painted as *Re…* in no-sneak's Text size rows (Settings and the unlock screen). `link` pins the
+  property to a plain `Insets(0,0,0,0)` (`UITokens.VISUAL_PADDING`), which FlatLaf's
+  `MigLayoutVisualPadding` never overwrites — it replaces only null or its own `FlatMigInsets` —
+  so the pin survives `updateComponentTreeUI`. `UITokensLinkTest` lays a link and a regular
+  button out in a MigLayout under FlatLaf and checks the link gets its preferred width, the
+  regular button less, and the pin after a UI update.
 - `BadgeLabel` — pill label with `Tone {OK, WARN, DANGER, NEUTRAL, ACCENT}`, optional icon; text on
   a soft tint at 4.5:1 or better.
 - `InlineMessage` — the one-line message under a form: `info` (muted), `ok`, `error` (danger),
@@ -544,7 +580,9 @@ question used to come before the chooser) and `dropFiles(files, OPEN)` ask it (`
 drop dialog then says "Open shows the file on its own" instead of "replaces the current document";
 `setPDF` / `openFiles` never ask. The PDF editor's `PDFEditorTabs` opens the files in a new tab.
 
-**Toolbar order.** Open, Save, Print, Insert, Delete, Thumbnails toggle | prev, page field / count, next |
+**Toolbar order.** The page field, the zoom combo and the search field report their preferred
+size as their maximum (2026-11-06; a maximum fixed at construction clipped the text at a bigger
+text size and `BoxLayout` would stretch them otherwise). Open, Save, Print, Insert, Delete, Thumbnails toggle | prev, page field / count, next |
 zoom out, zoom combo (presets + fit modes), zoom in | Pan, Select text, Zoom to selection,
 Copy | search field, find, previous match, next match (the two arrows are enabled only with
 2+ matches), "n / m" | glue, `FontSizeWidget` (control text size). Form editing is out of scope; annotations are the PDF editor's job
@@ -655,7 +693,12 @@ inserting nothing, a host-parsed encrypted document keeping its permissions) and
 `UIFontSizeTest` (2026-10-17: every look-and-feel font scales in proportion, new components get
 the size, a tree is refreshed on request, listeners and the widget follow, steps, clamping and
 an exact reset; 2026-10-23: a scoped size scales one tree only, skips the pinned widget, is not
-reached by the application size, and the base hands the tree back), `PDFThumbnailPanelTest` (2026-10-17: one thumbnail per page in page proportions, the current
+reached by the application size, and the base hands the tree back; 2026-11-06: the widget's own
+text follows the application size, its label and number share the baseline it reports, its
+maximum size is its preferred size; `UITokens` derived fonts and a link button follow a refresh
+while a hand-set font stays; the viewer toolbar's fields keep their text visible at a bigger size;
+`withLabel` / `withReset` put the caption first and the link last, the link resets the
+application or hands a scoped tree back, a second call replaces, a bare widget has neither), `UITokensLinkTest` (2026-11-06: a `link` button in a MigLayout under FlatLaf is laid out at its preferred width while a regular button loses the visual padding, and the zero pin survives a UI update), `PDFThumbnailPanelTest` (2026-10-17: one thumbnail per page in page proportions, the current
 page framed, a click jumps, a drag moves a page directly or through the delegate, the drop
 index, pictures rendered off the EDT and dropped by `invalidatePage`; the launcher classpath for
 this module is the `-X` `testPath` of `test-compile -pl gui-audio` plus the junit launcher /

@@ -113,16 +113,44 @@ public final class UIFontSize {
     }
 
     /**
+     * A font derived from the look and feel's (a heading two points bigger, a
+     * bold hint one smaller, a monospaced value) that can derive itself again
+     * once the look and feel's fonts changed: {@link #refresh} replaces every
+     * such font in the tree with {@link #derive()}, so text styled through
+     * {@link UITokens#font} / {@link UITokens#mono} follows the text size like
+     * the plain controls, instead of staying the size it was built at. A
+     * {@link Font} subclass implements it; a plain derived font is left alone.
+     */
+    public interface Derived {
+        /** @return the same derivation from the look and feel's current fonts */
+        Font derive();
+    }
+
+    /**
      * Makes a component tree pick up the current fonts (what {@link #apply}
-     * does for every open window; for a tree that is not in a window yet).
+     * does for every open window; for a tree that is not in a window yet):
+     * the look and feel's fonts through {@code updateComponentTreeUI}, the
+     * {@link Derived} ones derived again.
      *
      * @param root the tree's root, never null
      */
     public static void refresh(Component root) {
         SwingUtilities.updateComponentTreeUI(root);
+        rederive(root);
         root.invalidate();
         root.validate();
         root.repaint();
+    }
+
+    private static void rederive(Component c) {
+        if (c.isFontSet() && c.getFont() instanceof Derived)
+            c.setFont(((Derived) c.getFont()).derive());
+        if (c instanceof Container)
+            for (Component child : ((Container) c).getComponents())
+                rederive(child);
+        if (c instanceof JMenu)
+            for (Component child : ((JMenu) c).getMenuComponents())
+                rederive(child);
     }
 
     // ------------------------------------------------------------- one tree only
@@ -130,7 +158,8 @@ public final class UIFontSize {
     /**
      * Client property a {@link JComponent} sets to {@link Boolean#TRUE} to keep
      * itself and its subtree out of a {@linkplain #apply(Component, float) scoped}
-     * scaling — the {@link FontSizeWidget} does, being the knob and not a sample.
+     * scaling — the {@link FontSizeWidget} does: its text stays the application's
+     * size, the one the look and feel draws its box and arrows for.
      */
     public static final String PINNED = "UIFontSize.pinned";
 

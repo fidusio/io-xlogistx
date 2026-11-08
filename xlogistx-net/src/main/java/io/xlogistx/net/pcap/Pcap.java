@@ -32,19 +32,21 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
  * blocking loop (§4.4).
  * <p>
  * Override the library location with
- * {@code -Dio.xlogistx.nosneak.net.pcap.lib=<path>}.
+ * {@code -Dio.xlogistx.net.pcap.lib=<path>}.
  */
 public final class Pcap {
 
     /** System property overriding where the pcap library is loaded from. */
-    public static final String LIB_PROPERTY = "io.xlogistx.nosneak.net.pcap.lib";
+    public static final String LIB_PROPERTY = "io.xlogistx.net.pcap.lib";
 
     /**
-     * The property this class used before it was shared with Darwin. Still honoured so
-     * existing Windows launch scripts keep working; prefer {@link #LIB_PROPERTY}.
+     * The names this property had before the module moved to io-xlogistx (2026-11-03) and,
+     * older still, before this class was shared with Darwin. Still honoured, in this order, so
+     * existing launch scripts keep working; prefer {@link #LIB_PROPERTY}.
      */
-    public static final String LEGACY_LIB_PROPERTY =
-            "io.xlogistx.nosneak.net.platform.windows.lib";
+    public static final String[] LEGACY_LIB_PROPERTIES = {
+            "io.xlogistx.nosneak.net.pcap.lib",
+            "io.xlogistx.nosneak.net.platform.windows.lib"};
 
     /**
      * MANDATORY minimum error-buffer allocation. Under-allocating this is a native
@@ -180,8 +182,8 @@ public final class Pcap {
         Arena global = Arena.global();
 
         String override = System.getProperty(LIB_PROPERTY);
-        if (override == null || override.isBlank()) {
-            override = System.getProperty(LEGACY_LIB_PROPERTY);
+        for (int i = 0; (override == null || override.isBlank()) && i < LEGACY_LIB_PROPERTIES.length; i++) {
+            override = System.getProperty(LEGACY_LIB_PROPERTIES[i]);
         }
         if (override != null && !override.isBlank()) {
             try {

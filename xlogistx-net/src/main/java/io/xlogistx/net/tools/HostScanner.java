@@ -86,7 +86,7 @@ import java.util.function.Consumer;
  * <em>backend</em> is exceptional.
  * <p>
  * <b>It does not own the executors and does not shut them down.</b> By default it
- * runs on zoxweb's process-wide pools, shared with the rest of no-sneak; closing a
+ * runs on zoxweb's process-wide pools, shared with the rest of the application; closing a
  * scanner releases sockets, handles and reader threads and leaves the pools alone.
  * Only an application that owns the whole process may call {@code TaskUtil.close()},
  * which is why {@link HostScan} does and this class does not.

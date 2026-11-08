@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** ICMPv4 echo build/parse round-trips and wire-layout checks. */
 public class Icmp4EchoTest {
 
-    private static final byte[] PAYLOAD = "no-sneak".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] PAYLOAD = "xlogistx".getBytes(StandardCharsets.US_ASCII);
 
     @Test
     public void requestMatchesWireLayout() {

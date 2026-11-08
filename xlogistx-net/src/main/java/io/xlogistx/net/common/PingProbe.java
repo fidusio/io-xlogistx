@@ -7,7 +7,7 @@ import java.util.Optional;
  * One echo request and the reply it did or did not get.
  * <p>
  * Named {@code PingProbe} rather than {@code Probe}: it belongs to the
- * {@link PingResult} / {@link PingError} family, and no-sneak-core already owns
+ * {@link PingResult} / {@link PingError} family, and xlogistx-scan already owns
  * "probe" for the Tier-1 TCP/UDP service-identification engine
  * ({@code ProbeDefinition}, {@code ProbeSession}, {@code ProbeResult}). Different
  * layer, same word — do not reintroduce the bare name.

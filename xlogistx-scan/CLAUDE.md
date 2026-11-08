@@ -307,7 +307,7 @@ io.xlogistx.scan
 
 src/main/resources/probes/   18 bundled probe definitions (the 2 unbundled ones were deleted 2026-10-26); the CLI's catalog, and
                             what the desktop app copies into each subject's own probes at their first login (2026-11-02)
-src/test/java/io/xlogistx/scan/     403 tests in 36 classes, all green (2026-09-22); + nmap/ProbePortsTest and two end-to-end cases (2026-10-31) + NoSneakNIOHTTPServer harness. Pure and socket-free except
+src/test/java/io/xlogistx/scan/     403 tests in 36 classes, all green (2026-09-22); + nmap/ProbePortsTest and two end-to-end cases (2026-10-31) + ScanNIOHTTPServer harness. Pure and socket-free except
                                     nmap/NMapScannerEndToEndTest (a loopback listener) and nmap/ScanGateThroughputTest
                                     (measures the gate on real pools); model/ProbeDefinitionGuideTest pins
                                     PROBE-DEFINITION.md to the loader

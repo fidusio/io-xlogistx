@@ -236,7 +236,7 @@ public final class NMapScanner {
         final int[] discPorts = cfg.discoveryPorts != null ? cfg.discoveryPorts : DEFAULT_DISCOVERY_PORTS;
         final int to = cfg.timeoutSec;
 
-        // Layer-3/2 discovery comes from no-sneak-net. Opening the session costs a pcap handle or
+        // Layer-3/2 discovery comes from xlogistx-net. Opening the session costs a pcap handle or
         // raw socket plus reader threads per interface, so it is opened once for the whole scan
         // and closed at the end (HostScanner borrows the pools — closing it does not shut them
         // down). It never throws: a box without Npcap/root still yields a usable object in a
@@ -295,7 +295,7 @@ public final class NMapScanner {
             return handle;
         }
         if (cfg.discovery) {
-            // A CIDR that is on-link goes through no-sneak-net's purpose-built range sweep, which
+            // A CIDR that is on-link goes through xlogistx-net's purpose-built range sweep, which
             // does ARP+ICMP per host with its own tuned pacing. Doing it host-by-host instead —
             // one resolve at the 3 s default, one multi-probe ping, plus five TCP-connects — was
             // 55 s on a /24 where the sweep needs seconds, and the TCP-connects bought nothing:
@@ -411,7 +411,7 @@ public final class NMapScanner {
     }
 
     /**
-     * One no-sneak-net sweep over a whole range: ARP + ICMP per host with the library's own
+     * One xlogistx-net sweep over a whole range: ARP + ICMP per host with the library's own
      * concurrency and packet pacing. Its defaults are deliberately tuned for this (256 in flight,
      * a 1 s per-host timeout, a single ping probe because ARP is the liveness oracle), so only the
      * knobs the caller actually set are overridden.
@@ -511,7 +511,7 @@ public final class NMapScanner {
     }
 
     /**
-     * Open the no-sneak-net session backing ICMP echo and ARP/NDP, or {@code null} when neither
+     * Open the xlogistx-net session backing ICMP echo and ARP/NDP, or {@code null} when neither
      * is wanted. A degraded session is kept (ping still works in {@code ICMP_ONLY}) but reported.
      */
     private static HostScanner openHostScanner(NMapConfig cfg, ScanReport report,
@@ -647,7 +647,7 @@ public final class NMapScanner {
     }
 
     /**
-     * Real ICMP echo via no-sneak-net, replacing {@code InetAddress.isReachable} — which blocks a
+     * Real ICMP echo via xlogistx-net, replacing {@code InetAddress.isReachable} — which blocks a
      * pool thread for the whole timeout and, on Windows without privilege, silently degrades to a
      * TCP-7 connect that reports a live host as down. This is non-blocking end to end: the probes
      * are pipelined, so the wall time is one timeout rather than one per probe.
@@ -690,7 +690,7 @@ public final class NMapScanner {
 
     /**
      * ARP (IPv4) / NDP (IPv6) for on-link targets — the remote MAC that no JDK API exposes, and
-     * the reason {@code HostReport.mac} existed unpopulated until no-sneak-net shipped a layer-2
+     * the reason {@code HostReport.mac} existed unpopulated until xlogistx-net shipped a layer-2
      * backend. A host that answers ARP but not ICMP is alive and must be reported as such.
      * Off-link targets are skipped rather than attempted: ARP and NDP are link-local by
      * definition, so asking beyond the segment would only ever return the router's MAC.

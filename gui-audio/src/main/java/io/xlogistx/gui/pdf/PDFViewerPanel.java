@@ -3157,9 +3157,13 @@ public class PDFViewerPanel extends JPanel {
         prev.addActionListener(e -> previousPage());
         tb.add(prev);
 
-        pageField = new JTextField(4);
+        pageField = new JTextField(4) {
+            @Override
+            public Dimension getMaximumSize() {
+                return getPreferredSize(); // never stretched; follows the text size (a snapshot clipped bigger text)
+            }
+        };
         pageField.setHorizontalAlignment(JTextField.CENTER);
-        pageField.setMaximumSize(pageField.getPreferredSize());
         pageField.addActionListener(e -> {
             try {
                 gotoPage(Integer.parseInt(pageField.getText().trim()) - 1);
@@ -3183,13 +3187,17 @@ public class PDFViewerPanel extends JPanel {
         out.addActionListener(e -> zoomOut());
         tb.add(out);
 
-        zoomCombo = new JComboBox<>();
+        zoomCombo = new JComboBox<String>() {
+            @Override
+            public Dimension getMaximumSize() {
+                return getPreferredSize();
+            }
+        };
         for (float z : ZOOM_PRESETS)
             zoomCombo.addItem(percent(z));
         zoomCombo.addItem(FIT_WIDTH_LABEL);
         zoomCombo.addItem(FIT_PAGE_LABEL);
         zoomCombo.setEditable(true);
-        zoomCombo.setMaximumSize(new Dimension(110, zoomCombo.getPreferredSize().height));
         zoomCombo.addActionListener(e -> {
             if (updatingToolbar)
                 return;
@@ -3243,9 +3251,13 @@ public class PDFViewerPanel extends JPanel {
 
         tb.addSeparator();
 
-        searchField = new JTextField(12);
+        searchField = new JTextField(12) {
+            @Override
+            public Dimension getMaximumSize() {
+                return getPreferredSize();
+            }
+        };
         searchField.setToolTipText("Search (Enter/F3: next, Shift+Enter/Shift+F3: previous, Esc: clear)");
-        searchField.setMaximumSize(new Dimension(160, searchField.getPreferredSize().height));
         searchField.addActionListener(e -> runSearch((e.getModifiers() & ActionEvent.SHIFT_MASK) != 0));
         searchField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "clearSearch");
         searchField.getActionMap().put("clearSearch", new AbstractAction() {

@@ -335,7 +335,7 @@ public final class NMap {
      * the app's command box and the tests all say the same thing.
      */
     public static String rejectionMessage(String flag) {
-        return flag + " is not supported: no-sneak is assessment-only and does not implement raw, "
+        return flag + " is not supported: this scanner is assessment-only and does not implement raw, "
                 + "SYN, FIN/Xmas/NULL/ACK/Window, OS-fingerprint or evasive scans (see CLAUDE.md, "
                 + "Operating scope). Use the default TCP connect scan.";
     }

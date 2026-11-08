@@ -455,7 +455,7 @@ public final class HostDiscoveryFactory {
          * is also one of the backends, as on Windows.
          * <p>
          * Does NOT close the scheduler or the dispatcher: by default those are
-         * zoxweb's process-wide pools, shared with the rest of no-sneak, and
+         * zoxweb's process-wide pools, shared with the rest of the application, and
          * shutting them down here would stop task processing for the whole
          * application.
          */

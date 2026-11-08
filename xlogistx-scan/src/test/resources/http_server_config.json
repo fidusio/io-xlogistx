@@ -101,7 +101,7 @@
       "bean": "io.xlogistx.http.services.CurrentTimestamp"
     },
     {
-      "bean": "io.xlogistx.nosneak.service.Checker",
+      "bean": "io.xlogistx.scan.service.Checker",
       "properties": {
         "start-count-at": 1279
       }

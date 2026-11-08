@@ -1,8 +1,8 @@
 package io.xlogistx.gui;
 
 import com.github.weisj.jsvg.SVGDocument;
-import com.github.weisj.jsvg.attributes.ViewBox;
 import com.github.weisj.jsvg.parser.SVGLoader;
+import com.github.weisj.jsvg.view.ViewBox;
 import io.xlogistx.common.util.NVColor;
 
 import javax.swing.*;

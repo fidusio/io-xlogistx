@@ -72,10 +72,10 @@ public final class NMapConfig {
     public boolean discovery = true;
     /** Discovery via TCP-connect ping (up if a discovery port connects or is refused). */
     public boolean discoveryTcp = true;
-    /** Discovery via real ICMP echo (no-sneak-net); needs a privileged/Npcap-capable session. */
+    /** Discovery via real ICMP echo (xlogistx-net); needs a privileged/Npcap-capable session. */
     public boolean discoveryIcmp = true;
     /**
-     * Discovery via ARP/NDP for on-link targets (no-sneak-net layer 2). Also fills in
+     * Discovery via ARP/NDP for on-link targets (xlogistx-net layer 2). Also fills in
      * {@link ScanReport.HostReport#mac}. A host that answers ARP but not ICMP is still alive.
      */
     public boolean discoveryArp = true;

@@ -49,7 +49,7 @@ not reappear in code, module descriptors, or launch flags.
 **Deployment:** ARM aarch64 Ubuntu 20.04 appliance, **running as root** (primary). Dev/secondary: macOS (Intel + Apple Silicon), Windows 10/11 (x86-64 + arm64).
 **Dependencies:** the house libraries only — `zoxweb-core` (for `TaskUtil`'s shared thread pools, §4.3), plus `xlogistx-common` and `xlogistx-core`. No networking or packet library of any kind: no Netty, no pcap4j, no Guava. Native access is FFM (`java.lang.foreign`) alone — Linux and macOS bind `libc`, Windows binds Npcap's `wpcap.dll`. Exact coordinates in §10.3.
 
-> The original spec said *zero* third-party Java libraries. That was revised deliberately: starting private timer and dispatch pools per instance is worse than reusing the pools the rest of no-sneak already runs on. The rule is now **house libraries yes, everything else no** — the point of the constraint was never to avoid dependencies as such, it was that nothing outside the JDK gets to touch the wire.
+> The original spec said *zero* third-party Java libraries. That was revised deliberately: starting private timer and dispatch pools per instance is worse than reusing the pools the rest of the application already runs on. The rule is now **house libraries yes, everything else no** — the point of the constraint was never to avoid dependencies as such, it was that nothing outside the JDK gets to touch the wire.
 
 This document is handed to Claude Code as the authoritative build spec. Sections marked **[IMPLEMENT]** are where code generation happens; sections marked **[REFERENCE]** are ABI/constant tables that must be reproduced exactly. Sections marked **[VERIFY]** contain layouts that must be confirmed by a native probe before code is written — do not generate from memory.
 
@@ -843,7 +843,7 @@ public final class HostDiscoveryFactory {
      *
      * It does NOT close the scheduler or the dispatcher. Those are borrowed —
      * by default they are zoxweb's process-wide pools, shared with the rest of
-     * no-sneak, and shutting them down here would stop task processing for the
+     * the application, and shutting them down here would stop task processing for the
      * whole application (§4.3).
      */
     public record Discovery(List<HostDiscovery> perInterface, ICMPPing ping)
@@ -920,11 +920,11 @@ A `ScheduledExecutorService` arms per-probe timeouts. On fire: remove the in-fli
 
 > **Mind which is which.** `TaskUtil.defaultTaskProcessor()` returns a `TaskProcessor`, which implements **`ExecutorService`** — it cannot schedule delayed work and will not compile where a `ScheduledExecutorService` is required. The scheduled one is `TaskUtil.defaultTaskScheduler()`, returning `TaskSchedulerProcessor implements ScheduledExecutorService`. It is *constructed over* `defaultTaskProcessor()`, so both roles share one underlying pool — which is the point: an N-NIC appliance adds zero threads for timers or callbacks.
 
-**These pools are BORROWED. Never close them.** `TaskProcessor` and `TaskSchedulerProcessor` are `DaemonController`s and process-wide singletons shared with the rest of no-sneak; calling `close()` or `TaskUtil.close()` from this module would shut down task processing for the whole application. Same rule as the pinger (§4.1): `Discovery.close()` releases sockets, handles and arenas, and lets the executors alone. A caller who passes its *own* executors owns them and closes them itself.
+**These pools are BORROWED. Never close them.** `TaskProcessor` and `TaskSchedulerProcessor` are `DaemonController`s and process-wide singletons shared with the rest of the application; calling `close()` or `TaskUtil.close()` from this module would shut down task processing for the whole application. Same rule as the pinger (§4.1): `Discovery.close()` releases sockets, handles and arenas, and lets the executors alone. A caller who passes its *own* executors owns them and closes them itself.
 
 **Never block a reader thread on a user callback.** Dispatch `Consumer<HostRecord>` and `Consumer<ObservedNeighbor>` callbacks through the dispatcher — a slow consumer must never stall packet reception. This matters most on Windows, where one reader thread serves **both** roles of the single backend object (§8.6): a blocked callback there stalls ARP, NDP and ICMP at once.
 
-> Because the pools are shared with the whole application, a sweep with a large `maxInFlight` competes with everything else running on them. If sweep latency ever needs isolating from the rest of no-sneak, pass dedicated executors at the factory rather than reintroducing private pools here.
+> Because the pools are shared with the whole application, a sweep with a large `maxInFlight` competes with everything else running on them. If sweep latency ever needs isolating from the rest of the application, pass dedicated executors at the factory rather than reintroducing private pools here.
 
 **Never park a borrowed pool thread.** No lock wait, semaphore, sleep or blocking `get()` on a dispatcher or scheduler thread — the scheduler delivers every due timer onto that same pool, so a parked worker is a timeout that cannot fire (§13.22). Anything that must wait for a slot or a send time waits as *state*: `util.SweepDriver` admits the next host from a completion callback or a scheduler tick, never from a thread that is holding on.
 
@@ -939,7 +939,7 @@ A `ScheduledExecutorService` arms per-probe timeouts. On fire: remove the in-fli
 
   So an N-interface Linux appliance costs `2 + 3N` reader threads, not `4N` — two JVM-wide ICMP readers plus ARP, NDP and passive-IPv4 per NIC. The split is still what keeps ICMP off the per-NIC multiplier; the third L2 socket was added deliberately in §13.13 and is what makes a broadcast-suppressed host resolvable at all.
 - Reader threads are **blocking**. Do not wire these FDs into `java.nio.channels.Selector` — arbitrary native FDs cannot be registered, and pcap handles are not portably selectable. This is the deliberate transport divergence from the TCP probe engine: per-target FSMs are driven off the reader-thread dispatch queue, not off selector readiness.
-- **Reader threads are DEDICATED PLATFORM THREADS. Never take them from the §4.3 executor pools.** A reader is an infinite blocking loop, so submitting one does not *use* a pool thread, it *permanently consumes* one. `TaskUtil` sizes its pool at `max(availableProcessors * 4, 16)`, so a 4-core appliance has 16 threads; a 4-NIC box needs `2 + 3N` = 14 readers, which would hold 14 of them forever, and adding a writer thread per source would need 20 in a 16-thread pool — at which point no timeout ever fires and no callback ever dispatches, for no-sneak **and** for every other component sharing that process-wide singleton. The pools take short bursty work (fire a timeout, run one callback); reader and writer loops are not that.
+- **Reader threads are DEDICATED PLATFORM THREADS. Never take them from the §4.3 executor pools.** A reader is an infinite blocking loop, so submitting one does not *use* a pool thread, it *permanently consumes* one. `TaskUtil` sizes its pool at `max(availableProcessors * 4, 16)`, so a 4-core appliance has 16 threads; a 4-NIC box needs `2 + 3N` = 14 readers, which would hold 14 of them forever, and adding a writer thread per source would need 20 in a 16-thread pool — at which point no timeout ever fires and no callback ever dispatches, for this module **and** for every other component sharing that process-wide singleton. The pools take short bursty work (fire a timeout, run one callback); reader and writer loops are not that.
 - **Virtual threads do not help here.** An FFM downcall pins its carrier for the duration of the call, and `recvfrom` blocks *inside* the native call — so a virtual reader pins a carrier for the whole wait, costing what a platform thread costs with extra indirection.
 - Sends must not interleave on a given native source — one `sendto` / `pcap_sendpacket` in flight per fd or pcap handle, since two threads filling a shared native buffer produce a corrupt frame. **Do not reach for a `ReentrantLock` to get this.** The mechanism is an open decision (§12.7) and is deliberately unspecified for now; until it is settled, keep every send funnelled through **one** private method per source that owns its own buffer, so serialization can be imposed at that single choke point instead of being sprinkled through the backends.
 
@@ -1420,9 +1420,9 @@ Package `io.xlogistx.net.platform.windows`. Binds Npcap's `wpcap.dll` via FFM. T
 > **Loader hazard:** `wpcap.dll` depends on `Packet.dll` in the same directory. Loading `wpcap.dll` by absolute path without first adding that directory to the DLL search path fails at dependency resolution with an unhelpful error. Either require Npcap's WinPcap-compatibility install mode (which places the DLLs in `System32`), or set the DLL directory before the lookup.
 
 Make the path configurable via a system property. `Pcap` (now shared by Windows and macOS) reads
-`io.xlogistx.nosneak.net.pcap.lib` (`Pcap.LIB_PROPERTY`), then the older
-`io.xlogistx.nosneak.net.platform.windows.lib` (`LEGACY_LIB_PROPERTY`). Both still carry the pre-move
-`nosneak` namespace — they are what the code reads, so do not rename them in docs alone.
+`io.xlogistx.net.pcap.lib` (`Pcap.LIB_PROPERTY`), then the two pre-move names in order,
+`io.xlogistx.nosneak.net.pcap.lib` and the older `io.xlogistx.nosneak.net.platform.windows.lib`
+(`LEGACY_LIB_PROPERTIES`), so launch scripts written before 2026-11-03 keep working.
 
 **If Npcap is absent, fail at `HostDiscoveryFactory.open()`** with a `DiscoveryException` naming the missing library and the install URL. Do not fail obscurely at first use, and do not bundle the installer.
 
@@ -2969,7 +2969,7 @@ Defaults: `maxInFlight = 256`, pool of `max(4 × cores, 16)` workers, queue of 1
    worker, which sends one probe and then pulls the *next queued sweep task* rather than a timeout,
    and parks again. Live hosts drain slowly; every silent host that is admitted holds its permit
    forever. Once 256 silent hosts hold permits, nothing moves — and neither does any other timer
-   in the JVM, for no-sneak or for anything else sharing `TaskUtil`.
+   in the JVM, for this module or for anything else sharing `TaskUtil`.
 6. Above 1500 queued tasks the `ThresholdQueue` also blocks the `sweep()` *caller* and, worse, the
    reader threads inside `dispatcher.execute` — §4.3's "never block a reader" defeated by
    `execute` itself.
@@ -3597,7 +3597,7 @@ Made after v2 was written, in this order. Anything below in A.1 that contradicts
 - **JPMS resolved** (§12.8): no `module-info.java`; `--enable-native-access=ALL-UNNAMED` everywhere, and the Surefire `argLine` is now set in the pom.
 - **Off-link ICMP on Windows REVERSED and implemented** (§8.7). The v2 draft ruled it out to avoid an `iphlpapi` binding; that binding is one function (`GetBestRoute2`) and one struct field, so §1's non-goal and §12.5's resolution are both superseded. Off-link now works on all three platforms. Verified against a live internet path.
 - **A CLI exists** (§14): `io.xlogistx.net.tools.HostScan`. It is how the Windows and Linux backends were verified, and the fastest way to see the subsystem work. (A `hostscan.cmd` launcher existed briefly and was removed as redundant with IDE run configurations — see §14.)
-- **Moved to io-xlogistx (2026-11-03).** Maven module `no-sneak-net` → **`xlogistx-net`** (parent `io.xlogistx:xlogistx`), root namespace `io.xlogistx.nosneak.net` → **`io.xlogistx.net`**. With no no-sneak root pom above it, the module now sets `jdk.version` 25 itself (§10.3). `xlogistx-scan` (formerly `no-sneak-core`) depends on it, and the no-sneak app takes both as jars. Not renamed: the pcap library system properties still carry `io.xlogistx.nosneak.net.*` names (§8.1) — that is what `Pcap` reads.
+- **Moved to io-xlogistx (2026-11-03).** Maven module `no-sneak-net` → **`xlogistx-net`** (parent `io.xlogistx:xlogistx`), root namespace `io.xlogistx.nosneak.net` → **`io.xlogistx.net`**. With no no-sneak root pom above it, the module now sets `jdk.version` 25 itself (§10.3). `xlogistx-scan` (formerly `no-sneak-core`) depends on it, and the no-sneak app takes both as jars. The pcap library system property is `io.xlogistx.net.pcap.lib`; the two `io.xlogistx.nosneak.net.*` names are read as fallbacks (§8.1). Thread names, the ICMP payload filler and the macOS BPF helper (`io.xlogistx.net.bpf`, `/Library/Application Support/xlogistx-net`) dropped the `nosneak` prefix on 2026-11-06.
 - **Gaps closed:** ICMP identifiers must be unique per socket **process-wide**, not per instance (§4.2); `AF_PACKET` sockets must be scoped to their ifindex or they receive every interface's traffic (§6.4); link-local IPv6 ping needs a scope id (§3.1); sweep pacing is per-sweep, so N concurrent sweeps through one pinger emit N× the cap (§3.2).
 
 ### A.1 Original v1 → v2 changes

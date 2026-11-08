@@ -302,10 +302,10 @@ public final class DarwinIcmpPing implements ICMPPing {
     /** One reader per socket that actually opened — never one blocked on fd -1. */
     private void startReaders() {
         if (v4Socket >= 0) {
-            readers.add(startReader("nosneak-darwin-icmp4", () -> readLoop(v4Socket, true)));
+            readers.add(startReader("xlogistx-net-darwin-icmp4", () -> readLoop(v4Socket, true)));
         }
         if (v6Socket >= 0) {
-            readers.add(startReader("nosneak-darwin-icmp6", () -> readLoop(v6Socket, false)));
+            readers.add(startReader("xlogistx-net-darwin-icmp6", () -> readLoop(v6Socket, false)));
         }
     }
 
@@ -443,7 +443,7 @@ public final class DarwinIcmpPing implements ICMPPing {
         for (int i = 0; i < 8; i++) {
             p[i] = (byte) (now >>> (56 - 8 * i));
         }
-        System.arraycopy("nosneak".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
+        System.arraycopy("xlognet".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
                          0, p, 8, 7);
         return p;
     }

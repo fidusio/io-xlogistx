@@ -533,7 +533,7 @@ public final class HostScan {
 
     private static void usage(PrintStream out) {
         out.println("""
-                no-sneak host discovery
+                xlogistx-net host discovery
 
                   hostscan                        interactive shell at a terminal; this help otherwise
                   hostscan shell                  force the shell, e.g. to pipe commands into one session

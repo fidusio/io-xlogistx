@@ -12,7 +12,7 @@ import java.util.Map;
  * <p>
  * The graph is data; the executable primitives referenced by each state's
  * {@code action} come from a fixed, trusted Java library
- * ({@link io.xlogistx.nosneak.action}). A definition therefore configures
+ * ({@link io.xlogistx.scan.action}). A definition therefore configures
  * behaviour but can never introduce new executable code.
  */
 public class ProbeDefinition {

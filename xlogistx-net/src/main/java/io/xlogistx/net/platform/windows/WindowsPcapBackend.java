@@ -728,7 +728,7 @@ public final class WindowsPcapBackend implements HostDiscovery, ICMPPing {
         for (int i = 0; i < 8; i++) {
             p[i] = (byte) (now >>> (56 - 8 * i));
         }
-        System.arraycopy("nosneak".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
+        System.arraycopy("xlognet".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
                          0, p, 8, 7);
         return p;
     }
@@ -748,7 +748,7 @@ public final class WindowsPcapBackend implements HostDiscovery, ICMPPing {
     // ---- capture ----
 
     private void startReader() {
-        Thread t = new Thread(this::readLoop, "nosneak-pcap-" + binding.javaName());
+        Thread t = new Thread(this::readLoop, "xlogistx-net-pcap-" + binding.javaName());
         t.setDaemon(true);
         // A dedicated PLATFORM thread, never a pool thread: this loop runs until
         // shutdown and would permanently consume one (spec section 4.4).

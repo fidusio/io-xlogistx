@@ -31,7 +31,7 @@ class ProbeDefinitionGuideTest {
     private static String guide() throws IOException {
         // Tests run with the module directory as the working directory (Maven, the IDE, the
         // CLI launcher); fall back to the repo layout in case a runner starts at the root.
-        for (String candidate : new String[]{"PROBE-DEFINITION.md", "no-sneak-core/PROBE-DEFINITION.md"}) {
+        for (String candidate : new String[]{"PROBE-DEFINITION.md", "xlogistx-scan/PROBE-DEFINITION.md"}) {
             Path p = Paths.get(candidate);
             if (Files.isRegularFile(p)) {
                 return Files.readString(p);

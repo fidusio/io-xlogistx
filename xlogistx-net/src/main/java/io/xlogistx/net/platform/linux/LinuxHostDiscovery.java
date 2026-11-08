@@ -754,11 +754,11 @@ public final class LinuxHostDiscovery implements HostDiscovery {
     // ---- capture ----
 
     private void startReaders() {
-        readers.add(startReader("nosneak-arp-" + binding.javaName(),
+        readers.add(startReader("xlogistx-net-arp-" + binding.javaName(),
                                 () -> readLoop(arpSocket, Reader.ARP)));
-        readers.add(startReader("nosneak-ndp-" + binding.javaName(),
+        readers.add(startReader("xlogistx-net-ndp-" + binding.javaName(),
                                 () -> readLoop(ndpSocket, Reader.NDP)));
-        readers.add(startReader("nosneak-ip-" + binding.javaName(),
+        readers.add(startReader("xlogistx-net-ip-" + binding.javaName(),
                                 () -> readLoop(ipSocket, Reader.IP)));
     }
 

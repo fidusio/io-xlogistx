@@ -598,7 +598,7 @@ public final class DarwinPcapBackend implements HostDiscovery {
     private void startReader() {
         // A dedicated PLATFORM thread, never a pool thread: this loop runs until
         // shutdown and would permanently consume one (§4.4).
-        Thread t = new Thread(this::readLoop, "nosneak-pcap-" + binding.javaName());
+        Thread t = new Thread(this::readLoop, "xlogistx-net-pcap-" + binding.javaName());
         t.setDaemon(true);
         reader = t;
         t.start();

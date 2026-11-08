@@ -7,6 +7,7 @@ import javax.swing.UIManager;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.Insets;
 
 /**
  * The semantic colours and type sizes the io.xlogistx screens are drawn with, as one place.
@@ -135,14 +136,36 @@ public final class UITokens {
     }
 
     /**
-     * The base font with a style and a size offset.
+     * The base font with a style and a size offset. The font remembers the
+     * derivation ({@link UIFontSize.Derived}), so {@link UIFontSize#refresh}
+     * derives it again from the look and feel's new fonts after a text size
+     * change: a heading built two points bigger stays two points bigger.
      *
      * @param style a {@link Font} style constant
      * @param delta added to the base size (negative shrinks)
      */
     public static Font font(int style, float delta) {
         Font base = baseFont();
-        return base.deriveFont(style, base.getSize2D() + delta);
+        return new DerivedFont(base.deriveFont(style, base.getSize2D() + delta), style, delta, false);
+    }
+
+    /** A font that knows how it was derived from the look and feel's base font. */
+    private static final class DerivedFont extends Font implements UIFontSize.Derived {
+        private final int style;
+        private final float delta;
+        private final boolean mono;
+
+        DerivedFont(Font font, int style, float delta, boolean mono) {
+            super(font);
+            this.style = style;
+            this.delta = delta;
+            this.mono = mono;
+        }
+
+        @Override
+        public Font derive() {
+            return mono ? UITokens.mono(delta) : font(style, delta);
+        }
     }
 
     /**
@@ -153,8 +176,8 @@ public final class UITokens {
     public static Font mono(float delta) {
         Font base = baseFont();
         String family = UIManager.getString("xlogistx.monoFamily");
-        return new Font(family != null && !family.isEmpty() ? family : Font.MONOSPACED, Font.PLAIN,
-                Math.round(base.getSize2D() + delta));
+        return new DerivedFont(new Font(family != null && !family.isEmpty() ? family : Font.MONOSPACED, Font.PLAIN,
+                Math.round(base.getSize2D() + delta)), Font.PLAIN, delta, true);
     }
 
     /**
@@ -173,13 +196,30 @@ public final class UITokens {
     }
 
     /**
+     * MigLayout's client property for a component's visual padding ({@code "visualPadding"}):
+     * the border a look and feel leaves blank around a control, which MigLayout takes off the
+     * bounds it hands out. FlatLaf sets one point on every button for the focus ring, and only
+     * overwrites a value it set itself, so a plain {@link Insets} put here holds across a UI update.
+     */
+    static final String VISUAL_PADDING = "visualPadding";
+
+    /**
      * Styles a button as an inline link: no border or fill, accent text, a hand cursor. For
      * secondary actions beside a form ("Create another account", "Change").
+     * <p>
+     * The link keeps its whole preferred width in a MigLayout (2026-11-06): FlatLaf marks every
+     * button with a one-point {@linkplain #VISUAL_PADDING visual padding} for the focus ring it
+     * paints outside a regular button, and MigLayout shrinks the component by it; a toolbar-type
+     * button has no such ring and only its tight margins, so the two points came straight out of
+     * the text and "Reset" painted as "Re…" wherever a link sat in a MigLayout row (no-sneak's
+     * Text size rows). The padding is pinned to zero here, with a plain {@code Insets} FlatLaf
+     * does not overwrite when the look and feel is reinstalled.
      *
      * @return the same button, for chaining
      */
     public static <B extends AbstractButton> B link(B button) {
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        button.putClientProperty(VISUAL_PADDING, new Insets(0, 0, 0, 0));
         button.setForeground(accentText());
         button.setFont(font(Font.BOLD, -0.5f));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

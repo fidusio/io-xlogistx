@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *       {@link #release()} exactly once when that unit finishes, so the next queued launch can
  *       proceed.</li>
  *   <li><b>max per second</b> — how fast admitted launches may <em>leave</em>. This is zoxweb's
- *       {@link RateController} in TIME mode, the same pacer {@code no-sneak-net}'s sweep uses:
+ *       {@link RateController} in TIME mode, the same pacer {@code xlogistx-net}'s sweep uses:
  *       a leaky bucket with <b>no burst credit</b>. The previous shape here was a token bucket
  *       refilled by a 100 ms tick, which let up to {@code maxPerSec} connects leave in the first
  *       tick — exactly the burst the discovery module rejected on purpose, and the reason the two

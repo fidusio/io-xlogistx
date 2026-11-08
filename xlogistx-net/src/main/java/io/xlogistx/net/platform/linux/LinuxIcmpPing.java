@@ -251,8 +251,8 @@ public final class LinuxIcmpPing implements ICMPPing {
     }
 
     private void startReaders() {
-        readers.add(startReader("nosneak-icmp4", () -> readLoop(v4Socket, true)));
-        readers.add(startReader("nosneak-icmp6", () -> readLoop(v6Socket, false)));
+        readers.add(startReader("xlogistx-net-icmp4", () -> readLoop(v4Socket, true)));
+        readers.add(startReader("xlogistx-net-icmp6", () -> readLoop(v6Socket, false)));
     }
 
     private Thread startReader(String name, Runnable body) {
@@ -402,7 +402,7 @@ public final class LinuxIcmpPing implements ICMPPing {
         for (int i = 0; i < 8; i++) {
             p[i] = (byte) (now >>> (56 - 8 * i));
         }
-        System.arraycopy("nosneak".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
+        System.arraycopy("xlognet".getBytes(java.nio.charset.StandardCharsets.US_ASCII),
                          0, p, 8, 7);
         return p;
     }

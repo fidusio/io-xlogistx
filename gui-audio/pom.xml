@@ -65,7 +65,7 @@
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf-fonts-roboto</artifactId>
-            <version>${flatlab.roboto.version}</version>
+            <version>${flatlaf.roboto.version}</version>
         </dependency>
         <dependency>
             <groupId>com.miglayout</groupId>
