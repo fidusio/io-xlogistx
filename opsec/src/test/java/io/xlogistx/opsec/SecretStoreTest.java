@@ -1,6 +1,7 @@
 package io.xlogistx.opsec;
 
 import org.bouncycastle.jcajce.SecretKeyWithEncapsulation;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.zoxweb.server.security.KeyMakerProvider;
@@ -12,9 +13,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.KeyPair;
+import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
@@ -26,6 +31,142 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SecretStoreTest {
 
     private static final char[] PW = "store-p@ss".toCharArray();
+    private static final String SCRYPT = "scrypt N=" + SecretStore.SCRYPT_COST + " r=" + SecretStore.SCRYPT_BLOCK_SIZE
+            + " p=" + SecretStore.SCRYPT_BLOCK_SIZE;
+    private static final String PBKDF2 = "PBKDF2-HMAC-SHA512 iterations=" + SecretStore.PBKDF2_ITERATIONS;
+    /** What Bouncy Castle writes when no KDF is asked for: every store made before 2026-11-10. */
+    private static final String LEGACY = "PBKDF2-HMAC-SHA512 iterations=51200";
+
+    @Test
+    public void kdf_newStoreIsScrypt_andLaterSavesKeepIt(@TempDir Path dir) throws Exception {
+        File file = dir.resolve("vault.bcfks").toFile();
+        try (SecretStore ss = SecretStore.create(file, PW)) {
+            assertEquals(SCRYPT, SecretStore.describeKDF(file), "written by create");
+            ss.put("k", "v");
+            ss.save();
+        }
+        assertEquals(SCRYPT, SecretStore.describeKDF(file));
+        try (SecretStore ss = SecretStore.open(file, PW)) {
+            assertEquals("v", ss.get("k"));
+            ss.put("k2", "v2");
+            ss.save();
+        }
+        assertEquals(SCRYPT, SecretStore.describeKDF(file), "a reopened store keeps its KDF");
+        assertThrows(IOException.class, () -> SecretStore.open(file, "wrong-password".toCharArray()));
+
+        File pbkdf2 = dir.resolve("pbkdf2.bcfks").toFile();
+        try (SecretStore ss = SecretStore.create(pbkdf2, PW, SecretStore.KDF.PBKDF2)) {
+            ss.put("k", "v");
+            ss.save();
+        }
+        assertEquals(PBKDF2, SecretStore.describeKDF(pbkdf2));
+        try (SecretStore ss = SecretStore.open(pbkdf2, PW)) {
+            assertEquals("v", ss.get("k"));
+        }
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (SecretStore ss = SecretStore.inMemory(PW)) {
+            ss.save(bos);
+        }
+        assertEquals(SCRYPT, SecretStore.describeKDF(bos.toByteArray()), "an in-memory store too");
+        assertThrows(IOException.class, () -> SecretStore.describeKDF("not a store".getBytes()));
+        assertEquals(SecretStore.KDF.SCRYPT, SecretStore.KDF.lookup(null));
+        assertEquals(SecretStore.KDF.PBKDF2, SecretStore.KDF.lookup(" PBKDF2 "));
+        assertThrows(IllegalArgumentException.class, () -> SecretStore.KDF.lookup("md5"));
+    }
+
+    @Test
+    public void legacyStore_opensAndSavesUnchanged_thenUpgrades(@TempDir Path dir) throws Exception {
+        // a store as SecretStore wrote it before 2026-11-10 (plain BCFKS load/store), with a password
+        // shorter than a new store accepts
+        char[] oldPW = "short".toCharArray();
+        File file = dir.resolve("legacy.bcfks").toFile();
+        OPSecUtil.singleton();
+        KeyStore ks = KeyStore.getInstance(SecretStore.TYPE, SecretStore.PROVIDER);
+        ks.load(null, oldPW);
+        try (OutputStream os = Files.newOutputStream(file.toPath())) {
+            ks.store(os, oldPW);
+        }
+        assertEquals(LEGACY, SecretStore.describeKDF(file));
+
+        byte[] master;
+        try (SecretStore ss = SecretStore.open(file, oldPW)) {
+            ss.put("db.user", "u");
+            master = ss.createSecretKey("master").getEncoded();
+            ss.save();
+        }
+        assertEquals(LEGACY, SecretStore.describeKDF(file), "saving a legacy store does not change its KDF");
+
+        try (SecretStore ss = SecretStore.open(file, oldPW)) {
+            assertEquals("u", ss.get("db.user"));
+            ss.upgradeKDF(null).save();
+        }
+        assertEquals(SCRYPT, SecretStore.describeKDF(file), "upgraded to the default");
+        try (SecretStore ss = SecretStore.open(file, oldPW)) {
+            assertEquals("u", ss.get("db.user"));
+            assertArrayEquals(master, ss.getSecretKey("master").getEncoded());
+            ss.put("db.password", "p");
+            ss.save();
+        }
+        assertEquals(SCRYPT, SecretStore.describeKDF(file), "and it stays");
+
+        // the same from the command line
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        PrintStream o = new PrintStream(out, true, "UTF-8");
+        PrintStream e = new PrintStream(err, true, "UTF-8");
+        String store = "store=" + file;
+        String pw = "store.password=" + new String(oldPW);
+        assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, store, pw, "command=upgrade", "kdf=md5"));
+        assertEquals(SCRYPT, SecretStore.describeKDF(file), "a refused upgrade writes nothing");
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, store, pw, "command=upgrade", "kdf=pbkdf2"), err.toString());
+        assertEquals(PBKDF2, SecretStore.describeKDF(file));
+        assertTrue(out.toString("UTF-8").contains(SCRYPT + " -> " + PBKDF2), out.toString("UTF-8"));
+        out.reset();
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, store, pw, "command=list"), err.toString());
+        assertTrue(out.toString("UTF-8").contains("kdf " + PBKDF2), out.toString("UTF-8"));
+        out.reset();
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, store, pw, "command=get", "name=db.password"), err.toString());
+        assertEquals("p", out.toString("UTF-8").trim());
+    }
+
+    @Test
+    public void newStore_refusesShortPassword(@TempDir Path dir) throws Exception {
+        char[] shortPW = new char[SecretStore.MIN_PASSWORD_LENGTH - 1];
+        Arrays.fill(shortPW, 'x');
+        File file = dir.resolve("vault.bcfks").toFile();
+        assertThrows(IllegalArgumentException.class, () -> SecretStore.create(file, shortPW));
+        assertThrows(IllegalArgumentException.class, () -> SecretStore.openOrCreate(file, shortPW));
+        assertThrows(IllegalArgumentException.class, () -> SecretStore.inMemory(shortPW));
+        assertFalse(file.exists(), "nothing is written");
+
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        PrintStream o = new PrintStream(new ByteArrayOutputStream(), true, "UTF-8");
+        PrintStream e = new PrintStream(err, true, "UTF-8");
+        assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, "store=" + file, "store.password=" + new String(shortPW), "command=create"));
+        assertTrue(err.toString("UTF-8").contains("at least " + SecretStore.MIN_PASSWORD_LENGTH), err.toString("UTF-8"));
+        assertEquals(SecretStore.EXIT_FAILURE, SecretStore.run(o, e, "store=" + file, "store.password=" + new String(PW), "command=create", "kdf=md5"));
+        assertFalse(file.exists(), "nothing is written");
+        assertEquals(SecretStore.EXIT_OK, SecretStore.run(o, e, "store=" + file, "store.password=" + new String(PW), "command=create", "kdf=pbkdf2"), err.toString("UTF-8"));
+        assertEquals(PBKDF2, SecretStore.describeKDF(file));
+    }
+
+    @Test
+    public void save_posixPermissions_ownerOnlyWhenNew_keptWhenExisting(@TempDir Path dir) throws Exception {
+        Assumptions.assumeTrue(dir.getFileSystem().supportedFileAttributeViews().contains("posix"), "POSIX file systems only");
+        File file = dir.resolve("vault.bcfks").toFile();
+        try (SecretStore ss = SecretStore.create(file, PW)) {
+            ss.put("k", "v");
+            ss.save();
+        }
+        assertEquals("rw-------", PosixFilePermissions.toString(Files.getPosixFilePermissions(file.toPath())));
+        Files.setPosixFilePermissions(file.toPath(), PosixFilePermissions.fromString("rw-r-----"));
+        try (SecretStore ss = SecretStore.open(file, PW)) {
+            ss.put("k", "v2");
+            ss.save();
+        }
+        assertEquals("rw-r-----", PosixFilePermissions.toString(Files.getPosixFilePermissions(file.toPath())), "an operator's choice is kept");
+    }
 
     @Test
     public void storeParam_namesAndMandatoryFlags_missingMandatory() throws Exception {

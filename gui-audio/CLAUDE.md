@@ -97,6 +97,9 @@ The package has these groups:
      returns the component; `applyProp(ref)` does the same to the component a `ComponentRef`
      wraps (a plain AWT component only gets its name) and returns the ref, so a control applies
      it as it is made: `GUIUtil.applyProp(new ComponentRef<Object>(b, option))`.
+     `limitLength(textComponent, max)` (2026-11-10, for no-sneak's scan name) caps a field or
+     area with a document filter: typing past the limit does nothing, a paste or `setText` is
+     cut to what fits; `GUIUtilLimitLengthTest` (1, written, not run yet).
      `SegmentedControl` and `SideNavPanel` label their toggles this way, `ChipPanel` names its
      chip views this way; a hand-set `setText` / `setToolTipText` beside a ref is the old pattern.
    - `SelectionWindow` — translucent drag-selection overlay covering one monitor;
@@ -268,6 +271,21 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
   (`FilterComboBox.hooked` client property); `setModel` copies a foreign model's items in and
   keeps the filtering model. `FilterComboBoxTest` (6, headless) pins all of it; the popup itself
   needs a display.
+- `TextAreaWidget` (2026-11-10, for no-sneak's Scan form, whose one-line Targets field the
+  maintainer found "ugly and confusing" with many addresses; he named it) — a text field that
+  is several lines high, for a value that is one logical line but outgrows a `JTextField`. It
+  is a `JScrollPane` over a wrapping `JTextArea` (`new TextAreaWidget(rows)`, 3 by default): a
+  fixed number of rows shows and the rest scrolls, so its height never follows its content. It
+  behaves like a field, not an editor: **Enter** fires the action listeners
+  (`addActionListener`), **Shift+Enter** inserts a line break, **Tab** moves the focus, a
+  `placeholder(text)` is painted muted while it is empty, and the area takes
+  `TextField.background`. `getText` / `setText` / `getDocument` / `setEditable` are forwarded,
+  `setFont`, `setToolTipText`, `setEnabled` and `requestFocusInWindow` reach the text, and
+  `getTextArea()` hands out the rest. `GUIUtil.applyProp` maps a descriptor's display name onto
+  its placeholder, as for a text field. **Its minimum height is its preferred height**: a
+  scroll pane's own minimum is a few pixels, and a MigLayout short of room squeezed the widget
+  to a line in the Scan form's first render. Java 8 source like the rest of the module.
+  `TextAreaWidgetTest` (3, headless).
 
 `PagePanel` (Phase 5, same day) is the frame every application page shares: a title and a
 one-line description over `UITokens.ground()`, an optional `action(component)` at the right of

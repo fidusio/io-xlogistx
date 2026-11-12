@@ -621,7 +621,8 @@ public class GUIUtil {
     /**
      * Applies a descriptor to a component: the name always; the tooltip when there is a
      * description; the display name as the text of a button or label (skipped when blank, for
-     * a label the panel fills at run time) or as the placeholder of a text field.
+     * a label the panel fills at run time) or as the placeholder of a text field or a
+     * {@link TextAreaWidget}.
      */
     public static <C extends JComponent, R extends GetName & GetDescription & GetDisplayName> C applyProp(C c, R ref) {
         c.setName(ref.getName());
@@ -631,6 +632,7 @@ public class GUIUtil {
             if (c instanceof AbstractButton ) ((AbstractButton) c).setText(text);
             else if (c instanceof JLabel) ((JLabel) c).setText(text);
             else if (c instanceof JTextField) c.putClientProperty("JTextField.placeholderText", text);
+            else if (c instanceof TextAreaWidget) ((TextAreaWidget) c).placeholder(text);
         }
         return c;
     }
@@ -648,5 +650,30 @@ public class GUIUtil {
         if (c instanceof JComponent) applyProp((JComponent) c, ref);
         else c.setName(ref.getName());
         return ref;
+    }
+
+    /**
+     * Caps the text of a field or area at {@code max} characters: typing past the limit does
+     * nothing, a paste or a {@code setText} is cut to what still fits. Replaces any document
+     * filter the component had. Returns the component.
+     */
+    public static <C extends javax.swing.text.JTextComponent> C limitLength(C c, int max) {
+        SUS.checkIfNull("component null", c);
+        if (max < 0) throw new IllegalArgumentException("max " + max);
+        ((javax.swing.text.AbstractDocument) c.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
+            @Override
+            public void insertString(FilterBypass fb, int offset, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                replace(fb, offset, 0, text, attrs);
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                int room = max - (fb.getDocument().getLength() - length);
+                String in = text == null ? "" : text;
+                if (in.length() > room) in = in.substring(0, Math.max(0, room));
+                fb.replace(offset, length, in, attrs);
+            }
+        });
+        return c;
     }
 }

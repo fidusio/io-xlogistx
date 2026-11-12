@@ -1,9 +1,20 @@
 package io.xlogistx.opsec;
 
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
+import org.bouncycastle.asn1.pkcs.PBKDF2Params;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.crypto.util.PBKDF2Config;
+import org.bouncycastle.crypto.util.PBKDFConfig;
+import org.bouncycastle.crypto.util.ScryptConfig;
+import org.bouncycastle.jcajce.BCFKSLoadStoreParameter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -20,7 +31,10 @@ import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -34,11 +48,23 @@ import java.util.*;
  * KeyMakerProvider master key) and post-quantum key pairs (ML-DSA for signing, ML-KEM for key
  * encapsulation).
  * <p>
- * The file is a Bouncy Castle {@code BCFKS} keystore (PBKDF2 key derivation, AES-CCM entry
+ * The file is a Bouncy Castle {@code BCFKS} keystore (AES-CCM store and entry
  * protection, HMAC-SHA512 integrity), the only keystore type on this stack that holds text
  * secrets, symmetric keys and ML-DSA/ML-KEM private keys in one file: the JDK and BC PKCS12
  * implementations refuse the secret-entry shapes this provider order produces. A wrong password
  * fails the integrity check ({@link IOException}). One password covers the store and every entry.
+ * <p>
+ * The store password is stretched by the store's key derivation function, which is written in
+ * the file: a new store uses {@link KDF#SCRYPT} (memory-hard) unless {@link KDF#PBKDF2} is asked
+ * for, and its password must have at least {@value #MIN_PASSWORD_LENGTH} characters. A store made
+ * before 2026-11-10 carries Bouncy Castle's default (PBKDF2-HMAC-SHA512, 51200 iterations): it
+ * opens and saves unchanged, whatever the length of its password, and {@link #upgradeKDF}
+ * (command {@code upgrade}) moves it to a stronger one. {@link #describeKDF(File)} reads what a
+ * file uses; it needs no password. The entries inside the store keep Bouncy Castle's fixed PBKDF2
+ * wrap: they are reachable only through the store's own KDF.
+ * <p>
+ * On a POSIX file system a new store file is readable and writable by its owner only; saving an
+ * existing store keeps the permissions the file has.
  * <p>
  * Entry types, all sharing one alias namespace:
  * <ul>
@@ -58,7 +84,8 @@ import java.util.*;
  * Command line ({@code key=value} arguments; {@code store.password} and {@code value} are hidden
  * from logs; a missing password or value is prompted on the console):
  * <pre>
- *   store=&lt;file&gt; store.password=&lt;pw&gt; command=create
+ *   store=&lt;file&gt; store.password=&lt;pw&gt; command=create [kdf=scrypt|pbkdf2]
+ *   store=... store.password=... command=upgrade [kdf=scrypt|pbkdf2]
  *   store=... store.password=... command=put name=db.password [value=&lt;secret&gt;]
  *   store=... store.password=... command=get name=db.password
  *   store=... store.password=... command=list
@@ -91,6 +118,87 @@ public final class SecretStore implements AutoCloseable {
     public static final String DEFAULT_ML_KEM = CryptoConst.ML_KEM_768;
     public static final CollectionAsArray<String> ML_DSA_ALGORITHMS = new CollectionAsArray<>(new ArrayList<>(), new String[0]).add(CryptoConst.ML_DSA_44, CryptoConst.ML_DSA_65, CryptoConst.ML_DSA_87);
     public static final CollectionAsArray<String> ML_KEM_ALGORITHMS = new CollectionAsArray<>(new ArrayList<>(), new String[0]).add(CryptoConst.ML_KEM_512, CryptoConst.ML_KEM_768, CryptoConst.ML_KEM_1024);
+
+    /**
+     * Shortest password a new store accepts ({@link #create}, {@link #inMemory}). Opening an
+     * existing store never checks it.
+     */
+    public static final int MIN_PASSWORD_LENGTH = 8;
+    /**
+     * scrypt cost N of {@link KDF#SCRYPT}: 128 * N * r bytes of working memory, 32 MiB here.
+     */
+    public static final int SCRYPT_COST = 1 << 15;
+    /**
+     * scrypt block size r of {@link KDF#SCRYPT}. BCFKS also runs it as the parallelization p.
+     */
+    public static final int SCRYPT_BLOCK_SIZE = 8;
+    public static final int SCRYPT_SALT_LENGTH = 32;
+    /**
+     * Iterations of {@link KDF#PBKDF2} (HMAC-SHA512). Bouncy Castle's own default is 51200.
+     */
+    public static final int PBKDF2_ITERATIONS = 300000;
+
+    private static final String SCRYPT_OID = "1.3.6.1.4.1.11591.4.11";
+    private static final Set<PosixFilePermission> OWNER_ONLY = PosixFilePermissions.fromString("rw-------");
+
+    /**
+     * The function that stretches the store password into the store's encryption and integrity
+     * keys. It is chosen when the store is created, written in the file and kept by every later
+     * save; {@link #upgradeKDF} changes it.
+     */
+    public enum KDF implements GetName {
+        /**
+         * scrypt, N={@value SecretStore#SCRYPT_COST} r={@value SecretStore#SCRYPT_BLOCK_SIZE}: memory-hard, the default.
+         */
+        SCRYPT("scrypt") {
+            @Override
+            PBKDFConfig config() {
+                return new ScryptConfig.Builder(SCRYPT_COST, SCRYPT_BLOCK_SIZE, SCRYPT_BLOCK_SIZE)
+                        .withSaltLength(SCRYPT_SALT_LENGTH).build();
+            }
+        },
+        /**
+         * PBKDF2-HMAC-SHA512, {@value SecretStore#PBKDF2_ITERATIONS} iterations: for where scrypt is not
+         * allowed (FIPS approved-only operation) or its memory is not available.
+         */
+        PBKDF2("pbkdf2") {
+            @Override
+            PBKDFConfig config() {
+                return new PBKDF2Config.Builder().withPRF(PBKDF2Config.PRF_SHA512)
+                        .withIterationCount(PBKDF2_ITERATIONS).build();
+            }
+        },
+        ;
+        private final String name;
+
+        KDF(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        abstract PBKDFConfig config();
+
+        /**
+         * The KDF of that name, case ignored; null or empty = {@link #DEFAULT_KDF}.
+         */
+        public static KDF lookup(String name) {
+            if (SUS.isEmpty(name)) {
+                return DEFAULT_KDF;
+            }
+            for (KDF kdf : values()) {
+                if (kdf.name.equalsIgnoreCase(name.trim())) {
+                    return kdf;
+                }
+            }
+            throw new IllegalArgumentException("kdf must be " + SCRYPT.name + " or " + PBKDF2.name + ": " + name);
+        }
+    }
+
+    public static final KDF DEFAULT_KDF = KDF.SCRYPT;
 
     public enum EntryType {
         /**
@@ -216,6 +324,10 @@ public final class SecretStore implements AutoCloseable {
     private final char[] password;
     private final File file;
     private final KeyStore.PasswordProtection protection;
+    /**
+     * The KDF the next save writes; null = the one the keystore already carries.
+     */
+    private PBKDFConfig pendingKDF;
 
     private SecretStore(KeyStore keyStore, char[] password, File file) {
         this.keyStore = keyStore;
@@ -229,14 +341,26 @@ public final class SecretStore implements AutoCloseable {
     // ------------------------------------------------------------------
 
     /**
-     * A new empty store bound to {@code file}, written immediately; fails if the file exists.
+     * A new empty store bound to {@code file}, written immediately with the {@link #DEFAULT_KDF};
+     * fails if the file exists.
+     *
+     * @throws IllegalArgumentException if the password has fewer than {@value #MIN_PASSWORD_LENGTH} characters
      */
     public static SecretStore create(File file, char[] password) throws IOException, GeneralSecurityException {
+        return create(file, password, DEFAULT_KDF);
+    }
+
+    /**
+     * {@link #create(File, char[])} with a chosen key derivation function (null = {@link #DEFAULT_KDF}).
+     */
+    public static SecretStore create(File file, char[] password, KDF kdf) throws IOException, GeneralSecurityException {
         SUS.checkIfNulls("file and password can't be null", file, password);
+        checkNewPassword(password);
         if (file.exists()) {
             throw new IOException("secret store already exists: " + file);
         }
         SecretStore ret = new SecretStore(emptyKeyStore(password), password.clone(), file);
+        ret.pendingKDF = (kdf != null ? kdf : DEFAULT_KDF).config();
         ret.save();
         return ret;
     }
@@ -270,11 +394,23 @@ public final class SecretStore implements AutoCloseable {
     }
 
     /**
-     * An empty in-memory store (tests, or building a store to write with {@link #save(OutputStream)}).
+     * An empty in-memory store (tests, or building a store to write with {@link #save(OutputStream)});
+     * it is written with the {@link #DEFAULT_KDF}.
+     *
+     * @throws IllegalArgumentException if the password has fewer than {@value #MIN_PASSWORD_LENGTH} characters
      */
     public static SecretStore inMemory(char[] password) throws IOException, GeneralSecurityException {
         SUS.checkIfNulls("password can't be null", password);
-        return new SecretStore(emptyKeyStore(password), password.clone(), null);
+        checkNewPassword(password);
+        SecretStore ret = new SecretStore(emptyKeyStore(password), password.clone(), null);
+        ret.pendingKDF = DEFAULT_KDF.config();
+        return ret;
+    }
+
+    private static void checkNewPassword(char[] password) {
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            throw new IllegalArgumentException("store password must have at least " + MIN_PASSWORD_LENGTH + " characters");
+        }
     }
 
     private static KeyStore emptyKeyStore(char[] password) throws IOException, GeneralSecurityException {
@@ -292,7 +428,8 @@ public final class SecretStore implements AutoCloseable {
     }
 
     /**
-     * Writes the store to its file (atomically: temp file + move).
+     * Writes the store to its file (atomically: temp file + move). On a POSIX file system a new
+     * file is created owner-only ({@code rw-------}); an existing file keeps its permissions.
      */
     public void save() throws IOException, GeneralSecurityException {
         if (file == null) {
@@ -303,15 +440,93 @@ public final class SecretStore implements AutoCloseable {
             throw new IOException("cannot create directory " + parent);
         }
         File tmp = new File(parent, file.getName() + ".tmp");
-        try (OutputStream os = Files.newOutputStream(tmp.toPath())) {
-            keyStore.store(os, password);
+        try (OutputStream os = newStoreFile(tmp.toPath(), file.toPath())) {
+            write(os);
         }
         Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
     public void save(OutputStream os) throws IOException, GeneralSecurityException {
         SUS.checkIfNulls("stream can't be null", os);
-        keyStore.store(os, password);
+        write(os);
+    }
+
+    /**
+     * Stores with the pending KDF when there is one; the keystore then carries it, so the later
+     * saves keep it (each with a new salt).
+     */
+    private void write(OutputStream os) throws IOException, GeneralSecurityException {
+        if (pendingKDF != null) {
+            keyStore.store(new BCFKSLoadStoreParameter.Builder(os, protection).withStorePBKDFConfig(pendingKDF).build());
+            pendingKDF = null;
+        } else {
+            keyStore.store(os, password);
+        }
+    }
+
+    /**
+     * The temp file of a save. POSIX: created with the permissions of {@code target} when that
+     * exists, owner-only otherwise, so the move never widens or narrows who reads the store.
+     */
+    private static OutputStream newStoreFile(Path tmp, Path target) throws IOException {
+        if (tmp.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+            Files.deleteIfExists(tmp);
+            Set<PosixFilePermission> permissions = Files.exists(target) ? Files.getPosixFilePermissions(target) : OWNER_ONLY;
+            Files.createFile(tmp, PosixFilePermissions.asFileAttribute(OWNER_ONLY));
+            Files.setPosixFilePermissions(tmp, permissions); // createFile is subject to the umask
+        }
+        return Files.newOutputStream(tmp);
+    }
+
+    /**
+     * Makes the next {@link #save} write the store with {@code kdf} (null = {@link #DEFAULT_KDF})
+     * instead of the key derivation function it was loaded with. This is how a store created
+     * before 2026-11-10 leaves Bouncy Castle's default PBKDF2.
+     */
+    public SecretStore upgradeKDF(KDF kdf) {
+        pendingKDF = (kdf != null ? kdf : DEFAULT_KDF).config();
+        return this;
+    }
+
+    /**
+     * The key derivation function a store file was written with, e.g. {@code scrypt N=32768 r=8 p=8}
+     * or {@code PBKDF2-HMAC-SHA512 iterations=51200}. It is in the clear in the file: no password needed.
+     *
+     * @throws IOException if the file is not a password-protected BCFKS store
+     */
+    public static String describeKDF(File file) throws IOException {
+        SUS.checkIfNulls("file can't be null", file);
+        return describeKDF(Files.readAllBytes(file.toPath()));
+    }
+
+    /**
+     * {@link #describeKDF(File)} on the bytes of a store.
+     */
+    public static String describeKDF(byte[] store) throws IOException {
+        SUS.checkIfNulls("store can't be null", store);
+        try {
+            // ObjectStore ::= SEQUENCE { storeData, PbkdMacIntegrityCheck { macAlgorithm, pbkdAlgorithm, mac } }
+            ASN1Sequence integrity = ASN1Sequence.getInstance(ASN1Sequence.getInstance(store).getObjectAt(1));
+            AlgorithmIdentifier kdf = AlgorithmIdentifier.getInstance(integrity.getObjectAt(1));
+            ASN1ObjectIdentifier oid = kdf.getAlgorithm();
+            if (PKCSObjectIdentifiers.id_PBKDF2.equals(oid)) {
+                PBKDF2Params params = PBKDF2Params.getInstance(kdf.getParameters());
+                ASN1ObjectIdentifier prf = params.getPrf().getAlgorithm();
+                String prfName = PKCSObjectIdentifiers.id_hmacWithSHA512.equals(prf) ? "HMAC-SHA512"
+                        : NISTObjectIdentifiers.id_hmacWithSHA3_512.equals(prf) ? "HMAC-SHA3-512" : prf.getId();
+                return "PBKDF2-" + prfName + " iterations=" + params.getIterationCount();
+            }
+            if (SCRYPT_OID.equals(oid.getId())) {
+                // scrypt-params ::= SEQUENCE { salt, costParameter, blockSize, parallelizationParameter, keyLength }
+                ASN1Sequence params = ASN1Sequence.getInstance(kdf.getParameters());
+                return "scrypt N=" + ASN1Integer.getInstance(params.getObjectAt(1)).getValue()
+                        + " r=" + ASN1Integer.getInstance(params.getObjectAt(2)).getValue()
+                        + " p=" + ASN1Integer.getInstance(params.getObjectAt(3)).getValue();
+            }
+            return oid.getId();
+        } catch (RuntimeException e) {
+            throw new IOException("not a password-protected " + TYPE + " store: " + e.getMessage(), e);
+        }
     }
 
     public File getFile() {
@@ -734,6 +949,7 @@ public final class SecretStore implements AutoCloseable {
 
     public enum Command implements GetName {
         CREATE("create"),
+        UPGRADE("upgrade"),
         PUT("put"),
         GET("get"),
         LIST("list"),
@@ -766,6 +982,7 @@ public final class SecretStore implements AutoCloseable {
         SIGNER("signer"),
         SUBJECT("subject"),
         VALIDITY("validity"),
+        KDF("kdf"),
         ;
         private final String name;
 
@@ -783,10 +1000,11 @@ public final class SecretStore implements AutoCloseable {
             "Usage: store=<file> store.password=<pw or console prompt> command=<command> [options]\n"
                     + "\n"
                     + "Commands:\n"
-                    + "  create                       new empty store (fails if the file exists)\n"
+                    + "  create     [kdf=scrypt|pbkdf2]            new empty store (fails if the file exists; password of " + MIN_PASSWORD_LENGTH + "+ characters)\n"
+                    + "  upgrade    [kdf=scrypt|pbkdf2]            rewrite an existing store with that key derivation function (default scrypt)\n"
                     + "  put        name=<n> [value=<v>]           store a text secret (value prompted when absent)\n"
                     + "  get        name=<n>                       print a text secret\n"
-                    + "  list                                      aliases and their types, never values\n"
+                    + "  list                                      aliases and their types, never values; the store's kdf\n"
                     + "  remove     name=<alias>                   delete any entry\n"
                     + "  ml-dsa     alias=<a> [algo=" + CryptoConst.ML_DSA_44 + "|" + CryptoConst.ML_DSA_65 + "|" + CryptoConst.ML_DSA_87 + "] [subject=CN=..] [validity=" + DEFAULT_VALIDITY + "]\n"
                     + "  ml-kem     alias=<a> [algo=" + CryptoConst.ML_KEM_512 + "|" + CryptoConst.ML_KEM_768 + "|" + CryptoConst.ML_KEM_1024 + "] [signer=<ml-dsa alias>] [subject=CN=..] [validity=" + DEFAULT_VALIDITY + "]\n"
@@ -834,11 +1052,20 @@ public final class SecretStore implements AutoCloseable {
         if (storePassword == null) {
             return EXIT_USAGE;
         }
-        try (SecretStore ss = command == Command.CREATE ? create(storeFile, storePassword) : open(storeFile, storePassword)) {
+        try (SecretStore ss = command == Command.CREATE
+                ? create(storeFile, storePassword, SecretStore.KDF.lookup(params.stringValue(Param.KDF, null)))
+                : open(storeFile, storePassword)) {
             switch (command) {
                 case CREATE:
-                    out.println("created " + storeFile + " (" + TYPE + ")");
+                    out.println("created " + storeFile + " (" + TYPE + ", " + describeKDF(storeFile) + ")");
                     return EXIT_OK;
+                case UPGRADE: {
+                    String before = describeKDF(storeFile);
+                    ss.upgradeKDF(SecretStore.KDF.lookup(params.stringValue(Param.KDF, null)));
+                    ss.save();
+                    out.println("upgraded " + storeFile + ": " + before + " -> " + describeKDF(storeFile));
+                    return EXIT_OK;
+                }
                 case PUT: {
                     String name = params.stringValue(Param.NAME, null);
                     if (SUS.isEmpty(name)) {
@@ -886,6 +1113,7 @@ public final class SecretStore implements AutoCloseable {
                         out.println(alias + "  " + type + detail);
                     }
                     out.println(ss.size() + " entries");
+                    out.println("kdf " + describeKDF(storeFile));
                     return EXIT_OK;
                 }
                 case REMOVE: {
