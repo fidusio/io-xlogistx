@@ -11,7 +11,10 @@ import java.awt.Font;
 
 /**
  * The frame every application page shares: a title and a one-line description over the recessed
- * ground, an optional action at the right of the title, and one or more white cards below.
+ * ground, the page's actions on the title's line right after it (on the left since 2026-11-12;
+ * they were at the head's right end), the description on the line under them, and one or more
+ * white cards below. An action never gets narrower than its preferred width, so a narrow window
+ * cuts the description, never a button's text.
  * <pre>
  * PagePanel page = new PagePanel("Backup", "Export this store, or restore one.");
  * page.action(exportButton);
@@ -22,29 +25,31 @@ import java.awt.Font;
  */
 public class PagePanel extends JPanel {
 
-    private final JPanel head = new JPanel(new MigLayout("insets 0, gapx 12", "[grow][]"));
-    private final JPanel titles = new JPanel(new MigLayout("insets 0, wrap 1, gapy 2"));
+    private final JPanel head = new JPanel(new MigLayout("insets 0, wrap 1, gapy 2"));
+    private final JPanel titleLine = new JPanel(new MigLayout("insets 0, gapx 12"));
+    private boolean hasAction;
 
     public PagePanel(String title, String description) {
         super(new MigLayout("insets 20 24 24 24, wrap 1, gapy 14, fill, hidemode 3", "[grow,fill]", "[]"));
         setBackground(UITokens.ground());
         head.setOpaque(false);
-        titles.setOpaque(false);
+        titleLine.setOpaque(false);
         JLabel t = new JLabel(title);
         t.setFont(UITokens.font(Font.BOLD, 8f));
-        titles.add(t);
+        titleLine.add(t);
+        head.add(titleLine);
         if (description != null && !description.isEmpty()) {
             JLabel d = new JLabel(description);
             d.setForeground(UITokens.muted());
-            titles.add(d);
+            head.add(d, "wmin 0");
         }
-        head.add(titles, "wmin 0");
-        add(head, "growx");
+        add(head, "growx, wmin 0");
     }
 
-    /** A control at the right of the title (the page's one primary action). */
+    /** A control on the title's line, after the title and the actions added before it. */
     public <C extends JComponent> C action(C component) {
-        head.add(component);
+        titleLine.add(component, hasAction ? "wmin pref" : "gapleft 16, wmin pref");
+        hasAction = true;
         return component;
     }
 

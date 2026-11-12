@@ -15,9 +15,11 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 
 /**
- * The strip across the top of an application window: brand on the left, a mono status chip
- * (the open store, an environment), then — right-aligned — the signed-in subject (initial
- * avatar, name, an optional role badge) and action buttons such as Sign out.
+ * The strip across the top of an application window, all of it from the left: the brand, the
+ * signed-in subject (initial avatar, name, an optional role badge), the action buttons such as
+ * Sign out, then a mono status chip (the open store, an environment). Until 2026-11-12 the
+ * subject and the actions were right-aligned, after the chip. An action never gets narrower
+ * than its preferred width: in a narrow window the chip, which can hold a long path, gives way.
  */
 public class HeaderBar extends JPanel {
 
@@ -29,23 +31,14 @@ public class HeaderBar extends JPanel {
     private final JPanel actions = new JPanel(new MigLayout("insets 0, gapx 6"));
 
     public HeaderBar(Icon brandIcon, String brandText) {
-        super(new MigLayout("insets 0 20 0 12, gapx 16, fillx, hidemode 3", "[]16[]push[]8[]", "[48!]"));
+        super(new MigLayout("insets 0 20 0 12, gapx 16, fillx, hidemode 3", "[]24[]8[]16[]push", "[48!]"));
         setBackground(UITokens.surface());
         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UITokens.border()));
 
         JLabel brand = new JLabel(brandText, brandIcon, JLabel.LEFT);
         brand.setIconTextGap(10);
         brand.setFont(UITokens.font(Font.BOLD, 2f));
-        add(brand);
-
-        status.setFont(UITokens.mono(-1.5f));
-        status.setForeground(UITokens.muted());
-        status.setOpaque(true);
-        status.setBackground(UITokens.color("xlogistx.chip", null, 0xF4F4F7));
-        status.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
-        status.setIconTextGap(8);
-        status.setVisible(false);
-        add(status);
+        add(brand, "wmin pref");
 
         subjectBox.setOpaque(false);
         subject.setFont(UITokens.font(Font.BOLD, 0f));
@@ -54,10 +47,20 @@ public class HeaderBar extends JPanel {
         subjectBox.add(badge);
         badge.setVisible(false);
         subjectBox.setVisible(false);
-        add(subjectBox);
+        add(subjectBox, "wmin pref");
 
         actions.setOpaque(false);
-        add(actions);
+        add(actions, "wmin pref");
+
+        status.setFont(UITokens.mono(-1.5f));
+        status.setForeground(UITokens.muted());
+        status.setOpaque(true);
+        status.setBackground(UITokens.color("xlogistx.chip", null, 0xF4F4F7));
+        status.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+        status.setIconTextGap(8);
+        status.setVisible(false);
+        // the chip is the one piece that may shrink (a long store path): the brand, the subject and the actions keep their width
+        add(status, "wmin 0");
     }
 
     /** The status chip; null or empty text hides it. */
@@ -89,9 +92,9 @@ public class HeaderBar extends JPanel {
         setSubject(null, null);
     }
 
-    /** Adds a right-aligned action (a button). */
+    /** Adds an action (a button) after the subject; it keeps its preferred width. */
     public <C extends JComponent> C addAction(C component) {
-        actions.add(component);
+        actions.add(component, "wmin pref");
         return component;
     }
 

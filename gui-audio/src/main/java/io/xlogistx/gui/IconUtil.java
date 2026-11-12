@@ -1480,6 +1480,12 @@ public class IconUtil {
      * Icon rendered from an SVG document via JSVG, scaled to the requested size.
      * The vector is rasterized at the actual device scale (HiDPI aware) and can
      * optionally be tinted with a single color while preserving the glyph alpha.
+     * <p>
+     * An icon with no tint keeps the svg's own colour under a light look and feel. Under a
+     * <b>dark</b> one it is painted in the theme's text colour ({@link UITokens#text()}): every
+     * bundled svg is one mid-grey stroke ({@code #5A5A5A}), which reads on a light button and
+     * disappears on a dark one. The colour is looked up when the icon paints, so an icon built
+     * before a theme change follows it.
      */
     public static class SVGIcon implements Icon {
 
@@ -1489,6 +1495,8 @@ public class IconUtil {
         // raster cache: re-rendered only when the device scale changes (accessed on the EDT only)
         private BufferedImage cachedImage;
         private double cachedScale = -1;
+        // the colour the cached raster was painted in (null = the svg's own)
+        private Color cachedTint;
 
         /**
          * Loads an SVG document from the given URL (parsed documents are cached and
@@ -1538,11 +1546,22 @@ public class IconUtil {
             return url;
         }
 
+        /**
+         * The colour this icon paints in now: its tint, else the theme's text colour under a
+         * dark look and feel, else null for the svg's own colours.
+         */
+        private Color effectiveTint() {
+            if (tint != null)
+                return tint;
+            return com.formdev.flatlaf.FlatLaf.isLafDark() ? UITokens.text() : null;
+        }
+
         @Override
         public void paintIcon(Component c, Graphics g, int x, int y) {
             Graphics2D g2 = (Graphics2D) g.create();
             int w = getIconWidth();
             int h = getIconHeight();
+            Color tint = effectiveTint();
 
             // rasterize at the device scale so the icon stays sharp on HiDPI displays
             AffineTransform transform = g2.getTransform();
@@ -1550,7 +1569,7 @@ public class IconUtil {
             if (scale <= 0)
                 scale = 1;
 
-            if (cachedImage == null || cachedScale != scale) {
+            if (cachedImage == null || cachedScale != scale || (tint == null ? cachedTint != null : !tint.equals(cachedTint))) {
                 int pw = (int) Math.ceil(w * scale);
                 int ph = (int) Math.ceil(h * scale);
 
@@ -1567,6 +1586,7 @@ public class IconUtil {
                 ig.dispose();
                 cachedImage = image;
                 cachedScale = scale;
+                cachedTint = tint;
             }
 
             g2.drawImage(cachedImage, x, y, w, h, null);

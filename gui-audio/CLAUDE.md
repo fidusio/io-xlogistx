@@ -287,9 +287,30 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
   to a line in the Scan form's first render. Java 8 source like the rest of the module.
   `TextAreaWidgetTest` (3, headless).
 
+**Icons on a dark look and feel (2026-11-12, no-sneak's maintainer: "fix the choose button
+icon and all other icons in dark theme").** Every bundled svg is one `#5A5A5A` stroke, so an
+icon built without a colour (`new IconUtil.FolderIcon(16)`, `svgIcon(resource, size)`) read on
+a light button and vanished on a dark one. `IconUtil.SVGIcon` now paints an **untinted** icon
+in `UITokens.text()` while `FlatLaf.isLafDark()`; under a light look it keeps the svg's own
+colour, so light renders are pixel-identical. The colour is read when the icon paints and is
+part of the raster cache's key, so an icon built before a theme change follows it. A tinted
+icon is untouched. Unrelated but easy to trip on: the two-argument widget constructors
+(`new IconUtil.SaveIcon(16, Color.WHITE)`) also **set the host component's background** when
+they paint (dark green for Save, blue or red for others); for a glyph colour alone use
+`IconUtil.svgIcon(resource, size, color)`.
+
+`HeaderBar` (2026-11-12, no-sneak's maintainer: "move user and sign out to the left and make
+sign out does not shrink") lays everything out from the left: brand, the subject (avatar,
+name, role badge), the `addAction` buttons, then the status chip. Brand, subject and actions
+have `wmin pref`; the chip has `wmin 0` and is the piece that gives way in a narrow window.
+Before, the subject and the actions were pushed to the right end, after the chip.
+
 `PagePanel` (Phase 5, same day) is the frame every application page shares: a title and a
-one-line description over `UITokens.ground()`, an optional `action(component)` at the right of
-the title, and white bordered `card(content)`s below (the last one takes the remaining height;
+one-line description over `UITokens.ground()`, the `action(component)`s **on the title's line,
+right after it** (2026-11-12, no-sneak's maintainer: buttons "to the left" and never shrunk;
+they were at the head's right end), the description on the line under them, each action with
+`wmin pref` so a narrow window cuts the description and never a button's text,
+and white bordered `card(content)`s below (the last one takes the remaining height;
 `row(component)` for a toolbar between). `UITokens.ground()` is the page background token;
 `UITokens.mono(delta)` takes its family from `UIManager "xlogistx.monoFamily"` when an
 application sets one (a bundled JetBrains Mono), else the logical `MONOSPACED`.
