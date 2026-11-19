@@ -218,6 +218,10 @@ don't*. All Java 8, all colours through `UITokens`, so a FlatLaf theme restyles 
   `help`, `capture`, and `settings` (a gear, 2026-10-25, for no-sneak's Settings page).
 - `ListSection`'s frame border (2026-11-02) falls back to `UITokens.border()` when the look and
   feel defines no `Component.borderColor`, not to light gray, so a dark theme keeps its lines dark.
+- `ListSection` paints no background and no box since 2026-11-14 (no-sneak's maintainer, on the
+  Profile page: "look and feel is not consistent"): it and its rows are non-opaque, its border
+  is an empty 6-point top and bottom, and the add button follows the title on the left
+  (`[][]push`, `wmin pref`). The frame border of the line above is gone with it.
 - `ListSection.rowRefs()` and `ChipPanel.chipRefs()` (2026-10-27): every list row and every chip
   is a `ComponentRef` over its item (the row's label and sublabel, or the chip's key and label,
   are the ref's display name and description / name), rebuilt on each refresh; `RowRefsTest`.

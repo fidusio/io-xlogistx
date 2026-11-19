@@ -65,26 +65,31 @@ public class ListSection<T> extends JPanel {
         this.emptyText = b.emptyText;
 
         setLayout(new BorderLayout());
+        // 2026-11-14 (no-sneak's maintainer, on the Profile page: "look and feel is not
+        // consistent"): the section paints no background and no box of its own, so it takes
+        // the surface it is put on and reads like the plain blocks beside it; the add button
+        // follows the title, on the left (it was at the right end)
+        setOpaque(false);
+        rows.setOpaque(false);
 
         JPanel header = new JPanel();
+        header.setOpaque(false);
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
         // Everything in the header must share the same alignmentX: BoxLayout positions
         // mixed alignments against a common axis, shoving odd ones out sideways.
-        JPanel titleRow = new JPanel(new BorderLayout());
+        JPanel titleRow = new JPanel(new net.miginfocom.swing.MigLayout("insets 0, gapx 12", "[][]push"));
+        titleRow.setOpaque(false);
         titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        titleRow.add(PanelBuilder.title(b.title), BorderLayout.WEST);
+        titleRow.add(PanelBuilder.title(b.title));
 
-        Color borderColor = UIManager.getColor("Component.borderColor");
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor != null ? borderColor : UITokens.border()),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+        setBorder(BorderFactory.createEmptyBorder(6, 0, 6, 0));
 
         if (b.onAdd != null) {
             JButton add = new JButton(b.addLabel);
             add.addActionListener(e -> b.onAdd.run());
 
-            titleRow.add(add, BorderLayout.EAST);
+            titleRow.add(add, "wmin pref");
         }
 
         header.add(titleRow);
@@ -135,6 +140,12 @@ public class ListSection<T> extends JPanel {
         }
 
         refresh();
+    }
+
+    /** Makes a row and the panels inside it paint no background, so the section's surface shows. */
+    private static void clear(Component c) {
+        if (c instanceof JPanel) ((JPanel) c).setOpaque(false);
+        if (c instanceof Container) for (Component child : ((Container) c).getComponents()) clear(child);
     }
 
     /**
@@ -258,6 +269,7 @@ public class ListSection<T> extends JPanel {
             JPanel row = PanelBuilder.row(label, sublabel, buttons.toArray(new JButton[0]));
             row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
             row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            clear(row);
             rows.add(row);
             rowRefs.add(new ComponentRef<T>(row, item, label, sublabel));
         }

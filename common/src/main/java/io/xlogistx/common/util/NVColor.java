@@ -24,13 +24,17 @@ public enum NVColor implements GetNameValue<Color> {
     END_COLOR("end-color", new Color(0, 255, 0)),
     LIGHT_RED("light-red", new Color(255, 102, 102)),
     BOOTSTRAP_RED("bootstrap-red", new Color(0Xdc3545)),
-    DARK_RED("dark-read", new Color(139, 0, 0)),
+    DARK_RED("dark-red", new Color(139, 0, 0)),
     LIGHT_GREEN("light-green", new Color(144, 238, 144)),
     BOOTSTRAP_GREEN("bootstrap-green", new Color(0X28a745)),
     DARK_GREEN("dark-green", new Color(0, 100, 0)),
-    MATERIAL_BLUE("mistral-blue", new Color(33, 150, 243)),
+    MATERIAL_BLUE("material-blue", new Color(33, 150, 243)),
     BOOTSTRAP_BLUE("bootstrap-blue", new Color(0X2196F3)),
-    IOS_BLUE("iso-blue", new Color(10, 132, 255)),
+    IOS_BLUE("ios-blue", new Color(10, 132, 255)),
+    MATERIAL_BLACK("material-black", new Color(18, 18, 18)),
+    BOOTSTRAP_BLACK("bootstrap-black", new Color(0X212529)),
+    IOS_BLACK("ios-black", new Color(28, 28, 30)),
+    JET_BLACK("jet-black", new Color(52, 52, 52)),
     ;
 
     private static Map<String, Color> colorMap;
