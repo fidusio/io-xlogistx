@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.xlogistx</groupId>
+        <artifactId>xlogistx</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <name>xlogistx-s2t</name>
+    <artifactId>xlogistx-s2t</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <jdk.version>25</jdk.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <!--
+              FFM restricted methods (Linker downcalls, SymbolLookup.libraryLookup) warn on
+              JDK 25 and will hard-fail in a future release without this. ALL-UNNAMED, not a
+              module name: this module declares no module-info, so it always loads unnamed.
+              Same setting as xlogistx-net.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+        </dependency>
+
+        <!-- ParamUtil (demo command line) and TaskUtil (default executor). -->
+        <dependency>
+            <groupId>org.zoxweb</groupId>
+            <artifactId>zoxweb-core</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

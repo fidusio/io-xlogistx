@@ -1,0 +1,65 @@
+{
+  // MCP server configuration.
+  // Run: io.xlogistx.http.NIOHTTPServer mcp_server_config.json
+  // The file is found on the file system first, then on the classpath (works when the
+  // resources are on disk, e.g. target/classes from IntelliJ; not from inside a packed jar).
+  // Clients: POST http://<host>:5080/mcp with Basic auth; the user needs mcp:access.
+  "name": "xlogistx-mcp",
+  "description": "XlogistX MCP server",
+  "thread_pool_size": 16,
+  "thread_pool_java_type": false,
+  "base_uri": "",
+  "tls_only": false,
+  "properties": {
+    "shiro": {
+      "config": "classpath:mcp-shiro.ini"
+    },
+    "keep-alive": {
+      "time_out": "5s",
+      "maximum": 100
+    }
+  },
+  "connections": [
+    {
+      // plain HTTP on all interfaces: for local testing
+      "name": "http",
+      "schemes": [
+        "http"
+      ],
+      "socket_config": {
+        #"inet_address": "127.0.0.1",
+        "port": 5080,
+        "backlog": 64
+      }
+    }
+    // For remote clients add an https connection with an ssl_config, as in the http module's
+    // http_server_config.json, and remove the plain http one.
+  ],
+  "endpoints": [
+    {
+      "bean": "io.xlogistx.http.services.Ping",
+      "properties": {
+        "server_name": "xlogistx-mcp",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "bean": "io.xlogistx.mcp.services.MCPEndpoint",
+      "properties": {
+        // required: the folders the tools may read and write; each must exist
+        "roots": [
+          "D:/dev/data/mcp-sandbox"
+        ],
+        // true leaves out write_file, edit_file and create_directory
+        "read-only": false,
+        // browser Origins to accept; a request with any other Origin header gets 403
+        "allowed-origins": [],
+        "server-name": "xlogistx-mcp",
+        "max-read-chars": 1048576,
+        "max-results": 500,
+        "max-search-file-bytes": 4194304,
+        "max-write-bytes": 4194304
+      }
+    }
+  ]
+}
