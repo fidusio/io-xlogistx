@@ -12,11 +12,20 @@ import io.xlogistx.s2t.whisper.WhisperTranscriber;
 import org.zoxweb.shared.util.ParamUtil;
 
 import java.io.BufferedReader;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,7 +40,8 @@ import java.util.concurrent.Executors;
  *
  *   optional:  prompt="nano sudo systemctl"   vocabulary hint
  *              threads=4                      engine threads
- *              lang=en                        language code
+ *              lang=en                        language code (en, fr, ar, ...) or auto;
+ *                                             anything but en needs a multilingual model
  *              max=60                         longest utterance, seconds
  *              log=true                       show the engine's own diagnostics
  * </pre>
@@ -40,11 +50,17 @@ import java.util.concurrent.Executors;
  */
 public final class S2TDemo {
 
+    private static final int UTF8_CODE_PAGE = 65001;
+
     private S2TDemo() {
     }
 
     public static void main(String[] args) {
-        PrintStream out = System.out;
+        // Transcripts can be in any script, so the output is UTF-8 whatever the platform
+        // default is; a Windows console is told to read it as UTF-8.
+        consoleToUTF8();
+        PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true,
+                                          StandardCharsets.UTF_8);
         int exit;
         try {
             ParamUtil.ParamMap params = ParamUtil.parse("=", args);
@@ -176,6 +192,45 @@ public final class S2TDemo {
         return 0;
     }
 
+    /**
+     * Windows only: switches the console's output code page to UTF-8 (65001) and puts
+     * the previous one back when the JVM exits, because the code page outlives the
+     * process in the same console window. Does nothing elsewhere, when there is no
+     * console, or when the call fails: the demo then still writes UTF-8 bytes.
+     */
+    private static void consoleToUTF8() {
+        if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows")) {
+            return;
+        }
+        try {
+            Linker linker = Linker.nativeLinker();
+            SymbolLookup kernel32 = SymbolLookup.libraryLookup("kernel32", Arena.global());
+            MethodHandle getCP = linker.downcallHandle(
+                    kernel32.find("GetConsoleOutputCP").orElseThrow(),
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT));
+            MethodHandle setCP = linker.downcallHandle(
+                    kernel32.find("SetConsoleOutputCP").orElseThrow(),
+                    FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+
+            int previous = (int) getCP.invokeExact();
+            // 0 means the process has no console.
+            if (previous == 0 || previous == UTF8_CODE_PAGE) {
+                return;
+            }
+            if ((int) setCP.invokeExact(UTF8_CODE_PAGE) != 0) {
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    try {
+                        int ignored = (int) setCP.invokeExact(previous);
+                    } catch (Throwable ignored) {
+                        // The console keeps UTF-8; nothing else to do at exit.
+                    }
+                }, "s2t-demo-console"));
+            }
+        } catch (Throwable ignored) {
+            // No console API: the output is UTF-8 bytes either way.
+        }
+    }
+
     private static long millisSince(long nanos) {
         return (System.nanoTime() - nanos) / 1_000_000;
     }
@@ -184,6 +239,6 @@ public final class S2TDemo {
         out.println("Usage:");
         out.println("  S2TDemo model=<ggml model file> wav=<audio file>   transcribe a file");
         out.println("  S2TDemo model=<ggml model file>                    use the microphone");
-        out.println("Optional: prompt=\"words\" threads=<n> lang=<code> max=<seconds> log=true");
+        out.println("Optional: prompt=\"words\" threads=<n> lang=<code|auto> max=<seconds> log=true");
     }
 }

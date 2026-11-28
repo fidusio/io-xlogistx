@@ -1,6 +1,7 @@
 package io.xlogistx.s2t;
 
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -18,6 +19,12 @@ import java.util.Objects;
 public final class S2TConfig {
 
     public static final String DEFAULT_LANGUAGE = "en";
+    /**
+     * Language value that makes the engine detect the spoken language by itself, once
+     * per transcription. Needs a multilingual model ({@code ggml-base.bin}, not
+     * {@code ggml-base.en.bin}).
+     */
+    public static final String LANGUAGE_AUTO = "auto";
     public static final int DEFAULT_MAX_UTTERANCE_SECONDS = 60;
     public static final int DEFAULT_MAX_THREADS = 4;
 
@@ -58,7 +65,10 @@ public final class S2TConfig {
         return modelPath;
     }
 
-    /** Language code handed to the engine. Default {@value #DEFAULT_LANGUAGE}. */
+    /**
+     * Language handed to the engine: a lower-case code such as {@code en}, {@code fr} or
+     * {@code ar}, or {@value #LANGUAGE_AUTO}. Default {@value #DEFAULT_LANGUAGE}.
+     */
     public String language() {
         return language;
     }
@@ -117,9 +127,21 @@ public final class S2TConfig {
             return this;
         }
 
+        /**
+         * The spoken language: a code such as {@code en}, {@code fr} or {@code ar} to
+         * force one, or {@link #LANGUAGE_AUTO} to let the engine detect it for every
+         * transcription. Anything but {@code en} needs a multilingual model. Case and
+         * surrounding blanks are ignored; {@code null} or blank means
+         * {@value #DEFAULT_LANGUAGE}.
+         */
         public Builder language(String language) {
             this.language = language;
             return this;
+        }
+
+        /** Shorthand for {@code language(LANGUAGE_AUTO)}. */
+        public Builder autoDetectLanguage() {
+            return language(LANGUAGE_AUTO);
         }
 
         public Builder threads(int threads) {
@@ -155,9 +177,10 @@ public final class S2TConfig {
         public S2TConfig build() {
             Objects.requireNonNull(modelPath, "modelPath");
             Objects.requireNonNull(nativeCacheDir, "nativeCacheDir");
-            if (language == null || language.isBlank()) {
-                language = DEFAULT_LANGUAGE;
-            }
+            // The engine matches language codes exactly, in lower case.
+            language = language == null || language.isBlank()
+                    ? DEFAULT_LANGUAGE
+                    : language.trim().toLowerCase(Locale.ROOT);
             if (threads < 1) {
                 throw new IllegalArgumentException("threads must be >= 1, got " + threads);
             }

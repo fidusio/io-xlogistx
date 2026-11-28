@@ -102,6 +102,12 @@ public final class WhisperTranscriber implements Transcriber {
 
                 int rc = nativeApi.transcribe(context, buffer, count, config.threads(),
                                               language, prompt, WhisperNative.FLAG_NO_CONTEXT);
+                if (rc == -3) {
+                    throw new S2TException("The speech engine could not detect the language"
+                            + " (language=" + config.language() + ") on " + length
+                            + " samples. Check that the model is multilingual, not an"
+                            + " English-only .en one.");
+                }
                 if (rc != 0) {
                     throw new S2TException("The speech engine failed with code " + rc
                             + " on " + length + " samples");
