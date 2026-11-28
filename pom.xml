@@ -36,6 +36,8 @@
         <module>gui-audio</module>
         <module>xlogistx-net</module>
         <module>xlogistx-scan</module>
+        <module>xlogistx-s2t</module>
+        <module>xlogistx-mcp</module>
 <!--        <module>ffm</module>-->
         <module>apps</module>
     </modules>
@@ -139,6 +141,11 @@
             <dependency>
                 <groupId>io.xlogistx</groupId>
                 <artifactId>xlogistx-no-sneak</artifactId>
+                <version>${xlogistx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.xlogistx</groupId>
+                <artifactId>xlogistx-mcp</artifactId>
                 <version>${xlogistx.version}</version>
             </dependency>
 
